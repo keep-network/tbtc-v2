@@ -88,12 +88,53 @@ Examples of chains with native bridges include:
 * Polygon,
 * Optimism.
 
+==== Arbitrum native bridge
+
+Since our TBTC L2 token is upgradeable and will allow multiple minting
+authorities, the Arbitrum Standard ERC20 Gateway is not sufficient.
+
+Given our TBTC L1 token does not conform to `ICustomToken` interface, we can not
+use Arbitrum Generic Custom Gateway.
+
+The only option is to implement our custom gateway that will have a minting
+authority for Arbitrum L2 TBTC token.
+
+This is out of the scope of the initial implementation.
+
+See link:https://developer.arbitrum.io/asset-bridging[Arbitrum documentation for token bridging]
+for more information.
+
+==== Polygon native bridge
+
+For similar reasons as for Arbitrum, we have to implement our custom `FxTunnel`
+implementation. The child tunnel implementation on the Polygon sidechain will
+have a minting authority for the Polygon TBTC token.
+
+This is out of the scope of the initial implementation.
+
+See link:https://wiki.polygon.technology/docs/develop/l1-l2-communication/fx-portal[Polygon FxPortal documentation]
+for more information.
+
+==== Optimism native bridge
+
+The Optimism Standard Bridge creates L2 token with a call to
+`OptimismMintableERC20Factory`. The created token does not have the capabilities
+we expect from TBTC canonical tokens on L2. For this reason, using the Optimism
+Standard Bridge is not an option and we must implement our own L2 minter
+contract with an authority to mint Optimism TBTC. Note that going back from L2
+to L1 will take at least one week given the one-week Optimism challenge period.
+
+This is out of the scope of the initial implementation.
+
+See link:https://github.com/ethereum-optimism/optimism-tutorial/tree/main/standard-bridge-standard-token[Optimism guide for the standard bridge]
+and link:https://community.optimism.io/docs/developers/bridge/messaging/#fees-for-l2-%E2%87%92-l1-transactions[Optimism documentation on sending data between L1 and L2]
+for more details.
+
 === Supporting cross-ecosystem bridges
 
 TODO 
 
 === Multisig governance
-
 
 The Governance in the initial implementation should be based on Gnosis Safe
 6-of-9 Threshold Council Multisig. Since the Gnosis Safe for Threshold Council
@@ -104,7 +145,6 @@ supported L2s and sidechains.
 
 The Governance will be able to add and remove minters to L2/sidechain TBTC
 canonical contract.
-
 
 === Code organization
 
