@@ -81,6 +81,8 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
 export async function validateProof(
   transactionHash: TransactionHash,
   requiredConfirmations: number,
+  previousDifficulty: BigNumber,
+  currentDifficulty: BigNumber,
   bitcoinClient: BitcoinClient
 ) {
   const proof = await assembleTransactionProof(
@@ -115,11 +117,10 @@ export async function validateProof(
     )
   }
 
-  // TODO: Replace with real difficulties
   evaluateProofDifficulty(
     proof.bitcoinHeaders,
-    BigNumber.from(39156400059293),
-    BigNumber.from(39350942467772)
+    previousDifficulty,
+    currentDifficulty
   )
 }
 
