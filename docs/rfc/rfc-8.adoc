@@ -30,7 +30,7 @@ localizing ecosystem risk.
 == Overview
 
 To achieve this goal, I propose we deploy a canonical tBTC contract on each
-chain we support. This contract should be flexible enough to...
+chain we support. This contract should be flexible enough to:
 
 * Delegate restricted minting authority to a native bridge on the chain, if
   present.
@@ -41,6 +41,30 @@ chain we support. This contract should be flexible enough to...
   cross-chain governance mechanism.
 
 == Initial implementation
+
+The goal of the initial implementation is to bring Bitcoin to the following L2s
+and sidechains:
+
+* Arbitrum,
+* Polygon,
+* Optimism.
+
+The cross-bridge architecture and patterns we are going to choose should allow
+us to scale to other L2s, sidechains, and chains quickly.
+
+=== Canonical token
+
+The canonical token we are going to deploy will be different from the L1 token
+deployed at `0x18084fbA666a33d37592fA2633fD49a74DD93a88`. The L2/sidechain token
+will be upgradeable, owned by Threshold Council, will delegate the minting
+authority to multiple parties, and have a pause functionality for mints and
+burns.
+
+Given those requirements, the address of the canonical TBTC token on L2s and
+sidechains will be different from the one deployed on L1.
+
+A generic implementation of the token will be provided in the `solidity` smart
+contracts directory.
 
 === Minting on L1
 
@@ -58,17 +82,26 @@ and the trickiest to support.
 Each native bridge has its own way mechanism to manage an Ethereum-to-chain
 token contract mapping, sometimes called a token registry.
 
-Examples of chains with native bridges include
-* Arbitrum
-* Polygon
-* Optimism
+Examples of chains with native bridges include:
+
+* Arbitrum,
+* Polygon,
+* Optimism.
+
+=== Supporting cross-ecosystem bridges
+
+TODO
+
+=== Multisig governance
+
+TODO
 
 === Code organization
 
 The code that exists in the `solidity` directory should contain components
 specific to L1 and generic L2 components that will be reused between EVM
-sidechain implementations. The code specific to individual chains should be
-placed in a chain-specific directory, in a separate NPM project:
+L2 and sidechain implementations. The code specific to individual chains should
+be placed in a chain-specific directory, in a separate NPM project:
 `cross-chain/{$chainName}`.
 
 For example:
@@ -77,7 +110,7 @@ For example:
 * `cross-chain/polygon`,
 * `cross-chain/optimism`.
 
-Each `cross-chain` component for Ethereum subchain should contain L1 and L2
+Each `cross-chain` project should contain L1 and L2
 contracts specific to that individual subchain. This separation will allow us to
 abstract out the complexity of deployment and avoid redeploying all L1 testnet
 contracts in case a single change in one of L2 contracts is needed.
@@ -141,14 +174,6 @@ other. For example, `ArbitrumL1Gateway` deployed on L1 Ethereum, and
 `ArbitrumL2Gateway` deployed on L2 Arbitrum. It means the deployment job of the
 given `cross-chain` module must be able to work both with L1 and L2 and to wire
 up contracts together.
-
-=== Supporting cross-ecosystem bridges
-
-TODO
-
-=== Multisig governance
-
-TODO
 
 == Future work
 === Minting on L2
