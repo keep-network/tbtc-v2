@@ -101,36 +101,43 @@ export async function validateProof(
   const decomposedRawTransaction: DecomposedRawTransaction =
     decomposeRawTransaction(rawTransaction)
 
-  const txBytes: Buffer = Buffer.concat([
+  const transactionBytes: Buffer = Buffer.concat([
     Buffer.from(decomposedRawTransaction.version, "hex"),
     Buffer.from(decomposedRawTransaction.inputs, "hex"),
     Buffer.from(decomposedRawTransaction.outputs, "hex"),
     Buffer.from(decomposedRawTransaction.locktime, "hex"),
   ])
 
-  const txId = computeHash256(txBytes.toString("hex"))
-  const merkleRoot = extractMerkleRootLE(proof.bitcoinHeaders)
+  const transactionHashLE: string = computeHash256(
+    transactionBytes.toString("hex")
+  )
+  const merkleRoot: string = extractMerkleRootLE(proof.bitcoinHeaders)
 
-  if (!prove(txId, merkleRoot, proof.merkleProof, proof.txIndexInBlock)) {
+  if (
+    !validateMerkleTree(
+      transactionHashLE,
+      merkleRoot,
+      proof.merkleProof,
+      proof.txIndexInBlock
+    )
+  ) {
     throw new Error(
-      "Tx merkle proof is not valid for provided header and tx hash"
+      "Transaction merkle proof is not valid for provided header and transaction hash"
     )
   }
 
-  evaluateProofDifficulty(
-    proof.bitcoinHeaders,
-    previousDifficulty,
-    currentDifficulty
-  )
+  const bitcoinHeaders = splitHeaders(proof.bitcoinHeaders)
+
+  validateProofDifficulty(bitcoinHeaders, previousDifficulty, currentDifficulty)
 }
 
-export function extractMerkleRootLE(header: string): string {
-  const headerBytes = Buffer.from(header, "hex")
-  const merkleRootBytes = headerBytes.slice(36, 68)
+export function extractMerkleRootLE(headers: string): string {
+  const headersBytes: Buffer = Buffer.from(headers, "hex")
+  const merkleRootBytes: Buffer = headersBytes.slice(36, 68)
   return merkleRootBytes.toString("hex")
 }
 
-export function prove(
+export function validateMerkleTree(
   txId: string,
   merkleRoot: string,
   intermediateNodes: string,
@@ -140,12 +147,10 @@ export function prove(
   if (txId == merkleRoot && index == 0 && intermediateNodes.length == 0) {
     return true
   }
-
-  // If the Merkle proof failed, bubble up error
-  return verifyHash256Merkle(txId, intermediateNodes, merkleRoot, index)
+  return validateMerkleTreeHashes(txId, intermediateNodes, merkleRoot, index)
 }
 
-function verifyHash256Merkle(
+function validateMerkleTreeHashes(
   leaf: string,
   tree: string,
   root: string,
@@ -167,9 +172,9 @@ function verifyHash256Merkle(
   // i moves in increments of 64
   for (let i = 0; i < tree.length; i += 64) {
     if (idx % 2 === 1) {
-      current = hash256MerkleStep(tree.slice(i, i + 64), current)
+      current = computeHash256(tree.slice(i, i + 64) + current)
     } else {
-      current = hash256MerkleStep(current, tree.slice(i, i + 64))
+      current = computeHash256(current + tree.slice(i, i + 64))
     }
     idx = idx >> 1
   }
@@ -177,43 +182,82 @@ function verifyHash256Merkle(
   return current === root
 }
 
-function hash256MerkleStep(firstHash: string, secondHash: string): string {
-  // TODO: Make sure the strings are not prepended with `0x`
-  return computeHash256(firstHash + secondHash)
-}
-
-export function evaluateProofDifficulty(
-  headers: string,
+export function validateProofDifficulty(
+  serializedHeaders: string[],
   previousDifficulty: BigNumber,
   currentDifficulty: BigNumber
 ) {
-  if (headers.length % 160 !== 0) {
-    throw new Error("Invalid length of the headers chain")
+  const validateHeaderPrevHash = (
+    header: string,
+    prevHeaderDigest: string
+  ): boolean => {
+    // Extract prevHash of current header
+    const prevHash = header.slice(8, 8 + 64)
+
+    // Compare prevHash of current header to previous header's digest
+    if (prevHash != prevHeaderDigest) {
+      return false
+    }
+    return true
   }
 
-  let digest = ""
-  for (let start = 0; start < headers.length; start += 160) {
-    if (start !== 0) {
-      if (!validateHeaderPrevHash(headers, start, digest)) {
+  const extractMantissa = (header: string): number => {
+    const mantissaBytes = header.slice(144, 144 + 6)
+    const buffer = Buffer.from(mantissaBytes, "hex")
+    buffer.reverse()
+    return parseInt(buffer.toString("hex"), 16)
+  }
+
+  const extractTargetAt = (header: string): BigNumber => {
+    const mantissa = extractMantissa(header)
+    const e = parseInt(header.slice(150, 150 + 2), 16)
+    const exponent = e - 3
+
+    return BigNumber.from(mantissa).mul(BigNumber.from(256).pow(exponent))
+  }
+
+  const digestToBigNumber = (hexString: string): BigNumber => {
+    const buffer = Buffer.from(hexString, "hex")
+    buffer.reverse()
+    const reversedHex = buffer.toString("hex")
+    return BigNumber.from("0x" + reversedHex)
+  }
+
+  const calculateDifficulty = (_target: BigNumber): BigNumber => {
+    const DIFF1_TARGET = BigNumber.from(
+      "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
+    )
+    // Difficulty 1 calculated from 0x1d00ffff
+    return DIFF1_TARGET.div(_target)
+  }
+
+  let previousDigest: string = ""
+  // for (let start = 0; start < headers.length; start += 160) {
+  for (let index = 0; index < serializedHeaders.length; index++) {
+    const currentHeader = serializedHeaders[index]
+
+    if (index !== 0) {
+      if (!validateHeaderPrevHash(currentHeader, previousDigest)) {
         throw new Error("Invalid headers chain")
       }
     }
 
-    const target = extractTargetAt(headers, start)
-    digest = computeHash256(headers.slice(start, start + 160))
+    const target = extractTargetAt(currentHeader)
+    const digest = computeHash256(currentHeader)
 
-    const digestAsNumber = digestToBigNumber(digest)
-
-    if (digestAsNumber.gt(target)) {
+    if (digestToBigNumber(digest).gt(target)) {
       throw new Error("Insufficient work in a header")
     }
+
+    // Save the current digest to compare it with the next block header's digest
+    previousDigest = digest
 
     const difficulty = calculateDifficulty(target)
 
     if (previousDifficulty.eq(1) && currentDifficulty.eq(1)) {
       // Special case for Bitcoin Testnet. Do not check block's difficulty
       // due to required difficulty falling to `1` for Testnet.
-      return
+      continue
     }
 
     if (
@@ -225,66 +269,15 @@ export function evaluateProofDifficulty(
   }
 }
 
-function validateHeaderPrevHash(
-  headers: string,
-  at: number,
-  prevHeaderDigest: string
-): boolean {
-  // Extract prevHash of current header
-  const prevHash = extractPrevBlockLEAt(headers, at)
-
-  // Compare prevHash of current header to previous header's digest
-  if (prevHash != prevHeaderDigest) {
-    return false
-  }
-  return true
-}
-
-function extractPrevBlockLEAt(header: string, at: number): string {
-  return header.slice(8 + at, 8 + 64 + at)
-}
-
-function extractTargetAt(headers: string, at: number): BigNumber {
-  const mantissa = extractMantissa(headers, at)
-  const e = parseInt(headers.slice(150 + at, 150 + 2 + at), 16)
-  const exponent = e - 3
-
-  return BigNumber.from(mantissa).mul(BigNumber.from(256).pow(exponent))
-}
-
-function extractMantissa(headers: string, at: number): number {
-  const mantissaBytes = headers.slice(144 + at, 144 + 6 + at)
-  const buffer = Buffer.from(mantissaBytes, "hex")
-  buffer.reverse()
-  return parseInt(buffer.toString("hex"), 16)
-}
-
-/**
- * Reverses the endianness of a hash represented as a hex string and converts
- * the has to BigNumber
- * @param hexString The hash to reverse
- * @returns The reversed hash as a BigNumber
- */
-function digestToBigNumber(hexString: string): BigNumber {
-  if (!hexString.match(/^[0-9a-fA-F]+$/)) {
-    throw new Error("Input is not a valid hexadecimal string")
+function splitHeaders(headers: string): string[] {
+  if (headers.length % 160 !== 0) {
+    throw new Error("Incorrect length of Bitcoin headers")
   }
 
-  const buf = Buffer.from(hexString, "hex")
-  buf.reverse()
-  const reversedHex = buf.toString("hex")
-
-  try {
-    return BigNumber.from("0x" + reversedHex)
-  } catch (e) {
-    throw new Error("Error converting hexadecimal string to BigNumber")
+  const result = []
+  for (let i = 0; i < headers.length; i += 160) {
+    result.push(headers.substring(i, i + 160))
   }
-}
 
-function calculateDifficulty(_target: BigNumber): BigNumber {
-  const DIFF1_TARGET = BigNumber.from(
-    "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
-  )
-  // Difficulty 1 calculated from 0x1d00ffff
-  return DIFF1_TARGET.div(_target)
+  return result
 }
