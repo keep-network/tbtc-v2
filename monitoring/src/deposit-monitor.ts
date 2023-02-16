@@ -15,7 +15,7 @@ const DepositRevealed = (
   data: {
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amount: chainEvent.amount.toString(),
+    amountSat: chainEvent.amount.toString(),
     ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
   },
   block: chainEvent.blockNumber,
@@ -29,7 +29,7 @@ const LargeDepositRevealed = (
   data: {
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amount: chainEvent.amount.toString(),
+    amountSat: chainEvent.amount.toString(),
     ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
   },
   block: chainEvent.blockNumber,

@@ -9,6 +9,8 @@ import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { BigNumber } from "ethers"
 
+const satoshiMultiplier = 1e10
+
 const OptimisticMintingCancelled = (
   chainEvent: OptimisticMintingCancelledChainEvent
 ): SystemEvent => ({
@@ -33,7 +35,7 @@ const OptimisticMintingRequestedTooEarly = (
     minter: `0x${chainEvent.minter.identifierHex}`,
     depositKey: chainEvent.depositKey.toPrefixedString(),
     depositor: `0x${chainEvent.depositor.identifierHex}`,
-    amount: chainEvent.amount.toString(),
+    amountSat: chainEvent.amount.div(satoshiMultiplier).toString(),
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
     btcFundingTxActualConfirmations: btcFundingTxActualConfirmations.toString(),
@@ -63,7 +65,7 @@ const OptimisticMintingRequestedForUndeterminedBtcTx = (
     minter: `0x${chainEvent.minter.identifierHex}`,
     depositKey: chainEvent.depositKey.toPrefixedString(),
     depositor: `0x${chainEvent.depositor.identifierHex}`,
-    amount: chainEvent.amount.toString(),
+    amountSat: chainEvent.amount.div(satoshiMultiplier).toString(),
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
     btcClientResponse,
@@ -132,7 +134,9 @@ export class MintingMonitor implements SystemEventMonitor {
       switch (confirmation.status) {
         case "fulfilled": {
           const actualConfirmations = confirmation.value
-          const requiredConfirmations = this.requiredConfirmations(ce.amount)
+          const requiredConfirmations = this.requiredConfirmations(
+            ce.amount.div(satoshiMultiplier)
+          )
 
           if (actualConfirmations < requiredConfirmations) {
             systemEvents.push(
