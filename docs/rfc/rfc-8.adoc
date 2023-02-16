@@ -4,7 +4,6 @@
 
 :icons: font
 :numbered:
-:stem:
 toc::[]
 
 == Goal
@@ -19,7 +18,7 @@ Sui.
 
 Efficiency requires minimizing liquidity fragmentation by avoiding the need for
 tBTC wrapper tokens by each chain and bridge. This situation quickly leads to an
-stem:[n*m] problem, where liquidity on `n` chains is divided between `m`
+`n*m` problem, where liquidity on `n` chains is divided between `m`
 bridges. Each of these token variants soaks up valuable liquidity that could be
 better utilized elsehwere.
 
@@ -43,8 +42,6 @@ chain we support. This contract should be flexible enough to...
 
 == Initial implementation
 
-TODO
-
 === Minting on L1
 
 Rather than change our L1 implementation to be aware of L2s and sidechains,
@@ -65,6 +62,85 @@ Examples of chains with native bridges include
 * Arbitrum
 * Polygon
 * Optimism
+
+=== Code organization
+
+The code that exists in the `solidity` directory should contain components
+specific to L1 and generic L2 components that will be reused between EVM
+sidechain implementations. The code specific to individual chains should be
+placed in a chain-specific directory, in a separate NPM project:
+`cross-chain/{$chainName}`.
+
+For example:
+
+* `cross-chain/arbitrum`,
+* `cross-chain/polygon`,
+* `cross-chain/optimism`.
+
+Each `cross-chain` component for Ethereum subchain should contain L1 and L2
+contracts specific to that individual subchain. This separation will allow us to
+abstract out the complexity of deployment and avoid redeploying all L1 testnet
+contracts in case a single change in one of L2 contracts is needed.
+
+This organization of the code will also allow us to not add subchain-specific
+dependencies to the L1 project and to deploy NPM packages separately:
+
+* `@keep-network/tbtc-v2-arbitrum`,
+* `@keep-network/tbtc-v2-polygon`,
+* `@keep-network/tbtc-v2-optimism`.
+
+Every chain requires its own network and compiler configuration.
+The `@keep-network/tbtc-v2` package is quite heavy and there is no
+straightforward way to distinguish on which chain the given contract was
+deployed if we do not separate NPM packages.
+
+Each project should have its own CI process that may incorporate jobs specific
+to that chain if needed. 
+
+The CI processes of `cross-chain` projects should include Goerli deployment
+jobs. Note that the separation of the code does not mean the deployment is fully
+separated between chains. Both L1 and L2 contracts need to be deployed from the
+given `cross-chain` module. L1 contracts may require addresses of contracts from
+L2 and L2 contract addresses may require addresses of contracts from L1.
+
+```
+├── solidity
+│   ├── (...)
+│   └── l2
+│       └── L2TBTC.sol
+└── cross-chain
+    ├── arbitrum
+    │   ├── package.json
+    │   └── solidity
+    │      ├── ArbitrumL1Gateway.sol 
+    │      ├── ArbitrumL2Gateway.sol 
+    │      └── ArbitrumTBTC.sol 
+    ├── optimism
+    │   ├── package.json
+    │   └── solidity
+    │      ├── OptimismL1Gateway.sol 
+    │      ├── OptimismL2Gateway.sol 
+    │      └── OptimismTBTC.sol 
+    └── polygon
+        ├── package.json
+        └── solidity
+           ├── PolygonL1Gateway.sol 
+           ├── PolygonL2Gateway.sol 
+           └── PolygonTBTC.sol 
+```
+
+`L2TBTC.sol` is an abstract contract doing all the heavy lifting: upgradeability,
+authorization of minters, and minting pause. This generic contract is inherited
+by L2-specific tokens: `ArbitrumTBTC`, `OptimismTBTC`, and `PolygonTBTC`.
+
+Each `cross-chain` module has its own `package.json` so it's an independent
+project with a separate NPM package deployment job and CI jobs.
+
+Both L1 and L2 contracts specific to the given chain are placed next to each
+other. For example, `ArbitrumL1Gateway` deployed on L1 Ethereum, and
+`ArbitrumL2Gateway` deployed on L2 Arbitrum. It means the deployment job of the
+given `cross-chain` module must be able to work both with L1 and L2 and to wire
+up contracts together.
 
 === Supporting cross-ecosystem bridges
 
