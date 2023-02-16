@@ -10,9 +10,9 @@ const WalletRegistered = (
   title: "Wallet registered",
   type: SystemEventType.Informational,
   data: {
-    ecdsaWalletID: chainEvent.ecdsaWalletID.toString(),
+    ecdsaWalletID: chainEvent.ecdsaWalletID.toPrefixedString(),
     walletPublicKeyHash: chainEvent.walletPublicKeyHash.toString(),
-    ethRegistrationTxHash: chainEvent.transactionHash.toPrefixedString(),
+    ethRegisterTxHash: chainEvent.transactionHash.toPrefixedString(),
   },
   block: chainEvent.blockNumber,
 })
@@ -25,10 +25,16 @@ export class WalletMonitor implements SystemEventMonitor {
   }
 
   async check(fromBlock: number, toBlock: number): Promise<SystemEvent[]> {
+    // eslint-disable-next-line no-console
+    console.log("running wallet monitor check")
+
     const chainEvents = await this.bridge.getNewWalletRegisteredEvents({
       fromBlock,
       toBlock,
     })
+
+    // eslint-disable-next-line no-console
+    console.log("completed wallet monitor check")
 
     return chainEvents.map(WalletRegistered)
   }

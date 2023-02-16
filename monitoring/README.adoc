@@ -153,6 +153,8 @@ The behavior can be configured using the following env variables:
 
 |*ETHEREUM_URL* |URL of the Ethereum node |Yes
 
+|*ELECTRUM_URL* |URL of the Electrum node |Yes
+
 |*LARGE_DEPOSIT_THRESHOLD_SAT* |Satoshi threshold used to determine which deposits are large. Default: _1000000000_ |No
 
 |*DATA_DIR_PATH* |Directory used to persist processing data. Default: _./data_ |No

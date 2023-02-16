@@ -43,6 +43,9 @@ export class DepositMonitor implements SystemEventMonitor {
   }
 
   async check(fromBlock: number, toBlock: number): Promise<SystemEvent[]> {
+    // eslint-disable-next-line no-console
+    console.log("running deposit monitor check")
+
     const chainEvents = await this.bridge.getDepositRevealedEvents({
       fromBlock,
       toBlock,
@@ -62,6 +65,9 @@ export class DepositMonitor implements SystemEventMonitor {
         systemEvents.push(LargeDepositRevealed(chainEvent))
       }
     }
+
+    // eslint-disable-next-line no-console
+    console.log("completed deposit monitor check")
 
     return systemEvents
   }
