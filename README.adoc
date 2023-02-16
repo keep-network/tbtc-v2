@@ -59,3 +59,42 @@ wallet accepts new deposits, and the oldest wallet serves redemptions.
 Depositing Bitcoin into the tBTCv2 bridge grants a transferable Bank balance, which
 can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
+
+== Installation
+
+=== Prerequisites
+* clone the repository
+* link:https://nodejs.org/en/[Node.js] v14.21.2
+* yarn: `$ npm install -g yarn`
+* configure git to use https
+
+```
+git config --global url."https://".insteadOf git://
+```
+
+* Python 3.11.1 for `node-gyp`. It is
+  https://opensource.com/article/19/5/python-3-default-mac[suggested] to use
+  `pyenv` to manage multiple Python versions.
+```
+brew install pyenv
+pyenv install 3.11.1
+```
+
+=== Install and Test Contracts
+
+```
+cd solidity
+yarn install --frozen-lockfile
+yarn build
+yarn test
+yarn test:integration
+```
+
+=== Install and Test TypeScript Library
+
+```
+cd typescript
+yarn install --frozen-lockfile
+yarn build
+yarn test
+```
