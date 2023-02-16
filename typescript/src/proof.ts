@@ -9,6 +9,7 @@ import {
   DecomposedRawTransaction,
   computeHash256,
 } from "./bitcoin"
+import { BigNumber } from "ethers"
 
 /**
  * Assembles a proof that a given transaction was included in the blockchain and
@@ -75,6 +76,8 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
   return proof.toString("hex")
 }
 
+// TODO: Those functions were rewritten from Solidity.
+//       Refactor all the functions, e.g. represent BitcoinHeaders as structure.
 export async function validateProof(
   transactionHash: TransactionHash,
   requiredConfirmations: number,
@@ -111,6 +114,13 @@ export async function validateProof(
       "Tx merkle proof is not valid for provided header and tx hash"
     )
   }
+
+  // TODO: Replace with real difficulties
+  evaluateProofDifficulty(
+    proof.bitcoinHeaders,
+    BigNumber.from(39156400059293),
+    BigNumber.from(39350942467772)
+  )
 }
 
 export function extractMerkleRootLE(header: string): string {
@@ -169,4 +179,111 @@ function verifyHash256Merkle(
 function hash256MerkleStep(firstHash: string, secondHash: string): string {
   // TODO: Make sure the strings are not prepended with `0x`
   return computeHash256(firstHash + secondHash)
+}
+
+export function evaluateProofDifficulty(
+  headers: string,
+  previousDifficulty: BigNumber,
+  currentDifficulty: BigNumber
+) {
+  if (headers.length % 160 !== 0) {
+    throw new Error("Invalid length of the headers chain")
+  }
+
+  let digest = ""
+  for (let start = 0; start < headers.length; start += 160) {
+    if (start !== 0) {
+      if (!validateHeaderPrevHash(headers, start, digest)) {
+        throw new Error("Invalid headers chain")
+      }
+    }
+
+    const target = extractTargetAt(headers, start)
+    digest = computeHash256(headers.slice(start, start + 160))
+
+    const digestAsNumber = digestToBigNumber(digest)
+
+    if (digestAsNumber.gt(target)) {
+      throw new Error("Insufficient work in a header")
+    }
+
+    const difficulty = calculateDifficulty(target)
+
+    if (previousDifficulty.eq(1) && currentDifficulty.eq(1)) {
+      // Special case for Bitcoin Testnet. Do not check block's difficulty
+      // due to required difficulty falling to `1` for Testnet.
+      return
+    }
+
+    if (
+      !difficulty.eq(previousDifficulty) &&
+      !difficulty.eq(currentDifficulty)
+    ) {
+      throw new Error("Header difficulty not at current or previous difficulty")
+    }
+  }
+}
+
+function validateHeaderPrevHash(
+  headers: string,
+  at: number,
+  prevHeaderDigest: string
+): boolean {
+  // Extract prevHash of current header
+  const prevHash = extractPrevBlockLEAt(headers, at)
+
+  // Compare prevHash of current header to previous header's digest
+  if (prevHash != prevHeaderDigest) {
+    return false
+  }
+  return true
+}
+
+function extractPrevBlockLEAt(header: string, at: number): string {
+  return header.slice(8 + at, 8 + 64 + at)
+}
+
+function extractTargetAt(headers: string, at: number): BigNumber {
+  const mantissa = extractMantissa(headers, at)
+  const e = parseInt(headers.slice(150 + at, 150 + 2 + at), 16)
+  const exponent = e - 3
+
+  return BigNumber.from(mantissa).mul(BigNumber.from(256).pow(exponent))
+}
+
+function extractMantissa(headers: string, at: number): number {
+  const mantissaBytes = headers.slice(144 + at, 144 + 6 + at)
+  const buffer = Buffer.from(mantissaBytes, "hex")
+  buffer.reverse()
+  return parseInt(buffer.toString("hex"), 16)
+}
+
+/**
+ * Reverses the endianness of a hash represented as a hex string and converts
+ * the has to BigNumber
+ * @param hexString The hash to reverse
+ * @returns The reversed hash as a BigNumber
+ */
+function digestToBigNumber(hexString: string): BigNumber {
+  if (!hexString.match(/^[0-9a-fA-F]+$/)) {
+    throw new Error("Input is not a valid hexadecimal string")
+  }
+
+  const buf = Buffer.from(hexString, "hex")
+  buf.reverse()
+  const reversedHex = buf.toString("hex")
+
+  try {
+    return BigNumber.from("0x" + reversedHex)
+  } catch (e) {
+    throw new Error("Error converting hexadecimal string to BigNumber")
+  }
+}
+
+function calculateDifficulty(_target: BigNumber): BigNumber {
+  const DIFF1_TARGET = BigNumber.from(
+    "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
+  )
+  // Difficulty 1 calculated from 0x1d00ffff
+  return DIFF1_TARGET.div(_target)
 }
