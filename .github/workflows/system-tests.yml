@@ -5,9 +5,15 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+env:
+  maxAttempts: 3 # How many times the workflow will be run in case of failure.
+
 jobs:
   system-tests-deposit-redemption:
     runs-on: ubuntu-latest
+    outputs:
+      nextAttempt: ${{ steps.set_output_variables.outputs.nextAttempt }}
+      maxAttempts: ${{ steps.set_output_variables.outputs.maxAttempts }}
     steps:
       - uses: actions/checkout@v3
 
@@ -19,6 +25,20 @@ jobs:
 
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
+
+      # This step configures output variables that will be needed if workflow
+      # rerun gets auto-triggered after a failure of the job.
+      - name: Prepare for rerun of workflow
+        id: set_output_variables
+        shell: pwsh
+        run: |
+          $attempt = [int]$env:GITHUB_RUN_ATTEMPT
+          $maxAttempts = [int]$env:maxAttempts
+          $nextAttempt = $attempt + 1
+          echo "Setting 'nextAttempt' output to $nextAttempt"
+          echo "Setting 'maxAttempts' output to $maxAttempts"
+          echo "nextAttempt=$nextAttempt" >> $env:GITHUB_OUTPUT
+          echo "maxAttempts=$maxAttempts" >> $env:GITHUB_OUTPUT
 
       - name: Install solidity dependencies
         working-directory: ./solidity
@@ -118,23 +138,29 @@ jobs:
         run: |
           yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK
 
+  # This job is used to rerun the workflow in case one of the parent jobs ends
+  # with a failure. The rerun cannot be triggered on a workflow run that is
+  # still running, hence we need to trigger it from a separate workflow run. We
+  # use `Rerun` (`rerun.yml`) workflow as an intermediary. To prevent from
+  # stucking in loop of constant retries, we limit the number of reruns to the
+  # value set in the `maxAttempts` output.
   system-tests-trigger-rerun:
     name: Trigger rerun of ${{ github.run_id }}
-    if: ${{ failure() }} # exeutes job if ancestor job have failed
+    if: failure() && ( needs.system-tests-deposit-redemption.outputs.nextAttempt <= needs.system-tests-deposit-redemption.outputs.maxAttempts ) # exeutes job if ancestor job have failed and maxAttempts has not been exceeded
     needs: [system-tests-deposit-redemption, system-tests-minting-unminting]
     runs-on: ubuntu-latest
     steps:
-      - name: "Trigger run of `Rerun` workflow"
+      - name: "Trigger attempt ${{ needs.system-tests-deposit-redemption.outputs.nextAttempt }} of the 'System Tests' workflow"
         shell: pwsh
         env:
-          # GITHUB_TOKEN with actions: write will NOT work
-          # PAT Token must have workflow scope
+          # GITHUB_TOKEN with `actions: write` scope will NOT work. A Personal
+          # Access Token Token with `workflow` and `read:org` scopes must be used.
           RERUN_TOKEN: ${{ secrets.RERUN_TOKEN }}
         run: |
           echo "Running gh auth login..."
           $env:RERUN_TOKEN | gh auth login --with-token
           if(!$?) { exit 1 }
-          echo "Triggering rerun"
+          echo "Triggering attempt ${{ needs.system-tests-deposit-redemption.outputs.nextAttempt }} of the 'System Tests' workflow"
           echo "
           gh workflow run rerun.yml
             --raw-field runId=$env:GITHUB_RUN_ID
