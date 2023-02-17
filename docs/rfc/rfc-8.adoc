@@ -392,6 +392,19 @@ wormhole gateway and native bridge gateway.
 +----------------------------+           +---------------------------------------------------------------------+
 ```
 
-= Future work
+== Future work
+
 === Minting on L2
+
+Canonical TBTC token implementation on each L2/sidechain will allow delegating
+the minting authority to new contracts. Such a contract could be an L1 vault
+implementation other than the `TBTCVault`. In this model, TBTC for the given
+Bitcoin deposit is minted on L2 directly, without minting it on L1. The L1
+`Bank` balance is locked under the given vault implementation.
+
 === Replacing multi-sig governance
+
+It is possible to implement a communication gateway for each L2/sidechain
+allowing the DAO from L1 to vote on changes that would be reflected on
+L2/sidechain. This is a potential mechanism to replace Threshold Council
+ownership of L2/sidechain canonical TBTC token with the Threshold DAO ownership.
