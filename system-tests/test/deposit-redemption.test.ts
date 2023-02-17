@@ -55,10 +55,10 @@ describe("System Test - Deposit and redemption", () => {
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
   // Number of retries for Electrum requests.
-  const ELECTRUM_RETRIES = 3
+  const ELECTRUM_RETRIES = 5
   // Initial backoff step in milliseconds that will be increased exponentially for
   // subsequent Electrum retry attempts.
-  const ELECTRUM_RETRY_BACKOFF_STEP_MS = 5000 // 5sec
+  const ELECTRUM_RETRY_BACKOFF_STEP_MS = 10000 // 10sec
 
   let deposit: Deposit
   let depositUtxo: UnspentTransactionOutput
