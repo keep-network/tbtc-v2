@@ -34,6 +34,7 @@ import {
   UnspentTransactionOutput,
 } from "./bitcoin"
 import type {
+  OptimisticMintingCancelledEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -46,6 +47,7 @@ import type {
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
 import { Hex } from "./hex"
+import { NewWalletRegisteredEvent } from "./wallet"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
 
@@ -565,7 +567,7 @@ export class Bridge
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Revealed deposit data.
+   * @returns Deposit key.
    */
   static buildDepositKey(
     depositTxHash: TransactionHash,
@@ -632,6 +634,31 @@ export class Bridge
     )
 
     return compressPublicKey(uncompressedPublicKey)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getNewWalletRegisteredEvents}
+   */
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "NewWalletRegistered",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<NewWalletRegisteredEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        ecdsaWalletID: Hex.from(event.args!.ecdsaWalletID),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
+      }
+    })
   }
 
   private async walletRegistry(): Promise<WalletRegistry> {
@@ -859,7 +886,9 @@ export class TBTCVault
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         minter: new Address(event.args!.minter),
-        depositKey: BigNumber.from(event.args!.depositKey),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         fundingTxHash: TransactionHash.from(
@@ -868,6 +897,33 @@ export class TBTCVault
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingCancelledEvents}
+   */
+  async getOptimisticMintingCancelledEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingCancelledEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingCancelled",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingCancelledEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        guardian: new Address(event.args!.guardian),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
       }
     })
   }
