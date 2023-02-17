@@ -164,4 +164,23 @@ The behavior can be configured using the following env variables:
 
 === Deployment
 
-Section will be created soon,..
+==== Docker image
+
+The monitoring tool can be used as a Docker container. To build the image
+invoke:
+```
+docker build -t tbtc-v2-monitoring .
+```
+
+Once the image is built, a single run of the monitoring tool can be triggered by doing:
+```
+docker run --volume /$(pwd)/data:/mnt/data \
+  --env DATA_DIR_PATH=/mnt/data \
+  --env <other-envs> \
+  tbtc-v2-monitoring
+```
+
+==== Kubernetes
+
+The monitoring tool can be deployed on Kubernetes as a https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/[`CronJob`].
+Example configuration can be found https://github.com/keep-network/keep-core/blob/14d5f7331087a49b8d5d1ec7f8b534f8152a9175/infrastructure/kube/templates/tbtc-v2-monitoring/tbtc-v2-monitoring-cronjob.yaml[here].
