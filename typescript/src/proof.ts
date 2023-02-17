@@ -8,8 +8,13 @@ import {
   RawTransaction,
   DecomposedRawTransaction,
   computeHash256,
+  decomposeBlockHeader,
+  bitsToDifficultyTarget,
+  targetToDifficulty,
+  hashToBigNumber,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
 
 /**
  * Assembles a proof that a given transaction was included in the blockchain and
@@ -182,77 +187,42 @@ function validateMerkleTreeHashes(
   return current === root
 }
 
+// Note that it requires that the headers come from current or previous epoch.
+// Validation will fail if the
 export function validateProofDifficulty(
   serializedHeaders: string[],
   previousDifficulty: BigNumber,
   currentDifficulty: BigNumber
 ) {
-  const validateHeaderPrevHash = (
-    header: string,
-    prevHeaderDigest: string
-  ): boolean => {
-    // Extract prevHash of current header
-    const prevHash = header.slice(8, 8 + 64)
+  let previousDigest: Hex = Hex.from("00")
 
-    // Compare prevHash of current header to previous header's digest
-    if (prevHash != prevHeaderDigest) {
-      return false
-    }
-    return true
-  }
-
-  const extractMantissa = (header: string): number => {
-    const mantissaBytes = header.slice(144, 144 + 6)
-    const buffer = Buffer.from(mantissaBytes, "hex")
-    buffer.reverse()
-    return parseInt(buffer.toString("hex"), 16)
-  }
-
-  const extractTargetAt = (header: string): BigNumber => {
-    const mantissa = extractMantissa(header)
-    const e = parseInt(header.slice(150, 150 + 2), 16)
-    const exponent = e - 3
-
-    return BigNumber.from(mantissa).mul(BigNumber.from(256).pow(exponent))
-  }
-
-  const digestToBigNumber = (hexString: string): BigNumber => {
-    const buffer = Buffer.from(hexString, "hex")
-    buffer.reverse()
-    const reversedHex = buffer.toString("hex")
-    return BigNumber.from("0x" + reversedHex)
-  }
-
-  const calculateDifficulty = (_target: BigNumber): BigNumber => {
-    const DIFF1_TARGET = BigNumber.from(
-      "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
-    )
-    // Difficulty 1 calculated from 0x1d00ffff
-    return DIFF1_TARGET.div(_target)
-  }
-
-  let previousDigest: string = ""
-  // for (let start = 0; start < headers.length; start += 160) {
   for (let index = 0; index < serializedHeaders.length; index++) {
     const currentHeader = serializedHeaders[index]
+    const blockHeaderDecomposed = decomposeBlockHeader(currentHeader)
 
+    // Check if the current block header stores the hash of the previously
+    // processed block header. Skip the check for the first header.
     if (index !== 0) {
-      if (!validateHeaderPrevHash(currentHeader, previousDigest)) {
+      if (
+        !previousDigest.equals(blockHeaderDecomposed.previousBlockHeaderHash)
+      ) {
         throw new Error("Invalid headers chain")
       }
     }
 
-    const target = extractTargetAt(currentHeader)
+    const target = bitsToDifficultyTarget(blockHeaderDecomposed.bits)
     const digest = computeHash256(currentHeader)
 
-    if (digestToBigNumber(digest).gt(target)) {
-      throw new Error("Insufficient work in a header")
+    if (hashToBigNumber(digest).gt(target)) {
+      throw new Error("Insufficient work in the header")
     }
 
     // Save the current digest to compare it with the next block header's digest
-    previousDigest = digest
+    previousDigest = Hex.from(digest)
 
-    const difficulty = calculateDifficulty(target)
+    // Check if the stored block difficulty is equal to previous or current
+    // difficulties.
+    const difficulty = targetToDifficulty(target)
 
     if (previousDifficulty.eq(1) && currentDifficulty.eq(1)) {
       // Special case for Bitcoin Testnet. Do not check block's difficulty
@@ -260,6 +230,8 @@ export function validateProofDifficulty(
       continue
     }
 
+    // TODO: For mainnet we could check if there is no more than one switch
+    //       from previous to current difficulties
     if (
       !difficulty.eq(previousDifficulty) &&
       !difficulty.eq(currentDifficulty)

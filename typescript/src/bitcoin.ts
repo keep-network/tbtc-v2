@@ -173,6 +173,55 @@ export interface TransactionMerkleBranch {
   position: number
 }
 
+export interface BlockHeader {
+  version: number
+  previousBlockHeaderHash: Hex
+  merkleRootHash: Hex
+  time: number
+  bits: number
+  nonce: number
+}
+
+// TODO: Add unit tests and descriptions
+export function decomposeBlockHeader(blockHeaderStr: string): BlockHeader {
+  const buffer = Buffer.from(blockHeaderStr, "hex")
+  const version = buffer.readUInt32LE(0)
+  const previousBlockHeaderHash = buffer.slice(4, 36)
+  const merkleRootHash = buffer.slice(36, 68)
+  const time = Buffer.from(buffer.slice(68, 72)).reverse().readUInt32BE(0)
+  const bits = Buffer.from(buffer.slice(72, 76)).reverse().readUInt32BE(0)
+  const nonce = Buffer.from(buffer.slice(76, 80)).reverse().readUInt32BE(0)
+
+  return {
+    version: version,
+    previousBlockHeaderHash: Hex.from(previousBlockHeaderHash),
+    merkleRootHash: Hex.from(merkleRootHash),
+    time: time,
+    bits: bits,
+    nonce: nonce,
+  }
+}
+
+// TODO: Add unit tests and description.
+export function bitsToDifficultyTarget(bits: number): BigNumber {
+  const exponent = ((bits >>> 24) & 0xff) - 3
+  const mantissa = bits & 0x7fffff
+
+  const difficultyTarget = BigNumber.from(mantissa).mul(
+    BigNumber.from(256).pow(exponent)
+  )
+  return difficultyTarget
+}
+
+// TODO: Add unit tests and description.
+export function targetToDifficulty(target: BigNumber): BigNumber {
+  const DIFF1_TARGET = BigNumber.from(
+    "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
+  )
+  // Difficulty 1 calculated from 0x1d00ffff
+  return DIFF1_TARGET.div(target)
+}
+
 /**
  * Represents a Bitcoin client.
  */
@@ -378,6 +427,12 @@ export function computeHash160(text: string): string {
 export function computeHash256(text: string): string {
   const firstHash = sha256.digest(Buffer.from(text, "hex"))
   return sha256.digest(firstHash).toString("hex")
+}
+
+export function hashToBigNumber(hash: string): BigNumber {
+  return BigNumber.from(
+    "0x" + Buffer.from(hash, "hex").reverse().toString("hex")
+  )
 }
 
 /**
