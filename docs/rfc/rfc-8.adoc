@@ -99,6 +99,16 @@ use Arbitrum Generic Custom Gateway.
 The only option is to implement our custom gateway that will have a minting
 authority for Arbitrum L2 TBTC token.
 
+One working example of a custom gateway is the DAI gateway:
+
+* The L1 gateway contract: link:https://etherscan.io/address/0xD3B5b60020504bc3489D6949d545893982BA3011[`L1DaiGateway`],
+* The L2 gateway contract: link:https://arbiscan.io/address/0x467194771dAe2967Aef3ECbEDD3Bf9a310C76C65[`L2DaiGateway`].
+
+Another working example of a custom gateway is the Livepeer gateway:
+
+* The L1 gateway contract: link:https://etherscan.io/address/0x6142f1C8bBF02E6A6bd074E8d564c9A5420a0676[`L1LPTGateway`],
+* The L2 gateway contract: link:https://arbiscan.io/address/0x6D2457a4ad276000A615295f7A80F79E48CcD318[`L2LPTGateway`].
+
 This is out of the scope of the initial implementation.
 
 See link:https://developer.arbitrum.io/asset-bridging[Arbitrum documentation for token bridging]
