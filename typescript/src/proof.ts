@@ -116,8 +116,14 @@ export async function validateProof(
   const transactionHashLE: string = computeHash256(
     transactionBytes.toString("hex")
   )
-  const merkleRoot: string = extractMerkleRootLE(proof.bitcoinHeaders)
 
+  // TODO: Should we recreate transactionHashLE from its components?
+  //       We don't check the components anywhere.
+  if (!transactionHash.equals(Hex.from(transactionHashLE).reverse())) {
+    throw new Error("Incorrect transaction hash")
+  }
+
+  const merkleRoot: string = extractMerkleRootLE(proof.bitcoinHeaders)
   if (
     !validateMerkleTree(
       transactionHashLE,
@@ -132,7 +138,6 @@ export async function validateProof(
   }
 
   const bitcoinHeaders = splitHeaders(proof.bitcoinHeaders)
-
   validateProofDifficulty(bitcoinHeaders, previousDifficulty, currentDifficulty)
 }
 
