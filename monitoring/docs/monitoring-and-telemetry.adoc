@@ -42,6 +42,9 @@ a detailed description of each data source.
 The dashboard instances collect the following telemetry data that are sent
 directly to Sentry hub:
 
+* generated deposit data,
+* unhandled errors.
+
 ==== Generated deposit data
 
 Each time a new deposit address is generated, the dashboard collects the
@@ -79,6 +82,9 @@ users in an automatic way.
 The minters and guardians instances collect the following telemetry data that
 are sent directly to Sentry hub:
 
+* handled processing and validation errors,
+* unhandled errors.
+
 ==== Handled processing and validation errors
 
 During their work, the minters and guardians may encounter several errors
@@ -103,6 +109,13 @@ based on their type. A general rule of thumb is that notifications
 channels while alerts requiring an action (*i.e. warning/critical system events*)
 are propagated to the Sentry hub that decides about next steps. Specific system
 events produced by the monitoring component are:
+
+* deposit revealed,
+* wallet registered,
+* large deposit revealed,
+* optimistic minting canceled,
+* optimistic minting requested too early,
+* optimistic minting requested for undetermined Bitcoin transaction.
 
 ==== Deposit revealed
 
