@@ -140,7 +140,7 @@ TBTC token capability of delegating the minting authority.
 
 ==== Wormhole
 
-The Wormhole bridging process from L1 to L2 (or sidechain) looks as follows:
+The Wormhole bridging process from L1 to L2 (or sidechain) will look as follows:
 
 * There is a TBTC holder on L1. The holder goes to the Wormhole Portal and
   selects the chain they want to bridge to.
@@ -148,6 +148,15 @@ The Wormhole bridging process from L1 to L2 (or sidechain) looks as follows:
   wait about 15 minutes for the Ethereum block finality.
 * The holder submits one transaction to L2. After that transaction is mined,
   they have their TBTC on L2.
+
+The Wormhole bridging process from L2 (or sidechain) to L1 will look as follows:
+
+* There is a TBTC holder on L2. That holder goes to the Wormhole portal and
+  selects one of the L2 chains they want to bridge from.
+* The holder submits one transaction to L2. After the transaction is mined, they
+  wait about 15 minutes for the L2 block finality.
+* The holder submits one transaction to L1. After that transaction is mined,
+  they have their TBTC on L1.
 
 What is not immediately obvious is that the token received on L2 may not be the
 canonical token on that L2.
@@ -168,25 +177,16 @@ a swap. The overview of liquid markets on each target chain is available in the
 link:https://docs.wormhole.com/wormhole/overview-liquid-markets[Wormhole documentation].
 Not every chain and token pair has a market. 
 
-The Wormhole bridging process from from L2 (or sidechain) to L1 looks as follows:
-
-* There is a TBTC holder on L2. That holder goes to the Wormhole portal and
-  selects one of the L2 chains they want to bridge from.
-* The holder submits one transaction to L2. After the transaction is mined, they
-  wait about 15 minutes for the L2 block finality.
-* The holder submits one transaction to L1. After that transaction is mined,
-  they have their TBTC on L1.
-
 To fully use the capabilities of the Wormhole portal and make the user
-experience seamless, we will implement a minter contract having the authority to
+experience seamless, we will implement a gateway contract having the authority to
 wrap Wormhole-specific tokens into TBTC tokens in a 1:1 ratio. This contract
 will have a minting authority for TBTC on L2. This way, no liquid market has to
 exist on any target chain for users to be able to cross the Wormhole bridge into
 the canonical TBTC.
 
-The requirement for a seamless user experience is that the Wormhole team has to
-integrate the last step into the Wormhole flow, in the same transaction as the
-L2 confirmation.
+IMPORTANT: The requirement for a seamless user experience is that the Wormhole
+team has to integrate the step of wrapping the token using the gateway contract
+into the Wormhole bridge flow, in the same transaction as the L2 confirmation.
 
 === Multisig governance
 
