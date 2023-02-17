@@ -322,7 +322,36 @@ up contracts together.
                                          +---------------------------------------------------------------------+
 ```
 
+The initial implementation uses the Wormhole bridge to bring TBTC to Arbitrum, Optimism, and Polygon.
+
+Smart contracts involved:
+
+* Wormhole `TokenBridge` on Ethereum is the contract deployed at
+  link:https://etherscan.io/address/0x3ee18b2214aff97000d974cf647e7c347e8fa585[`0x3ee18b2214aff97000d974cf647e7c347e8fa585`].
+* Wormhole `TokenBridge` on Arbitrum is the contract deployed at
+  link:https://arbiscan.io/address/0x0b2402144bb366a632d14b83f244d2e0e21bd39c[`0x0b2402144Bb366A632D14B83F244D2e0e21bD39c`].
+* Wormhole `TokenBridge` on Polygon is the contract deployed at
+  link:https://polygonscan.com/address/0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE[`0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE`].
+* Wormhole `TokenBridge` on Optimism is the contract deployed at
+  link:https://optimistic.etherscan.io/address/0x1d68124e65fafc907325e3edbf8c4d84499daa8b[`0x1d68124e65fafc907325e3edbf8c4d84499daa8b`].
+* `L2WormholeGateway` on each chain is a smart contract wrapping and unwrapping
+  Wormhole-specific TBTC representation into the canonical TBTC token on the
+  given chain. This contract needs to be implemented and deployed behind an
+  upgradeable proxy.
+* `ArbitrumTBTC`, `PolygonTBTC`, and `OptimismTBTC` are token contracts with
+  a minting authority delegated to `L2WormholeGateway`. This is the canonical
+  TBTC token on the given chain. This contract needs to be implemented.
+
+The full list of Wormhole deployed contracts is available link:https://book.wormhole.com/reference/contracts.html[here].
+
 ==== Extended implementation
+
+The extended implementation adds support for native L2/sidechain bridges. Each
+L1 and L2 gateway needs to be implemented separately given the specific
+requirements of cross-chain communication of the given L2/sidechain. Two
+contracts have a minting authority for each L2/sidechain TBTC canonical token:
+wormhole gateway and native bridge gateway.
+
 ```
 +----------------------------+           +---------------------------------------------------------------------+
 |          Ethereum          |           |                                Arbitrum                             |
