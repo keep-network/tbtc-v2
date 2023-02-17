@@ -5,6 +5,7 @@
 https://github.com/keep-network/tbtc-v2/actions/workflows/monitoring.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/monitoring.yml?branch=main&event=push&label=Monitoring%20build[Monitoring build status]]
 
 This package provides a monitoring tool for the tBTC v2 system events.
+This component is part of a broader link:docs/monitoring-and-telemetry.adoc[monitoring and telemetry system].
 
 toc::[]
 
