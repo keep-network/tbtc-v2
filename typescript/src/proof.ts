@@ -4,14 +4,13 @@ import {
   TransactionMerkleBranch,
   Client as BitcoinClient,
   TransactionHash,
-  decomposeRawTransaction,
-  RawTransaction,
-  DecomposedRawTransaction,
   computeHash256,
-  decomposeBlockHeader,
+  deserializeBlockHeader,
   bitsToDifficultyTarget,
   targetToDifficulty,
   hashToBigNumber,
+  serializeBlockHeader,
+  BlockHeader,
 } from "./bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
@@ -81,9 +80,9 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
   return proof.toString("hex")
 }
 
-// TODO: Those functions were rewritten from Solidity.
-//       Refactor all the functions, e.g. represent BitcoinHeaders as structure.
-export async function validateProof(
+// TODO: Description
+// TODO: should we check the transaction itself (inputs, outputs)?
+export async function validateTransactionProof(
   transactionHash: TransactionHash,
   requiredConfirmations: number,
   previousDifficulty: BigNumber,
@@ -96,140 +95,128 @@ export async function validateProof(
     bitcoinClient
   )
 
-  // TODO: Write a converter and use it to convert the transaction part of the
-  // proof to the decomposed transaction data (version, inputs, outputs, locktime).
-  // Use raw transaction data for now.
-  const rawTransaction: RawTransaction = await bitcoinClient.getRawTransaction(
-    transactionHash
-  )
-
-  const decomposedRawTransaction: DecomposedRawTransaction =
-    decomposeRawTransaction(rawTransaction)
-
-  const transactionBytes: Buffer = Buffer.concat([
-    Buffer.from(decomposedRawTransaction.version, "hex"),
-    Buffer.from(decomposedRawTransaction.inputs, "hex"),
-    Buffer.from(decomposedRawTransaction.outputs, "hex"),
-    Buffer.from(decomposedRawTransaction.locktime, "hex"),
-  ])
-
-  const transactionHashLE: string = computeHash256(
-    transactionBytes.toString("hex")
-  )
-
-  // TODO: Should we recreate transactionHashLE from its components?
-  //       We don't check the components anywhere.
-  if (!transactionHash.equals(Hex.from(transactionHashLE).reverse())) {
-    throw new Error("Incorrect transaction hash")
-  }
-
-  const merkleRoot: string = extractMerkleRootLE(proof.bitcoinHeaders)
-  if (
-    !validateMerkleTree(
-      transactionHashLE,
-      merkleRoot,
-      proof.merkleProof,
-      proof.txIndexInBlock
-    )
-  ) {
-    throw new Error(
-      "Transaction merkle proof is not valid for provided header and transaction hash"
-    )
-  }
-
   const bitcoinHeaders = splitHeaders(proof.bitcoinHeaders)
-  validateProofDifficulty(bitcoinHeaders, previousDifficulty, currentDifficulty)
+  const merkleRootHash = bitcoinHeaders[0].merkleRootHash
+
+  validateMerkleTree(
+    transactionHash.reverse().toString(),
+    merkleRootHash.toString(),
+    proof.merkleProof,
+    proof.txIndexInBlock
+  )
+
+  validateBlockHeadersChain(
+    bitcoinHeaders,
+    previousDifficulty,
+    currentDifficulty
+  )
 }
 
-export function extractMerkleRootLE(headers: string): string {
-  const headersBytes: Buffer = Buffer.from(headers, "hex")
-  const merkleRootBytes: Buffer = headersBytes.slice(36, 68)
-  return merkleRootBytes.toString("hex")
-}
-
-export function validateMerkleTree(
-  txId: string,
-  merkleRoot: string,
+function validateMerkleTree(
+  transactionHash: string,
+  merkleRootHash: string,
   intermediateNodes: string,
-  index: number
-): boolean {
+  transactionIdxInBlock: number
+) {
   // Shortcut the empty-block case
-  if (txId == merkleRoot && index == 0 && intermediateNodes.length == 0) {
-    return true
+  if (
+    transactionHash == merkleRootHash &&
+    transactionIdxInBlock == 0 &&
+    intermediateNodes.length == 0
+  ) {
+    return
   }
-  return validateMerkleTreeHashes(txId, intermediateNodes, merkleRoot, index)
+
+  validateMerkleTreeHashes(
+    transactionHash,
+    intermediateNodes,
+    merkleRootHash,
+    transactionIdxInBlock
+  )
 }
 
 function validateMerkleTreeHashes(
-  leaf: string,
-  tree: string,
-  root: string,
-  index: number
-): boolean {
-  // Not an even number of hashes
-  if (tree.length % 64 !== 0) {
-    return false
+  leafHash: string,
+  intermediateNodes: string,
+  merkleRoot: string,
+  transactionIdxInBlock: number
+) {
+  if (intermediateNodes.length === 0 || intermediateNodes.length % 64 !== 0) {
+    throw new Error("Invalid merkle tree")
   }
 
-  // Should never occur
-  if (tree.length === 0) {
-    return false
-  }
-
-  let idx = index
-  let current = leaf
+  let idx = transactionIdxInBlock
+  let current = leafHash
 
   // i moves in increments of 64
-  for (let i = 0; i < tree.length; i += 64) {
+  for (let i = 0; i < intermediateNodes.length; i += 64) {
     if (idx % 2 === 1) {
-      current = computeHash256(tree.slice(i, i + 64) + current)
+      current = computeHash256(intermediateNodes.slice(i, i + 64) + current)
     } else {
-      current = computeHash256(current + tree.slice(i, i + 64))
+      current = computeHash256(current + intermediateNodes.slice(i, i + 64))
     }
     idx = idx >> 1
   }
 
-  return current === root
+  if (current !== merkleRoot) {
+    throw new Error(
+      "Transaction merkle proof is not valid for provided header and transaction hash"
+    )
+  }
 }
 
-// Note that it requires that the headers come from current or previous epoch.
-// Validation will fail if the
-export function validateProofDifficulty(
-  serializedHeaders: string[],
-  previousDifficulty: BigNumber,
-  currentDifficulty: BigNumber
+/**
+ * Validates a chain of consecutive block headers. It checks if each of the
+ * block headers has appropriate difficulty, hash of each block is below the
+ * required target and block headers form a chain.
+ * @dev The block headers must come form Bitcoin epochs with difficulties
+ *      marked by previous and current difficulties. If a Bitcoin difficulty
+ *      relay is used to provide these values and the relay is up-to-date, only
+ *      the recent block headers will pass validation. Block headers older than
+ *      the current and previous Bitcoin epochs will fail.
+ * @param blockHeaders - block headers that form the chain.
+ * @param previousEpochDifficulty - difficulty of the previous Bitcoin epoch.
+ * @param currentEpochDifficulty - difficulty of the current Bitcoin epoch.
+ * @returns Empty return.
+ */
+function validateBlockHeadersChain(
+  blockHeaders: BlockHeader[],
+  previousEpochDifficulty: BigNumber,
+  currentEpochDifficulty: BigNumber
 ) {
-  let previousDigest: Hex = Hex.from("00")
+  let previousBlockHeaderHash: Hex = Hex.from("00")
 
-  for (let index = 0; index < serializedHeaders.length; index++) {
-    const currentHeader = serializedHeaders[index]
-    const blockHeaderDecomposed = decomposeBlockHeader(currentHeader)
+  for (let index = 0; index < blockHeaders.length; index++) {
+    const currentHeader = blockHeaders[index]
 
     // Check if the current block header stores the hash of the previously
     // processed block header. Skip the check for the first header.
     if (index !== 0) {
       if (
-        !previousDigest.equals(blockHeaderDecomposed.previousBlockHeaderHash)
+        !previousBlockHeaderHash.equals(currentHeader.previousBlockHeaderHash)
       ) {
         throw new Error("Invalid headers chain")
       }
     }
 
-    const target = bitsToDifficultyTarget(blockHeaderDecomposed.bits)
-    const digest = computeHash256(currentHeader)
+    const difficultyTarget = bitsToDifficultyTarget(currentHeader.bits)
+    const currentBlockHeaderHash = computeHash256(
+      serializeBlockHeader(currentHeader)
+    )
 
-    if (hashToBigNumber(digest).gt(target)) {
+    if (hashToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
       throw new Error("Insufficient work in the header")
     }
 
-    // Save the current digest to compare it with the next block header's digest
-    previousDigest = Hex.from(digest)
+    // Save the current block header hash to compare it with the next block
+    // header's previous block header hash.
+    previousBlockHeaderHash = Hex.from(currentBlockHeaderHash)
 
     // Check if the stored block difficulty is equal to previous or current
     // difficulties.
-    const difficulty = targetToDifficulty(target)
+    const difficulty = targetToDifficulty(difficultyTarget)
 
-    if (previousDifficulty.eq(1) && currentDifficulty.eq(1)) {
+    if (previousEpochDifficulty.eq(1) && currentEpochDifficulty.eq(1)) {
       // Special case for Bitcoin Testnet. Do not check block's difficulty
       // due to required difficulty falling to `1` for Testnet.
       continue
@@ -238,22 +225,27 @@ export function validateProofDifficulty(
     // TODO: For mainnet we could check if there is no more than one switch
     //       from previous to current difficulties
     if (
-      !difficulty.eq(previousDifficulty) &&
-      !difficulty.eq(currentDifficulty)
+      !difficulty.eq(previousEpochDifficulty) &&
+      !difficulty.eq(currentEpochDifficulty)
     ) {
       throw new Error("Header difficulty not at current or previous difficulty")
     }
   }
 }
 
-function splitHeaders(headers: string): string[] {
-  if (headers.length % 160 !== 0) {
+/**
+ * Splits Bitcoin block headers in the raw format into an array of BlockHeaders.
+ * @param blockHeaders - string that contains block headers in the raw format.
+ * @returns Array of BlockHeader objects.
+ */
+function splitHeaders(blockHeaders: string): BlockHeader[] {
+  if (blockHeaders.length % 160 !== 0) {
     throw new Error("Incorrect length of Bitcoin headers")
   }
 
-  const result = []
-  for (let i = 0; i < headers.length; i += 160) {
-    result.push(headers.substring(i, i + 160))
+  const result: BlockHeader[] = []
+  for (let i = 0; i < blockHeaders.length; i += 160) {
+    result.push(deserializeBlockHeader(blockHeaders.substring(i, i + 160)))
   }
 
   return result

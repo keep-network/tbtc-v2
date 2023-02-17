@@ -173,18 +173,52 @@ export interface TransactionMerkleBranch {
   position: number
 }
 
+/**
+ * BlockHeader represents the header of a Bitcoin block. For reference, see:
+ * https://developer.bitcoin.org/reference/block_chain.html#block-headers.
+ */
 export interface BlockHeader {
+  /**
+   * The block version number that indicates which set of block validation rules
+   * to follow.
+   */
   version: number
+
+  /**
+   * The hash of the previous block's header.
+   */
   previousBlockHeaderHash: Hex
+
+  /**
+   * The hash derived from the hashes of all transactions included in this block.
+   */
   merkleRootHash: Hex
+
+  /**
+   * The Unix epoch time when the miner started hashing the header.
+   */
   time: number
+
+  /**
+   * Bits that determine the target threshold this block's header hash must be
+   * less than or equal to.
+   */
   bits: number
+
+  /**
+   * An arbitrary number miners change to modify the header hash in order to
+   * produce a hash less than or equal to the target threshold.
+   */
   nonce: number
 }
 
-// TODO: Add unit tests and descriptions
-export function decomposeBlockHeader(blockHeaderStr: string): BlockHeader {
-  const buffer = Buffer.from(blockHeaderStr, "hex")
+/**
+ * Deserializes a block header in the raw representation to BlockHeader.
+ * @param rawBlockHeader - BlockHeader in the raw format.
+ * @returns Block header as a BlockHeader.
+ */
+export function deserializeBlockHeader(rawBlockHeader: string): BlockHeader {
+  const buffer = Buffer.from(rawBlockHeader, "hex")
   const version = buffer.readUInt32LE(0)
   const previousBlockHeaderHash = buffer.slice(4, 36)
   const merkleRootHash = buffer.slice(36, 68)
@@ -202,7 +236,27 @@ export function decomposeBlockHeader(blockHeaderStr: string): BlockHeader {
   }
 }
 
-// TODO: Add unit tests and description.
+/**
+ * Serializes a BlockHeader to the raw representation.
+ * @param blockHeader - block header.
+ * @returns Serialized block header.
+ */
+export function serializeBlockHeader(blockHeader: BlockHeader): string {
+  const buffer = Buffer.alloc(80)
+  buffer.writeUInt32LE(blockHeader.version, 0)
+  blockHeader.previousBlockHeaderHash.toBuffer().copy(buffer, 4)
+  blockHeader.merkleRootHash.toBuffer().copy(buffer, 36)
+  buffer.writeUInt32LE(blockHeader.time, 68)
+  buffer.writeUInt32LE(blockHeader.bits, 72)
+  buffer.writeUInt32LE(blockHeader.nonce, 76)
+  return buffer.toString("hex")
+}
+
+/**
+ * Converts a block header's bits into difficulty target.
+ * @param bits - bits from block header.
+ * @returns Difficulty target.
+ */
 export function bitsToDifficultyTarget(bits: number): BigNumber {
   const exponent = ((bits >>> 24) & 0xff) - 3
   const mantissa = bits & 0x7fffff
@@ -213,12 +267,15 @@ export function bitsToDifficultyTarget(bits: number): BigNumber {
   return difficultyTarget
 }
 
-// TODO: Add unit tests and description.
+/**
+ * Converts difficulty target to difficulty.
+ * @param target - difficulty target.
+ * @returns Difficulty as a BigNumber.
+ */
 export function targetToDifficulty(target: BigNumber): BigNumber {
   const DIFF1_TARGET = BigNumber.from(
     "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
   )
-  // Difficulty 1 calculated from 0x1d00ffff
   return DIFF1_TARGET.div(target)
 }
 
