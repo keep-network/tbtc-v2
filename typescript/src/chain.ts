@@ -11,11 +11,13 @@ import {
   RevealedDeposit,
 } from "./deposit"
 import {
+  OptimisticMintingCancelledEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
+import { NewWalletRegisteredEvent } from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -216,6 +218,12 @@ export interface Bridge {
    *          is returned.
    */
   activeWalletPublicKey(): Promise<string | undefined>
+
+  /**
+   * Get emitted NewWalletRegisteredEvent events.
+   * @see GetEventsFunction
+   */
+  getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
 }
 
 /**
@@ -309,4 +317,10 @@ export interface TBTCVault {
    * @see GetEventsFunction
    */
   getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
+
+  /**
+   * Get emitted OptimisticMintingCancelled events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
 }
