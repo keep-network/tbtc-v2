@@ -60,7 +60,7 @@ will be upgradeable, owned by Threshold Council, will delegate the minting
 authority to multiple parties, and have a pause functionality for mints and
 burns.
 
-Given those requirements, the address of the canonical TBTC token on L2s and
+Given those requirements, the address of the canonical tBTC token on L2s and
 sidechains will be different from the one deployed on L1.
 
 A generic implementation of the token will be provided in the `solidity` smart
@@ -90,14 +90,14 @@ Examples of chains with native bridges include:
 
 ==== Arbitrum native bridge
 
-Since our TBTC L2 token is upgradeable and will allow multiple minting
+Since our tBTC L2 token is upgradeable and will allow multiple minting
 authorities, the Arbitrum Standard ERC20 Gateway is not sufficient.
 
-Given our TBTC L1 token does not conform to `ICustomToken` interface, we can not
+Given our tBTC L1 token does not conform to `ICustomToken` interface, we can not
 use Arbitrum Generic Custom Gateway.
 
 The only option is to implement our custom gateway that will have a minting
-authority for Arbitrum L2 TBTC token.
+authority for Arbitrum L2 tBTC token.
 
 One working example of a custom gateway is the DAI gateway:
 
@@ -118,7 +118,7 @@ for more information.
 
 For similar reasons as for Arbitrum, we have to implement our custom `FxTunnel`
 implementation. The child tunnel implementation on the Polygon sidechain will
-have a minting authority for the Polygon TBTC token.
+have a minting authority for the Polygon tBTC token.
 
 This is out of the scope of the initial implementation.
 
@@ -129,9 +129,9 @@ for more information.
 
 The Optimism Standard Bridge creates L2 token with a call to
 `OptimismMintableERC20Factory`. The created token does not have the capabilities
-we expect from TBTC canonical tokens on L2. For this reason, using the Optimism
+we expect from tBTC canonical tokens on L2. For this reason, using the Optimism
 Standard Bridge is not an option and we must implement our own L2 minter
-contract with an authority to mint Optimism TBTC. Note that going back from L2
+contract with an authority to mint Optimism tBTC. Note that going back from L2
 to L1 will take at least one week given the one-week Optimism challenge period.
 
 This is out of the scope of the initial implementation.
@@ -143,30 +143,30 @@ for more details.
 === Supporting cross-ecosystem bridges
 
 The Wormhole bridge will be the first cross-ecosystem bridge to have a minting
-authority for TBTC token on Arbitrum, Polygon, and Optimism.
+authority for tBTC token on Arbitrum, Polygon, and Optimism.
 
 Other cross-ecosystem bridges may be added in the future given the canonical
-TBTC token capability of delegating the minting authority.
+tBTC token capability of delegating the minting authority.
 
 ==== Wormhole
 
 The Wormhole bridging process from L1 to L2 (or sidechain) will look as follows:
 
-* There is a TBTC holder on L1. The holder goes to the Wormhole Portal and
+* There is a tBTC holder on L1. The holder goes to the Wormhole Portal and
   selects the chain they want to bridge to.
 * The holder submits one transaction to L1. After the transaction is mined, they
   wait about 15 minutes for the Ethereum block finality.
 * The holder submits one transaction to L2. After that transaction is mined,
-  they have their TBTC on L2.
+  they have their tBTC on L2.
 
 The Wormhole bridging process from L2 (or sidechain) to L1 will look as follows:
 
-* There is a TBTC holder on L2. That holder goes to the Wormhole portal and
+* There is a tBTC holder on L2. That holder goes to the Wormhole portal and
   selects one of the L2 chains they want to bridge from.
 * The holder submits one transaction to L2. After the transaction is mined, they
   wait about 15 minutes for the L2 block finality.
 * The holder submits one transaction to L1. After that transaction is mined,
-  they have their TBTC on L1.
+  they have their tBTC on L1.
 
 What is not immediately obvious is that the token received on L2 may not be the
 canonical token on that L2.
@@ -189,10 +189,10 @@ Not every chain and token pair has a market.
 
 To fully use the capabilities of the Wormhole portal and make the user
 experience seamless, we will implement a gateway contract having the authority to
-wrap Wormhole-specific tokens into TBTC tokens in a 1:1 ratio. This contract
-will have a minting authority for TBTC on L2. This way, no liquid market has to
+wrap Wormhole-specific tokens into tBTC tokens in a 1:1 ratio. This contract
+will have a minting authority for tBTC on L2. This way, no liquid market has to
 exist on any target chain for users to be able to cross the Wormhole bridge into
-the canonical TBTC.
+the canonical tBTC.
 
 IMPORTANT: The requirement for a seamless user experience is that the Wormhole
 team has to integrate the step of wrapping the token using the gateway contract
@@ -207,7 +207,7 @@ link:https://help.safe.global/en/articles/5267779-i-sent-assets-to-a-safe-addres
 to replay the same transaction creating Gnosis Safe with the same address on the
 supported L2s and sidechains.
 
-The Governance will be able to add and remove minters to L2/sidechain TBTC
+The Governance will be able to add and remove minters to L2/sidechain tBTC
 canonical contract.
 
 === Code organization
@@ -322,7 +322,7 @@ up contracts together.
                                          +---------------------------------------------------------------------+
 ```
 
-The initial implementation uses the Wormhole bridge to bring TBTC to Arbitrum, Optimism, and Polygon.
+The initial implementation uses the Wormhole bridge to bring tBTC to Arbitrum, Optimism, and Polygon.
 
 Smart contracts involved:
 
@@ -335,12 +335,12 @@ Smart contracts involved:
 * Wormhole `TokenBridge` on Optimism is the contract deployed at
   link:https://optimistic.etherscan.io/address/0x1d68124e65fafc907325e3edbf8c4d84499daa8b[`0x1d68124e65fafc907325e3edbf8c4d84499daa8b`].
 * `L2WormholeGateway` on each chain is a smart contract wrapping and unwrapping
-  Wormhole-specific TBTC representation into the canonical TBTC token on the
+  Wormhole-specific tBTC representation into the canonical tBTC token on the
   given chain. This contract needs to be implemented and deployed behind an
   upgradeable proxy.
 * `ArbitrumTBTC`, `PolygonTBTC`, and `OptimismTBTC` are token contracts with
   a minting authority delegated to `L2WormholeGateway`. This is the canonical
-  TBTC token on the given chain. This contract needs to be implemented.
+  tBTC token on the given chain. This contract needs to be implemented.
 
 The full list of Wormhole deployed contracts is available link:https://book.wormhole.com/reference/contracts.html[here].
 
@@ -349,7 +349,7 @@ The full list of Wormhole deployed contracts is available link:https://book.worm
 The extended implementation adds support for native L2/sidechain bridges. Each
 L1 and L2 gateway needs to be implemented separately given the specific
 requirements of cross-chain communication of the given L2/sidechain. Two
-contracts have a minting authority for each L2/sidechain TBTC canonical token:
+contracts have a minting authority for each L2/sidechain tBTC canonical token:
 wormhole gateway and native bridge gateway.
 
 ```
@@ -396,9 +396,9 @@ wormhole gateway and native bridge gateway.
 
 === Minting on L2
 
-Canonical TBTC token implementation on each L2/sidechain will allow delegating
+Canonical tBTC token implementation on each L2/sidechain will allow delegating
 the minting authority to new contracts. Such a contract could be an L1 vault
-implementation other than the `TBTCVault`. In this model, TBTC for the given
+implementation other than the `TBTCVault`. In this model, tBTC for the given
 Bitcoin deposit is minted on L2 directly, without minting it on L1. The L1
 `Bank` balance is locked under the given vault implementation.
 
@@ -407,4 +407,4 @@ Bitcoin deposit is minted on L2 directly, without minting it on L1. The L1
 It is possible to implement a communication gateway for each L2/sidechain
 allowing the DAO from L1 to vote on changes that would be reflected on
 L2/sidechain. This is a potential mechanism to replace Threshold Council
-ownership of L2/sidechain canonical TBTC token with the Threshold DAO ownership.
+ownership of L2/sidechain canonical tBTC token with the Threshold DAO ownership.
