@@ -222,9 +222,9 @@ export function deserializeBlockHeader(rawBlockHeader: string): BlockHeader {
   const version = buffer.readUInt32LE(0)
   const previousBlockHeaderHash = buffer.slice(4, 36)
   const merkleRootHash = buffer.slice(36, 68)
-  const time = Buffer.from(buffer.slice(68, 72)).reverse().readUInt32BE(0)
-  const bits = Buffer.from(buffer.slice(72, 76)).reverse().readUInt32BE(0)
-  const nonce = Buffer.from(buffer.slice(76, 80)).reverse().readUInt32BE(0)
+  const time = buffer.readUInt32LE(68)
+  const bits = buffer.readUInt32LE(72)
+  const nonce = buffer.readUInt32LE(76)
 
   return {
     version: version,
@@ -259,7 +259,7 @@ export function serializeBlockHeader(blockHeader: BlockHeader): string {
  */
 export function bitsToDifficultyTarget(bits: number): BigNumber {
   const exponent = ((bits >>> 24) & 0xff) - 3
-  const mantissa = bits & 0x7fffff
+  const mantissa = bits & 0xffffff
 
   const difficultyTarget = BigNumber.from(mantissa).mul(
     BigNumber.from(256).pow(exponent)
@@ -274,7 +274,7 @@ export function bitsToDifficultyTarget(bits: number): BigNumber {
  */
 export function targetToDifficulty(target: BigNumber): BigNumber {
   const DIFF1_TARGET = BigNumber.from(
-    "0x00000000FFFF0000000000000000000000000000000000000000000000000000"
+    "0xffff0000000000000000000000000000000000000000000000000000"
   )
   return DIFF1_TARGET.div(target)
 }
@@ -481,12 +481,22 @@ export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
 }
 
+/**
+ * Computes the double SHA256 for the given text.
+ * @param text - Text the double SHA256 is computed for.
+ * @returns Hash as a 32-byte un-prefixed hex string.
+ */
 export function computeHash256(text: string): string {
   const firstHash = sha256.digest(Buffer.from(text, "hex"))
   return sha256.digest(firstHash).toString("hex")
 }
 
-export function hashToBigNumber(hash: string): BigNumber {
+/**
+ * Converts a hash in hex string in little endian to a BigNumber.
+ * @param hash - Hash in hex-string format.
+ * @returns BigNumber representation of the hash.
+ */
+export function hashLEToBigNumber(hash: string): BigNumber {
   return BigNumber.from(
     "0x" + Buffer.from(hash, "hex").reverse().toString("hex")
   )

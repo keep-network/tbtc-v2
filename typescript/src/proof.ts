@@ -8,7 +8,7 @@ import {
   deserializeBlockHeader,
   bitsToDifficultyTarget,
   targetToDifficulty,
-  hashToBigNumber,
+  hashLEToBigNumber,
   serializeBlockHeader,
   BlockHeader,
 } from "./bitcoin"
@@ -200,11 +200,12 @@ function validateBlockHeadersChain(
     }
 
     const difficultyTarget = bitsToDifficultyTarget(currentHeader.bits)
+
     const currentBlockHeaderHash = computeHash256(
       serializeBlockHeader(currentHeader)
     )
 
-    if (hashToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
+    if (hashLEToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
       throw new Error("Insufficient work in the header")
     }
 
