@@ -15,7 +15,10 @@
 
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+// EIP-2612 is Final as of 2022-11-01. This file is deprecated in the `main`
+// branch of @openzeppelin/contracts-upgradeable. Once a version > 4.8.1 gets
+// released, we should drop the `draft-*` prefix from this import.
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // TODO:
@@ -24,7 +27,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // * Mint by minter.
 // * Proper documentation.
 // * Test initialization
-contract L2TBTC is ERC20Upgradeable, OwnableUpgradeable {
+contract L2TBTC is ERC20PermitUpgradeable, OwnableUpgradeable {
     /// @notice Indicates if the given address is a Minter. Only Minters can
     ///         mint the token.
     mapping(address => bool) public isMinter;
@@ -46,6 +49,7 @@ contract L2TBTC is ERC20Upgradeable, OwnableUpgradeable {
     {
         __Ownable_init();
         __ERC20_init(_name, _symbol);
+        __ERC20Permit_init(_name);
     }
 
     /// @notice Adds the address to the Minter list.
