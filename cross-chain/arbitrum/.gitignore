@@ -1,0 +1,8 @@
+# Hardhat
+/build/
+/cache/
+/export/
+/external/
+/typechain/
+/export.json
+
