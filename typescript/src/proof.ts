@@ -200,11 +200,11 @@ function validateMerkleTreeHashes(
     if (idx % 2 === 1) {
       current = computeHash256(
         intermediateNodesHashes.slice(i, i + 64) + current
-      )
+      ).toString()
     } else {
       current = computeHash256(
         current + intermediateNodesHashes.slice(i, i + 64)
-      )
+      ).toString()
     }
     idx = idx >> 1
   }
@@ -261,13 +261,15 @@ function validateBlockHeadersChain(
     )
 
     // Ensure the header has sufficient work.
-    if (hashLEToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
+    if (
+      hashLEToBigNumber(currentBlockHeaderHash.toString()).gt(difficultyTarget)
+    ) {
       throw new Error("Insufficient work in the header")
     }
 
     // Save the current block header hash to compare it with the next block
     // header's previous block header hash.
-    previousBlockHeaderHash = Hex.from(currentBlockHeaderHash)
+    previousBlockHeaderHash = currentBlockHeaderHash
 
     // Check if the stored block difficulty is equal to previous or current
     // difficulties.

@@ -218,7 +218,7 @@ export interface BlockHeader {
  * @returns Block header as a BlockHeader.
  */
 export function deserializeBlockHeader(rawBlockHeader: string): BlockHeader {
-  const buffer = Buffer.from(rawBlockHeader, "hex")
+  const buffer = Hex.from(rawBlockHeader).toBuffer()
   const version = buffer.readUInt32LE(0)
   const previousBlockHeaderHash = buffer.slice(4, 36)
   const merkleRootHash = buffer.slice(36, 68)
@@ -486,9 +486,10 @@ export function computeHash160(text: string): string {
  * @param text - Text the double SHA256 is computed for.
  * @returns Hash as a 32-byte un-prefixed hex string.
  */
-export function computeHash256(text: string): string {
+export function computeHash256(text: string): Hex {
   const firstHash = sha256.digest(Buffer.from(text, "hex"))
-  return sha256.digest(firstHash).toString("hex")
+  const secondHash = sha256.digest(firstHash)
+  return Hex.from(secondHash)
 }
 
 /**
@@ -497,9 +498,7 @@ export function computeHash256(text: string): string {
  * @returns BigNumber representation of the hash.
  */
 export function hashLEToBigNumber(hash: string): BigNumber {
-  return BigNumber.from(
-    "0x" + Buffer.from(hash, "hex").reverse().toString("hex")
-  )
+  return BigNumber.from(Hex.from(hash).reverse().toPrefixedString())
 }
 
 /**
