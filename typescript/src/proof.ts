@@ -184,6 +184,7 @@ function validateBlockHeadersChain(
   previousEpochDifficulty: BigNumber,
   currentEpochDifficulty: BigNumber
 ) {
+  let requireCurrentDifficulty: boolean = false
   let previousBlockHeaderHash: Hex = Hex.from("00")
 
   for (let index = 0; index < blockHeaders.length; index++) {
@@ -205,6 +206,7 @@ function validateBlockHeadersChain(
       serializeBlockHeader(currentHeader)
     )
 
+    // Ensure the header has sufficient work.
     if (hashLEToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
       throw new Error("Insufficient work in the header")
     }
@@ -223,14 +225,25 @@ function validateBlockHeadersChain(
       continue
     }
 
-    // TODO: For mainnet we could check if there is no more than one switch
-    //       from previous to current difficulties
     if (
       !difficulty.eq(previousEpochDifficulty) &&
       !difficulty.eq(currentEpochDifficulty)
     ) {
-      throw new Error("Header difficulty not at current or previous difficulty")
+      throw new Error(
+        "Header difficulty not at current or previous Bitcoin difficulty"
+      )
     }
+
+    // Additionally, require the header to be at current difficulty if some
+    // headers with current difficulty have already been seen. This ensures
+    // there is at most one switch from previous to current difficulties.
+    if (requireCurrentDifficulty && !difficulty.eq(currentEpochDifficulty)) {
+      throw new Error("Header must be at current Bitcoin difficulty")
+    }
+
+    // If the header is at current difficulty, require the subsequent headers to
+    // be at current difficulty as well.
+    requireCurrentDifficulty = difficulty.eq(currentEpochDifficulty)
   }
 }
 
