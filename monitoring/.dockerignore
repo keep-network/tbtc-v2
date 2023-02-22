@@ -1,0 +1,10 @@
+# Hidden files and directories.
+.*
+
+# Documentation
+docs/
+README.adoc
+
+# Node
+external/
+node_modules/
