@@ -69,7 +69,7 @@ export async function assembleTransactionProof(
 /**
  * Create a proof of transaction inclusion in the block by concatenating
  * 32-byte-long hash values. The values are converted to little endian form.
- * @param txMerkleBranch - Branch of a merkle tree leading to a transaction.
+ * @param txMerkleBranch - Branch of a Merkle tree leading to a transaction.
  * @returns Transaction inclusion proof in hexadecimal form.
  */
 function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
@@ -80,8 +80,22 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
   return proof.toString("hex")
 }
 
-// TODO: Description
-// TODO: should we check the transaction itself (inputs, outputs)?
+/**
+ * Proves that a transaction with the given hash is included in the Bitcoin
+ * blockchain by validating the transaction's inclusion in the Merkle tree and
+ * verifying that the block containing the transaction has enough confirmations.
+ * @param transactionHash The hash of the transaction to be validated.
+ * @param requiredConfirmations The number of confirmations required for the
+ *        transaction to be considered valid.
+ * @param previousDifficulty The difficulty of the previous Bitcoin epoch.
+ * @param currentDifficulty The difficulty of the current Bitcoin epoch.
+ * @param bitcoinClient The client for interacting with the Bitcoin blockchain.
+ * @throws {Error} If the transaction is not included in the Bitcoin blockchain
+ *        or if the block containing the transaction does not have enough
+ *        confirmations.
+ * @dev The function should be used within a try-catch block.
+ * @returns An empty return value.
+ */
 export async function validateTransactionProof(
   transactionHash: TransactionHash,
   requiredConfirmations: number,
@@ -95,8 +109,8 @@ export async function validateTransactionProof(
     bitcoinClient
   )
 
-  const bitcoinHeaders = splitHeaders(proof.bitcoinHeaders)
-  const merkleRootHash = bitcoinHeaders[0].merkleRootHash
+  const bitcoinHeaders: BlockHeader[] = splitHeaders(proof.bitcoinHeaders)
+  const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
 
   validateMerkleTree(
     transactionHash.reverse().toString(),
@@ -112,72 +126,112 @@ export async function validateTransactionProof(
   )
 }
 
+/**
+ * Validates the Merkle tree by checking if the provided transaction hash,
+ * Merkle root hash, intermediate node hashes, and transaction index parameters
+ * produce a valid Merkle proof.
+ * @param transactionHash The hash of the transaction being validated.
+ * @param merkleRootHash The Merkle root hash that the intermediate node hashes
+ *        should compute to.
+ * @param intermediateNodeHashes The Merkle tree intermediate node hashes,
+ *        concatenated as a single string.
+ * @param transactionIndex The index of the transaction being validated within
+ *        the block, used to determine the path to traverse in the Merkle tree.
+ * @throws {Error} If the Merkle tree is not valid.
+ * @returns An empty return value.
+ */
 function validateMerkleTree(
   transactionHash: string,
   merkleRootHash: string,
-  intermediateNodes: string,
-  transactionIdxInBlock: number
+  intermediateNodeHashes: string,
+  transactionIndex: number
 ) {
   // Shortcut the empty-block case
   if (
     transactionHash == merkleRootHash &&
-    transactionIdxInBlock == 0 &&
-    intermediateNodes.length == 0
+    transactionIndex == 0 &&
+    intermediateNodeHashes.length == 0
   ) {
     return
   }
 
   validateMerkleTreeHashes(
     transactionHash,
-    intermediateNodes,
+    intermediateNodeHashes,
     merkleRootHash,
-    transactionIdxInBlock
+    transactionIndex
   )
 }
 
+/**
+ * Validates the transaction's Merkle proof by traversing the Merkle tree
+ * starting from the provided transaction hash and using the intermediate node
+ * hashes to compute the root hash. If the computed root hash does not match the
+ * merkle root hash, an error is thrown.
+ * @param transactionHash The hash of the transaction being validated.
+ * @param intermediateNodesHashes The Merkle tree intermediate nodes hashes,
+ *        concatenated as a single string.
+ * @param merkleRootHash The Merkle root hash that the intermediate nodes should
+ *        compute to.
+ * @param transactionIndex The index of the transaction in the block, used
+ *        to determine the path to traverse in the Merkle tree.
+ * @throws {Error} If the intermediate nodes are of an invalid length or if the
+ *         computed root hash does not match the merkle root hash parameter.
+ * @returns An empty return value.
+ */
 function validateMerkleTreeHashes(
-  leafHash: string,
-  intermediateNodes: string,
-  merkleRoot: string,
-  transactionIdxInBlock: number
+  transactionHash: string,
+  intermediateNodesHashes: string,
+  merkleRootHash: string,
+  transactionIndex: number
 ) {
-  if (intermediateNodes.length === 0 || intermediateNodes.length % 64 !== 0) {
+  if (
+    intermediateNodesHashes.length === 0 ||
+    intermediateNodesHashes.length % 64 !== 0
+  ) {
     throw new Error("Invalid merkle tree")
   }
 
-  let idx = transactionIdxInBlock
-  let current = leafHash
+  let idx = transactionIndex
+  let current = transactionHash
 
   // i moves in increments of 64
-  for (let i = 0; i < intermediateNodes.length; i += 64) {
+  for (let i = 0; i < intermediateNodesHashes.length; i += 64) {
     if (idx % 2 === 1) {
-      current = computeHash256(intermediateNodes.slice(i, i + 64) + current)
+      current = computeHash256(
+        intermediateNodesHashes.slice(i, i + 64) + current
+      )
     } else {
-      current = computeHash256(current + intermediateNodes.slice(i, i + 64))
+      current = computeHash256(
+        current + intermediateNodesHashes.slice(i, i + 64)
+      )
     }
     idx = idx >> 1
   }
 
-  if (current !== merkleRoot) {
+  if (current !== merkleRootHash) {
     throw new Error(
-      "Transaction merkle proof is not valid for provided header and transaction hash"
+      "Transaction Merkle proof is not valid for provided header and transaction hash"
     )
   }
 }
 
 /**
- * Validates a chain of consecutive block headers. It checks if each of the
- * block headers has appropriate difficulty, hash of each block is below the
- * required target and block headers form a chain.
- * @dev The block headers must come form Bitcoin epochs with difficulties
- *      marked by previous and current difficulties. If a Bitcoin difficulty
- *      relay is used to provide these values and the relay is up-to-date, only
- *      the recent block headers will pass validation. Block headers older than
- *      the current and previous Bitcoin epochs will fail.
- * @param blockHeaders - block headers that form the chain.
- * @param previousEpochDifficulty - difficulty of the previous Bitcoin epoch.
- * @param currentEpochDifficulty - difficulty of the current Bitcoin epoch.
- * @returns Empty return.
+ * Validates a chain of consecutive block headers by checking each header's
+ * difficulty, hash, and continuity with the previous header. This function can
+ * be used to validate a series of Bitcoin block headers for their validity.
+ * @param blockHeaders An array of block headers that form the chain to be
+ *        validated.
+ * @param previousEpochDifficulty The difficulty of the previous Bitcoin epoch.
+ * @param currentEpochDifficulty The difficulty of the current Bitcoin epoch.
+ * @dev The block headers must come from Bitcoin epochs with difficulties marked
+ *      by the previous and current difficulties. If a Bitcoin difficulty relay
+ *      is used to provide these values and the relay is up-to-date, only the
+ *      recent block headers will pass validation. Block headers older than the
+ *      current and previous Bitcoin epochs will fail.
+ * @throws {Error} If any of the block headers are invalid, or if the block
+ *         header chain is not continuous.
+ * @returns An empty return value.
  */
 function validateBlockHeadersChain(
   blockHeaders: BlockHeader[],
@@ -235,7 +289,7 @@ function validateBlockHeadersChain(
     }
 
     // Additionally, require the header to be at current difficulty if some
-    // headers with current difficulty have already been seen. This ensures
+    // headers at current difficulty have already been seen. This ensures
     // there is at most one switch from previous to current difficulties.
     if (requireCurrentDifficulty && !difficulty.eq(currentEpochDifficulty)) {
       throw new Error("Header must be at current Bitcoin difficulty")
