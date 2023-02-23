@@ -7,6 +7,7 @@ import {
   transactionConfirmationsInTwoEpochsData,
   testnetTransactionData,
   ProofTestData,
+  TransactionProofData,
 } from "./data/proof"
 import {
   assembleTransactionProof,
@@ -14,6 +15,9 @@ import {
 } from "../src/proof"
 import { Proof } from "./bitcoin"
 import { expect } from "chai"
+import * as chai from "chai"
+import chaiAsPromised from "chai-as-promised"
+chai.use(chaiAsPromised)
 
 describe("Proof", () => {
   describe("assembleTransactionProof", () => {
@@ -120,115 +124,55 @@ describe("Proof", () => {
 
     context("when the transaction is from Bitcoin Mainnet", () => {
       context("when the transaction confirmations span only one epoch", () => {
-        const data = transactionConfirmationsInOneEpochData
-
-        beforeEach(async () => {
-          const transactions = new Map<string, Transaction>()
-          const transactionHash =
-            data.bitcoinChainData.transaction.transactionHash
-          transactions.set(
-            transactionHash.toString(),
-            data.bitcoinChainData.transaction
-          )
-          bitcoinClient.transactions = transactions
-          bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
-          bitcoinClient.headersChain = data.bitcoinChainData.headersChain
-          bitcoinClient.transactionMerkle =
-            data.bitcoinChainData.transactionMerkleBranch
-          const confirmations = new Map<string, number>()
-          confirmations.set(
-            transactionHash.toString(),
-            data.bitcoinChainData.accumulatedTxConfirmations
-          )
-          bitcoinClient.confirmations = confirmations
-        })
-
         it("should not throw", async () => {
-          expect(
-            await validateTransactionProof(
-              data.bitcoinChainData.transaction.transactionHash,
-              data.requiredConfirmations,
-              data.bitcoinChainData.previousDifficulty,
-              data.bitcoinChainData.currentDifficulty,
-              bitcoinClient
-            )
-          ).not.to.throw
+          await expect(
+            runProofValidationScenario(transactionConfirmationsInOneEpochData)
+          ).not.to.be.rejected
         })
       })
 
       context("when the transaction confirmations span two epochs", () => {
-        const data = transactionConfirmationsInTwoEpochsData
-
-        beforeEach(async () => {
-          const transactions = new Map<string, Transaction>()
-          const transactionHash =
-            data.bitcoinChainData.transaction.transactionHash
-          transactions.set(
-            transactionHash.toString(),
-            data.bitcoinChainData.transaction
-          )
-          bitcoinClient.transactions = transactions
-          bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
-          bitcoinClient.headersChain = data.bitcoinChainData.headersChain
-          bitcoinClient.transactionMerkle =
-            data.bitcoinChainData.transactionMerkleBranch
-          const confirmations = new Map<string, number>()
-          confirmations.set(
-            transactionHash.toString(),
-            data.bitcoinChainData.accumulatedTxConfirmations
-          )
-          bitcoinClient.confirmations = confirmations
-        })
-
         it("should not throw", async () => {
-          expect(
-            await validateTransactionProof(
-              data.bitcoinChainData.transaction.transactionHash,
-              data.requiredConfirmations,
-              data.bitcoinChainData.previousDifficulty,
-              data.bitcoinChainData.currentDifficulty,
-              bitcoinClient
-            )
-          ).not.to.throw
+          await expect(
+            runProofValidationScenario(transactionConfirmationsInTwoEpochsData)
+          ).not.to.be.rejected
         })
       })
     })
 
     context("when the transaction is from Bitcoin Testnet", () => {
-      const data = testnetTransactionData
-
-      beforeEach(async () => {
-        const transactions = new Map<string, Transaction>()
-        const transactionHash =
-          data.bitcoinChainData.transaction.transactionHash
-        transactions.set(
-          transactionHash.toString(),
-          data.bitcoinChainData.transaction
-        )
-        bitcoinClient.transactions = transactions
-        bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
-        bitcoinClient.headersChain = data.bitcoinChainData.headersChain
-        bitcoinClient.transactionMerkle =
-          data.bitcoinChainData.transactionMerkleBranch
-        const confirmations = new Map<string, number>()
-        confirmations.set(
-          transactionHash.toString(),
-          data.bitcoinChainData.accumulatedTxConfirmations
-        )
-        bitcoinClient.confirmations = confirmations
-      })
-
       it("should not throw", async () => {
-        expect(
-          await validateTransactionProof(
-            data.bitcoinChainData.transaction.transactionHash,
-            data.requiredConfirmations,
-            data.bitcoinChainData.previousDifficulty,
-            data.bitcoinChainData.currentDifficulty,
-            bitcoinClient
-          )
-        ).not.to.throw
+        await expect(runProofValidationScenario(testnetTransactionData)).not.to
+          .be.rejected
       })
     })
+
+    async function runProofValidationScenario(data: TransactionProofData) {
+      const transactions = new Map<string, Transaction>()
+      const transactionHash = data.bitcoinChainData.transaction.transactionHash
+      transactions.set(
+        transactionHash.toString(),
+        data.bitcoinChainData.transaction
+      )
+      bitcoinClient.transactions = transactions
+      bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
+      bitcoinClient.headersChain = data.bitcoinChainData.headersChain
+      bitcoinClient.transactionMerkle =
+        data.bitcoinChainData.transactionMerkleBranch
+      const confirmations = new Map<string, number>()
+      confirmations.set(
+        transactionHash.toString(),
+        data.bitcoinChainData.accumulatedTxConfirmations
+      )
+      bitcoinClient.confirmations = confirmations
+
+      await validateTransactionProof(
+        data.bitcoinChainData.transaction.transactionHash,
+        data.requiredConfirmations,
+        data.bitcoinChainData.previousDifficulty,
+        data.bitcoinChainData.currentDifficulty,
+        bitcoinClient
+      )
+    }
   })
 })
