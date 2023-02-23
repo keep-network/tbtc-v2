@@ -47,7 +47,7 @@ export async function assembleTransactionProof(
 
   const headersChain = await bitcoinClient.getHeadersChain(
     txBlockHeight,
-    requiredConfirmations
+    requiredConfirmations - 1
   )
 
   const merkleBranch = await bitcoinClient.getTransactionMerkle(
@@ -110,6 +110,9 @@ export async function validateTransactionProof(
   )
 
   const bitcoinHeaders: BlockHeader[] = splitHeaders(proof.bitcoinHeaders)
+  if (bitcoinHeaders.length != requiredConfirmations) {
+    throw new Error("Wrong number of confirmations")
+  }
   const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
 
   validateMerkleTree(
