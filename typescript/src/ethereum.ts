@@ -35,6 +35,7 @@ import {
 } from "./bitcoin"
 import type {
   OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -923,6 +924,37 @@ export class TBTCVault
         guardian: new Address(event.args!.guardian),
         depositKey: Hex.from(
           BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingFinalizedEvents}
+   */
+  async getOptimisticMintingFinalizedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingFinalizedEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingFinalized",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingFinalizedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        minter: new Address(event.args!.minter),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+        depositor: new Address(event.args!.depositor),
+        optimisticMintingDebt: BigNumber.from(
+          event.args!.optimisticMintingDebt
         ),
       }
     })
