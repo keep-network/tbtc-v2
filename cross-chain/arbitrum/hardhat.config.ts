@@ -47,24 +47,24 @@ const config: HardhatUserConfig = {
     mainnet: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 1,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["etherscan", "tenderly"],
     },
     goerliArbitrum: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 421613,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-      ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
-      : undefined,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
       tags: ["tenderly"],
     },
     mainnetArbitrum: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 42161,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["arbiscan", "tenderly"],
     },
@@ -80,6 +80,15 @@ const config: HardhatUserConfig = {
       default: 1,
       goerli: process.env.CONTRACT_OWNER_ADDRESS || "",
       goerliArbitrum: process.env.CONTRACT_OWNER_ADDRESS || "",
+      mainnet: "",
+      mainnetArbitrum: ""
+    },
+    governance: {
+      default: 2,
+      goerli: process.env.THRESHOLD_COUNCIL_ADDRESS || "",
+      goerliArbitrum: process.env.THRESHOLD_COUNCIL_ADDRESS || "",
+      mainnet: "", // Threshold Council
+      mainnetArbitrum: "" // Threshold Council
     },
   },
   mocha: {
