@@ -78,13 +78,8 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
-      goerli: 0,
+      goerli: process.env.CONTRACT_OWNER_ADDRESS || "",
       goerliArbitrum: process.env.CONTRACT_OWNER_ADDRESS || "",
-    },
-    governance: {
-      default: 2,
-      goerli: 0,
-      mainnet: "",
     },
   },
   mocha: {
