@@ -225,21 +225,20 @@ export class MintingMonitor implements SystemEventMonitor {
   private checkDesignatedMintersHealth(chainData: ChainDataAggregate) {
     const systemEvents: SystemEvent[] = []
 
-    systemEvents.push(
-      ...chainData.mintingRequestedEvents
-        .map((mre) => ({
-          ...mre,
-          designatedMinter: this.getDesignatedMinter(
-            chainData,
-            mre.depositor,
-            mre.fundingTxHash
-          ),
-        }))
-        .filter((mre) => !mre.minter.equals(mre.designatedMinter))
-        .map((mre) =>
-          DesignatedMinterNotRequestedMinting(mre, mre.designatedMinter)
-        )
-    )
+    chainData.mintingRequestedEvents
+      .map((mre) => ({
+        ...mre,
+        designatedMinter: this.getDesignatedMinter(
+          chainData,
+          mre.depositor,
+          mre.fundingTxHash
+        ),
+      }))
+      .filter((mre) => !mre.minter.equals(mre.designatedMinter))
+      .map((mre) =>
+        DesignatedMinterNotRequestedMinting(mre, mre.designatedMinter)
+      )
+      .forEach((se) => systemEvents.push(se))
 
     // TODO: Detect finalizations done by non-designated minters.
 
