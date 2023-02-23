@@ -1,0 +1,39 @@
+:toc: macro
+
+= Threshold cross chain - Arbitrum
+
+This package brings Bitcoin to Ethereum L2 Arbitrum.
+
+== How it works?
+
+```
++----------------------------+         +------------------------------------------------------------------------------+
+|          Ethereum          |         |                                Arbitrum                                      |
+|                            |         |                                                                              |
+|  +----------------------+  |         |  +----------------------+  +---------------------------+  +---------------+  |
+|  | Wormhole TokenBridge |--|---------|--| Wormhole TokenBridge |--| Arbitrum Wormhole Gateway |--| Arbitrum TBTC |  |
+|  +----------------------+  |         |  +----------------------+  +---------------------------+  +---------------+  |
+|                            |         |                                                                              |
++----------------------------+         +------------------------------------------------------------------------------+
+```
+
+- `ArbitrumTBTC` canonical tBTC token on Arbitrum with a minting authority
+delegated to `ArbitrumWormholeGateway`.
+- `ArbitrumWormholeGateway` is a smart contract wrapping and unwrapping 
+Wormhole-specific tBTC representation into the canonical `ArbitrumTBTC` token.
+
+=== Deploy contracts
+
+To deploy all contracts on the given network, please run:
+```
+yarn deploy --network <network>
+```
+
+If contracts haven't been built yet or changes occurred, this task will build
+the contracts before running the deployment script. This command produces
+an `export.json` file containing contract deployment info. Note that for the
+chains other than 'hardhat' the following env. variables need to be provided:
+
+- `CHAIN_API_URL` - URL to access blockchain services, e.g. `\https://goerli.g.alchemy.com/v2/<api_key>`
+- `CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY` - private key of an owner/deployer
+- `CONTRACT_OWNER_ADDRESS` - Ethereum address of an owner/deployer
