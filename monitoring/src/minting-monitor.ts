@@ -4,8 +4,13 @@ import type {
   OptimisticMintingCancelledEvent as OptimisticMintingCancelledChainEvent,
   OptimisticMintingRequestedEvent as OptimisticMintingRequestedChainEvent,
 } from "@keep-network/tbtc-v2.ts/dist/src/optimistic-minting"
-import type { Bridge, TBTCVault } from "@keep-network/tbtc-v2.ts/dist/src/chain"
+import type {
+  Bridge,
+  Identifier,
+  TBTCVault,
+} from "@keep-network/tbtc-v2.ts/dist/src/chain"
 import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts"
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { BigNumber } from "ethers"
 
@@ -74,12 +79,32 @@ const OptimisticMintingRequestedForUndeterminedBtcTx = (
   block: chainEvent.blockNumber,
 })
 
+const DesignatedMinterNotRequestedMinting = (
+  chainEvent: OptimisticMintingRequestedChainEvent,
+  designatedMinter: Identifier
+): SystemEvent => ({
+  title: "Designated minter has not requested minting",
+  type: SystemEventType.Warning,
+  data: {
+    actualMinter: `0x${chainEvent.minter.identifierHex}`,
+    designatedMinter: `0x${designatedMinter.identifierHex}`,
+    depositKey: chainEvent.depositKey.toPrefixedString(),
+    depositor: `0x${chainEvent.depositor.identifierHex}`,
+    amountSat: chainEvent.amount.div(satoshiMultiplier).toString(),
+    btcFundingTxHash: chainEvent.fundingTxHash.toString(),
+    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+    ethRequestTxHash: chainEvent.transactionHash.toPrefixedString(),
+  },
+  block: chainEvent.blockNumber,
+})
+
 // Helper type grouping all chain data relevant for the minting monitor.
 // It allows fetching the data once and reusing them multiple times to
 // generate appropriate system events.
 type ChainDataAggregate = {
   mintingCancelledEvents: OptimisticMintingCancelledChainEvent[]
   mintingRequestedEvents: OptimisticMintingRequestedChainEvent[]
+  minters: Identifier[]
 }
 
 export class MintingMonitor implements SystemEventMonitor {
@@ -103,9 +128,11 @@ export class MintingMonitor implements SystemEventMonitor {
 
     const systemEvents: SystemEvent[] = []
 
-    systemEvents.push(...(await this.checkMintingCancels(chainData)))
+    systemEvents.push(...this.checkMintingCancels(chainData))
 
     systemEvents.push(...(await this.checkMintingRequestsValidity(chainData)))
+
+    systemEvents.push(...this.checkMintersHealth(chainData))
 
     // eslint-disable-next-line no-console
     console.log("completed minting monitor check")
@@ -127,16 +154,15 @@ export class MintingMonitor implements SystemEventMonitor {
         await this.tbtcVault.getOptimisticMintingCancelledEvents(options),
       mintingRequestedEvents:
         await this.tbtcVault.getOptimisticMintingRequestedEvents(options),
+      minters: await this.tbtcVault.getMinters(),
     }
   }
 
-  private async checkMintingCancels(chainData: ChainDataAggregate) {
+  private checkMintingCancels(chainData: ChainDataAggregate) {
     return chainData.mintingCancelledEvents.map(OptimisticMintingCancelled)
   }
 
-  private async checkMintingRequestsValidity(
-    chainData: ChainDataAggregate
-  ) {
+  private async checkMintingRequestsValidity(chainData: ChainDataAggregate) {
     const confirmations = await Promise.allSettled(
       chainData.mintingRequestedEvents.map((ce) =>
         this.btcClient.getTransactionConfirmations(ce.fundingTxHash)
@@ -194,5 +220,43 @@ export class MintingMonitor implements SystemEventMonitor {
     }
 
     return 6
+  }
+
+  private checkMintersHealth(chainData: ChainDataAggregate) {
+    const systemEvents: SystemEvent[] = []
+
+    systemEvents.push(
+      ...chainData.mintingRequestedEvents
+        .map((mre) => ({
+          ...mre,
+          designatedMinter: this.getDesignatedMinter(
+            chainData,
+            mre.depositor,
+            mre.fundingTxHash
+          ),
+        }))
+        .filter((mre) => !mre.minter.equals(mre.designatedMinter))
+        .map((mre) =>
+          DesignatedMinterNotRequestedMinting(mre, mre.designatedMinter)
+        )
+    )
+
+    // TODO: Detect finalizations done by non-designated minters.
+
+    return systemEvents
+  }
+
+  private getDesignatedMinter(
+    chainData: ChainDataAggregate,
+    depositor: Identifier,
+    fundingTxHash: BitcoinTransactionHash
+  ): Identifier {
+    const d = depositor.identifierHex.slice(-1).charCodeAt(0)
+    const f = fundingTxHash.toString().slice(-1).charCodeAt(0)
+
+    // eslint-disable-next-line no-bitwise
+    const index = (d ^ f) % chainData.minters.length
+
+    return chainData.minters[index]
   }
 }
