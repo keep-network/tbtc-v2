@@ -1,9 +1,8 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { randomBytes, Sign } from "crypto"
+import { randomBytes } from "crypto"
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { expect } from "chai"
-import { ContractTransaction } from "ethers"
-import { BigNumber } from "@ethersproject/bignumber"
+import { ContractTransaction, Wallet } from "ethers"
 import { to1e18 } from "../helpers/contract-test-helpers"
 
 import type { L2TBTC } from "../../typechain"
@@ -12,6 +11,11 @@ const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
+// Only the functions defined in L2TBTC are fully covered with tests.
+// L2TBTC contract inherits from OpenZeppelin contracts and we do not want
+// to test the framework. The basic tests for functions defined in the
+// OpenZeppelin contracts ensure all expected OpenZeppelin extensions are
+// inherited in L2TBTC contract and that they are properly initialized.
 describe("L2TBTC", () => {
   const fixture = async () => {
     const { deployer, governance } = await helpers.signers.getNamedSigners()
@@ -28,7 +32,7 @@ describe("L2TBTC", () => {
       `L2TBTC_${randomBytes(8).toString("hex")}`,
       {
         contractName: "L2TBTC",
-        initializerArgs: ["ArbitrumTBTC", "ArbTBTC"],
+        initializerArgs: ["Arbitrum TBTC", "ArbTBTC"],
         factoryOpts: { signer: deployer },
         proxyOpts: {
           kind: "transparent",
@@ -47,6 +51,9 @@ describe("L2TBTC", () => {
       token,
     }
   }
+
+  // default Hardhat's networks blockchain, see https://hardhat.org/config/
+  const hardhatNetworkId = 31337
 
   let token: L2TBTC
 
@@ -323,153 +330,394 @@ describe("L2TBTC", () => {
     })
   })
 
-  describe("burn", () => {
-    const initialSupply = to1e18(36)
-    const initialBalance = to1e18(18)
+  //
+  // The tests below are just very basic tests for ERC20 functionality.
+  // L2TBTC contract inherits from OpenZeppelin contracts and we do not want
+  // to test the framework. The basic tests ensure all expected OpenZeppelin
+  // extensions are inherited in L2TBTC contract and that they are properly
+  // initialized.
+  //
 
+  it("should have a name", async () => {
+    expect(await token.name()).to.equal("Arbitrum TBTC")
+  })
+
+  it("should have a symbol", async () => {
+    expect(await token.symbol()).to.equal("ArbTBTC")
+  })
+
+  it("should have 18 decimals", async () => {
+    expect(await token.decimals()).to.equal(18)
+  })
+
+  describe("totalSupply", () => {
     before(async () => {
       await createSnapshot()
       await token.connect(governance).addMinter(minter.address)
-      await token.connect(minter).mint(tokenHolder.address, initialBalance)
-      await token.connect(minter).mint(thirdParty.address, initialBalance)
+
+      await token.connect(minter).mint(thirdParty.address, to1e18(1))
+      await token.connect(minter).mint(tokenHolder.address, to1e18(3))
     })
 
     after(async () => {
       await restoreSnapshot()
     })
 
-    context("when burning more than balance", () => {
-      it("should revert", async () => {
-        await expect(
-          token.connect(tokenHolder).burn(initialBalance.add(1))
-        ).to.be.revertedWith("ERC20: burn amount exceeds balance")
-      })
+    it("should return the total amount of tokens", async () => {
+      expect(await token.totalSupply()).to.equal(to1e18(4)) // 1+3
+    })
+  })
+
+  describe("DOMAIN_SEPARATOR", () => {
+    it("should be keccak256 of EIP712 domain struct", async () => {
+      const { keccak256 } = ethers.utils
+      const { defaultAbiCoder } = ethers.utils
+      const { toUtf8Bytes } = ethers.utils
+
+      const expected = keccak256(
+        defaultAbiCoder.encode(
+          ["bytes32", "bytes32", "bytes32", "uint256", "address"],
+          [
+            keccak256(
+              toUtf8Bytes(
+                "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+              )
+            ),
+            keccak256(toUtf8Bytes("Arbitrum TBTC")),
+            keccak256(toUtf8Bytes("1")),
+            hardhatNetworkId,
+            token.address,
+          ]
+        )
+      )
+      expect(await token.DOMAIN_SEPARATOR()).to.equal(expected)
+    })
+  })
+
+  describe("balanceOf", () => {
+    const balance = to1e18(7)
+
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token.connect(minter).mint(tokenHolder.address, balance)
     })
 
-    const describeBurn = (description: string, amount: BigNumber) => {
-      describe(description, () => {
-        let burnTx: ContractTransaction
+    after(async () => {
+      await restoreSnapshot()
+    })
 
-        before(async () => {
-          await createSnapshot()
-          burnTx = await token.connect(tokenHolder).burn(amount)
-        })
+    it("should return the total amount of tokens", async () => {
+      expect(await token.balanceOf(tokenHolder.address)).to.equal(balance)
+    })
+  })
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+  describe("transfer", () => {
+    const initialHolderBalance = to1e18(70)
+    const transferAmount = to1e18(5)
+    let tx: ContractTransaction
 
-        it("should decrement totalSupply", async () => {
-          const expectedSupply = initialSupply.sub(amount)
-          expect(await token.totalSupply()).to.equal(expectedSupply)
-        })
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token
+        .connect(minter)
+        .mint(tokenHolder.address, initialHolderBalance)
 
-        it("should decrement account's balance", async () => {
-          const expectedBalance = initialBalance.sub(amount)
-          expect(await token.balanceOf(tokenHolder.address)).to.equal(
-            expectedBalance
-          )
-        })
+      tx = await token
+        .connect(tokenHolder)
+        .transfer(thirdParty.address, transferAmount)
+    })
 
-        it("should emit Transfer event", async () => {
-          await expect(burnTx)
-            .to.emit(token, "Transfer")
-            .withArgs(tokenHolder.address, ZERO_ADDRESS, amount)
-        })
-      })
-    }
+    after(async () => {
+      await restoreSnapshot()
+    })
 
-    describeBurn("for the entire balance", initialBalance)
-    describeBurn("for less than the entire balance", initialBalance.sub(1))
+    it("should transfer the requested amount", async () => {
+      expect(await token.balanceOf(tokenHolder.address)).to.equal(
+        initialHolderBalance.sub(transferAmount)
+      )
+
+      expect(await token.balanceOf(thirdParty.address)).to.equal(transferAmount)
+    })
+
+    it("should emit a transfer event", async () => {
+      await expect(tx)
+        .to.emit(token, "Transfer")
+        .withArgs(tokenHolder.address, thirdParty.address, transferAmount)
+    })
+  })
+
+  describe("transferFrom", () => {
+    const initialHolderBalance = to1e18(70)
+    const transferAmount = to1e18(9)
+    let tx: ContractTransaction
+
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token
+        .connect(minter)
+        .mint(tokenHolder.address, initialHolderBalance)
+
+      await token
+        .connect(tokenHolder)
+        .approve(thirdParty.address, transferAmount)
+      tx = await token
+        .connect(thirdParty)
+        .transferFrom(tokenHolder.address, thirdParty.address, transferAmount)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should transfer the requested amount", async () => {
+      expect(await token.balanceOf(tokenHolder.address)).to.equal(
+        initialHolderBalance.sub(transferAmount)
+      )
+
+      expect(await token.balanceOf(thirdParty.address)).to.equal(transferAmount)
+    })
+
+    it("should emit a transfer event", async () => {
+      await expect(tx)
+        .to.emit(token, "Transfer")
+        .withArgs(tokenHolder.address, thirdParty.address, transferAmount)
+    })
+  })
+
+  describe("approve", () => {
+    let tx: ContractTransaction
+    const allowance = to1e18(888)
+
+    before(async () => {
+      await createSnapshot()
+
+      tx = await token
+        .connect(tokenHolder)
+        .approve(thirdParty.address, allowance)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should approve the requested amount", async () => {
+      expect(
+        await token.allowance(tokenHolder.address, thirdParty.address)
+      ).to.equal(allowance)
+    })
+
+    it("should emit an approval event", async () => {
+      await expect(tx)
+        .to.emit(token, "Approval")
+        .withArgs(tokenHolder.address, thirdParty.address, allowance)
+    })
+  })
+
+  describe("burn", () => {
+    const initialBalance = to1e18(18)
+    const burnedAmount = to1e18(5)
+
+    let burnTx: ContractTransaction
+
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token.connect(minter).mint(tokenHolder.address, initialBalance)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    before(async () => {
+      await createSnapshot()
+      burnTx = await token.connect(tokenHolder).burn(burnedAmount)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should decrement account's balance", async () => {
+      const expectedBalance = initialBalance.sub(burnedAmount)
+      expect(await token.balanceOf(tokenHolder.address)).to.equal(
+        expectedBalance
+      )
+    })
+
+    it("should emit Transfer event", async () => {
+      await expect(burnTx)
+        .to.emit(token, "Transfer")
+        .withArgs(tokenHolder.address, ZERO_ADDRESS, burnedAmount)
+    })
   })
 
   describe("burnFrom", () => {
-    const initialSupply = to1e18(36)
     const initialBalance = to1e18(18)
+    const burnedAmount = to1e18(9)
+
+    let burnTx: ContractTransaction
 
     before(async () => {
       await createSnapshot()
       await token.connect(governance).addMinter(minter.address)
       await token.connect(minter).mint(tokenHolder.address, initialBalance)
-      await token.connect(minter).mint(thirdParty.address, initialBalance)
     })
 
     after(async () => {
       await restoreSnapshot()
     })
 
-    context("when burning more than the balance", () => {
-      it("should revert", async () => {
-        await token
-          .connect(tokenHolder)
-          .approve(thirdParty.address, initialBalance.add(1))
-        await expect(
-          token
-            .connect(thirdParty)
-            .burnFrom(tokenHolder.address, initialBalance.add(1))
-        ).to.be.revertedWith("ERC20: burn amount exceeds balance")
-      })
+    before(async () => {
+      await createSnapshot()
+      await token.connect(tokenHolder).approve(thirdParty.address, burnedAmount)
+      burnTx = await token
+        .connect(thirdParty)
+        .burnFrom(tokenHolder.address, burnedAmount)
     })
 
-    context("when burning more than the allowance", () => {
-      it("should revert", async () => {
-        await token
-          .connect(tokenHolder)
-          .approve(thirdParty.address, initialBalance.sub(1))
-        await expect(
-          token
-            .connect(thirdParty)
-            .burnFrom(tokenHolder.address, initialBalance)
-        ).to.be.revertedWith("ERC20: insufficient allowance")
-      })
+    after(async () => {
+      await restoreSnapshot()
     })
 
-    const describeBurnFrom = (description: string, amount: BigNumber) => {
-      describe(description, () => {
-        let burnTx: ContractTransaction
+    it("should decrement account's balance", async () => {
+      const expectedBalance = initialBalance.sub(burnedAmount)
+      expect(await token.balanceOf(tokenHolder.address)).to.equal(
+        expectedBalance
+      )
+    })
 
-        before(async () => {
-          await createSnapshot()
-          await token.connect(tokenHolder).approve(thirdParty.address, amount)
-          burnTx = await token
-            .connect(thirdParty)
-            .burnFrom(tokenHolder.address, amount)
-        })
+    it("should decrement allowance", async () => {
+      const allowance = await token.allowance(
+        tokenHolder.address,
+        thirdParty.address
+      )
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+      expect(allowance).to.equal(0)
+    })
 
-        it("should decrement totalSupply", async () => {
-          const expectedSupply = initialSupply.sub(amount)
-          expect(await token.totalSupply()).to.equal(expectedSupply)
-        })
+    it("should emit Transfer event", async () => {
+      await expect(burnTx)
+        .to.emit(token, "Transfer")
+        .withArgs(tokenHolder.address, ZERO_ADDRESS, burnedAmount)
+    })
+  })
 
-        it("should decrement account's balance", async () => {
-          const expectedBalance = initialBalance.sub(amount)
-          expect(await token.balanceOf(tokenHolder.address)).to.equal(
-            expectedBalance
-          )
-        })
+  describe("permit", () => {
+    const initialHolderBalance = to1e18(70)
+    let permittingHolder: Wallet
 
-        it("should decrement allowance", async () => {
-          const allowance = await token.allowance(
-            tokenHolder.address,
-            thirdParty.address
-          )
+    let deadline: number
 
-          expect(allowance).to.equal(0)
-        })
+    let tx: ContractTransaction
 
-        it("should emit Transfer event", async () => {
-          await expect(burnTx)
-            .to.emit(token, "Transfer")
-            .withArgs(tokenHolder.address, ZERO_ADDRESS, amount)
-        })
-      })
+    const getApproval = async (amount, spender) => {
+      // We use ethers.utils.SigningKey for a Wallet instead of
+      // Signer.signMessage to do not add '\x19Ethereum Signed Message:\n'
+      // prefix to the signed message. The '\x19` protection (see EIP191 for
+      // more details on '\x19' rationale and format) is already included in
+      // EIP2612 permit signed message and '\x19Ethereum Signed Message:\n'
+      // should not be used there.
+      const signingKey = new ethers.utils.SigningKey(
+        permittingHolder.privateKey
+      )
+
+      const domainSeparator = await token.DOMAIN_SEPARATOR()
+      const permitTypehash = ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes(
+          "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        )
+      )
+      const nonce = await token.nonces(permittingHolder.address)
+
+      const approvalDigest = ethers.utils.keccak256(
+        ethers.utils.solidityPack(
+          ["bytes1", "bytes1", "bytes32", "bytes32"],
+          [
+            "0x19",
+            "0x01",
+            domainSeparator,
+            ethers.utils.keccak256(
+              ethers.utils.defaultAbiCoder.encode(
+                [
+                  "bytes32",
+                  "address",
+                  "address",
+                  "uint256",
+                  "uint256",
+                  "uint256",
+                ],
+                [
+                  permitTypehash,
+                  permittingHolder.address,
+                  spender,
+                  amount,
+                  nonce,
+                  deadline,
+                ]
+              )
+            ),
+          ]
+        )
+      )
+
+      return ethers.utils.splitSignature(
+        await signingKey.signDigest(approvalDigest)
+      )
     }
 
-    describeBurnFrom("for the entire balance", initialBalance)
-    describeBurnFrom("for less than the balance", initialBalance.sub(1))
+    before(async () => {
+      await createSnapshot()
+
+      permittingHolder = await ethers.Wallet.createRandom()
+
+      await token.connect(governance).addMinter(minter.address)
+      await token
+        .connect(minter)
+        .mint(permittingHolder.address, initialHolderBalance)
+
+      const lastBlockTimestamp = await helpers.time.lastBlockTime()
+      deadline = lastBlockTimestamp + 86400 // +1 day
+
+      const signature = await getApproval(
+        initialHolderBalance,
+        thirdParty.address
+      )
+
+      tx = await token
+        .connect(thirdParty)
+        .permit(
+          permittingHolder.address,
+          thirdParty.address,
+          initialHolderBalance,
+          deadline,
+          signature.v,
+          signature.r,
+          signature.s
+        )
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should emit an approval event", async () => {
+      await expect(tx)
+        .to.emit(token, "Approval")
+        .withArgs(
+          permittingHolder.address,
+          thirdParty.address,
+          initialHolderBalance
+        )
+    })
+
+    it("should approve the requested amount", async () => {
+      expect(
+        await token.allowance(permittingHolder.address, thirdParty.address)
+      ).to.equal(initialHolderBalance)
+    })
   })
 })

@@ -23,7 +23,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // * Be paused by any one of `n` guardians, allowing avoidance of contagion in case
 //  of a chain- or bridge-specific incident.
 // * Proper documentation.
-// * Proper tests, including initialization.
+// * Misfund recovery.
 contract L2TBTC is
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
