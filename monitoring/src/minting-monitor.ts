@@ -74,6 +74,14 @@ const OptimisticMintingRequestedForUndeterminedBtcTx = (
   block: chainEvent.blockNumber,
 })
 
+// Helper type grouping all chain data relevant for the minting monitor.
+// It allows fetching the data once and reusing them multiple times to
+// generate appropriate system events.
+type ChainDataAggregate = {
+  mintingCancelledEvents: OptimisticMintingCancelledChainEvent[]
+  mintingRequestedEvents: OptimisticMintingRequestedChainEvent[]
+}
+
 export class MintingMonitor implements SystemEventMonitor {
   private bridge: Bridge
 
@@ -91,11 +99,13 @@ export class MintingMonitor implements SystemEventMonitor {
     // eslint-disable-next-line no-console
     console.log("running minting monitor check")
 
+    const chainData = await this.fetchChainData(fromBlock, toBlock)
+
     const systemEvents: SystemEvent[] = []
 
-    systemEvents.push(...(await this.checkCancelledEvents(fromBlock, toBlock)))
+    systemEvents.push(...(await this.checkMintingCancels(chainData)))
 
-    systemEvents.push(...(await this.checkRequestedEvents(fromBlock, toBlock)))
+    systemEvents.push(...(await this.checkMintingRequestsValidity(chainData)))
 
     // eslint-disable-next-line no-console
     console.log("completed minting monitor check")
@@ -103,32 +113,39 @@ export class MintingMonitor implements SystemEventMonitor {
     return systemEvents
   }
 
-  private async checkCancelledEvents(fromBlock: number, toBlock: number) {
-    const chainEvents =
-      await this.tbtcVault.getOptimisticMintingCancelledEvents({
-        fromBlock,
-        toBlock,
-      })
+  private async fetchChainData(
+    fromBlock: number,
+    toBlock: number
+  ): Promise<ChainDataAggregate> {
+    const options = {
+      fromBlock,
+      toBlock,
+    }
 
-    return chainEvents.map(OptimisticMintingCancelled)
+    return {
+      mintingCancelledEvents:
+        await this.tbtcVault.getOptimisticMintingCancelledEvents(options),
+      mintingRequestedEvents:
+        await this.tbtcVault.getOptimisticMintingRequestedEvents(options),
+    }
   }
 
-  private async checkRequestedEvents(fromBlock: number, toBlock: number) {
-    const chainEvents =
-      await this.tbtcVault.getOptimisticMintingRequestedEvents({
-        fromBlock,
-        toBlock,
-      })
+  private async checkMintingCancels(chainData: ChainDataAggregate) {
+    return chainData.mintingCancelledEvents.map(OptimisticMintingCancelled)
+  }
 
+  private async checkMintingRequestsValidity(
+    chainData: ChainDataAggregate
+  ) {
     const confirmations = await Promise.allSettled(
-      chainEvents.map((ce) =>
+      chainData.mintingRequestedEvents.map((ce) =>
         this.btcClient.getTransactionConfirmations(ce.fundingTxHash)
       )
     )
 
     const systemEvents: SystemEvent[] = []
 
-    chainEvents.forEach((ce, index) => {
+    chainData.mintingRequestedEvents.forEach((ce, index) => {
       const confirmation = confirmations[index]
 
       switch (confirmation.status) {
