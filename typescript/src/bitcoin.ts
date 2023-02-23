@@ -3,6 +3,8 @@ import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -11,7 +13,7 @@ import { BigNumber } from "ethers"
  * by the Bitcoin protocol internally. That means the hash must be reversed in
  * the use cases that expect the Bitcoin internal byte order.
  */
-export type TransactionHash = string
+export class TransactionHash extends Hex {}
 
 /**
  * Represents a raw transaction.
@@ -65,7 +67,7 @@ export type TransactionInput = TransactionOutpoint & {
   /**
    * The scriptSig that unlocks the specified outpoint for spending.
    */
-  scriptSig: any
+  scriptSig: Hex
 }
 
 /**
@@ -85,7 +87,7 @@ export interface TransactionOutput {
   /**
    * The receiving scriptPubKey.
    */
-  scriptPubKey: any
+  scriptPubKey: Hex
 }
 
 /**
@@ -174,6 +176,12 @@ export interface TransactionMerkleBranch {
  * Represents a Bitcoin client.
  */
 export interface Client {
+  /**
+   * Gets the network supported by the server the client connected to.
+   * @returns Bitcoin network.
+   */
+  getNetwork(): Promise<BitcoinNetwork>
+
   /**
    * Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
    * @param address - Bitcoin address UTXOs should be determined for.
@@ -308,7 +316,13 @@ export function isCompressedPublicKey(publicKey: string): boolean {
  * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
  * @returns Compressed 33-byte public key prefixed with 02 or 03.
  */
-export function compressPublicKey(publicKey: string): string {
+export function compressPublicKey(publicKey: string | Hex): string {
+  if (typeof publicKey === "string") {
+    publicKey = Hex.from(publicKey)
+  }
+
+  publicKey = publicKey.toString()
+
   // Must have 64 bytes and no prefix.
   if (publicKey.length != 128) {
     throw new Error(
@@ -358,4 +372,72 @@ export function createKeyRing(
  */
 export function computeHash160(text: string): string {
   return hash160.digest(Buffer.from(text, "hex")).toString("hex")
+}
+
+/**
+ * Encodes a public key hash into a P2PKH/P2WPKH address.
+ * @param publicKeyHash - public key hash that will be encoded. Must be an
+ *        unprefixed hex string (without 0x prefix).
+ * @param witness - If true, a witness public key hash will be encoded and
+ *        P2WPKH address will be returned. Returns P2PKH address otherwise
+ * @param network - Network the address should be encoded for.
+ * @returns P2PKH or P2WPKH address encoded from the given public key hash
+ * @throws Throws an error if network is not supported.
+ */
+export function encodeToBitcoinAddress(
+  publicKeyHash: string,
+  witness: boolean,
+  network: BitcoinNetwork
+): string {
+  const buffer = Buffer.from(publicKeyHash, "hex")
+  const bcoinNetwork = toBcoinNetwork(network)
+  return witness
+    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(bcoinNetwork)
+    : bcoin.Address.fromPubkeyhash(buffer).toString(bcoinNetwork)
+}
+
+/**
+ * Decodes P2PKH or P2WPKH address into a public key hash. Throws if the
+ * provided address is not PKH-based.
+ * @param address - P2PKH or P2WPKH address that will be decoded.
+ * @returns Public key hash decoded from the address. This will be an unprefixed
+ *        hex string (without 0x prefix).
+ */
+export function decodeBitcoinAddress(address: string): string {
+  const addressObject = new bcoin.Address(address)
+
+  const isPKH =
+    addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
+  if (!isPKH) {
+    throw new Error("Address must be P2PKH or P2WPKH")
+  }
+
+  return addressObject.getHash("hex")
+}
+
+/**
+ * Checks if given public key hash has proper length (20-byte)
+ * @param publicKeyHash - text that will be checked for the correct length
+ * @returns true if the given string is 20-byte long, false otherwise
+ */
+export function isPublicKeyHashLength(publicKeyHash: string): boolean {
+  return publicKeyHash.length === 40
+}
+
+/**
+ * Converts Bitcoin specific locktime value to a number. The number represents
+ * either a block height or an Unix timestamp depending on the value.
+ *
+ * If the number is less than 500 000 000 it is a block height.
+ * If the number is greater or equal 500 000 000 it is a Unix timestamp.
+ *
+ * @see {@link https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number Documentation}
+ *
+ * @param locktimeLE A 4-byte little-endian locktime as an un-prefixed
+ *                   hex string {@link: Deposit#refundLocktime}.
+ * @returns UNIX timestamp in seconds.
+ */
+export function locktimeToNumber(locktimeLE: Buffer | string): number {
+  const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
+  return BigNumber.from(locktimeBE).toNumber()
 }

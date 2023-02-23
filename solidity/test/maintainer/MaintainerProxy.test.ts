@@ -3582,9 +3582,14 @@ describe("MaintainerProxy", () => {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
     for (let i = 0; i < data.deposits.length; i++) {
-      const { fundingTx, reveal } = data.deposits[i]
+      const { fundingTx, depositor, reveal } = data.deposits[i]
       // eslint-disable-next-line no-await-in-loop
-      await bridge.revealDeposit(fundingTx, reveal)
+      const depositorSigner = await impersonateAccount(depositor, {
+        from: governance,
+        value: 10,
+      })
+      // eslint-disable-next-line no-await-in-loop
+      await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
     }
 
     if (beforeProofActions) {

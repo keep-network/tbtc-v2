@@ -35,7 +35,8 @@ export const constants = {
   walletMaxAge: 26 * 604800, // 26 weeks ~ 6 months
   walletMaxBtcTransfer: to1ePrecision(10, 8), // 10 BTC
   walletClosingPeriod: 3456000, // 40 days
-  governanceDelay: 604800, // 1 week
+  governanceDelay: 172800, // 48 hours
+  satoshiMultiplier: 1e10, // Converts satoshi to TBTC token units
 }
 
 export const walletState = {

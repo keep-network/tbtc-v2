@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 
-import { ethers, helpers, waffle } from "hardhat"
+import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, Contract, ContractTransaction } from "ethers"
 import chai, { expect } from "chai"
@@ -33,7 +33,8 @@ import {
 chai.use(smock.matchers)
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime, increaseTime } = helpers.time
+const { lastBlockTime } = helpers.time
+const { impersonateAccount } = helpers.account
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
@@ -65,7 +66,9 @@ describe("Bridge - Deposit", () => {
 
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
+    // Scaling down deposit TX max fee as well.
     await bridge.setDepositDustThreshold(10000)
+    await bridge.setDepositTxMaxFee(2000)
     // Disable the reveal ahead period since refund locktimes are fixed
     // within transactions used in this test suite.
     await bridge.setDepositRevealAheadPeriod(0)
@@ -106,9 +109,9 @@ describe("Bridge - Deposit", () => {
 
     // Data matching the redeem script locking the funding output of
     // P2SHFundingTx and P2WSHFundingTx.
+    const depositorAddress = "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637"
     const reveal = {
       fundingOutputIndex: 0,
-      depositor: "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
       blindingFactor: "0xf9f0c90d00039523",
       // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
       walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -117,6 +120,15 @@ describe("Bridge - Deposit", () => {
       refundLocktime: "0x60bcea61",
       vault: "0x594cfd89700040163727828AE20B52099C58F02C",
     }
+
+    let depositor: SignerWithAddress
+
+    before(async () => {
+      depositor = await impersonateAccount(depositorAddress, {
+        from: governance,
+        value: 10,
+      })
+    })
 
     context("when wallet is in Live state", () => {
       before(async () => {
@@ -154,8 +166,9 @@ describe("Bridge - Deposit", () => {
 
                   before(async () => {
                     await createSnapshot()
-
-                    tx = await bridge.revealDeposit(P2SHFundingTx, reveal)
+                    tx = await bridge
+                      .connect(depositor)
+                      .revealDeposit(P2SHFundingTx, reveal)
                   })
 
                   after(async () => {
@@ -223,10 +236,9 @@ describe("Bridge - Deposit", () => {
 
                     nonRoutedReveal = { ...reveal }
                     nonRoutedReveal.vault = ZERO_ADDRESS
-                    tx = await bridge.revealDeposit(
-                      P2SHFundingTx,
-                      nonRoutedReveal
-                    )
+                    tx = await bridge
+                      .connect(depositor)
+                      .revealDeposit(P2SHFundingTx, nonRoutedReveal)
                   })
 
                   after(async () => {
@@ -250,6 +262,69 @@ describe("Bridge - Deposit", () => {
                   })
                 })
 
+                context("when deposit treasury fee is zero", () => {
+                  let tx: ContractTransaction
+
+                  before(async () => {
+                    await createSnapshot()
+
+                    await bridgeGovernance
+                      .connect(governance)
+                      .beginDepositTreasuryFeeDivisorUpdate(0)
+                    await helpers.time.increaseTime(constants.governanceDelay)
+                    await bridgeGovernance
+                      .connect(governance)
+                      .finalizeDepositTreasuryFeeDivisorUpdate()
+
+                    tx = await bridge
+                      .connect(depositor)
+                      .revealDeposit(P2SHFundingTx, reveal)
+                  })
+
+                  after(async () => {
+                    await restoreSnapshot()
+                  })
+
+                  it("should store proper deposit data", async () => {
+                    // Deposit key is keccak256(fundingTxHash | fundingOutputIndex).
+                    const depositKey = ethers.utils.solidityKeccak256(
+                      ["bytes32", "uint32"],
+                      [
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                      ]
+                    )
+
+                    const deposit = await bridge.deposits(depositKey)
+
+                    // Deposit amount in satoshi. In this case it's 10000 satoshi
+                    // because the P2SH deposit transaction set this value for the
+                    // funding output.
+                    expect(deposit.amount).to.be.equal(10000)
+
+                    // Treasury fee should be computed according to the current
+                    // value of the `depositTreasuryFeeDivisor`.
+                    // The divisor is 0 so the treasury fee is 0 as well.
+                    expect(deposit.treasuryFee).to.be.equal(0)
+                  })
+
+                  it("should accept the deposit", async () => {
+                    await expect(tx)
+                      .to.emit(bridge, "DepositRevealed")
+                      .withArgs(
+                        "0x17350f81cdb61cd8d7014ad1507d4af8d032b75812cf88d2c636c1c022991af2",
+                        reveal.fundingOutputIndex,
+                        "0x934B98637cA318a4D6E7CA6ffd1690b8e77df637",
+                        10000,
+                        "0xf9f0c90d00039523",
+                        "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                        "0x28e081f285138ccbe389c1eb8985716230129f89",
+                        "0x60bcea61",
+                        reveal.vault
+                      )
+                  })
+                })
+
                 context("when deposit is routed to a non-trusted vault", () => {
                   let nonTrustedVaultReveal
 
@@ -267,7 +342,9 @@ describe("Bridge - Deposit", () => {
 
                   it("should revert", async () => {
                     await expect(
-                      bridge.revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
+                      bridge
+                        .connect(depositor)
+                        .revealDeposit(P2SHFundingTx, nonTrustedVaultReveal)
                     ).to.be.revertedWith("Vault is not trusted")
                   })
                 })
@@ -290,7 +367,9 @@ describe("Bridge - Deposit", () => {
 
                 it("should revert", async () => {
                   await expect(
-                    bridge.revealDeposit(P2SHFundingTx, reveal)
+                    bridge
+                      .connect(depositor)
+                      .revealDeposit(P2SHFundingTx, reveal)
                   ).to.be.revertedWith("Deposit amount too small")
                 })
               })
@@ -300,7 +379,9 @@ describe("Bridge - Deposit", () => {
               before(async () => {
                 await createSnapshot()
 
-                await bridge.revealDeposit(P2SHFundingTx, reveal)
+                await bridge
+                  .connect(depositor)
+                  .revealDeposit(P2SHFundingTx, reveal)
               })
 
               after(async () => {
@@ -309,7 +390,7 @@ describe("Bridge - Deposit", () => {
 
               it("should revert", async () => {
                 await expect(
-                  bridge.revealDeposit(P2SHFundingTx, reveal)
+                  bridge.connect(depositor).revealDeposit(P2SHFundingTx, reveal)
                 ).to.be.revertedWith("Deposit already revealed")
               })
             })
@@ -317,16 +398,33 @@ describe("Bridge - Deposit", () => {
 
           context("when funding output script hash is wrong", () => {
             it("should revert", async () => {
-              // Corrupt reveal data by setting a wrong depositor address.
+              // Corrupt reveal data by setting a wrong blinding factor
               const corruptedReveal = { ...reveal }
-              corruptedReveal.depositor =
-                "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+              corruptedReveal.blindingFactor = "0xf9f0c90d00039524"
 
               await expect(
-                bridge.revealDeposit(P2SHFundingTx, corruptedReveal)
+                bridge
+                  .connect(depositor)
+                  .revealDeposit(P2SHFundingTx, corruptedReveal)
               ).to.be.revertedWith("Wrong 20-byte script hash")
             })
           })
+
+          context(
+            "when the caller address does not match the funding output script",
+            () => {
+              it("should revert", async () => {
+                const accounts = await getUnnamedAccounts()
+                const thirdParty = await ethers.getSigner(accounts[0])
+
+                await expect(
+                  bridge
+                    .connect(thirdParty)
+                    .revealDeposit(P2SHFundingTx, reveal)
+                ).to.be.revertedWith("Wrong 20-byte script hash")
+              })
+            }
+          )
         })
 
         context("when funding transaction is P2WSH", () => {
@@ -338,7 +436,9 @@ describe("Bridge - Deposit", () => {
                 before(async () => {
                   await createSnapshot()
 
-                  tx = await bridge.revealDeposit(P2WSHFundingTx, reveal)
+                  tx = await bridge
+                    .connect(depositor)
+                    .revealDeposit(P2WSHFundingTx, reveal)
                 })
 
                 after(async () => {
@@ -404,10 +504,9 @@ describe("Bridge - Deposit", () => {
 
                   nonRoutedReveal = { ...reveal }
                   nonRoutedReveal.vault = ZERO_ADDRESS
-                  tx = await bridge.revealDeposit(
-                    P2WSHFundingTx,
-                    nonRoutedReveal
-                  )
+                  tx = await bridge
+                    .connect(depositor)
+                    .revealDeposit(P2WSHFundingTx, nonRoutedReveal)
                 })
 
                 after(async () => {
@@ -448,7 +547,9 @@ describe("Bridge - Deposit", () => {
 
                 it("should revert", async () => {
                   await expect(
-                    bridge.revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
+                    bridge
+                      .connect(depositor)
+                      .revealDeposit(P2WSHFundingTx, nonTrustedVaultReveal)
                   ).to.be.revertedWith("Vault is not trusted")
                 })
               })
@@ -458,7 +559,9 @@ describe("Bridge - Deposit", () => {
               before(async () => {
                 await createSnapshot()
 
-                await bridge.revealDeposit(P2WSHFundingTx, reveal)
+                await bridge
+                  .connect(depositor)
+                  .revealDeposit(P2WSHFundingTx, reveal)
               })
 
               after(async () => {
@@ -467,7 +570,9 @@ describe("Bridge - Deposit", () => {
 
               it("should revert", async () => {
                 await expect(
-                  bridge.revealDeposit(P2WSHFundingTx, reveal)
+                  bridge
+                    .connect(depositor)
+                    .revealDeposit(P2WSHFundingTx, reveal)
                 ).to.be.revertedWith("Deposit already revealed")
               })
             })
@@ -475,16 +580,33 @@ describe("Bridge - Deposit", () => {
 
           context("when funding output script hash is wrong", () => {
             it("should revert", async () => {
-              // Corrupt reveal data by setting a wrong depositor address.
+              // Corrupt reveal data by setting a wrong blinding factor
               const corruptedReveal = { ...reveal }
-              corruptedReveal.depositor =
-                "0x24CbaB95C69e5bcbE328252F957A39d906eE75f3"
+              corruptedReveal.blindingFactor = "0xf9f0c90d00039524"
 
               await expect(
-                bridge.revealDeposit(P2WSHFundingTx, corruptedReveal)
+                bridge
+                  .connect(depositor)
+                  .revealDeposit(P2WSHFundingTx, corruptedReveal)
               ).to.be.revertedWith("Wrong 32-byte script hash")
             })
           })
+
+          context(
+            "when the caller address does not match the funding output script",
+            () => {
+              it("should revert", async () => {
+                const accounts = await getUnnamedAccounts()
+                const thirdParty = await ethers.getSigner(accounts[0])
+
+                await expect(
+                  bridge
+                    .connect(thirdParty)
+                    .revealDeposit(P2WSHFundingTx, reveal)
+                ).to.be.revertedWith("Wrong 32-byte script hash")
+              })
+            }
+          )
         })
 
         context("when funding transaction is neither P2SH nor P2WSH", () => {
@@ -497,7 +619,9 @@ describe("Bridge - Deposit", () => {
               "140d2726"
 
             await expect(
-              bridge.revealDeposit(corruptedP2SHFundingTx, reveal)
+              bridge
+                .connect(depositor)
+                .revealDeposit(corruptedP2SHFundingTx, reveal)
             ).to.be.revertedWith("Wrong script hash length")
           })
         })
@@ -553,7 +677,9 @@ describe("Bridge - Deposit", () => {
             // the one embedded in the transaction P2SH. We just make sure
             // the execution does not revert on the refund locktime validation.
             await expect(
-              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+              bridge
+                .connect(depositor)
+                .revealDeposit(P2WSHFundingTx, alteredReveal)
             ).to.be.not.revertedWith("Deposit refund locktime is too close")
           })
         })
@@ -576,7 +702,9 @@ describe("Bridge - Deposit", () => {
             ])
 
             await expect(
-              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+              bridge
+                .connect(depositor)
+                .revealDeposit(P2WSHFundingTx, alteredReveal)
             ).to.be.revertedWith("Deposit refund locktime is too close")
           })
         })
@@ -589,7 +717,9 @@ describe("Bridge - Deposit", () => {
             }
 
             await expect(
-              bridge.revealDeposit(P2WSHFundingTx, alteredReveal)
+              bridge
+                .connect(depositor)
+                .revealDeposit(P2WSHFundingTx, alteredReveal)
             ).to.be.revertedWith("Refund locktime must be a value >= 500M")
           })
         })
@@ -643,7 +773,7 @@ describe("Bridge - Deposit", () => {
 
           it("should revert", async () => {
             await expect(
-              bridge.revealDeposit(P2SHFundingTx, reveal)
+              bridge.connect(depositor).revealDeposit(P2SHFundingTx, reveal)
             ).to.be.revertedWith("Wallet must be in Live state")
           })
         })
@@ -744,9 +874,7 @@ describe("Bridge - Deposit", () => {
                             // initial value is 0.05% of the deposited amount so the
                             // final depositor balance should be cut by 10 satoshi.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(18490)
                           })
 
@@ -834,9 +962,7 @@ describe("Bridge - Deposit", () => {
                             // of the deposited amount so the final depositor balance
                             // should be cut by 40 satoshi.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(77960)
                           })
 
@@ -936,9 +1062,7 @@ describe("Bridge - Deposit", () => {
                           it("should not update the depositor's balance", async () => {
                             // The depositor balance should not be increased.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(0)
                           })
 
@@ -962,7 +1086,7 @@ describe("Bridge - Deposit", () => {
                             expect(
                               vault.receiveBalanceIncrease
                             ).to.have.been.calledOnceWith(
-                              [data.deposits[0].reveal.depositor],
+                              [data.deposits[0].depositor],
                               [77960]
                             )
                           })
@@ -977,6 +1101,64 @@ describe("Bridge - Deposit", () => {
                             await expect(tx)
                               .to.emit(bridge, "DepositsSwept")
                               .withArgs(walletPubKeyHash, data.sweepTx.hash)
+                          })
+                        }
+                      )
+
+                      // This test cares only about the fact sweeping works
+                      // correctly when no deposit treasury fee is collected.
+                      // It uses the test data from P2SH deposit test.
+                      context(
+                        "when the deposit treasury fee is zero",
+                        async () => {
+                          const data: DepositSweepTestData = SingleP2SHDeposit
+                          // Take wallet public key hash from first deposit. All
+                          // deposits in same sweep batch should have the same value
+                          // of that field.
+                          const { walletPubKeyHash } = data.deposits[0].reveal
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Simulate the wallet is a Live one and is known in
+                            // the system.
+                            await bridge.setWallet(walletPubKeyHash, {
+                              ...walletDraft,
+                              state: walletState.Live,
+                            })
+
+                            await bridgeGovernance
+                              .connect(governance)
+                              .beginDepositTreasuryFeeDivisorUpdate(0)
+                            await helpers.time.increaseTime(
+                              constants.governanceDelay
+                            )
+                            await bridgeGovernance
+                              .connect(governance)
+                              .finalizeDepositTreasuryFeeDivisorUpdate()
+
+                            await runDepositSweepScenario(data)
+                          })
+
+                          after(async () => {
+                            await restoreSnapshot()
+                          })
+
+                          it("should update the depositor's balance", async () => {
+                            // The sum of sweep tx inputs is 20000 satoshi. The output
+                            // value is 18500 so the transaction fee is 1500. There is
+                            // only one deposit so it incurs the entire transaction fee.
+                            // There is no deposit treasury fee so the final depositor
+                            // balance is not additionally cut.
+                            expect(
+                              await bank.balanceOf(data.deposits[0].depositor)
+                            ).to.be.equal(18500)
+                          })
+
+                          it("should collect no treasury fee", async () => {
+                            expect(
+                              await bank.balanceOf(treasury.address)
+                            ).to.be.equal(0)
                           })
                         }
                       )
@@ -1077,9 +1259,7 @@ describe("Bridge - Deposit", () => {
                             // of the deposited amount so the final depositor balance
                             // should be cut by 40 satoshi.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(77960)
                           })
 
@@ -1384,41 +1564,31 @@ describe("Bridge - Deposit", () => {
                             // (according to inputs order) and it should incur the
                             // remainder of the transaction fee.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(219287)
 
                             // Deposit with index 1 used as input with index 3
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[1].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[1].depositor)
                             ).to.be.equal(759021)
 
                             // Deposit with index 2 used as input with index 1
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[2].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[2].depositor)
                             ).to.be.equal(938931)
 
                             // Deposit with index 3 used as input with index 2
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[3].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[3].depositor)
                             ).to.be.equal(878961)
 
                             // Deposit with index 4 used as input with index 4
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[4].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[4].depositor)
                             ).to.be.equal(289256)
                           })
 
@@ -1550,33 +1720,23 @@ describe("Bridge - Deposit", () => {
 
                           it("should not update the depositors balances", async () => {
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(0)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[1].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[1].depositor)
                             ).to.be.equal(0)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[2].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[2].depositor)
                             ).to.be.equal(0)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[3].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[3].depositor)
                             ).to.be.equal(0)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[4].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[4].depositor)
                             ).to.be.equal(0)
                           })
 
@@ -1606,11 +1766,11 @@ describe("Bridge - Deposit", () => {
                               vault.receiveBalanceIncrease
                             ).to.have.been.calledOnceWith(
                               [
-                                data.deposits[2].reveal.depositor,
-                                data.deposits[3].reveal.depositor,
-                                data.deposits[1].reveal.depositor,
-                                data.deposits[4].reveal.depositor,
-                                data.deposits[0].reveal.depositor,
+                                data.deposits[2].depositor,
+                                data.deposits[3].depositor,
+                                data.deposits[1].depositor,
+                                data.deposits[4].depositor,
+                                data.deposits[0].depositor,
                               ],
                               [938931, 878961, 759021, 289256, 219287]
                             )
@@ -1768,41 +1928,31 @@ describe("Bridge - Deposit", () => {
                             // (according to inputs order) and it should incur the
                             // remainder of the transaction fee.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(219287)
 
                             // Deposit with index 1 used as input with index 3
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[1].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[1].depositor)
                             ).to.be.equal(759021)
 
                             // Deposit with index 2 used as input with index 1
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[2].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[2].depositor)
                             ).to.be.equal(938931)
 
                             // Deposit with index 3 used as input with index 2
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[3].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[3].depositor)
                             ).to.be.equal(878961)
 
                             // Deposit with index 4 used as input with index 4
                             // in the sweep transaction.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[4].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[4].depositor)
                             ).to.be.equal(289256)
                           })
 
@@ -1979,33 +2129,23 @@ describe("Bridge - Deposit", () => {
                             // should also incur the treasury fee whose initial
                             // value is 0.05% of the deposited amount.
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[0].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[0].depositor)
                             ).to.be.equal(29585)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[1].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[1].depositor)
                             ).to.be.equal(9595)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[2].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[2].depositor)
                             ).to.be.equal(209495)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[3].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[3].depositor)
                             ).to.be.equal(369415)
 
                             expect(
-                              await bank.balanceOf(
-                                data.deposits[4].reveal.depositor
-                              )
+                              await bank.balanceOf(data.deposits[4].depositor)
                             ).to.be.equal(439380)
                           })
 
@@ -2796,7 +2936,7 @@ describe("Bridge - Deposit", () => {
       // testing of `MovingFunds` state is limited to just one simple test case
       // (sweeping single P2SH deposit).
       const data: DepositSweepTestData = SingleP2SHDeposit
-      const { fundingTx, reveal } = data.deposits[0]
+      const { fundingTx, depositor, reveal } = data.deposits[0]
 
       before(async () => {
         await createSnapshot()
@@ -2810,7 +2950,11 @@ describe("Bridge - Deposit", () => {
         relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
         relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
-        await bridge.revealDeposit(fundingTx, reveal)
+        const depositorSigner = await impersonateAccount(depositor, {
+          from: governance,
+          value: 10,
+        })
+        await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
 
         // Simulate the wallet's state has changed to MovingFunds
         const wallet = await bridge.wallets(reveal.walletPubKeyHash)
@@ -2840,7 +2984,7 @@ describe("Bridge - Deposit", () => {
 
     context("when the wallet state is neither Live or MovingFunds", () => {
       const data: DepositSweepTestData = SingleP2SHDeposit
-      const { fundingTx, reveal } = data.deposits[0]
+      const { fundingTx, depositor, reveal } = data.deposits[0]
 
       const testData = [
         {
@@ -2875,7 +3019,13 @@ describe("Bridge - Deposit", () => {
             relay.getCurrentEpochDifficulty.returns(data.chainDifficulty)
             relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
-            await bridge.revealDeposit(fundingTx, reveal)
+            const depositorSigner = await impersonateAccount(depositor, {
+              from: governance,
+              value: 10,
+            })
+            await bridge
+              .connect(depositorSigner)
+              .revealDeposit(fundingTx, reveal)
 
             // Simulate the wallet's state has changed
             const wallet = await bridge.wallets(reveal.walletPubKeyHash)
@@ -2914,9 +3064,16 @@ describe("Bridge - Deposit", () => {
     relay.getPrevEpochDifficulty.returns(data.chainDifficulty)
 
     for (let i = 0; i < data.deposits.length; i++) {
-      const { fundingTx, reveal } = data.deposits[i]
+      const { fundingTx, depositor, reveal } = data.deposits[i]
+
       // eslint-disable-next-line no-await-in-loop
-      await bridge.revealDeposit(fundingTx, reveal)
+      const depositorSigner = await impersonateAccount(depositor, {
+        from: governance,
+        value: 10,
+      })
+
+      // eslint-disable-next-line no-await-in-loop
+      await bridge.connect(depositorSigner).revealDeposit(fundingTx, reveal)
     }
 
     if (beforeProofActions) {

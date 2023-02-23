@@ -1,8 +1,29 @@
-import { Bridge as ChainBridge, Identifier as ChainIdentifier } from "./chain"
-import { BigNumber, constants, Contract, Signer, utils } from "ethers"
-import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
-import { Deposit, RevealedDeposit } from "./deposit"
+import {
+  Bridge as ChainBridge,
+  TBTCVault as ChainTBTCVault,
+  Identifier as ChainIdentifier,
+  GetEvents,
+} from "./chain"
+import {
+  BigNumber,
+  constants,
+  Contract as EthersContract,
+  ContractTransaction,
+  Event as EthersEvent,
+  providers,
+  Signer,
+  utils,
+} from "ethers"
+import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
+import { backoffRetrier } from "./backoff"
+import {
+  DepositScriptParameters,
+  RevealedDeposit,
+  DepositRevealedEvent,
+} from "./deposit"
+import { sendWithRetry } from "./ethereum-helpers"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -12,13 +33,64 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
+import type {
+  OptimisticMintingCancelledEvent,
+  OptimisticMintingRequest,
+  OptimisticMintingRequestedEvent,
+} from "./optimistic-minting"
+
+import type {
+  Bridge as ContractBridge,
+  Deposit as ContractDeposit,
+  Redemption as ContractRedemption,
+} from "../typechain/Bridge"
+import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
+import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+import { Hex } from "./hex"
+import { NewWalletRegisteredEvent } from "./wallet"
+
+type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
+
+type ContractRedemptionRequest =
+  ContractRedemption.RedemptionRequestStructOutput
+
+type ContractOptimisticMintingRequest = {
+  requestedAt: BigNumber
+  finalizedAt: BigNumber
+}
+
+/**
+ * Contract deployment artifact.
+ * @see [hardhat-deploy#Deployment](https://github.com/wighawag/hardhat-deploy/blob/0c969e9a27b4eeff9f5ccac7e19721ef2329eed2/types.ts#L358)}
+ */
+export interface Deployment {
+  /**
+   * Address of the deployed contract.
+   */
+  address: string
+  /**
+   * Contract's ABI.
+   */
+  abi: any[]
+  /**
+   * Deployment transaction receipt.
+   */
+  receipt: {
+    /**
+     * Number of block in which the contract was deployed.
+     */
+    blockNumber: number
+  }
+}
 
 /**
  * Represents an Ethereum address.
  */
+// TODO: Make Address extends Hex
 export class Address implements ChainIdentifier {
   readonly identifierHex: string
 
+  // TODO: Make constructor private
   constructor(address: string) {
     let validAddress: string
 
@@ -30,6 +102,15 @@ export class Address implements ChainIdentifier {
 
     this.identifierHex = validAddress.substring(2).toLowerCase()
   }
+
+  static from(address: string): Address {
+    return new Address(address)
+  }
+
+  // TODO: Remove once extends Hex
+  equals(otherValue: Address): boolean {
+    return this.identifierHex === otherValue.identifierHex
+  }
 }
 
 /**
@@ -38,27 +119,149 @@ export class Address implements ChainIdentifier {
 export interface ContractConfig {
   /**
    * Address of the Ethereum contract as a 0x-prefixed hex string.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
    */
-  address: string
+  address?: string
   /**
-   * Signer that will sign all contract transactions.
+   * Signer - will return a Contract which will act on behalf of that signer. The signer will sign all contract transactions.
+   * Provider - will return a downgraded Contract which only has read-only access (i.e. constant calls)
    */
-  signer: Signer
+  signerOrProvider: Signer | providers.Provider
+  /**
+   * Number of a block in which the contract was deployed.
+   * Optional parameter, if not provided the value will be resolved from the
+   * contract artifact.
+   */
+  deployedAtBlockNumber?: number
 }
+
+/**
+ * Deployed Ethereum contract
+ */
+class EthereumContract<T extends EthersContract> {
+  /**
+   * Ethers instance of the deployed contract.
+   */
+  protected readonly _instance: T
+  /**
+   * Number of a block within which the contract was deployed. Value is read from
+   * the contract deployment artifact. It can be overwritten by setting a
+   * {@link ContractConfig.deployedAtBlockNumber} property.
+   */
+  protected readonly _deployedAtBlockNumber: number
+  /**
+   * Number of retries for ethereum requests.
+   */
+  protected readonly _totalRetryAttempts: number
+
+  /**
+   * @param config Configuration for contract instance initialization.
+   * @param deployment Contract Deployment artifact.
+   * @param totalRetryAttempts Number of retries for ethereum requests.
+   */
+  constructor(
+    config: ContractConfig,
+    deployment: Deployment,
+    totalRetryAttempts = 3
+  ) {
+    this._instance = new EthersContract(
+      config.address ?? utils.getAddress(deployment.address),
+      `${JSON.stringify(deployment.abi)}`,
+      config.signerOrProvider
+    ) as T
+
+    this._deployedAtBlockNumber =
+      config.deployedAtBlockNumber ?? deployment.receipt.blockNumber
+
+    this._totalRetryAttempts = totalRetryAttempts
+  }
+
+  /**
+   * Get address of the contract instance.
+   * @returns Address of this contract instance.
+   */
+  getAddress(): Address {
+    return Address.from(this._instance.address)
+  }
+
+  /**
+   * Get events emitted by the Ethereum contract.
+   * @param eventName Name of the event.
+   * @param options Options for events fetching.
+   * @param filterArgs Arguments for events filtering.
+   * @returns Array of found events.
+   */
+  async getEvents(
+    eventName: string,
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<EthersEvent[]> {
+    // TODO: Test if we need a workaround for querying events from big range in chunks,
+    // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
+    return backoffRetrier<EthersEvent[]>(
+      options?.retries ?? this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.queryFilter(
+        this._instance.filters[eventName](...filterArgs),
+        options?.fromBlock ?? this._deployedAtBlockNumber,
+        options?.toBlock ?? "latest"
+      )
+    })
+  }
+}
+
+// TODO: Refactor code structure as discussed in https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1063383624.
 
 /**
  * Implementation of the Ethereum Bridge handle.
  * @see {ChainBridge} for reference.
  */
-export class Bridge implements ChainBridge {
-  private _bridge: Contract
-
+export class Bridge
+  extends EthereumContract<ContractBridge>
+  implements ChainBridge
+{
   constructor(config: ContractConfig) {
-    this._bridge = new Contract(
-      config.address,
-      `${JSON.stringify(BridgeABI)}`,
-      config.signer
+    super(config, BridgeDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getDepositRevealedEvents}
+   */
+  async getDepositRevealedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DepositRevealedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DepositRevealed",
+      options,
+      ...filterArgs
     )
+
+    return events.map<DepositRevealedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
+        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
+        vault:
+          event.args!.vault === constants.AddressZero
+            ? undefined
+            : new Address(event.args!.vault),
+      }
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -74,7 +277,12 @@ export class Bridge implements ChainBridge {
       redeemerOutputScript
     )
 
-    const request = await this._bridge.pendingRedemptions(redemptionKey)
+    const request: ContractRedemptionRequest =
+      await backoffRetrier<ContractRedemptionRequest>(this._totalRetryAttempts)(
+        async () => {
+          return await this._instance.pendingRedemptions(redemptionKey)
+        }
+      )
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -92,14 +300,19 @@ export class Bridge implements ChainBridge {
       redeemerOutputScript
     )
 
-    const request = await this._bridge.timedOutRedemptions(redemptionKey)
+    const request: ContractRedemptionRequest =
+      await backoffRetrier<ContractRedemptionRequest>(this._totalRetryAttempts)(
+        async () => {
+          return await this._instance.timedOutRedemptions(redemptionKey)
+        }
+      )
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
 
   /**
    * Builds a redemption key required to refer a redemption request.
-   * @param walletPubKeyHash The wallet public key hash that identifies the
+   * @param walletPublicKeyHash The wallet public key hash that identifies the
    *        pending redemption (along with the redeemer output script). Must be
    *        unprefixed.
    * @param redeemerOutputScript The redeemer output script that identifies the
@@ -108,7 +321,7 @@ export class Bridge implements ChainBridge {
    * @returns The redemption key.
    */
   private buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
     // Convert the output script to raw bytes buffer.
@@ -124,7 +337,7 @@ export class Bridge implements ChainBridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
-        `0x${walletPubKeyHash}`,
+        `0x${walletPublicKeyHash}`,
       ]
     )
   }
@@ -138,7 +351,7 @@ export class Bridge implements ChainBridge {
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
-    request: any,
+    request: ContractRedemptionRequest,
     redeemerOutputScript: string
   ): RedemptionRequest {
     return {
@@ -158,8 +371,9 @@ export class Bridge implements ChainBridge {
   async revealDeposit(
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
-    deposit: Deposit
-  ): Promise<void> {
+    deposit: DepositScriptParameters,
+    vault?: ChainIdentifier
+  ): Promise<string> {
     const depositTxParam = {
       version: `0x${depositTx.version}`,
       inputVector: `0x${depositTx.inputs}`,
@@ -169,17 +383,23 @@ export class Bridge implements ChainBridge {
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      depositor: `0x${deposit.depositor.identifierHex}`,
       blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${computeHash160(deposit.walletPublicKey)}`,
-      refundPubKeyHash: `0x${computeHash160(deposit.refundPublicKey)}`,
+      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
+      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
       refundLocktime: `0x${deposit.refundLocktime}`,
-      vault: deposit.vault
-        ? `0x${deposit.vault.identifierHex}`
-        : constants.AddressZero,
+      vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    await this._bridge.revealDeposit(depositTxParam, revealParam)
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.revealDeposit(depositTxParam, revealParam)
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Deposit already revealed"]
+    )
+
+    return tx.hash
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -208,9 +428,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -219,12 +437,14 @@ export class Bridge implements ChainBridge {
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await this._bridge.submitDepositSweepProof(
-      sweepTxParam,
-      sweepProofParam,
-      mainUtxoParam,
-      vaultParam
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitDepositSweepProof(
+        sweepTxParam,
+        sweepProofParam,
+        mainUtxoParam,
+        vaultParam
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -232,8 +452,12 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#txProofDifficultyFactor}
    */
   async txProofDifficultyFactor(): Promise<number> {
-    const txProofDifficultyFactor: BigNumber =
-      await this._bridge.txProofDifficultyFactor()
+    const txProofDifficultyFactor: BigNumber = await backoffRetrier<BigNumber>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.txProofDifficultyFactor()
+    })
+
     return txProofDifficultyFactor.toNumber()
   }
 
@@ -252,9 +476,7 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
@@ -267,12 +489,14 @@ export class Bridge implements ChainBridge {
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await this._bridge.requestRedemption(
-      walletPublicKeyHash,
-      mainUtxoParam,
-      prefixedRawRedeemerOutputScript,
-      amount
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.requestRedemption(
+        walletPublicKeyHash,
+        mainUtxoParam,
+        prefixedRawRedeemerOutputScript,
+        amount
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -301,21 +525,21 @@ export class Bridge implements ChainBridge {
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
       // byte order.
-      txHash: `0x${Buffer.from(mainUtxo.transactionHash, "hex")
-        .reverse()
-        .toString("hex")}`,
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
       txOutputIndex: mainUtxo.outputIndex,
       txOutputValue: mainUtxo.value,
     }
 
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
-    await this._bridge.submitRedemptionProof(
-      redemptionTxParam,
-      redemptionProofParam,
-      mainUtxoParam,
-      walletPublicKeyHash
-    )
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.submitRedemptionProof(
+        redemptionTxParam,
+        redemptionProofParam,
+        mainUtxoParam,
+        walletPublicKeyHash
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -326,9 +550,14 @@ export class Bridge implements ChainBridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
-    const depositKey = this.buildDepositKey(depositTxHash, depositOutputIndex)
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
 
-    const deposit = await this._bridge.deposits(depositKey)
+    const deposit: ContractDepositRequest =
+      await backoffRetrier<ContractDepositRequest>(this._totalRetryAttempts)(
+        async () => {
+          return await this._instance.deposits(depositKey)
+        }
+      )
 
     return this.parseRevealedDeposit(deposit)
   }
@@ -338,15 +567,15 @@ export class Bridge implements ChainBridge {
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Revealed deposit data.
+   * @returns Deposit key.
    */
-  private buildDepositKey(
+  static buildDepositKey(
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
@@ -359,7 +588,9 @@ export class Bridge implements ChainBridge {
    * @param deposit Data of the revealed deposit.
    * @returns Parsed revealed deposit.
    */
-  private parseRevealedDeposit(deposit: any): RevealedDeposit {
+  private parseRevealedDeposit(
+    deposit: ContractDepositRequest
+  ): RevealedDeposit {
     return {
       depositor: new Address(deposit.depositor),
       amount: BigNumber.from(deposit.amount),
@@ -378,16 +609,24 @@ export class Bridge implements ChainBridge {
    * @see {ChainBridge#activeWalletPublicKey}
    */
   async activeWalletPublicKey(): Promise<string | undefined> {
-    const activeWalletPubKeyHash = await this._bridge.activeWalletPubKeyHash()
+    const activeWalletPublicKeyHash: string = await backoffRetrier<string>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.activeWalletPubKeyHash()
+    })
 
     if (
-      activeWalletPubKeyHash === "0x0000000000000000000000000000000000000000"
+      activeWalletPublicKeyHash === "0x0000000000000000000000000000000000000000"
     ) {
       // If there is no active wallet currently, return undefined.
       return undefined
     }
 
-    const { ecdsaWalletID } = await this._bridge.wallets(activeWalletPubKeyHash)
+    const { ecdsaWalletID } = await backoffRetrier<{ ecdsaWalletID: string }>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.wallets(activeWalletPublicKeyHash)
+    })
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
@@ -397,12 +636,41 @@ export class Bridge implements ChainBridge {
     return compressPublicKey(uncompressedPublicKey)
   }
 
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getNewWalletRegisteredEvents}
+   */
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "NewWalletRegistered",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<NewWalletRegisteredEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        ecdsaWalletID: Hex.from(event.args!.ecdsaWalletID),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
+      }
+    })
+  }
+
   private async walletRegistry(): Promise<WalletRegistry> {
-    const { ecdsaWalletRegistry } = await this._bridge.contractReferences()
+    const { ecdsaWalletRegistry } = await backoffRetrier<{
+      ecdsaWalletRegistry: string
+    }>(this._totalRetryAttempts)(async () => {
+      return await this._instance.contractReferences()
+    })
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signer: this._bridge.signer,
+      signerOrProvider: this._instance.signer,
     })
   }
 }
@@ -410,15 +678,9 @@ export class Bridge implements ChainBridge {
 /**
  * Implementation of the Ethereum WalletRegistry handle.
  */
-class WalletRegistry {
-  private _walletRegistry: Contract
-
+class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
   constructor(config: ContractConfig) {
-    this._walletRegistry = new Contract(
-      config.address,
-      `${JSON.stringify(WalletRegistryABI)}`,
-      config.signer
-    )
+    super(config, WalletRegistryDeployment)
   }
 
   /**
@@ -428,7 +690,241 @@ class WalletRegistry {
    *          hex string.
    */
   async getWalletPublicKey(walletID: string): Promise<string> {
-    const publicKey = await this._walletRegistry.getWalletPublicKey(walletID)
+    const publicKey = await backoffRetrier<string>(this._totalRetryAttempts)(
+      async () => {
+        return await this._instance.getWalletPublicKey(walletID)
+      }
+    )
     return publicKey.substring(2)
+  }
+}
+
+/**
+ * Implementation of the Ethereum TBTCVault handle.
+ */
+export class TBTCVault
+  extends EthereumContract<ContractTBTCVault>
+  implements ChainTBTCVault
+{
+  constructor(config: ContractConfig) {
+    super(config, TBTCVaultDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#optimisticMintingDelay}
+   */
+  async optimisticMintingDelay(): Promise<number> {
+    const delaySeconds = await backoffRetrier<number>(this._totalRetryAttempts)(
+      async () => {
+        return await this._instance.optimisticMintingDelay()
+      }
+    )
+
+    return BigNumber.from(delaySeconds).toNumber()
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#getMinters}
+   */
+  async getMinters(): Promise<Address[]> {
+    const minters: string[] = await backoffRetrier<string[]>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.getMinters()
+    })
+
+    return minters.map(Address.from)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#isMinter}
+   */
+  async isMinter(address: Address): Promise<boolean> {
+    return await backoffRetrier<boolean>(this._totalRetryAttempts)(async () => {
+      return await this._instance.isMinter(`0x${address.identifierHex}`)
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#isGuardian}
+   */
+  async isGuardian(address: Address): Promise<boolean> {
+    return await backoffRetrier<boolean>(this._totalRetryAttempts)(async () => {
+      return await this._instance.isGuardian(`0x${address.identifierHex}`)
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#requestOptimisticMint}
+   */
+  async requestOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.requestOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already requested for the deposit",
+        "The deposit is already swept",
+      ]
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#cancelOptimisticMint}
+   */
+  async cancelOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.cancelOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      ["Optimistic minting already finalized for the deposit"]
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#finalizeOptimisticMint}
+   */
+  async finalizeOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex> {
+    const tx = await sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.finalizeOptimisticMint(
+          depositTxHash.reverse().toPrefixedString(),
+          depositOutputIndex
+        )
+      },
+      this._totalRetryAttempts,
+      undefined,
+      [
+        "Optimistic minting already finalized for the deposit",
+        "The deposit is already swept",
+      ]
+    )
+
+    return Hex.from(tx.hash)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCVault#optimisticMintingRequests}
+   */
+  async optimisticMintingRequests(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<OptimisticMintingRequest> {
+    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
+
+    const request: ContractOptimisticMintingRequest =
+      await backoffRetrier<ContractOptimisticMintingRequest>(
+        this._totalRetryAttempts
+      )(async () => {
+        return await this._instance.optimisticMintingRequests(depositKey)
+      })
+    return this.parseOptimisticMintingRequest(request)
+  }
+
+  /**
+   * Parses a optimistic minting request using data fetched from the on-chain contract.
+   * @param request Data of the optimistic minting request.
+   * @returns Parsed optimistic minting request.
+   */
+  private parseOptimisticMintingRequest(
+    request: ContractOptimisticMintingRequest
+  ): OptimisticMintingRequest {
+    return {
+      requestedAt: BigNumber.from(request.requestedAt).toNumber(),
+      finalizedAt: BigNumber.from(request.finalizedAt).toNumber(),
+    }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingRequestedEvents}
+   */
+  async getOptimisticMintingRequestedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingRequestedEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingRequested",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingRequestedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        minter: new Address(event.args!.minter),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+        depositor: new Address(event.args!.depositor),
+        amount: BigNumber.from(event.args!.amount),
+        fundingTxHash: TransactionHash.from(
+          event.args!.fundingTxHash
+        ).reverse(),
+        fundingOutputIndex: BigNumber.from(
+          event.args!.fundingOutputIndex
+        ).toNumber(),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingCancelledEvents}
+   */
+  async getOptimisticMintingCancelledEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingCancelledEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingCancelled",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingCancelledEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        guardian: new Address(event.args!.guardian),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+      }
+    })
   }
 }

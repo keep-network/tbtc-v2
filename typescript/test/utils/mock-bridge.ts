@@ -1,4 +1,4 @@
-import { Bridge, Identifier } from "../../src/chain"
+import { Bridge, GetEvents, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
@@ -6,8 +6,16 @@ import {
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest } from "../redemption"
-import { Deposit, RevealedDeposit } from "../../src/deposit"
-import { computeHash160, TransactionHash } from "../../dist/bitcoin"
+import {
+  Deposit,
+  DepositRevealedEvent,
+  RevealedDeposit,
+} from "../../src/deposit"
+import { computeHash160, TransactionHash } from "../../src/bitcoin"
+import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
+import { Address } from "../../src/ethereum"
+import { Hex } from "../../src/hex"
+import { NewWalletRegisteredEvent } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -81,6 +89,36 @@ export class MockBridge implements Bridge {
     this._activeWalletPublicKey = activeWalletPublicKey
   }
 
+  getDepositRevealedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<DepositRevealedEvent[]> {
+    const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
+
+    return new Promise<DepositRevealedEvent[]>((resolve, _) => {
+      resolve([
+        {
+          blockNumber: 32142,
+          blockHash: Hex.from(
+            "0xe43552af34efab0828278b91e0f984e4b9769abf85beaed41eee4c25c822a619"
+          ),
+          transactionHash: Hex.from(
+            "0xdc6c041baaf1cc5bebca5aab02d0488e885a3687541ef012d9beb53141f73419"
+          ),
+          fundingTxHash: deposit.utxo.transactionHash,
+          fundingOutputIndex: deposit.utxo.outputIndex,
+          depositor: deposit.data.depositor,
+          amount: deposit.utxo.value,
+          blindingFactor: deposit.data.blindingFactor,
+          walletPublicKeyHash: deposit.data.walletPublicKeyHash,
+          refundPublicKeyHash: deposit.data.refundPublicKeyHash,
+          refundLocktime: deposit.data.refundLocktime,
+          vault: new Address(constants.AddressZero),
+        },
+      ])
+    })
+  }
+
   submitDepositSweepProof(
     sweepTx: DecomposedRawTransaction,
     sweepProof: Proof,
@@ -97,10 +135,13 @@ export class MockBridge implements Bridge {
     depositTx: DecomposedRawTransaction,
     depositOutputIndex: number,
     deposit: Deposit
-  ): Promise<void> {
+  ): Promise<string> {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<string>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+      )
     })
   }
 
@@ -118,9 +159,9 @@ export class MockBridge implements Bridge {
         this._deposits.has(depositKey)
           ? (this._deposits.get(depositKey) as RevealedDeposit)
           : {
-              depositor: { identifierHex: constants.AddressZero },
+              depositor: Address.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: { identifierHex: constants.AddressZero },
+              vault: Address.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -133,9 +174,9 @@ export class MockBridge implements Bridge {
     depositTxHash: TransactionHash,
     depositOutputIndex: number
   ): string {
-    const prefixedReversedDepositTxHash = `0x${Buffer.from(depositTxHash, "hex")
+    const prefixedReversedDepositTxHash = depositTxHash
       .reverse()
-      .toString("hex")}`
+      .toPrefixedString()
 
     return utils.solidityKeccak256(
       ["bytes32", "uint32"],
@@ -228,7 +269,7 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: { identifierHex: constants.AddressZero },
+          redeemer: Address.from(constants.AddressZero),
           redeemerOutputScript: "",
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),
@@ -238,10 +279,10 @@ export class MockBridge implements Bridge {
   }
 
   static buildRedemptionKey(
-    walletPubKeyHash: string,
+    walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
-    const prefixedWalletPubKeyHash = `0x${walletPubKeyHash}`
+    const prefixedWalletPublicKeyHash = `0x${walletPublicKeyHash}`
 
     const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
 
@@ -254,12 +295,19 @@ export class MockBridge implements Bridge {
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedOutputScript]),
-        prefixedWalletPubKeyHash,
+        prefixedWalletPublicKeyHash,
       ]
     )
   }
 
   async activeWalletPublicKey(): Promise<string | undefined> {
     return this._activeWalletPublicKey
+  }
+
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    throw new Error("not implemented")
   }
 }

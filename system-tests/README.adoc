@@ -2,7 +2,7 @@
 
 = tBTC v2 System tests
 
-https://github.com/keep-network/tbtc-v2/actions/workflows/system-tests.yml[image:https://img.shields.io/github/workflow/status/keep-network/tbtc-v2/System%20tests?event=schedule&label=System%20tests[System tests status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/system-tests.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/system-tests.yml?branch=main&event=schedule&label=System%20tests[System tests status]]
 
 This module contains the system test scenarios stressing the tBTC v2 system.
 
@@ -80,10 +80,13 @@ where:
   This is the JSON file produced as the outcome of the Hardhat Deploy plugin run.
 - `scenario` denotes the test file name
 - `ethereum-network` contains one of the Ethereum network names defined in the
-  Hardhat config
+  Hardhat config. Note that for the system tests we have a dedicated network called
+  "system_tests".
 
 Apart from those properties, each test scenario can require some additional
-options passed as environment variables. Please refer specific test scenario
+options passed as environment variables.
+
+Please refer to a specific test scenario
 documentation and current link:test/utils/context.ts[system tests context implementation]
 for details.
 
@@ -104,32 +107,41 @@ the contracts using:
 ```
 yarn build
 ```
-This will produce the contract artifacts ready to be deployed on an Ethereum
-network. In order to do so, it is enough to invoke:
+This will produce the contract artifacts. Now we need to run local Ethereum
+network using Hardhat.
+
 ```
-npx hardhat node --export export.json
+npx hardhat node --no-deploy
 ```
-This command will run a Hardhat local Ethereum node and apply all the
+
+Since the local Ethereum node is running, we are ready to deploy contracts to
+our `system_tests` network.
+
+```
+USE_EXTERNAL_DEPLOY=true npx hardhat deploy --network system_tests --export export.json
+```
+
+This command will deploy the contracts by running all the
 link:../solidity/deploy[tBTC v2 contracts deployment scripts]. The
 `--export` flag indicates that the deployment info will be exported
 as the `export.json` file.
 
-We now have a running Hardhat local network with fresh tBTC v2 contracts
+We now have a running Hardhat local network with the fresh tBTC v2 contracts
 deployed on. The scenario we're trying to run requires a live wallet
 to be registered into the `Bridge` contract. We can easily achieve that
 using the test utils exposed by the `solidity` package. In order to do that,
 run a second shell instance, go to the `solidity` dir and trigger:
 ```
-npx hardhat test-utils:register-operators --network localhost
+npx hardhat test-utils:register-operators --network system_tests
 ```
 This command will register the sortition pool operators. This is the first
 step required to create a live wallet. The `--network` flag points to
-`localhost` since the Hardhat local network instance we have started previously
+`system_tests` since the Hardhat local network instance we have started previously
 runs in a standalone mode and is available under this built-in network
 configuration. The next step is triggering the actual DKG process that
 will create the wallet in result:
 ```
-npx hardhat test-utils:create-wallet --wallet-public-key <wallet-public-key> --network localhost
+npx hardhat test-utils:create-wallet --wallet-public-key <wallet-public-key> --network system_tests
 ```
 The `wallet-public-key` is an arbitrary, `0x`-prefixed, uncompressed
 ECDSA public key of the wallet (64-byte). It doesn't matter which one is actually used.
@@ -143,7 +155,7 @@ ELECTRUM_URL=wss://electrumx-server.test.tbtc.network:8443 \
  CONTRACTS_DEPLOYMENT_EXPORT_FILE_PATH=../solidity/export.json \
  WALLET_BITCOIN_WIF=<wallet-bitcoin-wif> \
  DEPOSITOR_BITCOIN_WIF=<depositor-bitcoin-wif> \
- yarn test ./test/deposit-redemption.test.ts --network localhost
+ yarn test ./test/deposit-redemption.test.ts --network system_tests
 ```
 Most of the parameters were explained in the previous sections. Worth noting
 that this scenario requires two additional ones:

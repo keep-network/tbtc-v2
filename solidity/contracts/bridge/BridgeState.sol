@@ -372,6 +372,8 @@ library BridgeState {
         uint32 fraudNotifierRewardMultiplier
     );
 
+    event TreasuryUpdated(address treasury);
+
     /// @notice Updates parameters of deposits.
     /// @param _depositDustThreshold New value of the deposit dust threshold in
     ///        satoshis. It is the minimal amount that can be requested to
@@ -399,7 +401,6 @@ library BridgeState {
     /// @dev Requirements:
     ///      - Deposit dust threshold must be greater than zero,
     ///      - Deposit dust threshold must be greater than deposit TX max fee,
-    ///      - Deposit treasury fee divisor must be greater than zero,
     ///      - Deposit transaction max fee must be greater than zero.
     function updateDepositParameters(
         Storage storage self,
@@ -416,11 +417,6 @@ library BridgeState {
         require(
             _depositDustThreshold > _depositTxMaxFee,
             "Deposit dust threshold must be greater than deposit TX max fee"
-        );
-
-        require(
-            _depositTreasuryFeeDivisor > 0,
-            "Deposit treasury fee divisor must be greater than zero"
         );
 
         require(
@@ -489,8 +485,9 @@ library BridgeState {
     ///        threshold,
     ///      - Redemption dust threshold must be greater than the redemption TX
     ///        max fee,
-    ///      - Redemption treasury fee divisor must be greater than zero,
     ///      - Redemption transaction max fee must be greater than zero,
+    ///      - Redemption transaction max total fee must be greater than or
+    ///        equal to the redemption transaction per-request max fee,
     ///      - Redemption timeout must be greater than zero,
     ///      - Redemption timeout notifier reward multiplier must be in the
     ///        range [0, 100].
@@ -512,11 +509,6 @@ library BridgeState {
         require(
             _redemptionDustThreshold > _redemptionTxMaxFee,
             "Redemption dust threshold must be greater than redemption TX max fee"
-        );
-
-        require(
-            _redemptionTreasuryFeeDivisor > 0,
-            "Redemption treasury fee divisor must be greater than zero"
         );
 
         require(
@@ -732,7 +724,6 @@ library BridgeState {
     //         i.e. the period when the wallet remains in the Closing state
     //         and can be subject of deposit fraud challenges.
     /// @dev Requirements:
-    ///      - Wallet minimum BTC balance must be greater than zero,
     ///      - Wallet maximum BTC balance must be greater than the wallet
     ///        minimum BTC balance,
     ///      - Wallet maximum BTC transfer must be greater than zero,
@@ -750,10 +741,6 @@ library BridgeState {
         require(
             _walletCreationMaxBtcBalance > _walletCreationMinBtcBalance,
             "Wallet creation maximum BTC balance must be greater than the creation minimum BTC balance"
-        );
-        require(
-            _walletClosureMinBtcBalance > 0,
-            "Wallet closure minimum BTC balance must be greater than zero"
         );
         require(
             _walletMaxBtcTransfer > 0,
@@ -828,5 +815,15 @@ library BridgeState {
             _fraudSlashingAmount,
             _fraudNotifierRewardMultiplier
         );
+    }
+
+    /// @notice Updates treasury address. The treasury receives the system fees.
+    /// @param _treasury New value of the treasury address.
+    /// @dev The treasury address must not be 0x0.
+    function updateTreasury(Storage storage self, address _treasury) internal {
+        require(_treasury != address(0), "Treasury address must not be 0x0");
+
+        self.treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
     }
 }

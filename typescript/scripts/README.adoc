@@ -1,0 +1,64 @@
+:toc: macro
+
+= tBTC v2 Refund script
+
+This script explains what to do in case you need to refund your BTC.
+
+toc::[]
+
+== Refund script
+
+=== Prerequisites
+
+Please make sure you have the following prerequisites installed on your machine:
+
+- https://nodejs.org[Node.js] >14.18.0
+- https://yarnpkg.com[Yarn] >1.22.19
+
+tBTCv2 system prerequisite is that you can refund your BTC only if it was not used 
+for minting tBTC and after `refundLocktime` has passed.
+In practice, you should wait about an hour longer than the `refundLocktime` since
+this is how Bitcoin handles time based transactions.
+Currently the `refundLocktime` is set to 9 months.
+
+=== Running a refund script
+
+Step 1. Clone https://github.com/keep-network/tbtc-v2[tbtc-v2] repository to your 
+local disc. `git clone https://github.com/keep-network/tbtc-v2`
+
+Step 2. Navigate to a root directory and run the following command with your arguments:
+```
+./typescript/scripts/refund.sh \
+    --deposit-json-path <deposit-JSON-file-path> \
+    --deposit-amount <deposit-amount> \
+    --deposit-transaction-id <deposit-transaction-id> \
+    --deposit-transaction-index <deposit-transaction-index> \
+    --private-key <recoverer-private-key> \
+    --transaction-fee <transaction-fee> \
+    --electrum-host <client-host> \
+    --electrum-port <client-port> \
+    --electrum-protocol <client-protocol>
+```
+
+- `deposit-JSON-file-path` Path to a file that you downloaded during the BTC 
+deposit in the Threshold dApp.
+- `deposit-amount` Exact BTC amount in satoshi that was deposited. It will not process a 
+partial refund.
+- `deposit-transaction-id` A transaction ID of your BTC deposit.
+- `deposit-transaction-index` A transaction index of your deposit UTXO that can 
+be retrieved from a Bitcoin blockchain explorer. If it's first on the list then 
+the index is 0, if it's second then the index is 1, etc.
+- `private-key` A private key of the BTC recovery wallet. If you only have a 
+passphrase, one of the options is to extract your private keys by using a
+mnemonic code converter website (can be extracted offline) or desktop Electrum Wallet.
+- `transaction-fee` A Bitcoin chain transaction fee that you are willing to pay. 
+With a median transaction size at 255 bytes or 141 bytes segwit tx you should 
+expect to set a fee between 1300-2700 satoshis.
+- `electrum-host` Electrum client host
+- `electrum-port` Electrum client server port
+- `electrum-protocol` Electrum client protocol, e.g. wss, ws or tcp
+
+For more info refer to `./typescript/scripts/refund.sh --help`
+
+Step 3. Check your wallet. Upon successful execution your BTC should be recovered.
+Please note that the transaction fee was deducted from your deposit.

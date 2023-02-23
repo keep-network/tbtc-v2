@@ -1,10 +1,12 @@
 import crypto from "crypto"
 
-import { calculateDepositRefundLocktime } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import { Address as EthereumAddress } from "@keep-network/tbtc-v2.ts/dist/ethereum"
+import { calculateDepositRefundLocktime } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
+import { EthereumAddress } from "@keep-network/tbtc-v2.ts/dist/src"
+import { constants } from "ethers"
+import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 
 import type { BigNumber } from "ethers"
-import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
+import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 
 /**
  * Default refund public key used for deposits. Their corresponding private key:
@@ -18,6 +20,8 @@ export const DEFAULT_REFUND_PUBLIC_KEY =
  * @param depositorAddress Ethereum address of the depositor.
  * @param amount Amount of the deposit in satoshi.
  * @param walletPublicKey Compressed ECDSA public key of the target wallet.
+ * @param vaultAddress Ethereum address of the Bank vault to which the deposit
+ *        is routed to. Optional parameter, if not set the zero address is used.
  * @param refundPublicKey Compressed ECDSA public key that can be used for
  *        refund. Optional parameter, default value is used if not set
  *        @see {DEFAULT_REFUND_PUBLIC_KEY}.
@@ -27,22 +31,32 @@ export function generateDeposit(
   depositorAddress: string,
   amount: BigNumber,
   walletPublicKey: string,
+  vaultAddress?: string,
   refundPublicKey?: string
 ): Deposit {
   const blindingFactor = crypto.randomBytes(8).toString("hex")
 
+  const walletPublicKeyHash = computeHash160(walletPublicKey)
+
   const resolvedRefundPublicKey = refundPublicKey || DEFAULT_REFUND_PUBLIC_KEY
+  const refundPublicKeyHash = computeHash160(resolvedRefundPublicKey)
 
   const refundLocktime = calculateDepositRefundLocktime(
-    Math.floor(Date.now() / 1000)
+    Math.floor(Date.now() / 1000),
+    2592000 // 30 days
+  )
+
+  const resolvedVaultAddress = new EthereumAddress(
+    vaultAddress || constants.AddressZero
   )
 
   return {
     depositor: new EthereumAddress(depositorAddress),
     amount,
     blindingFactor,
-    walletPublicKey,
-    refundPublicKey: resolvedRefundPublicKey,
+    walletPublicKeyHash,
+    refundPublicKeyHash,
     refundLocktime,
+    vault: resolvedVaultAddress,
   }
 }
