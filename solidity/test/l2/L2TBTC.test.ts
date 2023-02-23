@@ -5,7 +5,7 @@ import { expect } from "chai"
 import { ContractTransaction, Wallet } from "ethers"
 import { to1e18 } from "../helpers/contract-test-helpers"
 
-import type { L2TBTC } from "../../typechain"
+import type { L2TBTC, TestERC20, TestERC721 } from "../../typechain"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
@@ -475,6 +475,107 @@ describe("L2TBTC", () => {
             ])
           })
         })
+      })
+    })
+  })
+
+  describe("recoverERC20", () => {
+    const amount = to1e18(725)
+
+    let randomERC20: TestERC20
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestERC20 = await ethers.getContractFactory("TestERC20")
+      randomERC20 = await TestERC20.deploy()
+      await randomERC20.deployed()
+
+      await randomERC20.mint(token.address, amount)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          token
+            .connect(thirdParty)
+            .recoverERC20(randomERC20.address, thirdParty.address, amount)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the contract owner", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await token
+          .connect(governance)
+          .recoverERC20(randomERC20.address, thirdParty.address, amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer tokens to the recipient", async () => {
+        expect(await randomERC20.balanceOf(thirdParty.address)).to.equal(amount)
+      })
+    })
+  })
+
+  describe("recoverERC721", () => {
+    const tokenId = 19112
+
+    let randomERC721: TestERC721
+
+    before(async () => {
+      await createSnapshot()
+
+      const TestERC721 = await ethers.getContractFactory("TestERC721")
+      randomERC721 = await TestERC721.deploy()
+      await randomERC721.deployed()
+
+      await randomERC721.mint(token.address, tokenId)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          token
+            .connect(thirdParty)
+            .recoverERC721(
+              randomERC721.address,
+              thirdParty.address,
+              tokenId,
+              []
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await token
+          .connect(governance)
+          .recoverERC721(randomERC721.address, thirdParty.address, tokenId, [])
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("transfers token to the recipient", async () => {
+        expect(await randomERC721.ownerOf(tokenId)).to.equal(thirdParty.address)
       })
     })
   })

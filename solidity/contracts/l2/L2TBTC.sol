@@ -17,12 +17,13 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-// TODO:
-// * Proper documentation.
-// * Misfund recovery.
+// TODO: Proper documentation (contract, fields, @params)
 contract L2TBTC is
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
@@ -30,6 +31,8 @@ contract L2TBTC is
     OwnableUpgradeable,
     PausableUpgradeable
 {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
     /// @notice Indicates if the given address is a minter. Only minters can
     ///         mint the token.
     mapping(address => bool) public isMinter;
@@ -147,6 +150,27 @@ contract L2TBTC is
         }
 
         emit GuardianRemoved(guardian);
+    }
+
+    /// @notice Allows the governance of the token contract to recover any ERC20
+    ///         sent mistakenly to the token contract address.
+    function recoverERC20(
+        IERC20Upgradeable token,
+        address recipient,
+        uint256 amount
+    ) external onlyOwner {
+        token.safeTransfer(recipient, amount);
+    }
+
+    /// @notice Allows the governance of the token contract to recover any
+    ///         ERC721 sent mistakenly to the token contract address.
+    function recoverERC721(
+        IERC721Upgradeable token,
+        address recipient,
+        uint256 tokenId,
+        bytes calldata data
+    ) external onlyOwner {
+        token.safeTransferFrom(address(this), recipient, tokenId, data);
     }
 
     /// @notice Allows one of the guardians to pause mints and burns allowing
