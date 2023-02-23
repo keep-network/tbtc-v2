@@ -98,10 +98,9 @@ const DesignatedMinterNotRequestedMinting = (
   block: chainEvent.blockNumber,
 })
 
-// Helper type grouping all chain data relevant for the minting monitor.
-// It allows fetching the data once and reusing them multiple times to
-// generate appropriate system events.
-type ChainDataAggregate = {
+// Cache that holds some chain data relevant for the minting monitor.
+// Allows fetching the data once and reusing them multiple times across the monitor.
+type ChainDataCache = {
   mintingCancelledEvents: OptimisticMintingCancelledChainEvent[]
   mintingRequestedEvents: OptimisticMintingRequestedChainEvent[]
   minters: Identifier[]
@@ -124,15 +123,12 @@ export class MintingMonitor implements SystemEventMonitor {
     // eslint-disable-next-line no-console
     console.log("running minting monitor check")
 
-    const chainData = await this.fetchChainData(fromBlock, toBlock)
+    const cache = await this.loadChainDataCache(fromBlock, toBlock)
 
     const systemEvents: SystemEvent[] = []
-
-    systemEvents.push(...this.checkMintingCancels(chainData))
-
-    systemEvents.push(...(await this.checkMintingRequestsValidity(chainData)))
-
-    systemEvents.push(...this.checkDesignatedMintersHealth(chainData))
+    systemEvents.push(...this.checkMintingCancels(cache))
+    systemEvents.push(...(await this.checkMintingRequestsValidity(cache)))
+    systemEvents.push(...this.checkDesignatedMintersHealth(cache))
 
     // eslint-disable-next-line no-console
     console.log("completed minting monitor check")
@@ -140,10 +136,10 @@ export class MintingMonitor implements SystemEventMonitor {
     return systemEvents
   }
 
-  private async fetchChainData(
+  private async loadChainDataCache(
     fromBlock: number,
     toBlock: number
-  ): Promise<ChainDataAggregate> {
+  ): Promise<ChainDataCache> {
     const options = {
       fromBlock,
       toBlock,
@@ -158,20 +154,20 @@ export class MintingMonitor implements SystemEventMonitor {
     }
   }
 
-  private checkMintingCancels(chainData: ChainDataAggregate) {
-    return chainData.mintingCancelledEvents.map(OptimisticMintingCancelled)
+  private checkMintingCancels(cache: ChainDataCache) {
+    return cache.mintingCancelledEvents.map(OptimisticMintingCancelled)
   }
 
-  private async checkMintingRequestsValidity(chainData: ChainDataAggregate) {
+  private async checkMintingRequestsValidity(cache: ChainDataCache) {
     const confirmations = await Promise.allSettled(
-      chainData.mintingRequestedEvents.map((ce) =>
+      cache.mintingRequestedEvents.map((ce) =>
         this.btcClient.getTransactionConfirmations(ce.fundingTxHash)
       )
     )
 
     const systemEvents: SystemEvent[] = []
 
-    chainData.mintingRequestedEvents.forEach((ce, index) => {
+    cache.mintingRequestedEvents.forEach((ce, index) => {
       const confirmation = confirmations[index]
 
       switch (confirmation.status) {
@@ -222,14 +218,14 @@ export class MintingMonitor implements SystemEventMonitor {
     return 6
   }
 
-  private checkDesignatedMintersHealth(chainData: ChainDataAggregate) {
+  private checkDesignatedMintersHealth(cache: ChainDataCache) {
     const systemEvents: SystemEvent[] = []
 
-    chainData.mintingRequestedEvents
+    cache.mintingRequestedEvents
       .map((mre) => ({
         ...mre,
         designatedMinter: this.getDesignatedMinter(
-          chainData,
+          cache.minters,
           mre.depositor,
           mre.fundingTxHash
         ),
@@ -246,7 +242,7 @@ export class MintingMonitor implements SystemEventMonitor {
   }
 
   private getDesignatedMinter(
-    chainData: ChainDataAggregate,
+    minters: Identifier[],
     depositor: Identifier,
     fundingTxHash: BitcoinTransactionHash
   ): Identifier {
@@ -254,8 +250,8 @@ export class MintingMonitor implements SystemEventMonitor {
     const f = fundingTxHash.toString().slice(-1).charCodeAt(0)
 
     // eslint-disable-next-line no-bitwise
-    const index = (d ^ f) % chainData.minters.length
+    const index = (d ^ f) % minters.length
 
-    return chainData.minters[index]
+    return minters[index]
   }
 }
