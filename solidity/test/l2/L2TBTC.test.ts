@@ -22,8 +22,9 @@ describe("L2TBTC", () => {
 
     const accounts = await getUnnamedAccounts()
     const minter = await ethers.getSigner(accounts[1])
-    const thirdParty = await ethers.getSigner(accounts[2])
-    const tokenHolder = await ethers.getSigner(accounts[3])
+    const guardian = await ethers.getSigner(accounts[2])
+    const thirdParty = await ethers.getSigner(accounts[3])
+    const tokenHolder = await ethers.getSigner(accounts[4])
 
     const deployment = await helpers.upgrades.deployProxy(
       // Hacky workaround allowing to deploy proxy contract any number of times
@@ -46,6 +47,7 @@ describe("L2TBTC", () => {
     return {
       governance,
       minter,
+      guardian,
       thirdParty,
       tokenHolder,
       token,
@@ -59,12 +61,13 @@ describe("L2TBTC", () => {
 
   let governance: SignerWithAddress
   let minter: SignerWithAddress
+  let guardian: SignerWithAddress
   let thirdParty: SignerWithAddress
   let tokenHolder: SignerWithAddress
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ governance, minter, thirdParty, tokenHolder, token } =
+    ;({ governance, minter, guardian, thirdParty, tokenHolder, token } =
       await waffle.loadFixture(fixture))
   })
 
@@ -268,6 +271,344 @@ describe("L2TBTC", () => {
             ])
           })
         })
+      })
+    })
+  })
+
+  describe("addGuardian", () => {
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          token.connect(thirdParty).addGuardian(thirdParty.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      context("when address is not a guardian", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          tx = await token.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should add address as a guardian", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await token.isGuardian(guardian.address)).to.be.true
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(token, "GuardianAdded")
+            .withArgs(guardian.address)
+        })
+      })
+
+      context("when address is a guardian", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await token.connect(governance).addGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            token.connect(governance).addGuardian(guardian.address)
+          ).to.be.revertedWith("This address is already a guardian")
+        })
+      })
+
+      context("when there are multiple guardians", () => {
+        const guardians = [
+          "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+          "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+          "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+        ]
+
+        before(async () => {
+          await createSnapshot()
+
+          await token.connect(governance).addGuardian(guardians[0])
+          await token.connect(governance).addGuardian(guardians[1])
+          await token.connect(governance).addGuardian(guardians[2])
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should add them into the list", async () => {
+          expect(await token.getGuardians()).to.deep.equal(guardians)
+        })
+      })
+    })
+  })
+
+  describe("removeGuardian", () => {
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          token.connect(thirdParty).removeGuardian(guardian.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      context("when address is not a guardian", () => {
+        it("should revert", async () => {
+          await expect(
+            token.connect(governance).removeGuardian(thirdParty.address)
+          ).to.be.revertedWith("This address is not a guardian")
+        })
+      })
+
+      context("when address is a guardian", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          await token.connect(governance).addGuardian(guardian.address)
+          tx = await token.connect(governance).removeGuardian(guardian.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should take guardian role from the address", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await token.isGuardian(guardian.address)).to.be.false
+        })
+
+        it("should emit an event", async () => {
+          await expect(tx)
+            .to.emit(token, "GuardianRemoved")
+            .withArgs(guardian.address)
+        })
+      })
+
+      context("when there are multiple guardians", () => {
+        const guardians = [
+          "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+          "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+          "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+          "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+        ]
+
+        before(async () => {
+          await createSnapshot()
+
+          await token.connect(governance).addGuardian(guardians[0])
+          await token.connect(governance).addGuardian(guardians[1])
+          await token.connect(governance).addGuardian(guardians[2])
+          await token.connect(governance).addGuardian(guardians[3])
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when deleting the first guardian", () => {
+          before(async () => {
+            await createSnapshot()
+            await token.connect(governance).removeGuardian(guardians[0])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the guardians list", async () => {
+            expect(await token.getGuardians()).to.deep.equal([
+              "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+              "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
+        })
+
+        context("when deleting the last guardian", () => {
+          before(async () => {
+            await createSnapshot()
+            await token.connect(governance).removeGuardian(guardians[3])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the guardians list", async () => {
+            expect(await token.getGuardians()).to.deep.equal([
+              "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+              "0x575E6d8802e7b6A7E8F940640804385D8Bbe2ce0",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
+        })
+
+        context("when deleting guardian from the middle of the list", () => {
+          before(async () => {
+            await createSnapshot()
+            await token.connect(governance).removeGuardian(guardians[1])
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should update the guardians list", async () => {
+            expect(await token.getGuardians()).to.deep.equal([
+              "0x54DeA8194aaF652Cd296B162A2809dd95529f775",
+              "0xF844A3a4dA34fDDf51A0Ec7A0a89d1ed5A105e40",
+              "0x66ac131D339704902aECCaBDf55e15daAE8B238f",
+            ])
+          })
+        })
+      })
+    })
+  })
+
+  describe("pause", () => {
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token.connect(governance).addGuardian(guardian.address)
+
+      await token.connect(minter).mint(tokenHolder.address, to1e18(10))
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by a guardian", () => {
+      it("should revert", async () => {
+        await expect(token.connect(thirdParty).pause()).to.be.revertedWith(
+          "Caller is not a guardian"
+        )
+        await expect(token.connect(minter).pause()).to.be.revertedWith(
+          "Caller is not a guardian"
+        )
+        await expect(token.connect(governance).pause()).to.be.revertedWith(
+          "Caller is not a guardian"
+        )
+      })
+    })
+
+    context("when called by a guardian", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await token.connect(guardian).pause()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should emit Paused event", async () => {
+        await expect(tx).to.emit(token, "Paused").withArgs(guardian.address)
+      })
+
+      it("should pause mint functionality", async () => {
+        await expect(
+          token.connect(minter).mint(thirdParty.address, to1e18(1))
+        ).to.be.revertedWith("Pausable: paused")
+      })
+
+      it("should pause burn functionality", async () => {
+        await expect(
+          token.connect(tokenHolder).burn(to1e18(1))
+        ).to.be.revertedWith("Pausable: paused")
+      })
+
+      it("should pause burnFrom functionality", async () => {
+        await expect(
+          token.connect(thirdParty).burnFrom(tokenHolder.address, to1e18(1))
+        ).to.be.revertedWith("Pausable: paused")
+      })
+
+      it("should not pause transfers", async () => {
+        await expect(
+          token.connect(tokenHolder).transfer(thirdParty.address, to1e18(1))
+        ).to.not.be.reverted
+      })
+    })
+  })
+
+  describe("unpause", () => {
+    before(async () => {
+      await createSnapshot()
+      await token.connect(governance).addMinter(minter.address)
+      await token.connect(governance).addGuardian(guardian.address)
+
+      await token.connect(minter).mint(tokenHolder.address, to1e18(10))
+      await token.connect(tokenHolder).approve(thirdParty.address, to1e18(10))
+
+      await token.connect(guardian).pause()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(token.connect(thirdParty).unpause()).to.be.revertedWith(
+          "Ownable: caller is not the owner"
+        )
+        await expect(token.connect(minter).unpause()).to.be.revertedWith(
+          "Ownable: caller is not the owner"
+        )
+        await expect(token.connect(guardian).unpause()).to.be.revertedWith(
+          "Ownable: caller is not the owner"
+        )
+      })
+    })
+
+    context("when called by the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await token.connect(governance).unpause()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should emit Unpaused event", async () => {
+        await expect(tx).to.emit(token, "Unpaused").withArgs(governance.address)
+      })
+
+      it("should unpause mint functionality", async () => {
+        await expect(token.connect(minter).mint(thirdParty.address, to1e18(1)))
+          .to.not.be.reverted
+      })
+
+      it("should unpause burn functionality", async () => {
+        await expect(token.connect(tokenHolder).burn(to1e18(1))).to.not.be
+          .reverted
+      })
+
+      it("should unpause burnFrom functionality", async () => {
+        await expect(
+          token.connect(thirdParty).burnFrom(tokenHolder.address, to1e18(1))
+        ).to.not.be.reverted
       })
     })
   })
