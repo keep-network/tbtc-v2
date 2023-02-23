@@ -132,7 +132,7 @@ export class MintingMonitor implements SystemEventMonitor {
 
     systemEvents.push(...(await this.checkMintingRequestsValidity(chainData)))
 
-    systemEvents.push(...this.checkMintersHealth(chainData))
+    systemEvents.push(...this.checkDesignatedMintersHealth(chainData))
 
     // eslint-disable-next-line no-console
     console.log("completed minting monitor check")
@@ -222,7 +222,7 @@ export class MintingMonitor implements SystemEventMonitor {
     return 6
   }
 
-  private checkMintersHealth(chainData: ChainDataAggregate) {
+  private checkDesignatedMintersHealth(chainData: ChainDataAggregate) {
     const systemEvents: SystemEvent[] = []
 
     systemEvents.push(
