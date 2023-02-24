@@ -5,6 +5,7 @@ import { SystemEventType } from "./system-event"
 import type {
   OptimisticMintingCancelledEvent as OptimisticMintingCancelledChainEvent,
   OptimisticMintingRequestedEvent as OptimisticMintingRequestedChainEvent,
+  OptimisticMintingFinalizedEvent as OptimisticMintingFinalizedChainEvent,
 } from "@keep-network/tbtc-v2.ts/dist/src/optimistic-minting"
 import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type {
@@ -121,6 +122,27 @@ const OptimisticMintingNotRequestedByDesignatedMinter = (
   block: chainEvent.blockNumber,
 })
 
+const OptimisticMintingNotFinalizedByDesignatedMinter = (
+  chainEvent: OptimisticMintingFinalizedChainEvent,
+  designatedMinter: Identifier | "unknown",
+  designatedMinterUnknownCause: string
+): SystemEvent => ({
+  title: "Optimistic minting was not finalized by designated minter",
+  type: SystemEventType.Warning,
+  data: {
+    actualMinter: `0x${chainEvent.minter.identifierHex}`,
+    designatedMinter:
+      designatedMinter === "unknown"
+        ? "unknown"
+        : `0x${designatedMinter.identifierHex}`,
+    designatedMinterUnknownCause,
+    depositKey: chainEvent.depositKey.toPrefixedString(),
+    depositor: `0x${chainEvent.depositor.identifierHex}`,
+    ethFinalizationTxHash: chainEvent.transactionHash.toPrefixedString(),
+  },
+  block: chainEvent.blockNumber,
+})
+
 const OptimisticMintingNotRequestedByAnyMinter = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => ({
@@ -140,6 +162,7 @@ const OptimisticMintingNotRequestedByAnyMinter = (
 type ChainDataCache = {
   mintingCancelledEvents: OptimisticMintingCancelledChainEvent[]
   mintingRequestedEvents: OptimisticMintingRequestedChainEvent[]
+  mintingFinalizedEvents: OptimisticMintingFinalizedChainEvent[]
   minters: Identifier[]
   optimisticMintingDelay: number
 }
@@ -166,7 +189,7 @@ export class MintingMonitor implements SystemEventMonitor {
     const systemEvents: SystemEvent[] = []
     systemEvents.push(...this.checkMintingCancels(cache))
     systemEvents.push(...(await this.checkMintingRequestsValidity(cache)))
-    systemEvents.push(...this.checkDesignatedMintersHealth(cache))
+    systemEvents.push(...(await this.checkDesignatedMintersHealth(cache)))
     systemEvents.push(
       ...(await this.checkOrphanedMinting(cache, fromBlock, toBlock))
     )
@@ -191,6 +214,8 @@ export class MintingMonitor implements SystemEventMonitor {
         await this.tbtcVault.getOptimisticMintingCancelledEvents(options),
       mintingRequestedEvents:
         await this.tbtcVault.getOptimisticMintingRequestedEvents(options),
+      mintingFinalizedEvents:
+        await this.tbtcVault.getOptimisticMintingFinalizedEvents(options),
       minters: await this.tbtcVault.getMinters(),
       optimisticMintingDelay: await this.tbtcVault.optimisticMintingDelay(),
     }
@@ -260,10 +285,19 @@ export class MintingMonitor implements SystemEventMonitor {
     return 6
   }
 
-  private checkDesignatedMintersHealth(cache: ChainDataCache) {
+  private async checkDesignatedMintersHealth(cache: ChainDataCache) {
     const systemEvents: SystemEvent[] = []
 
-    cache.mintingRequestedEvents
+    systemEvents.push(...this.checkDesignatedMintersRequests(cache))
+    systemEvents.push(
+      ...(await this.checkDesignatedMintersFinalizations(cache))
+    )
+
+    return systemEvents
+  }
+
+  private checkDesignatedMintersRequests(cache: ChainDataCache): SystemEvent[] {
+    return cache.mintingRequestedEvents
       .map((mre) => ({
         ...mre,
         designatedMinter: this.getDesignatedMinter(
@@ -279,11 +313,106 @@ export class MintingMonitor implements SystemEventMonitor {
           mre.designatedMinter
         )
       )
-      .forEach((se) => systemEvents.push(se))
+  }
 
-    // TODO: Detect finalizations done by non-designated minters.
+  private async checkDesignatedMintersFinalizations(
+    cache: ChainDataCache
+  ): Promise<SystemEvent[]> {
+    // Unlike OptimisticMintingRequested chain events, the OptimisticMintingFinalized
+    // chain events don't contain the fundingTxHash needed to compute the
+    // designated minter for the given minting finalization. We need to manually
+    // enrich OptimisticMintingFinalized chain events with designated minter.
+    // In order to do so, we first need to fetch the corresponding
+    // OptimisticMintingRequested chain events and take the missing
+    // fundingTxHash values from there.
 
-    return systemEvents
+    // Local helper type that represents an OptimisticMintingFinalized chain event
+    // enriched with designated minter data.
+    type EnrichedMintingFinalizedEvent =
+      OptimisticMintingFinalizedChainEvent & {
+        // Minter designated for finalization. In case the minter cannot be
+        // determined for whatever reason, the value will be 'unknown'.
+        designatedMinter: Identifier | "unknown"
+        // If the designatedMinter is 'unknown', this field holds the cause
+        // explaining why the minter could not be determined.
+        designatedMinterUnknownCause: string
+      }
+
+    // Local function used to enrich an OptimisticMintingFinalized chain event
+    // with designated minter data.
+    const enrichMintingFinalizedEventFn = async (
+      mintingFinalizedEvent: OptimisticMintingFinalizedChainEvent
+    ): Promise<EnrichedMintingFinalizedEvent> => {
+      // Look for corresponding OptimisticMintingRequested chain event with same
+      // depositKey. The filter placeholders correspond to the OptimisticMintingRequested
+      // fields and are: [minter, depositKey, depositor, amount, fundingTxHash, fundingOutputIndex]
+      const filter = [
+        null,
+        mintingFinalizedEvent.depositKey.toPrefixedString(),
+        null,
+        null,
+        null,
+        null,
+      ]
+
+      let designatedMinter: Identifier | "unknown" = "unknown"
+      let designatedMinterUnknownCause = ""
+
+      try {
+        const mintingRequestedEvents =
+          await this.tbtcVault.getOptimisticMintingRequestedEvents(
+            undefined,
+            filter
+          )
+
+        // We expect exactly one request event matching the finalization event.
+        // All other cases are abnormal.
+        if (mintingRequestedEvents.length === 1) {
+          const mintingRequestedEvent = mintingRequestedEvents[0]
+          designatedMinter = this.getDesignatedMinter(
+            cache.minters,
+            mintingRequestedEvent.depositor,
+            mintingRequestedEvent.fundingTxHash
+          )
+        } else {
+          designatedMinterUnknownCause =
+            "cannot determine single minting request event"
+        }
+      } catch (error) {
+        designatedMinterUnknownCause = `cannot fetch minting request events: ${error}`
+      }
+
+      return {
+        ...mintingFinalizedEvent,
+        designatedMinter,
+        designatedMinterUnknownCause,
+      }
+    }
+
+    // Enhance the OptimisticMintingFinalized chain events with designated minters.
+    // Promise.all should always resolve as enrichMintingFinalizedEventFn does not throw.
+    const enrichedMintingFinalizedEvents = await Promise.all(
+      cache.mintingFinalizedEvents.map(enrichMintingFinalizedEventFn)
+    )
+
+    // Produce a OptimisticMintingNotFinalizedByDesignatedMinter system event
+    // for all OptimisticMintingFinalized chain events whose actual minter does
+    // not match the designated one or whose designated minter is unknown.
+    // Regarding the latter, it is better to produce a false-positive than
+    // fail silently.
+    return enrichedMintingFinalizedEvents
+      .filter(
+        (emfe) =>
+          emfe.designatedMinter === "unknown" ||
+          !emfe.minter.equals(emfe.designatedMinter)
+      )
+      .map((emfe) =>
+        OptimisticMintingNotFinalizedByDesignatedMinter(
+          emfe,
+          emfe.designatedMinter,
+          emfe.designatedMinterUnknownCause
+        )
+      )
   }
 
   private getDesignatedMinter(
@@ -304,7 +433,7 @@ export class MintingMonitor implements SystemEventMonitor {
     cache: ChainDataCache,
     fromBlock: number,
     toBlock: number
-  ) {
+  ): Promise<SystemEvent[]> {
     const systemEvents: SystemEvent[] = []
 
     systemEvents.push(
@@ -316,7 +445,10 @@ export class MintingMonitor implements SystemEventMonitor {
     return systemEvents
   }
 
-  private async checkMintingNotRequested(fromBlock: number, toBlock: number) {
+  private async checkMintingNotRequested(
+    fromBlock: number,
+    toBlock: number
+  ): Promise<SystemEvent[]> {
     const rewindBlock = (block: number, shift: number) =>
       block - shift > 0 ? block - shift : 0
 
