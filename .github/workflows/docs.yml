@@ -1,0 +1,163 @@
+name: Solidity docs
+
+on:
+  pull_request:
+  push:
+    branches:
+      - releases/mainnet/solidity/**
+  release:
+    types:
+      - "published"
+  workflow_dispatch:    
+
+jobs:
+  docs-detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      path-filter: ${{ steps.filter.outputs.path-filter }}
+    steps:
+      - uses: actions/checkout@v3
+        if: github.event_name == 'pull_request'
+      - uses: dorny/paths-filter@v2
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          filters: |
+            path-filter:
+              - './solidity/contracts/**'
+              - './.github/workflows/docs.yml'
+
+  docs-html:
+    runs-on: ubuntu-latest
+    needs: docs-detect-changes
+    if: |
+      github.event_name != 'pull_request'
+        || needs.docs-detect-changes.outputs.path-filter == 'true'
+    defaults:
+      run:
+        working-directory: ./solidity
+    steps:
+      - uses: actions/checkout@v3
+
+      # In this step we modify the format of the comments in the Solidity
+      # contracts files. We do that because our original formatting is not
+      # processed by Docgen in the way we would like.
+      # To nicely display lists (like the list of requirements) we need to
+      # remove multiple space chars after the `///` comment. We do that by
+      # executing `sed 's_///[[:blank:]]*_///_'` on all contracts files, which
+      # substitutes `///` + 0 or more spaces/tabs with just `///`.
+      # We also need to remove unnecessary `//` comment used in the `@dev`
+      # section of `BitcoinTx` documentation, which was causing problem with
+      # rendering of the `.md` file. We do that by executing
+      # `sed -i ':a;N;$!ba;s_///\n//\n_///\n_g'` on the problematic file. The
+      # command substitutes `///` + newline + `//` + newline with just `///` +
+      # newline and does this in a loop.
+
+      - name: Prepare contract files for further processing
+        run: |
+          find ./contracts \
+            -name "*.sol" \
+            -type f \
+            -exec sed -i 's_///[[:blank:]]*_///_' {} \;
+          sed -i ':a;N;$!ba;s_///\n//\n_///\n_g' ./contracts/bridge/BitcoinTx.sol
+
+      # TODO: Remove after testing
+      - name: Export artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: modified-contracts
+          path: ./solidity/contracts
+
+      # We need this step because the `@keep-network/tbtc` which we update in
+      # next steps has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`. This step also prevents the
+      # error during `yarn install --frozen-lockfile` step in case `git://` gets
+      # introduced to tbtc-v2's `yarn.lock`.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Markdown docs # Outputs file to ./solidity/generated-docs/index.md
+        run: yarn run hardhat docgen
+
+      # TODO: Remove after testing
+      - name: Export artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: md
+          path: ./solidity/generated-docs
+
+      # We need Ruby to install Kramdown AsciiDoc
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1.138.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install Kramdown AsciiDoc
+        run: gem install kramdown-asciidoc
+
+      - name: Convert Markdown to Asciidoc
+        run: kramdoc --output=./generated-docs/tbtc-v2-contracts.adoc ./generated-docs/index.md
+
+      - name: Add Table of Contents
+        run: |
+          sed -i '1s/^/:toclevels: 1 \n/' ./generated-docs/tbtc-v2-contracts.adoc
+          sed -i '1s/^/:toc: left \n/' ./generated-docs/tbtc-v2-contracts.adoc
+
+      # TODO: Remove after testing
+      - name: Export artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: adoc
+          path: ./solidity/generated-docs
+
+      - name: Build HTML docs
+        id: html
+        uses: thesis/asciidoctor-action@v1.1
+        with:
+          files: './solidity/generated-docs/tbtc-v2-contracts.adoc'
+          args: '-a revdate=`date +%Y-%m-%d` --failure-level=ERROR'
+
+      # TODO: Remove after testing
+      - name: Export artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: asciidoc-out
+          path: ./asciidoc-out
+
+      - if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/solidity/')
+        name: Upload asciidocs
+        uses: thesis/gcp-storage-bucket-action@alpine-version-413.0.0
+        with:
+          service-key: ${{ secrets.THRESHOLD_API_DOCS_UPLOADER_SERVICE_KEY_JSON_BASE64 }}
+          project: keep-prd
+          bucket-name: api-docs.threshold.network
+          bucket-path: solidity
+          build-folder: ${{ steps.html.outputs.asciidoctor-artifacts }}/solidity/generated-docs
+
+      - if: github.event_name == 'pull_request' || github.event_name == 'push'
+        name: Upload asciidocs preview
+        uses: thesis/gcp-storage-bucket-action@alpine-version-413.0.0
+        with:
+          service-key: ${{ secrets.THRESHOLD_API_DOCS_UPLOADER_SERVICE_KEY_JSON_BASE64 }}
+          project: keep-prd
+          bucket-name: api-docs.threshold.network
+          bucket-path: solidity/${{ github.ref_name }}
+          build-folder: ${{ steps.html.outputs.asciidoctor-artifacts }}/solidity/generated-docs
+
+      - name: Post preview URL to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Documentation preview uploaded to https://api-docs.threshold.network/solidity/${{ github.head_ref }}/tbtc-v2-contracts.html.'
+            })
