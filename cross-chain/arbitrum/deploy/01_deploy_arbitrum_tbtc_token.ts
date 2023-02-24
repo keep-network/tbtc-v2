@@ -2,23 +2,28 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, helpers } = hre
-  const { deploy, execute } = deployments
+  const { ethers, getNamedAccounts, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
-  const arbitrumTBTC = await deploy("ArbitrumTBTC", {
-    from: deployer,
-    log: true,
-  })
-
-  await execute(
+  const [arbitrumTBTC, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumTBTC",
-    { from: deployer, log: true, waitConfirmations: 1 },
-    "initialize",
+    {
+      initializerArgs: ["Arbitrum TBTC", "ArbTBTC"],
+      factoryOpts: { signer: await ethers.getSigner(deployer) },
+      proxyOpts: {
+        kind: "transparent",
+      },
+    }
   )
 
   if (hre.network.tags.etherscan) {
-    await helpers.etherscan.verify(arbitrumTBTC)
+    // We use `verify` instead of `verify:verify` as the `verify` task is defined
+    // in "@openzeppelin/hardhat-upgrades" to perform Etherscan verification
+    // of Proxy and Implementation contracts.
+    await hre.run("verify", {
+      address: proxyDeployment.address,
+      constructorArgsParams: proxyDeployment.args,
+    })
   }
 
   if (hre.network.tags.tenderly) {
