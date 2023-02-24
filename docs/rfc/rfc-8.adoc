@@ -52,6 +52,13 @@ and sidechains:
 The cross-bridge architecture and patterns we are going to choose should allow
 us to scale to other L2s, sidechains, and chains quickly.
 
+=== Minting on L1
+
+Rather than change our L1 implementation to be aware of L2s and sidechains,
+we'll start as simply as possible. Every tBTC mint will continue to require
+transactions on Ethereum from the user — first a deposit reveal, then a lock
+to bridge to another network.
+
 === Canonical token
 
 The canonical token we are going to deploy will be different from the L1 token
@@ -65,13 +72,6 @@ sidechains will be different from the one deployed on L1.
 
 A generic implementation of the token will be provided in the `solidity` smart
 contracts directory.
-
-=== Minting on L1
-
-Rather than change our L1 implementation to be aware of L2s and sidechains,
-we'll start as simply as possible. Every tBTC mint will continue to require
-transactions on Ethereum from the user — first a deposit reveal, then a lock
-to bridge to another network.
 
 === Supporting native bridges
 
