@@ -107,7 +107,7 @@ const OptimisticMintingNotRequestedByDesignatedMinter = (
   chainEvent: OptimisticMintingRequestedChainEvent,
   designatedMinter: Identifier
 ): SystemEvent => ({
-  title: "Optimistic minting was not requested by designated minter",
+  title: "Optimistic minting not requested by designated minter",
   type: SystemEventType.Warning,
   data: {
     actualMinter: `0x${chainEvent.minter.identifierHex}`,
@@ -127,7 +127,7 @@ const OptimisticMintingNotFinalizedByDesignatedMinter = (
   designatedMinter: Identifier | "unknown",
   designatedMinterUnknownCause: string
 ): SystemEvent => ({
-  title: "Optimistic minting was not finalized by designated minter",
+  title: "Optimistic minting not finalized by designated minter",
   type: SystemEventType.Warning,
   data: {
     actualMinter: `0x${chainEvent.minter.identifierHex}`,
@@ -147,7 +147,7 @@ const OptimisticMintingNotFinalizedByDesignatedMinter = (
 const OptimisticMintingNotRequestedByAnyMinter = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => ({
-  title: "Optimistic minting was not requested by any minter",
+  title: "Optimistic minting not requested by any minter",
   type: SystemEventType.Warning,
   data: {
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
@@ -161,7 +161,7 @@ const OptimisticMintingNotRequestedByAnyMinter = (
 const OptimisticMintingNotFinalizedByAnyMinter = (
   chainEvent: OptimisticMintingRequestedChainEvent
 ): SystemEvent => ({
-  title: "Optimistic minting was not finalized by any minter",
+  title: "Optimistic minting not finalized by any minter",
   type: SystemEventType.Warning,
   data: {
     btcFundingTxHash: chainEvent.fundingTxHash.toString(),
