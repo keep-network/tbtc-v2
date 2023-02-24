@@ -23,7 +23,30 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-// TODO: Proper documentation (contract, fields, @params)
+/// @title L2TBTC
+/// @notice Canonical L2/sidechain token implementation. tBTC token is minted on
+///         L1 and locked there to be moved to L2/sidechain. By deploying
+///         a canonical token on each L2/sidechain, we can ensure the supply of
+///         tBTC remains sacrosanct, while enabling quick, interoperable
+///         cross-chain bridges and localizing ecosystem risk.
+///
+///         This contract is flexible enough to:
+///         - Delegate minting authority to a native bridge on the chain, if
+///           present.
+///         - Delegate minting authority to a short list of ecosystem bridges.
+///         - Have mints and burns paused by any one of n guardians, allowing
+///           avoidance of contagion in case of a chain- or bridge-specific
+///           incident.
+///         - Be governed and upgradeable.
+///
+///         The token is burnable by the token holder and supports EIP2612
+///         permits. Token holder can authorize a transfer of their token with
+///         a signature conforming EIP712 standard instead of an on-chain
+///         transaction from their address. Anyone can submit this signature on
+///         the user's behalf by calling the permit function, paying gas fees,
+///         and possibly performing other actions in the same transaction.
+///         The governance can recover ERC20 and ERC721 tokens sent mistakenly
+///         to L2TBTC token contract.
 contract L2TBTC is
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
@@ -63,6 +86,10 @@ contract L2TBTC is
         _;
     }
 
+    /// @notice Initializes the token contract.
+    /// @param _name The name of the token.
+    /// @param _symbol The symbol of the token, usually a shorter version of the
+    ///        name.
     function initialize(string memory _name, string memory _symbol)
         external
         initializer
@@ -92,6 +119,7 @@ contract L2TBTC is
     /// @dev Requirements:
     ///      - The caller must be the contract owner.
     ///      - `minter` must not be a minter address already.
+    /// @param minter The address to be added as a minter.
     function addMinter(address minter) external onlyOwner {
         require(!isMinter[minter], "This address is already a minter");
         isMinter[minter] = true;
@@ -103,6 +131,7 @@ contract L2TBTC is
     /// @dev Requirements:
     ///      - The caller must be the contract owner.
     ///      - `minter` must be a minter address.
+    /// @param minter The address to be removed from the minters list.
     function removeMinter(address minter) external onlyOwner {
         require(isMinter[minter], "This address is not a minter");
         delete isMinter[minter];
@@ -124,6 +153,7 @@ contract L2TBTC is
     /// @dev Requirements:
     ///      - The caller must be the contract owner.
     ///      - `guardian` must not be a guardian address already.
+    /// @param guardian The address to be added as a guardian.
     function addGuardian(address guardian) external onlyOwner {
         require(!isGuardian[guardian], "This address is already a guardian");
         isGuardian[guardian] = true;
@@ -135,6 +165,7 @@ contract L2TBTC is
     /// @dev Requirements:
     ///      - The caller must be the contract owner.
     ///      - `guardian` must be a guardian address.
+    /// @param guardian The address to be removed from the guardians list.
     function removeGuardian(address guardian) external onlyOwner {
         require(isGuardian[guardian], "This address is not a guardian");
         delete isGuardian[guardian];
@@ -154,6 +185,10 @@ contract L2TBTC is
 
     /// @notice Allows the governance of the token contract to recover any ERC20
     ///         sent mistakenly to the token contract address.
+    /// @param token The address of the token to be recovered.
+    /// @param recipient The token recipient address that will receive recovered
+    ///        tokens.
+    /// @param amount The amount to be recovered.
     function recoverERC20(
         IERC20Upgradeable token,
         address recipient,
@@ -164,6 +199,10 @@ contract L2TBTC is
 
     /// @notice Allows the governance of the token contract to recover any
     ///         ERC721 sent mistakenly to the token contract address.
+    /// @param token The address of the token to be recovered.
+    /// @param recipient The token recipient address that will receive the
+    ///        recovered token.
+    /// @param tokenId The ID of the ERC721 token to be recovered.
     function recoverERC721(
         IERC721Upgradeable token,
         address recipient,
@@ -198,6 +237,8 @@ contract L2TBTC is
     /// @dev Requirements:
     ///      - The caller must be a minter.
     ///      - `account` must not be the zero address.
+    /// @param account The address to receive tokens.
+    /// @param amount The amount of token to be minted.
     function mint(address account, uint256 amount)
         external
         whenNotPaused
@@ -210,6 +251,7 @@ contract L2TBTC is
     ///         event with `to` set to the zero address.
     /// @dev Requirements:
     ///      - The caller must have at least `amount` tokens.
+    /// @param amount The amount of token to be burned.
     function burn(uint256 amount) public override whenNotPaused {
         super.burn(amount);
     }
@@ -222,6 +264,8 @@ contract L2TBTC is
     ///        least `amount`.
     ///      - `account` must not be the zero address.
     ///      - `account` must have at least `amount` tokens.
+    /// @param account The address owning tokens to be burned.
+    /// @param amount The amount of token to be burned.
     function burnFrom(address account, uint256 amount)
         public
         override
