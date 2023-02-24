@@ -157,6 +157,20 @@ const OptimisticMintingNotRequestedByAnyMinter = (
   block: chainEvent.blockNumber,
 })
 
+const OptimisticMintingNotFinalizedByAnyMinter = (
+  chainEvent: OptimisticMintingRequestedChainEvent
+): SystemEvent => ({
+  title: "Optimistic minting was not finalized by any minter",
+  type: SystemEventType.Warning,
+  data: {
+    btcFundingTxHash: chainEvent.fundingTxHash.toString(),
+    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+    amountSat: chainEvent.amount.toString(),
+    ethRequestTxHash: chainEvent.transactionHash.toPrefixedString(),
+  },
+  block: chainEvent.blockNumber,
+})
+
 // Cache that holds some chain data relevant for the minting monitor.
 // Allows fetching the data once and reusing them multiple times across the monitor.
 type ChainDataCache = {
@@ -439,8 +453,9 @@ export class MintingMonitor implements SystemEventMonitor {
     systemEvents.push(
       ...(await this.checkMintingNotRequested(fromBlock, toBlock))
     )
-
-    // TODO: Check minting not finalized.
+    systemEvents.push(
+      ...(await this.checkMintingNotFinalized(cache, fromBlock, toBlock))
+    )
 
     return systemEvents
   }
@@ -478,5 +493,46 @@ export class MintingMonitor implements SystemEventMonitor {
         return !requestExists
       })
       .map(OptimisticMintingNotRequestedByAnyMinter)
+  }
+
+  private async checkMintingNotFinalized(
+    cache: ChainDataCache,
+    fromBlock: number,
+    toBlock: number
+  ): Promise<SystemEvent[]> {
+    const rewindBlock = (block: number, shift: number) =>
+      block - shift > 0 ? block - shift : 0
+
+    const finalizationTimeoutBlocks = mintingFinalizationTimeoutBlocks(
+      cache.optimisticMintingDelay
+    )
+
+    // We need to rewind the block window by the minting finalization timeout.
+    // This way, we are looking for past minting requests whose time for
+    // finalization was already elapsed.
+    const chainEvents =
+      await this.tbtcVault.getOptimisticMintingRequestedEvents({
+        fromBlock: rewindBlock(fromBlock, finalizationTimeoutBlocks),
+        toBlock: rewindBlock(toBlock, finalizationTimeoutBlocks),
+      })
+
+    const mintingRequests = await Promise.allSettled(
+      chainEvents.map((ce) =>
+        OptimisticMinting.getOptimisticMintingRequest(
+          ce.fundingTxHash,
+          ce.fundingOutputIndex,
+          this.tbtcVault
+        )
+      )
+    )
+
+    return chainEvents
+      .filter((ce, index) => {
+        const request = mintingRequests[index]
+        const requestExists =
+          request.status === "fulfilled" && request.value.finalizedAt !== 0
+        return !requestExists
+      })
+      .map(OptimisticMintingNotFinalizedByAnyMinter)
   }
 }
