@@ -135,7 +135,8 @@ const OptimisticMintingNotFinalizedByDesignatedMinter = (
       designatedMinter === "unknown"
         ? "unknown"
         : `0x${designatedMinter.identifierHex}`,
-    designatedMinterUnknownCause,
+    designatedMinterUnknownCause:
+      designatedMinter === "unknown" ? designatedMinterUnknownCause : "n/a",
     depositKey: chainEvent.depositKey.toPrefixedString(),
     depositor: `0x${chainEvent.depositor.identifierHex}`,
     ethFinalizationTxHash: chainEvent.transactionHash.toPrefixedString(),
@@ -357,26 +358,22 @@ export class MintingMonitor implements SystemEventMonitor {
     const enrichMintingFinalizedEventFn = async (
       mintingFinalizedEvent: OptimisticMintingFinalizedChainEvent
     ): Promise<EnrichedMintingFinalizedEvent> => {
-      // Look for corresponding OptimisticMintingRequested chain event with same
-      // depositKey. The filter placeholders correspond to the OptimisticMintingRequested
-      // fields and are: [minter, depositKey, depositor, amount, fundingTxHash, fundingOutputIndex]
-      const filter = [
-        null,
-        mintingFinalizedEvent.depositKey.toPrefixedString(),
-        null,
-        null,
-        null,
-        null,
-      ]
-
       let designatedMinter: Identifier | "unknown" = "unknown"
       let designatedMinterUnknownCause = ""
 
       try {
+        // Look for corresponding OptimisticMintingRequested chain event with
+        // same depositKey. The event filter arguments correspond to the
+        // OptimisticMintingRequested chain events fields.
         const mintingRequestedEvents =
           await this.tbtcVault.getOptimisticMintingRequestedEvents(
-            undefined,
-            filter
+            undefined, // options
+            null, // minter filter arg
+            mintingFinalizedEvent.depositKey.toPrefixedString(), // depositKey filter arg
+            null, // depositor filter arg
+            null, // amount filter arg
+            null, // fundingTxHash filter arg
+            null // fundingOutputIndex filter arg
           )
 
         // We expect exactly one request event matching the finalization event.
@@ -390,7 +387,8 @@ export class MintingMonitor implements SystemEventMonitor {
           )
         } else {
           designatedMinterUnknownCause =
-            "cannot determine single minting request event"
+            "cannot determine a single minting request event; " +
+            `fetched events are ${JSON.stringify(mintingRequestedEvents)}`
         }
       } catch (error) {
         designatedMinterUnknownCause = `cannot fetch minting request events: ${error}`
