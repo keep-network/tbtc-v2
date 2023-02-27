@@ -22,7 +22,7 @@
     "typechain/"
   ],
   "config": {
-    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault}.json"
+    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault,TBTC}.json"
   },
   "dependencies": {
     "@keep-network/ecdsa": "development",
