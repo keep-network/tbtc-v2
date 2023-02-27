@@ -741,9 +741,9 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc-v2.ts@development":
-  version "1.1.0-dev.11"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.1.0-dev.11.tgz#a6df2d7915ea7dcd3d34ce9dcedbfc0d164b2932"
-  integrity sha512-6HDL8R0VKokEpfbyoP+D8hYifJ5DJbTCrQ5DgIIPhPM6aUUdOUBTCjoIs+1PoEdzho/BTgoQE1NBV5fEjukvTw==
+  version "1.1.0-dev.12"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.1.0-dev.12.tgz#5c3949dd8ec80e6f376a26d909323ba2da95d802"
+  integrity sha512-Ko+F7HfzVRrFqowW3Zg7Aa+gZjnzOUfi4Tmdq8nwBHpGMwUVgKHHrWFzSqc1qE7FNAVPcZWRT92VWQ2q85/6yw==
   dependencies:
     "@keep-network/ecdsa" "2.1.0-dev.6"
     "@keep-network/tbtc-v2" "1.0.3-dev.0"
@@ -1235,9 +1235,9 @@
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
 
 "@types/node@*":
-  version "18.14.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.14.1.tgz#90dad8476f1e42797c49d6f8b69aaf9f876fc69f"
-  integrity sha512-QH+37Qds3E0eDlReeboBxfHbX9omAcBCXEzswCu6jySP642jiM3cYSIkU/REqwhCUqXdonHFuBfJDiAJxMNhaQ==
+  version "18.14.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.14.2.tgz#c076ed1d7b6095078ad3cf21dfeea951842778b1"
+  integrity sha512-1uEQxww3DaghA0RxqHx0O0ppVlo43pJhepY51OxuQIKHpjbnYLA7vcdwioNPzIqmC2u3I/dmylcqjlh0e7AyUA==
 
 "@types/node@10.12.18":
   version "10.12.18"
