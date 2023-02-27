@@ -311,7 +311,7 @@ function validateBlockHeadersChain(
  * @param blockHeaders - string that contains block headers in the raw format.
  * @returns Array of BlockHeader objects.
  */
-function splitHeaders(blockHeaders: string): BlockHeader[] {
+export function splitHeaders(blockHeaders: string): BlockHeader[] {
   if (blockHeaders.length % 160 !== 0) {
     throw new Error("Incorrect length of Bitcoin headers")
   }

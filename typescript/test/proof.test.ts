@@ -1,5 +1,6 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import { Transaction } from "../src/bitcoin"
+import { serializeBlockHeader, Transaction, BlockHeader } from "../src/bitcoin"
+import { Hex } from "../src/hex"
 import {
   singleInputProofTestData,
   multipleInputsProofTestData,
@@ -12,6 +13,7 @@ import {
 import {
   assembleTransactionProof,
   validateTransactionProof,
+  splitHeaders,
 } from "../src/proof"
 import { Proof } from "./bitcoin"
 import { expect } from "chai"
@@ -122,29 +124,217 @@ describe("Proof", () => {
       bitcoinClient = new MockBitcoinClient()
     })
 
-    context("when the transaction is from Bitcoin Mainnet", () => {
-      context("when the transaction confirmations span only one epoch", () => {
-        it("should not throw", async () => {
-          await expect(
-            runProofValidationScenario(transactionConfirmationsInOneEpochData)
-          ).not.to.be.rejected
+    context("when the transaction proof is correct", () => {
+      context("when the transaction is from Bitcoin Mainnet", () => {
+        context(
+          "when the transaction confirmations span only one epoch",
+          () => {
+            it("should not throw", async () => {
+              await expect(
+                runProofValidationScenario(
+                  transactionConfirmationsInOneEpochData
+                )
+              ).not.to.be.rejected
+            })
+          }
+        )
+
+        context("when the transaction confirmations span two epochs", () => {
+          it("should not throw", async () => {
+            await expect(
+              runProofValidationScenario(
+                transactionConfirmationsInTwoEpochsData
+              )
+            ).not.to.be.rejected
+          })
         })
       })
 
-      context("when the transaction confirmations span two epochs", () => {
+      context("when the transaction is from Bitcoin Testnet", () => {
         it("should not throw", async () => {
-          await expect(
-            runProofValidationScenario(transactionConfirmationsInTwoEpochsData)
-          ).not.to.be.rejected
+          await expect(runProofValidationScenario(testnetTransactionData)).not
+            .to.be.rejected
         })
       })
     })
 
-    context("when the transaction is from Bitcoin Testnet", () => {
-      it("should not throw", async () => {
-        await expect(runProofValidationScenario(testnetTransactionData)).not.to
-          .be.rejected
+    context("when the transaction proof is incorrect", () => {
+      context("when the length of headers chain is incorrect", () => {
+        it("should throw", async () => {
+          // Corrupt data by adding additional byte to the headers chain.
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              headersChain:
+                transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .headersChain + "ff",
+            },
+          }
+          await expect(
+            runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith("Incorrect length of Bitcoin headers")
+        })
       })
+
+      context(
+        "when the headers chain contains an incorrect number of headers",
+        () => {
+          // Corrupt the data by adding additional 80 bytes to the headers chain.
+          it("should throw", async () => {
+            const corruptedProofData: TransactionProofData = {
+              ...transactionConfirmationsInOneEpochData,
+              bitcoinChainData: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+                headersChain:
+                  transactionConfirmationsInOneEpochData.bitcoinChainData
+                    .headersChain + "f".repeat(160),
+              },
+            }
+            await expect(
+              runProofValidationScenario(corruptedProofData)
+            ).to.be.rejectedWith("Wrong number of confirmations")
+          })
+        }
+      )
+
+      context("when the merkle proof is of incorrect length", () => {
+        it("should throw", async () => {
+          // Corrupt the data by adding a byte to the Merkle proof.
+          const merkle = [
+            ...transactionConfirmationsInOneEpochData.bitcoinChainData
+              .transactionMerkleBranch.merkle,
+          ]
+          merkle[merkle.length - 1] += "ff"
+
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              transactionMerkleBranch: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .transactionMerkleBranch,
+                merkle: merkle,
+              },
+            },
+          }
+
+          await expect(
+            runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith("Invalid merkle tree")
+        })
+      })
+
+      context("when the merkle proof contains incorrect hash", () => {
+        it("should throw", async () => {
+          // Corrupt the data by changing a byte of one of the hashes in the
+          // Merkle proof.
+          const merkle = [
+            ...transactionConfirmationsInOneEpochData.bitcoinChainData
+              .transactionMerkleBranch.merkle,
+          ]
+
+          merkle[3] = "ff" + merkle[3].slice(2)
+
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              transactionMerkleBranch: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .transactionMerkleBranch,
+                merkle: merkle,
+              },
+            },
+          }
+
+          await expect(
+            runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith(
+            "Transaction Merkle proof is not valid for provided header and transaction hash"
+          )
+        })
+      })
+
+      context("when the block headers do not form a chain", () => {
+        it("should throw", async () => {
+          // Corrupt data by modifying previous block header hash of one of the
+          // headers.
+          const headers: BlockHeader[] = splitHeaders(
+            transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
+          )
+          headers[headers.length - 1].previousBlockHeaderHash = Hex.from(
+            "ff".repeat(32)
+          )
+          const corruptedHeadersChain: string = headers
+            .map(serializeBlockHeader)
+            .join("")
+
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              headersChain: corruptedHeadersChain,
+            },
+          }
+
+          await expect(
+            runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith("Invalid headers chain")
+        })
+      })
+
+      context("when one of the block headers has insufficient work", () => {
+        it("should throw", async () => {
+          // Corrupt data by modifying the nonce of one of the headers, so that
+          // the resulting hash will be above the required difficulty target.
+          const headers: BlockHeader[] = splitHeaders(
+            transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
+          )
+          headers[headers.length - 1].nonce++
+          const corruptedHeadersChain: string = headers
+            .map(serializeBlockHeader)
+            .join("")
+
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              headersChain: corruptedHeadersChain,
+            },
+          }
+
+          await expect(
+            runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith("Insufficient work in the header")
+        })
+      })
+
+      context(
+        "when some of the block headers are not at current or previous difficulty",
+        () => {
+          it("should throw", async () => {
+            // Corrupt data by setting current difficulty to a different value
+            // than stored in block headers.
+            const corruptedProofData: TransactionProofData = {
+              ...transactionConfirmationsInTwoEpochsData,
+              bitcoinChainData: {
+                ...transactionConfirmationsInTwoEpochsData.bitcoinChainData,
+                currentDifficulty:
+                  transactionConfirmationsInTwoEpochsData.bitcoinChainData.currentDifficulty.add(
+                    1
+                  ),
+              },
+            }
+
+            await expect(
+              runProofValidationScenario(corruptedProofData)
+            ).to.be.rejectedWith(
+              "Header difficulty not at current or previous Bitcoin difficulty"
+            )
+          })
+        }
+      )
     })
 
     async function runProofValidationScenario(data: TransactionProofData) {
