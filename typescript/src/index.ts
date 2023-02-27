@@ -58,6 +58,7 @@ export {
   Bridge as EthereumBridge,
   Address as EthereumAddress,
   TBTCVault as EthereumTBTCVault,
+  TBTCToken as EthereumTBTCToken,
 } from "./ethereum"
 
 export { Hex } from "./hex"
