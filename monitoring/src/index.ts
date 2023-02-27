@@ -9,6 +9,7 @@ import { FilePersistence } from "./file-persistence"
 import { context } from "./context"
 import { MintingMonitor } from "./minting-monitor"
 import { WalletMonitor } from "./wallet-monitor"
+import { SupplyMonitor } from "./suply-monitor"
 
 import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type {
@@ -21,6 +22,7 @@ const btcClient: BitcoinClient = ElectrumClient.fromUrl(context.electrumUrl)
 const monitors: SystemEventMonitor[] = [
   new DepositMonitor(contracts.bridge),
   new MintingMonitor(contracts.bridge, contracts.tbtcVault, btcClient),
+  new SupplyMonitor(contracts.tbtcToken),
   new WalletMonitor(contracts.bridge),
 ]
 
