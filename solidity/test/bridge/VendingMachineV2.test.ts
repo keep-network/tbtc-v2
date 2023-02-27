@@ -19,9 +19,9 @@ describe("VendingMachineV2", () => {
   let exchanger: SignerWithAddress
   let thirdParty: SignerWithAddress
 
-  // 50 TBTC v2 deposited into the VendingMachineV2
+  // 50 tBTC v2 deposited into the VendingMachineV2
   const initialV2Balance = to1e18(50)
-  // 50 TBTC v1 owned by the exchanger
+  // 50 tBTC v1 owned by the exchanger
   const initialV1Balance = to1e18(51)
 
   before(async () => {
@@ -43,7 +43,7 @@ describe("VendingMachineV2", () => {
   })
 
   describe("exchange", () => {
-    context("when TBTC v1 exchanger has not enough tokens", () => {
+    context("when tBTC v1 exchanger has not enough tokens", () => {
       it("should revert", async () => {
         const amount = initialV1Balance.add(1)
         await tbtcV1
@@ -55,7 +55,7 @@ describe("VendingMachineV2", () => {
       })
     })
 
-    context("when not enough TBTC v2 was deposited", () => {
+    context("when not enough tBTC v2 was deposited", () => {
       it("should revert", async () => {
         const amount = initialV2Balance.add(1)
         await tbtcV1
@@ -64,7 +64,7 @@ describe("VendingMachineV2", () => {
         await expect(
           vendingMachineV2.connect(exchanger).exchange(amount)
         ).to.be.revertedWith(
-          "Not enough TBTC v2 available in the Vending Machine"
+          "Not enough tBTC v2 available in the Vending Machine"
         )
       })
     })
@@ -72,7 +72,7 @@ describe("VendingMachineV2", () => {
     context("when exchanging entire allowance", () => {
       // initialV1Balance > initialV2Balance for the sake of the negative path
       // unit tests; we take v1 balance to not revert the TX with
-      // "Not enough TBTC v2 available in the Vending Machine"
+      // "Not enough tBTC v2 available in the Vending Machine"
       const amount = initialV2Balance
       let tx: ContractTransaction
 
@@ -89,11 +89,11 @@ describe("VendingMachineV2", () => {
         await restoreSnapshot()
       })
 
-      it("should exchange the same amount of TBTC v2", async () => {
+      it("should exchange the same amount of tBTC v2", async () => {
         expect(await tbtcV2.balanceOf(exchanger.address)).is.equal(amount)
       })
 
-      it("should transfer TBTC v1 tokens to the VendingMachineV2", async () => {
+      it("should transfer tBTC v1 tokens to the VendingMachineV2", async () => {
         expect(await tbtcV1.balanceOf(vendingMachineV2.address)).is.equal(
           amount
         )
@@ -109,7 +109,7 @@ describe("VendingMachineV2", () => {
     context("when exchanging part of the allowance", () => {
       // initialV1Balance > initialV2Balance for the sake of the negative path
       // unit tests; we take v1 balance to not revert the TX with
-      // "Not enough TBTC v2 available in the Vending Machine"
+      // "Not enough tBTC v2 available in the Vending Machine"
       const amount = initialV2Balance.sub(to1e18(1))
       let tx: ContractTransaction
 
@@ -126,11 +126,11 @@ describe("VendingMachineV2", () => {
         await restoreSnapshot()
       })
 
-      it("should exchange the same amount of TBTC v2", async () => {
+      it("should exchange the same amount of tBTC v2", async () => {
         expect(await tbtcV2.balanceOf(exchanger.address)).is.equal(amount)
       })
 
-      it("should transfer TBTC v1 tokens to the VendingMachineV2", async () => {
+      it("should transfer tBTC v1 tokens to the VendingMachineV2", async () => {
         expect(await tbtcV1.balanceOf(vendingMachineV2.address)).is.equal(
           amount
         )
@@ -151,17 +151,17 @@ describe("VendingMachineV2", () => {
           vendingMachineV2
             .connect(exchanger)
             .receiveApproval(exchanger.address, to1e18(1), tbtcV1.address, [])
-        ).to.be.revertedWith("Only TBTC v1 caller allowed")
+        ).to.be.revertedWith("Only tBTC v1 caller allowed")
       })
     })
 
-    context("when called not for TBTC v1 token", () => {
+    context("when called not for tBTC v1 token", () => {
       it("should revert", async () => {
         await expect(
           vendingMachineV2
             .connect(exchanger)
             .receiveApproval(exchanger.address, to1e18(1), tbtcV2.address, [])
-        ).to.be.revertedWith("Token is not TBTC v1")
+        ).to.be.revertedWith("Token is not tBTC v1")
       })
     })
 
@@ -182,11 +182,11 @@ describe("VendingMachineV2", () => {
         await restoreSnapshot()
       })
 
-      it("should exchange TBTC v2 with the caller", async () => {
+      it("should exchange tBTC v2 with the caller", async () => {
         expect(await tbtcV2.balanceOf(exchanger.address)).is.equal(amount)
       })
 
-      it("should transfer TBTC v1 tokens to the VendingMachineV2", async () => {
+      it("should transfer tBTC v1 tokens to the VendingMachineV2", async () => {
         expect(await tbtcV1.balanceOf(vendingMachineV2.address)).is.equal(
           amount
         )
@@ -220,7 +220,7 @@ describe("VendingMachineV2", () => {
         await restoreSnapshot()
       })
 
-      it("should transfer TBTC v2 to the VendingMachineV2", async () => {
+      it("should transfer tBTC v2 to the VendingMachineV2", async () => {
         expect(await tbtcV2.balanceOf(vendingMachineV2.address)).is.equal(
           initialV2Balance.add(amount)
         )
@@ -252,7 +252,7 @@ describe("VendingMachineV2", () => {
         await restoreSnapshot()
       })
 
-      it("should transfer TBTC v2 to the VendingMachineV2", async () => {
+      it("should transfer tBTC v2 to the VendingMachineV2", async () => {
         expect(await tbtcV2.balanceOf(vendingMachineV2.address)).is.equal(
           initialV2Balance.add(amount)
         )
@@ -283,7 +283,7 @@ describe("VendingMachineV2", () => {
     })
 
     context("when called by the owner", () => {
-      context("when withdrawing TBTC v1 tokens", () => {
+      context("when withdrawing tBTC v1 tokens", () => {
         const amount = to1e18(10)
         let tx: ContractTransaction
 
@@ -308,7 +308,7 @@ describe("VendingMachineV2", () => {
         })
       })
 
-      context("when withdrawing TBTC v2 tokens", () => {
+      context("when withdrawing tBTC v2 tokens", () => {
         const amount = to1e18(11)
         let tx: ContractTransaction
 
