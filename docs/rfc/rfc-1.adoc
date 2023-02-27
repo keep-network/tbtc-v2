@@ -211,8 +211,8 @@ Governable Parameters:
   becomes eligible for a refund where we will not include it in a sweeping
   transaction.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
-- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
-  will trigger an early sweep on a wallet.
+- `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
+  that will trigger an early sweep on a wallet.
 - `dust_threshold`: The minimum bitcoin deposit amount for the transaction to
   be considered for a sweep.
 - `base_btc_fee_max`: The highest amount of BTC that operators can
@@ -251,9 +251,9 @@ is the result of funky custom user behavior. In those cases, the users will
 need to wait 30 days for their refund.
 
 This process is called a "sweep", and occurs after `sweep_period` has passed or
-if enough deposits have accumulated to exceed `sweep_max_btc`, whichever comes
-first. Any deposit below `dust_threshold` is ignored, both for triggering a
-sweep as well as being included in a sweep.
+if enough deposits have accumulated according to `sweep_max_deposits`, whichever
+comes first. Any deposit below `dust_threshold` is ignored, both for triggering 
+a sweep as well as being included in a sweep.
 
 The sweeping transaction will cost some amount of bitcoin based on what miners
 are charging for the bitcoin fee in the current market conditions. The fee is
@@ -313,55 +313,28 @@ address in 3 hours with no further interaction.
 Governable Parameters:
 
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
-- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
-  will trigger an early sweep on a wallet.
+- `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
+  that will trigger an early sweep on a wallet.
 
 We've established in the <<sweeping,sweeping>> section that we should sweep
 whenever enough time has passed to exceed the `sweep_period` or whenever enough
-btc has been deposited to exceed `sweep_max_btc`. If we sweep early because a
-lot of btc was deposited, then we don't "push back" our scheduled
+deposits are in the queue according to `sweep_max_deposits`. If we sweep early 
+because a lot of deposits have been revealed, then we don't "push back" our scheduled
 `sweep_period` sweep. Rather, that sweep continues as planned, and if there
 are no deposits with <<bitcoin-sweeping-fee,sweeping fee>> high enough to be
-included in a sweep (maybe because they all got swept in the `sweep_max_btc`
+included in a sweep (maybe because they all got swept in the `sweep_max_deposits`
 sweep), then we wait until the next sweep and repeat the process.
 
-*Example*: We have a `sweep_period = 8 hours` and `sweep_max_btc = 10 btc`. At
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_deposits = 10`. At
 13:00, a sweep just occurred, and the next is scheduled for 21:00. At 15:00, 13
-btc gets deposited which triggers a sweep due to `sweep_max_btc`. Rather than
-pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 21:00
-there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
+deposits gets revealed which triggers a sweep due to `sweep_max_deposits`. Rather 
+than pushing back the next scheduled sweep to 23:00, it remains at 21:00. If by 
+21:00 there are any deposits with a high enough <<bitcoin-sweeping-fee,sweeping fee>>
 to be included in a sweep, we do it. Otherwise, we schedule the next sweep for
 05:00 the next day. The process repeats.
 
 Here, we're making the tradeoff between reducing fees (having less frequent
 batches) and increasing reliability from a user experience standpoint.
-
-===== Skipping the Sweeping Line
-
-Governable Parameters:
-
-- `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
-  operator for the gas of the sweep and collect their account balance.
-
-Some depositors are not going to want to wait for the next sweep to occur, and
-are willing to pay the entire cost of the sweeping transaction to avoid
-waiting. We can accommodate them with the following flow:
-
-When the make their reveal transaction, they include a piece of information
-that lets us know that they want their deposit swept **right now**. As soon as
-the operators are available, they sweep the btc and an operator posts the
-balance update transaction to the ethereum chain, paying the associated gas
-costs.
-
-We send the account balance to a holding contract locked by the amount
-of ether that the operator had to pay in gas fees, unlockable only by the
-depositor's eth address. Once the depositor has paid the contract, the account
-balance moves to their address, and the operator who originally paid for the
-transaction is reimbursed.
-
-If the depositor does not pay to unlock their account balance within the
-`skip_sweep_timeout`, then the system seizes the balance, mints TBTC, uses it
-to buy back T tokens, and then uses those to reimburse the operator.
 
 [[redemption]]
 === Redemption
@@ -997,8 +970,8 @@ Alphabetized list of Governable Parameters with additional notes.
   treasury fee.
 - `skip_sweep_timeout`: The amount of time the depositor has to reimburse the
   operator for the gas of the sweep and collect their account balance.
-- `sweep_max_btc`: The amount of summed non-dust unswept bitcoin deposits that
-  will trigger an early sweep on a wallet.
+- `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
+  that will trigger an early sweep on a wallet.
 - `sweep_period`: The amount of time we wait between scheduled sweeps on a
   wallet.
 - `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
