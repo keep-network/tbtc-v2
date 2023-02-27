@@ -81,7 +81,7 @@ describe("L2TBTC", () => {
     })
 
     context("when called by the owner", () => {
-      context("when address is not a minter", () => {
+      context("when address is a new minter", () => {
         let tx: ContractTransaction
 
         before(async () => {
@@ -106,7 +106,7 @@ describe("L2TBTC", () => {
         })
       })
 
-      context("when address is a minter", () => {
+      context("when address is already a minter", () => {
         before(async () => {
           await createSnapshot()
 
@@ -168,7 +168,7 @@ describe("L2TBTC", () => {
         })
       })
 
-      context("when address is a minter", () => {
+      context("when a minter address is removed", () => {
         let tx: ContractTransaction
 
         before(async () => {
@@ -185,6 +185,8 @@ describe("L2TBTC", () => {
         it("should take minter role from the address", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           expect(await token.isMinter(minter.address)).to.be.false
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await token.getMinters()).is.empty
         })
 
         it("should emit an event", async () => {
@@ -285,7 +287,7 @@ describe("L2TBTC", () => {
     })
 
     context("when called by the owner", () => {
-      context("when address is not a guardian", () => {
+      context("when address is a new guardian", () => {
         let tx: ContractTransaction
 
         before(async () => {
@@ -310,7 +312,7 @@ describe("L2TBTC", () => {
         })
       })
 
-      context("when address is a guardian", () => {
+      context("when address is already a guardian", () => {
         before(async () => {
           await createSnapshot()
 
@@ -372,7 +374,7 @@ describe("L2TBTC", () => {
         })
       })
 
-      context("when address is a guardian", () => {
+      context("when a guardian address is removed", () => {
         let tx: ContractTransaction
 
         before(async () => {
@@ -389,6 +391,8 @@ describe("L2TBTC", () => {
         it("should take guardian role from the address", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           expect(await token.isGuardian(guardian.address)).to.be.false
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await token.getGuardians()).to.be.empty
         })
 
         it("should emit an event", async () => {
