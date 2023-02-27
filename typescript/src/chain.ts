@@ -331,3 +331,20 @@ export interface TBTCVault {
    */
   getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
 }
+
+/**
+ * Interface for communication with the TBTC v2 token on-chain contract.
+ */
+export interface TBTCToken {
+  /**
+   * Gets the total supply of the TBTC v2 token. The returned value is in
+   * ERC 1e18 precision, it has to be converted before using as Bitcoin value
+   * with 1e8 precision in satoshi.
+   * @param blockNumber Optional parameter determining the block the total
+   *        supply should be fetched for. If this parameter is not set, the
+   *        total supply is taken for the latest block.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  totalSupply(blockNumber?: number): Promise<BigNumber>
+}
