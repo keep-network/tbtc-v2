@@ -22,7 +22,7 @@
     "typechain/"
   ],
   "config": {
-    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault}.json"
+    "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault,TBTC}.json"
   },
   "dependencies": {
     "@keep-network/ecdsa": "development",
@@ -32,6 +32,7 @@
     "bufio": "^1.0.6",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
     "ethers": "^5.5.2",
+    "p-timeout": "^4.1.0",
     "wif": "2.0.6"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "@typescript-eslint/parser": "^4.28.3",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
+    "commander": "^9.4.0",
     "eslint": "^7.30.0",
     "eslint-config-keep": "github:keep-network/eslint-config-keep",
     "ethereum-waffle": "4.0.0-alpha.25",
@@ -53,8 +55,7 @@
     "prettier": "^2.3.2",
     "ts-node": "^10.1.0",
     "typechain": "^8.1.1",
-    "typescript": "^4.3.5",
-    "commander": "^9.4.0"
+    "typescript": "^4.3.5"
   },
   "engines": {
     "node": ">=14 <15"

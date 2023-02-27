@@ -1,6 +1,7 @@
 import {
   Bridge as ChainBridge,
   TBTCVault as ChainTBTCVault,
+  TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
   GetEvents,
 } from "./chain"
@@ -17,6 +18,7 @@ import {
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
+import TBTCDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { backoffRetrier } from "./backoff"
 import {
   DepositScriptParameters,
@@ -35,6 +37,7 @@ import {
 } from "./bitcoin"
 import type {
   OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -46,6 +49,7 @@ import type {
 } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+import type { TBTC as ContractTBTC } from "../typechain/TBTC"
 import { Hex } from "./hex"
 import { NewWalletRegisteredEvent } from "./wallet"
 
@@ -925,6 +929,59 @@ export class TBTCVault
           BigNumber.from(event.args!.depositKey).toHexString()
         ),
       }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingFinalizedEvents}
+   */
+  async getOptimisticMintingFinalizedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingFinalizedEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingFinalized",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingFinalizedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        minter: new Address(event.args!.minter),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+        depositor: new Address(event.args!.depositor),
+        optimisticMintingDebt: BigNumber.from(
+          event.args!.optimisticMintingDebt
+        ),
+      }
+    })
+  }
+}
+
+/**
+ * Implementation of the Ethereum TBTC v2 token handle.
+ */
+export class TBTCToken
+  extends EthereumContract<ContractTBTC>
+  implements ChainTBTCToken
+{
+  constructor(config: ContractConfig) {
+    super(config, TBTCDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCToken#totalSupply}
+   */
+  async totalSupply(blockNumber?: number): Promise<BigNumber> {
+    return this._instance.totalSupply({
+      blockTag: blockNumber ?? "latest",
     })
   }
 }
