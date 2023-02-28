@@ -2,16 +2,18 @@ import { Config, JsonDB } from "node-json-db"
 
 import { context } from "./context"
 
+import type { SupplyMonitorPersistence } from "./supply-monitor"
 import type {
   Persistence as SystemEventPersistence,
   ReceiverId as SystemEventReceiverId,
   SystemEvent,
 } from "./system-event"
 
-const checkpointBlockPath = "/checkpointBlock"
-const handledSystemEventsPath = "/handledSystemEvents"
+export class SystemEventFilePersistence implements SystemEventPersistence {
+  private readonly checkpointBlockPath = "/checkpointBlock"
 
-export class FilePersistence implements SystemEventPersistence {
+  private readonly handledSystemEventsPath = "/handledSystemEvents"
+
   private db: JsonDB
 
   constructor() {
@@ -21,26 +23,26 @@ export class FilePersistence implements SystemEventPersistence {
   }
 
   async checkpointBlock(): Promise<number> {
-    if (!(await this.db.exists(checkpointBlockPath))) {
+    if (!(await this.db.exists(this.checkpointBlockPath))) {
       return 0
     }
 
-    return this.db.getObject<number>(checkpointBlockPath)
+    return this.db.getObject<number>(this.checkpointBlockPath)
   }
 
   async updateCheckpointBlock(block: number): Promise<void> {
-    await this.db.push(checkpointBlockPath, block)
+    await this.db.push(this.checkpointBlockPath, block)
   }
 
   async handledSystemEvents(): Promise<
     Record<SystemEventReceiverId, SystemEvent[]>
   > {
-    if (!(await this.db.exists(handledSystemEventsPath))) {
+    if (!(await this.db.exists(this.handledSystemEventsPath))) {
       return {}
     }
 
     return this.db.getObject<Record<SystemEventReceiverId, SystemEvent[]>>(
-      handledSystemEventsPath
+      this.handledSystemEventsPath
     )
   }
 
@@ -55,6 +57,36 @@ export class FilePersistence implements SystemEventPersistence {
       handledSystemEvents[receiverId].push(...systemEvents[receiverId])
     })
 
-    await this.db.push(handledSystemEventsPath, handledSystemEvents)
+    await this.db.push(this.handledSystemEventsPath, handledSystemEvents)
+  }
+}
+
+export class SupplyMonitorFilePersistence implements SupplyMonitorPersistence {
+  private readonly lastHighTotalSupplyChangeBlockPath =
+    "/lastHighTotalSupplyChangeBlock"
+
+  private db: JsonDB
+
+  constructor() {
+    this.db = new JsonDB(
+      new Config(
+        `${context.dataDirPath}/supply-monitor-db.json`,
+        true,
+        true,
+        "/"
+      )
+    )
+  }
+
+  async lastHighTotalSupplyChangeBlock(): Promise<number> {
+    if (!(await this.db.exists(this.lastHighTotalSupplyChangeBlockPath))) {
+      return 0
+    }
+
+    return this.db.getObject<number>(this.lastHighTotalSupplyChangeBlockPath)
+  }
+
+  async updateLastHighTotalSupplyChangeBlock(block: number): Promise<void> {
+    await this.db.push(this.lastHighTotalSupplyChangeBlockPath, block)
   }
 }

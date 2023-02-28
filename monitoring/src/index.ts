@@ -5,7 +5,10 @@ import { DepositMonitor } from "./deposit-monitor"
 import { contracts } from "./contracts"
 import { DiscordReceiver } from "./discord-receiver"
 import { SentryReceiver } from "./sentry-receiver"
-import { FilePersistence } from "./file-persistence"
+import {
+  SupplyMonitorFilePersistence,
+  SystemEventFilePersistence,
+} from "./file-persistence"
 import { context } from "./context"
 import { MintingMonitor } from "./minting-monitor"
 import { WalletMonitor } from "./wallet-monitor"
@@ -22,7 +25,7 @@ const btcClient: BitcoinClient = ElectrumClient.fromUrl(context.electrumUrl)
 const monitors: SystemEventMonitor[] = [
   new DepositMonitor(contracts.bridge),
   new MintingMonitor(contracts.bridge, contracts.tbtcVault, btcClient),
-  new SupplyMonitor(contracts.tbtcToken),
+  new SupplyMonitor(contracts.tbtcToken, new SupplyMonitorFilePersistence()),
   new WalletMonitor(contracts.bridge),
 ]
 
@@ -42,9 +45,11 @@ const receivers: SystemEventReceiver[] = ((): SystemEventReceiver[] => {
   return registered
 })()
 
-const persistence = new FilePersistence()
-
-const manager = new SystemEventManager(monitors, receivers, persistence)
+const manager = new SystemEventManager(
+  monitors,
+  receivers,
+  new SystemEventFilePersistence()
+)
 
 manager.trigger().then((report) => {
   switch (report.status) {

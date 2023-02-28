@@ -1,5 +1,6 @@
 import { SystemEventType } from "./system-event"
 
+import type { BigNumber } from "ethers"
 import type { TBTCToken } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 import type { Monitor as SystemEventMonitor, SystemEvent } from "./system-event"
 
@@ -10,48 +11,82 @@ const totalSupplyBlockSpan = (12 * 60 * 60) / 12
 const totalSupplyChangeThreshold = 10 // 10%
 
 const HighTotalSupplyChange = (
-  percentageChange: string,
-  block: number
+  difference: BigNumber,
+  change: BigNumber,
+  threshold: number,
+  referenceBlock: number,
+  currentBlock: number
 ): SystemEvent => ({
   title: "High TBTC token total supply change",
   type: SystemEventType.Critical,
   data: {
-    percentageChange,
+    change: `${difference.gte(0) ? "+" : "-"}${change.toString()}%`,
+    threshold: `${threshold}%`,
+    referenceBlock: referenceBlock.toString(),
   },
-  block,
+  block: currentBlock,
 })
+
+export interface SupplyMonitorPersistence {
+  lastHighTotalSupplyChangeBlock: () => Promise<number>
+  updateLastHighTotalSupplyChangeBlock: (block: number) => Promise<void>
+}
 
 export class SupplyMonitor implements SystemEventMonitor {
   private tbtcToken: TBTCToken
 
-  constructor(tbtcToken: TBTCToken) {
+  private persistence: SupplyMonitorPersistence
+
+  constructor(tbtcToken: TBTCToken, persistence: SupplyMonitorPersistence) {
     this.tbtcToken = tbtcToken
+    this.persistence = persistence
   }
 
-  // TODO: This check must be improved as it can produce a series of alerts
-  //       referring to the same supply increase. This is because the monitoring
-  //       interval is much shorter than the supply check span.
   async check(fromBlock: number, toBlock: number): Promise<SystemEvent[]> {
     // eslint-disable-next-line no-console
     console.log("running supply monitor check")
 
-    const pastBlock =
-      toBlock - totalSupplyBlockSpan > 0 ? toBlock - totalSupplyBlockSpan : 0
+    // By default, the supply change is checked between the current and
+    // reference blocks.
+    const currentBlock = toBlock
+    let referenceBlock =
+      currentBlock - totalSupplyBlockSpan > 0
+        ? currentBlock - totalSupplyBlockSpan
+        : 0
+    let threshold = totalSupplyChangeThreshold
 
-    const pastSupply = await this.tbtcToken.totalSupply(pastBlock)
-    const currentSupply = await this.tbtcToken.totalSupply()
+    // Check the default reference block against the last high total supply change
+    // event block. If the event already occurred in the checked block window,
+    // the monitor uses the event block as reference in order to not produce
+    // a duplicated event. Since the checked window is shorter, the threshold
+    // is reduced by half.
+    const lastEventBlock =
+      await this.persistence.lastHighTotalSupplyChangeBlock()
+    if (lastEventBlock > referenceBlock) {
+      referenceBlock = lastEventBlock
+      threshold = totalSupplyChangeThreshold / 2
+    }
 
-    const diff = currentSupply.sub(pastSupply)
-    const percentageChange = diff.abs().div(pastSupply).mul(100)
+    const referenceSupply = await this.tbtcToken.totalSupply(referenceBlock)
+    const currentSupply = await this.tbtcToken.totalSupply(currentBlock)
+
+    const difference = currentSupply.sub(referenceSupply)
+    const change = difference.abs().div(referenceSupply).mul(100)
 
     const systemEvents: SystemEvent[] = []
 
-    if (percentageChange.gt(totalSupplyChangeThreshold)) {
-      const sign = diff.gte(0) ? "+" : "-"
-
+    if (change.gt(threshold)) {
       systemEvents.push(
-        HighTotalSupplyChange(`${sign}${percentageChange.toString()}%`, toBlock)
+        HighTotalSupplyChange(
+          difference,
+          change,
+          threshold,
+          referenceBlock,
+          currentBlock
+        )
       )
+
+      await this.persistence.updateLastHighTotalSupplyChangeBlock(currentBlock)
     }
 
     // eslint-disable-next-line no-console
