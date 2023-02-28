@@ -100,8 +100,8 @@ contract VendingMachineV3 is Ownable {
     }
 
     /// @notice Allows the governance to recover ERC20 sent to this contract
-    ///         by mistake. No tBTC v1 or tBTC v2 can be withdrawn using this
-    ///         function.
+    ///         by mistake or tBTC v1 locked in the contract to exchange to
+    ///         tBTC v2. No tBTC v2 can be withdrawn using this function.
     /// @param token The address of a token to recover.
     /// @param recipient The address which should receive recovered tokens.
     /// @param amount The amount to recover.
@@ -110,11 +110,6 @@ contract VendingMachineV3 is Ownable {
         address recipient,
         uint256 amount
     ) external onlyOwner {
-        require(
-            address(token) != address(tbtcV1),
-            "tBTC v1 tokens are locked in this contract forever"
-        );
-
         require(
             address(token) != address(tbtcV2),
             "tBTC v2 tokens can not be recovered, use withdrawTbtcV2 instead"

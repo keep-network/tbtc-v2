@@ -307,23 +307,28 @@ describe("VendingMachineV3", () => {
       context("when recovering tBTC v1 tokens", () => {
         const amount = to1e18(10)
 
+        let tx: ContractTransaction
+
         before(async () => {
           await createSnapshot()
           await tbtcV1.connect(deployer).mint(vendingMachineV3.address, amount)
+          tx = await vendingMachineV3
+            .connect(governance)
+            .recoverFunds(tbtcV1.address, thirdParty.address, amount)
         })
 
         after(async () => {
           await restoreSnapshot()
         })
 
-        it("should revert", async () => {
-          await expect(
-            vendingMachineV3
-              .connect(governance)
-              .recoverFunds(tbtcV1.address, thirdParty.address, amount)
-          ).to.be.revertedWith(
-            "tBTC v1 tokens are locked in this contract forever"
-          )
+        it("should transfer tokens to the recipient", async () => {
+          expect(await tbtcV1.balanceOf(thirdParty.address)).is.equal(amount)
+        })
+
+        it("should emit FundsRecovered event", async () => {
+          await expect(tx)
+            .to.emit(vendingMachineV3, "FundsRecovered")
+            .withArgs(tbtcV1.address, thirdParty.address, amount)
         })
       })
 
