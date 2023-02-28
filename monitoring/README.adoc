@@ -5,6 +5,7 @@
 https://github.com/keep-network/tbtc-v2/actions/workflows/monitoring.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/monitoring.yml?branch=main&event=push&label=Monitoring%20build[Monitoring build status]]
 
 This package provides a monitoring tool for the tBTC v2 system events.
+This component is part of a broader link:docs/monitoring-and-telemetry.adoc[monitoring and telemetry system].
 
 toc::[]
 
@@ -152,6 +153,8 @@ The behavior can be configured using the following env variables:
 |*ENVIRONMENT* |_mainnet_ or _testnet_ |Yes
 
 |*ETHEREUM_URL* |URL of the Ethereum node |Yes
+
+|*ELECTRUM_URL* |URL of the Electrum node |Yes
 
 |*LARGE_DEPOSIT_THRESHOLD_SAT* |Satoshi threshold used to determine which deposits are large. Default: _1000000000_ |No
 

@@ -89,7 +89,7 @@ describe("Electrum", () => {
       let electrumClient: ElectrumClient
 
       before(async () => {
-        electrumClient = new ElectrumClient(credentials)
+        electrumClient = new ElectrumClient([credentials])
       })
 
       describe("getNetwork", () => {
@@ -195,6 +195,34 @@ describe("Electrum", () => {
           expect(result).to.be.eql(testnetTransactionMerkleBranch)
         })
       })
+    })
+  })
+
+  describe("fallback connection", async () => {
+    let electrumClient: ElectrumClient
+
+    before(async () => {
+      electrumClient = new ElectrumClient(
+        [
+          // Invalid server
+          {
+            host: "non-existing-host.local",
+            port: 50001,
+            protocol: "tcp",
+          },
+          // Valid server
+          testnetCredentials[0],
+        ],
+        undefined,
+        2,
+        1000,
+        2000
+      )
+    })
+
+    it("should establish connection with a fallback server", async () => {
+      const result = await electrumClient.getNetwork()
+      expect(result).to.be.eql(BitcoinNetwork.Testnet)
     })
   })
 })
