@@ -71,7 +71,7 @@ export class SupplyMonitor implements SystemEventMonitor {
     const currentSupply = await this.tbtcToken.totalSupply(currentBlock)
 
     const difference = currentSupply.sub(referenceSupply)
-    const change = difference.abs().div(referenceSupply).mul(100)
+    const change = difference.abs().mul(100).div(referenceSupply)
 
     const systemEvents: SystemEvent[] = []
 
