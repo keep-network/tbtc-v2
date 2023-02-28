@@ -116,6 +116,10 @@ events produced by the monitoring component are:
 * optimistic minting canceled,
 * optimistic minting requested too early,
 * optimistic minting requested for undetermined Bitcoin transaction,
+* optimistic minting not requested by designated minter,
+* optimistic minting not finalized by designated minter,
+* optimistic minting not requested by any minter,
+* optimistic minting not finalized by any minter,
 * high TBTC token total supply change.
 
 ==== Deposit revealed
@@ -161,6 +165,40 @@ hub and requires an immediate team’s action. The default action is checking
 why the Bitcoin transaction cannot be determined as that event may indicate
 problems with the underlying Bitcoin client used by the monitoring component
 or flag a malicious minter that should be evicted from the system.
+
+==== Optimistic minting not requested by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by the designated minter and another minter did that job. This event is
+sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not finalized by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by the designated minter and another minter did that job. This event
+is sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not requested by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
+
+==== Optimistic minting not finalized by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
 
 ==== High TBTC token total supply change
 
