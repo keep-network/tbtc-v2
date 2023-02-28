@@ -71,11 +71,15 @@ export class SupplyMonitor implements SystemEventMonitor {
     const currentSupply = await this.tbtcToken.totalSupply(currentBlock)
 
     const difference = currentSupply.sub(referenceSupply)
+    // There is a precision loss here, but it is acceptable as long as the
+    // threshold is at least 1%.
     const change = difference.abs().mul(100).div(referenceSupply)
 
     const systemEvents: SystemEvent[] = []
 
-    if (change.gt(threshold)) {
+    // Check >= to catch cases when the change was bigger than threshold by
+    // the decimal part but was rounded down to an integer.
+    if (change.gte(threshold)) {
       systemEvents.push(
         HighTotalSupplyChange(
           difference,
