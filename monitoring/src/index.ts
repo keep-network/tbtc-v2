@@ -9,7 +9,7 @@ import { FilePersistence } from "./file-persistence"
 import { context } from "./context"
 import { MintingMonitor } from "./minting-monitor"
 import { WalletMonitor } from "./wallet-monitor"
-import { SupplyMonitor } from "./suply-monitor"
+import { SupplyMonitor } from "./supply-monitor"
 
 import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type {
