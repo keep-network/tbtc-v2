@@ -34,9 +34,9 @@ handling of Ordinals on BTC.
 
 A good mental model here is thinking about Inscriptions like
 https://www.apmex.com/product/117942/1932-s-washington-quarter-choice-au[special
-edition quarters]. The the linked quarter trades for ~$350, but is also legal
-tender worth $0.25. An owner of such a quarter probably does not want to use it
-to pay for parking. Inscriptions work the same way.
+edition quarters]. The linked quarter trades for ~$350, but is also legal tender
+worth $0.25. An owner of such a quarter probably does not want to use it to pay
+for parking. Inscriptions work the same way.
 
 Since Ordinals are still BTC, we can use most of the same tBTCv2 ideas for
 custodying Ordinals: rotating wallets, P2SH addresses, fraud proofs,
