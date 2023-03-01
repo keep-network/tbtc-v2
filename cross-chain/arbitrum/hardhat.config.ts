@@ -9,6 +9,7 @@ import "hardhat-contract-sizer"
 import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
+import "hardhat-dependency-compiler"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -31,42 +32,49 @@ const config: HardhatUserConfig = {
 
   networks: {
     hardhat: {
+      deploy: ['deploy_l2'],
     },
-    development: {
-      url: "http://localhost:8545",
-      chainId: 1101,
-    },
-    goerli: {
-      url: process.env.CHAIN_API_URL || "",
+    goerliEthereum: {
+      url: process.env.CHAIN_L1_API_URL || "",
       chainId: 5,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+      deploy: ['deploy_l1'],
+      accounts: process.env.ACCOUNTS_L1_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_L1_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["tenderly"],
     },
-    mainnet: {
-      url: process.env.CHAIN_API_URL || "",
+    mainnetEthereum: {
+      url: process.env.CHAIN_L1_API_URL || "",
       chainId: 1,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+      deploy: ['deploy_l1'],
+      accounts: process.env.ACCOUNTS_L1_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_L1_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["etherscan", "tenderly"],
     },
     goerliArbitrum: {
-      url: process.env.CHAIN_API_URL || "",
+      url: process.env.CHAIN_L2_API_URL || "",
       chainId: 421613,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+      deploy: ['deploy_l2'],
+      accounts: process.env.ACCOUNTS_L2_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_L2_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["tenderly"],
+      companionNetworks: {
+        l1: 'goerliEthereum',
+      },
     },
     mainnetArbitrum: {
-      url: process.env.CHAIN_API_URL || "",
+      url: process.env.CHAIN_L2_API_URL || "",
       chainId: 42161,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+      deploy: ['deploy_l2'],
+      accounts: process.env.ACCOUNTS_L2_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_L2_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["arbiscan", "tenderly"],
+      companionNetworks: {
+        l1: 'mainnetEthereum',
+      },
     },
   },
 
@@ -75,19 +83,28 @@ const config: HardhatUserConfig = {
     project: "",
   },
 
+  external: {
+    deployments: {
+      goerliEthereum: ["./external/goerliEthereum"],
+      goerliArbitrum: ["./external/goerliArbitrum"],
+      mainnetEthereum: ["./external/mainnetEthereum"],
+      mainnetArbitrum: ["./external/mainnetArbitrum"],
+    },
+  },
+
   namedAccounts: {
     deployer: {
       default: 1,
-      goerli: process.env.CONTRACT_OWNER_ADDRESS || "",
-      goerliArbitrum: process.env.CONTRACT_OWNER_ADDRESS || "",
-      mainnet: "",
+      goerliEthereum: process.env.CONTRACT_L1_OWNER_ADDRESS || "",
+      goerliArbitrum: process.env.CONTRACT_L2_OWNER_ADDRESS || "",
+      mainnetEthereum: "",
       mainnetArbitrum: ""
     },
     governance: {
       default: 2,
-      goerli: process.env.THRESHOLD_COUNCIL_ADDRESS || "",
-      goerliArbitrum: process.env.THRESHOLD_COUNCIL_ADDRESS || "",
-      mainnet: "", // Threshold Council
+      goerliEthereum: process.env.THRESHOLD_L1_COUNCIL_ADDRESS || "",
+      goerliArbitrum: process.env.THRESHOLD_L2_COUNCIL_ADDRESS || "",
+      mainnetEthereum: "", // Threshold Council
       mainnetArbitrum: "" // Threshold Council
     },
   },

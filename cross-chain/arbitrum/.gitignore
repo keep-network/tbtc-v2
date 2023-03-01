@@ -2,7 +2,10 @@
 /build/
 /cache/
 /export/
-/external/
+/external/npm
 /typechain/
 /export.json
 /deployments/
+
+# OZ
+.openzeppelin

@@ -28,13 +28,15 @@
     "clean": "hardhat clean && rm -rf cache/ export/ external/npm typechain/ export.json",
     "build": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat deploy --export export.json",
-    "deploy:test": "USE_EXTERNAL_DEPLOY=true TEST_USE_STUBS_ECDSA=true hardhat deploy"
+    "deploy": "hardhat deploy --export export.json"
   },
   "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "^4.6.0"
+    "@keep-network/tbtc-v2.ts": "development",
+    "@openzeppelin/contracts": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.1"
   },
   "devDependencies": {
+    "@defi-wonderland/smock": "^2.3.4",
     "@keep-network/hardhat-helpers": "^0.6.0-pre.15",
     "@keep-network/hardhat-local-networks-config": "^0.1.0-pre.4",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
