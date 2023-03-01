@@ -48,12 +48,14 @@ redemptions, etc, with some slight modifications.
 
 We build a BTC <> Ethereum Ordinal bridge!
 
-We create 51-of-100 threshold signing groups using the same process that we use
-for tBTCv2. To deposit to these signing groups, we use the same P2SH process
-including a refund that we use for tBTCv2. They pay a <<Fees,fee>>. We
-optimistically mint using the same Minter & Guardian process we already have. In
-the background, we sweep to disable the refund. Later, someone brings back the
-NFT and a <<Fees,fee>>. We burn the NFT and send them their Ordinal.
+We add functionality to the current tBTCv2 client to make future signing groups
+compatible with Ordinals. To deposit to these signing groups, we use the same
+P2SH process including a refund that we use for tBTCv2. They pay a <<Fees,fee>>.
+We optimistically mint using the same Minter & Guardian process we already
+havefootnote:[The structure for Minters and Guardians is the same, but the
+validation rules would be different]. In the background, we sweep to disable the
+refund. Later, someone brings back the NFT and a <<Fees,fee>>. We burn the NFT
+and send them their Ordinal.
 
 === Depositing Details
 
