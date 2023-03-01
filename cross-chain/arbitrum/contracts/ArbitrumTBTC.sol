@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.17;
 
-import "@keep-network/tbtc-v2.ts/contracts/l2/L2TBTC.sol";
+import "@keep-network/tbtc-v2/contracts/l2/L2TBTC.sol";
 
 /// @notice Canonical tBTC Token on Arbitrum
-contract ArbitrumTBTC is L2TBTC {}
+contract ArbitrumTBTC is L2TBTC {
+
+}
