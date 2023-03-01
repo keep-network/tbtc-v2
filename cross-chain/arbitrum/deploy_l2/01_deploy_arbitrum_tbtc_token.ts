@@ -2,13 +2,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { ethers, getNamedAccounts, helpers } = hre
+  const { ethers, getNamedAccounts, helpers, deployments } = hre
+  const { execute, read } = deployments
   const { deployer } = await getNamedAccounts()
 
   const [arbitrumTBTC, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumTBTC",
     {
-      initializerArgs: ["Arbitrum TBTC", "ArbTBTC"],
+      initializerArgs: ["ArbitrumTBTC", "ArbTBTC"],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
       proxyOpts: {
         kind: "transparent",
@@ -26,12 +27,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   }
 
-  if (hre.network.tags.tenderly) {
-    await hre.tenderly.verify({
-      name: "ArbitrumTBTC",
-      address: arbitrumTBTC.address,
-    })
-  }
+  // FIXME: verification fails for some reason
+  // if (hre.network.tags.tenderly) {
+  //   await hre.tenderly.verify({
+  //     name: "ArbitrumTBTC",
+  //     address: arbitrumTBTC.address,
+  //   })
+  // }
 }
 
 export default func
