@@ -1,0 +1,27 @@
+{
+  "root": true,
+  "extends": ["@thesis-co"],
+  "rules": {
+    "import/no-extraneous-dependencies": "off",
+    "no-console": "off",
+    "@typescript-eslint/no-use-before-define": "off",
+    "@typescript-eslint/no-extra-semi": "off",
+    "no-plusplus": [ "error", { "allowForLoopAfterthoughts": true } ],
+    "@typescript-eslint/consistent-type-imports": "warn",
+    "import/order": [
+      "warn",
+      {
+        "groups": [ "builtin", "external", "parent", "sibling", "index", "type" ],
+        "newlines-between": "always"
+      }
+    ],
+    "valid-jsdoc": [
+      "error",
+      {
+        "prefer": { "return": "returns" },
+        "requireParamType": false,
+        "requireReturnType": false
+      }
+    ]
+  }
+}
