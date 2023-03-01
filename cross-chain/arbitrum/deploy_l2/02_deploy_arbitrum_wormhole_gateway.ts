@@ -1,12 +1,13 @@
-import { ITokenBridge } from './../typechain/ITokenBridge';
-import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction } from "hardhat-deploy/types"
 import { smock } from "@defi-wonderland/smock"
+
+import type { HardhatRuntimeEnvironment } from "hardhat/types"
+import type { DeployFunction } from "hardhat-deploy/types"
+import type { ITokenBridge } from "../typechain/ITokenBridge"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, getNamedAccounts, helpers, deployments } = hre
   const { log } = deployments
-  const { deployer, l2TokenBridge } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   // const TokenBridge = await hre.companionNetworks['l1'].deployments.get(
   //   'TokenBridge'
@@ -24,16 +25,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     tokenBridgeAddress = FakeTokenBridge.address
   }
 
-  const [arbitrumWormholeGateway, proxyDeployment] = await helpers.upgrades.deployProxy(
-    "ArbitrumWormholeGateway",
-    {
+  const [arbitrumWormholeGateway, proxyDeployment] =
+    await helpers.upgrades.deployProxy("ArbitrumWormholeGateway", {
       initializerArgs: [tokenBridgeAddress],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
       proxyOpts: {
         kind: "transparent",
       },
-    }
-  )
+    })
 
   if (hre.network.tags.etherscan) {
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
@@ -45,13 +44,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   }
 
-  // FIXME: verification fails for some reason
-  // if (hre.network.tags.tenderly) {
-  //   await hre.tenderly.verify({
-  //     name: "ArbitrumWormholeGateway",
-  //     address: arbitrumWormholeGateway.address,
-  //   })
-  // }
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "ArbitrumWormholeGateway",
+      address: arbitrumWormholeGateway.address,
+    })
+  }
 }
 
 export default func

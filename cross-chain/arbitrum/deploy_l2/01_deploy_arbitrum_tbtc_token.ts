@@ -1,9 +1,8 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types"
-import { DeployFunction } from "hardhat-deploy/types"
+import type { HardhatRuntimeEnvironment } from "hardhat/types"
+import type { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { ethers, getNamedAccounts, helpers, deployments } = hre
-  const { execute, read } = deployments
+  const { ethers, getNamedAccounts, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
   const [arbitrumTBTC, proxyDeployment] = await helpers.upgrades.deployProxy(
@@ -27,13 +26,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   }
 
-  // FIXME: verification fails for some reason
-  // if (hre.network.tags.tenderly) {
-  //   await hre.tenderly.verify({
-  //     name: "ArbitrumTBTC",
-  //     address: arbitrumTBTC.address,
-  //   })
-  // }
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "ArbitrumTBTC",
+      address: arbitrumTBTC.address,
+    })
+  }
 }
 
 export default func
