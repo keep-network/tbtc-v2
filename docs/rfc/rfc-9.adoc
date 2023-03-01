@@ -64,9 +64,10 @@ differences.
 
 Once a deposit is revealed, it is **extremely** important that the wallet does
 not sweep them into the same UTXO; that would be destructive. We still need to
-sweep to disable the refundfootnote:[Whether or not the sweep can be performed
-in a batch is a further research item.]. The sweep needs to preserve the
-individual satoshis.
+sweep to disable the refundfootnote:[We can create a transaction with a batch of
+Ordinal inputs, and a separate re-locking for each output. See
+https://bitcoin.stackexchange.com/questions/35686[this stack overflow post].].
+The sweep needs to preserve the individual satoshis.
 
 Once custodied, we would mint an ERC721 where the `metadata` field references
 the https://docs.ordinals.com/overview.html[Ordinal ID]. They offer multiple
