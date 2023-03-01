@@ -86,7 +86,9 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
  * verifying that the block containing the transaction has enough confirmations.
  * @param transactionHash The hash of the transaction to be validated.
  * @param requiredConfirmations The number of confirmations required for the
- *        transaction to be considered valid.
+ *        transaction to be considered valid. The transaction has 1 confirmation
+ *        when it is in the block at the current blockchain tip. Every subsequent
+ *        block added to the blockchain is one additional confirmation.
  * @param previousDifficulty The difficulty of the previous Bitcoin epoch.
  * @param currentDifficulty The difficulty of the current Bitcoin epoch.
  * @param bitcoinClient The client for interacting with the Bitcoin blockchain.
@@ -103,6 +105,10 @@ export async function validateTransactionProof(
   currentDifficulty: BigNumber,
   bitcoinClient: BitcoinClient
 ) {
+  if (requiredConfirmations < 1) {
+    throw new Error("The number of required confirmations but at least 1")
+  }
+
   const proof = await assembleTransactionProof(
     transactionHash,
     requiredConfirmations,

@@ -337,6 +337,9 @@ export const multipleInputsProofTestData: ProofTestData = {
   },
 }
 
+/**
+ * Represents a set of data used for given transaction proof validation scenario.
+ */
 export interface TransactionProofData {
   requiredConfirmations: number
   bitcoinChainData: {
@@ -350,6 +353,11 @@ export interface TransactionProofData {
   }
 }
 
+/**
+ * Test data that is based on a random Bitcoin mainnet transaction with all the
+ * blocks headers from one difficulty epoch
+ * https://live.blockcypher.com/btc/tx/713525ee9d9ab23433cd6ad470566ba1f47cac2d7f119cc50119128a84d718aa/
+ */
 export const transactionConfirmationsInOneEpochData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
@@ -443,6 +451,11 @@ export const transactionConfirmationsInOneEpochData: TransactionProofData = {
   },
 }
 
+/**
+ * Test data that is based on a random Bitcoin mainnet transaction with the
+ * blocks headers spanning two difficulty epochs
+ * https://live.blockcypher.com/btc/tx/e073636400e132b8c1082133ab2b48866919153998f4f04877b580e9932d5a17/
+ */
 export const transactionConfirmationsInTwoEpochsData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
@@ -514,6 +527,10 @@ export const transactionConfirmationsInTwoEpochsData: TransactionProofData = {
   },
 }
 
+/**
+ * Test data that is based on a random Bitcoin testnet transaction
+ * https://live.blockcypher.com/btc-testnet/tx/b78636ae08e6c17261a9f3134109c13c2eb69f6df52e591cc0e0780f5ebf6472/
+ */
 export const testnetTransactionData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {

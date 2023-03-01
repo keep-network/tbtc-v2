@@ -213,6 +213,22 @@ export interface BlockHeader {
 }
 
 /**
+ * Serializes a BlockHeader to the raw representation.
+ * @param blockHeader - block header.
+ * @returns Serialized block header.
+ */
+export function serializeBlockHeader(blockHeader: BlockHeader): string {
+  const buffer = Buffer.alloc(80)
+  buffer.writeUInt32LE(blockHeader.version, 0)
+  blockHeader.previousBlockHeaderHash.toBuffer().copy(buffer, 4)
+  blockHeader.merkleRootHash.toBuffer().copy(buffer, 36)
+  buffer.writeUInt32LE(blockHeader.time, 68)
+  buffer.writeUInt32LE(blockHeader.bits, 72)
+  buffer.writeUInt32LE(blockHeader.nonce, 76)
+  return buffer.toString("hex")
+}
+
+/**
  * Deserializes a block header in the raw representation to BlockHeader.
  * @param rawBlockHeader - BlockHeader in the raw format.
  * @returns Block header as a BlockHeader.
@@ -237,25 +253,9 @@ export function deserializeBlockHeader(rawBlockHeader: string): BlockHeader {
 }
 
 /**
- * Serializes a BlockHeader to the raw representation.
- * @param blockHeader - block header.
- * @returns Serialized block header.
- */
-export function serializeBlockHeader(blockHeader: BlockHeader): string {
-  const buffer = Buffer.alloc(80)
-  buffer.writeUInt32LE(blockHeader.version, 0)
-  blockHeader.previousBlockHeaderHash.toBuffer().copy(buffer, 4)
-  blockHeader.merkleRootHash.toBuffer().copy(buffer, 36)
-  buffer.writeUInt32LE(blockHeader.time, 68)
-  buffer.writeUInt32LE(blockHeader.bits, 72)
-  buffer.writeUInt32LE(blockHeader.nonce, 76)
-  return buffer.toString("hex")
-}
-
-/**
  * Converts a block header's bits into difficulty target.
  * @param bits - bits from block header.
- * @returns Difficulty target.
+ * @returns Difficulty target as a BigNumber.
  */
 export function bitsToDifficultyTarget(bits: number): BigNumber {
   const exponent = ((bits >>> 24) & 0xff) - 3
