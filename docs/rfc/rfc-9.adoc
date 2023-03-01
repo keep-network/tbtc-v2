@@ -106,8 +106,12 @@ walletfootnote:[Storing the full list would of Ordinals be very gas
 inefficient.], we instead:
 
 * Take the merkle root of all Ordinals under custody
-* Propose this root on chain
-* Let anyone challenge this for a reward if it is wrong
+* A Proposer, determined by the ethereum hash of the mint/redeem transaction,
+  proposes this root on chainfootnote:[We reimburse the gas of the proposer here
+  like we do in v2]
+* Let anyone challenge this for a reward if the root is wrong
+* Let anyone challenge this for a reward if the root does not appear on chain
+  within a timeout.
 
 This means we are efficiently sure that we have the right merkle root and
 underlying custody.
