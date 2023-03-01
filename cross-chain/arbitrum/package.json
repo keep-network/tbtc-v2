@@ -31,7 +31,7 @@
     "deploy": "hardhat deploy --export export.json"
   },
   "dependencies": {
-    "@keep-network/tbtc-v2.ts": "development",
+    "@keep-network/tbtc-v2": "development",
     "@openzeppelin/contracts": "^4.8.1",
     "@openzeppelin/contracts-upgradeable": "^4.8.1"
   },
