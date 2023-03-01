@@ -109,9 +109,10 @@ inefficient.], we instead:
 * A Proposer, determined by the ethereum hash of the mint/redeem transaction,
   proposes this root on chainfootnote:[We reimburse the gas of the proposer here
   like we do in v2]
-* Let anyone challenge this for a reward if the root is wrong
-* Let anyone challenge this for a reward if the root does not appear on chain
-  within a timeout.
+* Let anyone challenge this for a <<Optimistic Challenges,reward>> if the root is
+  wrong
+* Let anyone challenge this for a <<Optimistic Challenges,reward>> if the root does
+  not appear on chain within a timeout
 
 This means we are efficiently sure that we have the right merkle root and
 underlying custody.
@@ -129,6 +130,13 @@ providing the legimate request within the timeout.
 In order to create challenge (2), the challenger must provide a proof that the
 Ordinal is being custodied and that a redemption was requested. The challenge is
 defeated by providing a SPV proof that the Ordinal was properly transferred.
+
+=== Optimistic Challenges
+
+In order to stop folks from creating false challenges to attack the system,
+creating a challenge costs a governable amount of ETH. To compensate the
+challenger for their risk, the challenger is awarded a governable percentage of
+the slashed T stake if their challenge is not defeated.
 
 === Fees
 
