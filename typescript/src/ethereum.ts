@@ -708,7 +708,9 @@ class WalletRegistry
   async getWalletPublicKey(walletID: Hex): Promise<Hex> {
     const publicKey = await backoffRetrier<string>(this._totalRetryAttempts)(
       async () => {
-        return await this._instance.getWalletPublicKey(walletID.toString())
+        return await this._instance.getWalletPublicKey(
+          walletID.toPrefixedString()
+        )
       }
     )
     return Hex.from(publicKey.substring(2))
