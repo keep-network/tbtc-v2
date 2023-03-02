@@ -179,6 +179,7 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
       goerli: 0,
+      mainnet: 0, // "0x123694886DBf5Ac94DDA07135349534536D14cAf"
     },
     governance: {
       default: 2,
