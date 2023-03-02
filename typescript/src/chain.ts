@@ -20,6 +20,7 @@ import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
 import {
   DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
 } from "./wallet"
@@ -258,6 +259,12 @@ export interface WalletRegistry {
    * @see GetEventsFunction
    */
   getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
+
+  /**
+   * Get emitted DkgResultChallengedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultChallengedEvents: GetEvents.Function<DkgResultChallengedEvent>
 }
 
 /**

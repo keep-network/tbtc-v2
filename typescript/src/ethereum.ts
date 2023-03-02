@@ -53,8 +53,8 @@ import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
 import type { TBTC as ContractTBTC } from "../typechain/TBTC"
 import { Hex } from "./hex"
 import {
-  DkgResult,
   DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
 } from "./wallet"
@@ -735,7 +735,24 @@ class WalletRegistry
         transactionHash: Hex.from(event.transactionHash),
         resultHash: Hex.from(event.args!.resultHash),
         seed: Hex.from(BigNumber.from(event.args!.seed).toHexString()),
-        result: this.extractDkgResult(event),
+        result: {
+          submitterMemberIndex: BigNumber.from(
+            event.args!.result.submitterMemberIndex
+          ),
+          groupPubKey: Hex.from(event.args!.result.groupPubKey),
+          misbehavedMembersIndices:
+            event.args!.result.misbehavedMembersIndices.map((mmi: unknown) =>
+              BigNumber.from(mmi).toNumber()
+            ),
+          signatures: Hex.from(event.args!.result.signatures),
+          signingMembersIndices: event.args!.result.signingMembersIndices.map(
+            BigNumber.from
+          ),
+          members: event.args!.result.members.map((m: unknown) =>
+            BigNumber.from(m).toNumber()
+          ),
+          membersHash: Hex.from(event.args!.result.membersHash),
+        },
       }
     })
   }
@@ -765,24 +782,30 @@ class WalletRegistry
     })
   }
 
-  private extractDkgResult(event: EthersEvent): DkgResult {
-    return {
-      submitterMemberIndex: BigNumber.from(
-        event.args!.result.submitterMemberIndex
-      ),
-      groupPubKey: Hex.from(event.args!.result.groupPubKey),
-      misbehavedMembersIndices: event.args!.result.misbehavedMembersIndices.map(
-        (mmi: unknown) => BigNumber.from(mmi).toNumber()
-      ),
-      signatures: Hex.from(event.args!.result.signatures),
-      signingMembersIndices: event.args!.result.signingMembersIndices.map(
-        BigNumber.from
-      ),
-      members: event.args!.result.members.map((m: unknown) =>
-        BigNumber.from(m).toNumber()
-      ),
-      membersHash: Hex.from(event.args!.result.membersHash),
-    }
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultChallengedEvents}
+   */
+  async getDkgResultChallengedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultChallengedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultChallenged",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultChallengedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        challenger: Address.from(event.args!.challenger),
+        reason: event.args!.reason,
+      }
+    })
   }
 }
 

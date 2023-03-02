@@ -150,9 +150,28 @@ export type DkgResultApprovedEvent = {
 } & Event
 
 /**
+ * Represents an event emitted when a DKG result is challenged on the on-chain
+ * wallet registry.
+ */
+export type DkgResultChallengedEvent = {
+  /**
+   * 32-byte hash of the submitted DKG result.
+   */
+  resultHash: Hex
+  /**
+   * Challenger's chain identifier.
+   */
+  challenger: Identifier
+  /**
+   * Reason of the challenge.
+   */
+  reason: string
+} & Event
+
+/**
  * Represents a DKG on-chain result.
  */
-export type DkgResult = {
+type DkgResult = {
   /**
    * Claimed submitter candidate group member index. Is in range [1, groupSize].
    */
