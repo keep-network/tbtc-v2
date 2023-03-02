@@ -684,7 +684,7 @@ export class Bridge
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signerOrProvider: this._instance.signer,
+      signerOrProvider: this._instance.signer || this._instance.provider,
     })
   }
 }
