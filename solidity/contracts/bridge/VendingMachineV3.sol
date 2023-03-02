@@ -14,11 +14,11 @@ import "../token/TBTC.sol";
 ///         tBTC v1 bridge is no longer working, tBTC v1 tokens can not be used
 ///         to perform BTC redemptions. This contract allows tBTC v1 owners to
 ///         upgrade to tBTC v2 without any deadline. This way, tBTC v1 tokens
-///         left on the market are always backed by Bitcoin. The governance must
-///         deposit tBTC v2 into the contract and is allowed to withdraw tBTC v2
-///         only if tBTC v2 left in this contract is enough to cover the upgrade
-///         of all tBTC v1 left on the market.
-///         This contract is owned by the governance.
+///         left on the market are always backed by Bitcoin. The governance will
+///         deposit tBTC v2 into the contract in the amount equal to tBTC v1
+///         supply. The governance is allowed to withdraw tBTC v2 only if tBTC
+///         v2 left in this contract is enough to cover the upgrade of all tBTC
+///         v1 left on the market. This contract is owned by the governance.
 contract VendingMachineV3 is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTC;
