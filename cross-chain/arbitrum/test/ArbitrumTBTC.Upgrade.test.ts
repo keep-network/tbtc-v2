@@ -1,10 +1,10 @@
 import { deployments, helpers } from "hardhat"
 import { expect } from "chai"
 
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { upgradeProxy } from "./utils/upgrades"
 
 import type { ArbitrumTBTC, ArbitrumTBTCUpgraded } from "../typechain"
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("ArbitrumTBTC - Upgrade", async () => {
   let governance: SignerWithAddress
