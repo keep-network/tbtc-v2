@@ -83,7 +83,7 @@ contract VendingMachineV2 is Ownable {
     /// @notice Allows the contract owner to withdraw tokens. This function is
     ///         used in two cases: 1) when the redeemer wants to redeem tBTC v1
     ///         tokens to perform tBTC v2 redemptions; 2) when the deadline for
-    ///         tBTC v1 > tBTC v2 exchange passed and the redeemer wants their
+    ///         tBTC v1 -> tBTC v2 exchange passed and the redeemer wants their
     ///         tBTC v2 back.
     /// @dev This function is for the redeemer. This is NOT a function for
     ///      tBTC v1 token holders.
@@ -100,13 +100,14 @@ contract VendingMachineV2 is Ownable {
     }
 
     function _exchange(address tokenOwner, uint256 amount) internal {
-        emit Exchanged(tokenOwner, amount);
-        tbtcV1.safeTransferFrom(tokenOwner, address(this), amount);
-
         require(
             tbtcV2.balanceOf(address(this)) >= amount,
             "Not enough tBTC v2 available in the Vending Machine"
         );
+
+        emit Exchanged(tokenOwner, amount);
+        tbtcV1.safeTransferFrom(tokenOwner, address(this), amount);
+
         tbtcV2.safeTransfer(tokenOwner, amount);
     }
 }

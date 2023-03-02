@@ -120,13 +120,14 @@ contract VendingMachineV3 is Ownable {
     }
 
     function _exchange(address tokenOwner, uint256 amount) internal {
-        emit Exchanged(tokenOwner, amount);
-        tbtcV1.safeTransferFrom(tokenOwner, address(this), amount);
-
         require(
             tbtcV2.balanceOf(address(this)) >= amount,
             "Not enough tBTC v2 available in the Vending Machine"
         );
+
+        emit Exchanged(tokenOwner, amount);
+        tbtcV1.safeTransferFrom(tokenOwner, address(this), amount);
+
         tbtcV2.safeTransfer(tokenOwner, amount);
     }
 }

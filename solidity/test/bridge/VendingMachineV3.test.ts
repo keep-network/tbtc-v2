@@ -53,6 +53,20 @@ describe("VendingMachineV3", () => {
     })
 
     context("when tBTC v1 exchanger has not enough tokens", () => {
+      before(async () => {
+        await createSnapshot()
+        // The main test `before` mints `initialV2Balance`. We mint more for
+        // this test so that the VendingMachine has enough tokens to exchange
+        // `initialV1Balance.add(1)` (see the test)
+        await tbtcV2
+          .connect(deployer)
+          .mint(vendingMachineV3.address, initialV2Balance) // twice the original
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
       it("should revert", async () => {
         const amount = initialV1Balance.add(1)
         await tbtcV1
