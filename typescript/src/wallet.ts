@@ -114,3 +114,64 @@ export type NewWalletRegisteredEvent = {
    */
   walletPublicKeyHash: Hex
 } & Event
+
+/**
+ * Represents an event emitted when a DKG result is submitted to the on-chain
+ * wallet registry.
+ */
+export type DkgResultSubmittedEvent = {
+  /**
+   * 32-byte hash of the submitted DKG result.
+   */
+  resultHash: Hex
+  /**
+   * 32-byte seed of the current DKG execution.
+   */
+  seed: Hex
+  /**
+   * DKG result object.
+   */
+  result: DkgResult
+} & Event
+
+/**
+ * Represents a DKG on-chain result.
+ */
+export type DkgResult = {
+  /**
+   * Claimed submitter candidate group member index. Is in range [1, groupSize].
+   */
+  submitterMemberIndex: BigNumber
+  /**
+   * Generated group public key.
+   */
+  groupPubKey: Hex
+  /**
+   * Array of misbehaved members indices (disqualified or inactive). Indices
+   * are in range [1, groupSize], unique, and sorted in ascending order.
+   */
+  misbehavedMembersIndices: number[]
+  /**
+   * Concatenation of signatures from members supporting the result.
+   * The message to be signed by each member is keccak256 hash of the
+   * calculated group public key, misbehaved members indices and DKG
+   * start block. The calculated hash is also prefixed with
+   * `\x19Ethereum signed message:\n` before signing.
+   */
+  signatures: Hex
+  /**
+   * Indices of members corresponding to each signature. Indices are
+   * in range [1, groupSize], unique, and sorted in ascending order.
+   */
+  signingMembersIndices: BigNumber[]
+  /**
+   * Identifiers of candidate group members as outputted by the group
+   * selection protocol.
+   */
+  members: number[]
+  /**
+   * Keccak256 hash of group members identifiers that actively took part
+   * in DKG (excluding IA/DQ members).
+   */
+  membersHash: Hex
+}

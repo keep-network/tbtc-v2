@@ -1,5 +1,6 @@
 import {
   Bridge as ChainBridge,
+  WalletRegistry as ChainWalletRegistry,
   TBTCVault as ChainTBTCVault,
   TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
@@ -51,7 +52,11 @@ import type { WalletRegistry as ContractWalletRegistry } from "../typechain/Wall
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
 import type { TBTC as ContractTBTC } from "../typechain/TBTC"
 import { Hex } from "./hex"
-import { NewWalletRegisteredEvent } from "./wallet"
+import {
+  DkgResult,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+} from "./wallet"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
 
@@ -634,7 +639,7 @@ export class Bridge
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
-      ecdsaWalletID
+      Hex.from(ecdsaWalletID)
     )
 
     return compressPublicKey(uncompressedPublicKey)
@@ -665,7 +670,11 @@ export class Bridge
     })
   }
 
-  private async walletRegistry(): Promise<WalletRegistry> {
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#walletRegistry}
+   */
+  async walletRegistry(): Promise<ChainWalletRegistry> {
     const { ecdsaWalletRegistry } = await backoffRetrier<{
       ecdsaWalletRegistry: string
     }>(this._totalRetryAttempts)(async () => {
@@ -681,25 +690,73 @@ export class Bridge
 
 /**
  * Implementation of the Ethereum WalletRegistry handle.
+ * @see {ChainWalletRegistry} for reference.
  */
-class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
+class WalletRegistry
+  extends EthereumContract<ContractWalletRegistry>
+  implements ChainWalletRegistry
+{
   constructor(config: ContractConfig) {
     super(config, WalletRegistryDeployment)
   }
 
+  // eslint-disable-next-line valid-jsdoc
   /**
-   * Gets the public key for the given wallet.
-   * @param walletID ID of the wallet.
-   * @returns Uncompressed wallet public key as an unprefixed (neither 0x nor 04)
-   *          hex string.
+   * @see {ChainWalletRegistry#getWalletPublicKey}
    */
-  async getWalletPublicKey(walletID: string): Promise<string> {
+  async getWalletPublicKey(walletID: Hex): Promise<Hex> {
     const publicKey = await backoffRetrier<string>(this._totalRetryAttempts)(
       async () => {
-        return await this._instance.getWalletPublicKey(walletID)
+        return await this._instance.getWalletPublicKey(walletID.toString())
       }
     )
-    return publicKey.substring(2)
+    return Hex.from(publicKey.substring(2))
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultSubmittedEvents}
+   */
+  async getDkgResultSubmittedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultSubmittedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultSubmitted",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultSubmittedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        seed: Hex.from(BigNumber.from(event.args!.seed).toHexString()),
+        result: this.extractDkgResult(event),
+      }
+    })
+  }
+
+  private extractDkgResult(event: EthersEvent): DkgResult {
+    return {
+      submitterMemberIndex: BigNumber.from(
+        event.args!.result.submitterMemberIndex
+      ),
+      groupPubKey: Hex.from(event.args!.result.groupPubKey),
+      misbehavedMembersIndices: event.args!.result.misbehavedMembersIndices.map(
+        (mmi: unknown) => BigNumber.from(mmi).toNumber()
+      ),
+      signatures: Hex.from(event.args!.result.signatures),
+      signingMembersIndices: event.args!.result.signingMembersIndices.map(
+        BigNumber.from
+      ),
+      members: event.args!.result.members.map((m: unknown) =>
+        BigNumber.from(m).toNumber()
+      ),
+      membersHash: Hex.from(event.args!.result.membersHash),
+    }
   }
 }
 
