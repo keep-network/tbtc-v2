@@ -693,7 +693,7 @@ export class Bridge
  * Implementation of the Ethereum WalletRegistry handle.
  * @see {ChainWalletRegistry} for reference.
  */
-class WalletRegistry
+export class WalletRegistry
   extends EthereumContract<ContractWalletRegistry>
   implements ChainWalletRegistry
 {
