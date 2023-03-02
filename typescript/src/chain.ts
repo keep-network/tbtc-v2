@@ -11,11 +11,14 @@ import {
   RevealedDeposit,
 } from "./deposit"
 import {
+  OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
+import { NewWalletRegisteredEvent } from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -216,6 +219,12 @@ export interface Bridge {
    *          is returned.
    */
   activeWalletPublicKey(): Promise<string | undefined>
+
+  /**
+   * Get emitted NewWalletRegisteredEvent events.
+   * @see GetEventsFunction
+   */
+  getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
 }
 
 /**
@@ -309,4 +318,33 @@ export interface TBTCVault {
    * @see GetEventsFunction
    */
   getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
+
+  /**
+   * Get emitted OptimisticMintingCancelled events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
+
+  /**
+   * Get emitted OptimisticMintingFinalized events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
+}
+
+/**
+ * Interface for communication with the TBTC v2 token on-chain contract.
+ */
+export interface TBTCToken {
+  /**
+   * Gets the total supply of the TBTC v2 token. The returned value is in
+   * ERC 1e18 precision, it has to be converted before using as Bitcoin value
+   * with 1e8 precision in satoshi.
+   * @param blockNumber Optional parameter determining the block the total
+   *        supply should be fetched for. If this parameter is not set, the
+   *        total supply is taken for the latest block.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  totalSupply(blockNumber?: number): Promise<BigNumber>
 }

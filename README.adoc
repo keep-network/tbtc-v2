@@ -6,6 +6,8 @@ https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:ht
 https://github.com/keep-network/tbtc-v2/actions/workflows/typescript.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/typescript.yml?branch=main&event=push&label=TypeScript%20bindings%20build[TypeScript bindings build status]]
 https://github.com/keep-network/tbtc-v2/actions/workflows/yearn.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/yearn.yml?branch=main&vent=push&label=Yearn%20build[Yearn build status]]
 https://github.com/keep-network/tbtc-v2/actions/workflows/system-tests.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/system-tests.yml?branch=main&event=schedule&label=System%20tests[System tests status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/monitoring.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/monitoring.yml?branch=main&event=push&label=Monitoring%20build[Monitoring build status]]
+
 https://docs.threshold.network/fundamentals/tbtc-v2[image:https://img.shields.io/badge/docs-website-green.svg[Docs]]
 https://discord.gg/threshold[image:https://img.shields.io/badge/chat-Discord-5865f2.svg[Chat with us on Discord]]
 
@@ -43,7 +45,8 @@ This repository contains:
 - TBTC v2 link:typescript/[Typescript library],
 - TBTC v2 link:system-tests/[System tests]
 - TBTC v2 link:docs/[documentation],
-- TBTC v2 Yearn vault link:yearn/[Solidity smart contracts].
+- TBTC v2 Yearn vault link:yearn/[Solidity smart contracts],
+- TBTC v2 link:monitoring/[monitoring tool].
 
 toc::[]
 
@@ -59,3 +62,42 @@ wallet accepts new deposits, and the oldest wallet serves redemptions.
 Depositing Bitcoin into the tBTCv2 bridge grants a transferable Bank balance, which
 can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
+
+== Installation
+
+=== Prerequisites
+* clone the repository
+* link:https://nodejs.org/en/[Node.js] v14.21.2
+* yarn: `$ npm install -g yarn`
+* configure git to use https
+
+```
+git config --global url."https://".insteadOf git://
+```
+
+* Python 3.11.1 for `node-gyp`. It is
+  https://opensource.com/article/19/5/python-3-default-mac[suggested] to use
+  `pyenv` to manage multiple Python versions.
+```
+brew install pyenv
+pyenv install 3.11.1
+```
+
+=== Install and Test Contracts
+
+```
+cd solidity
+yarn install --frozen-lockfile
+yarn build
+yarn test
+yarn test:integration
+```
+
+=== Install and Test TypeScript Library
+
+```
+cd typescript
+yarn install --frozen-lockfile
+yarn build
+yarn test
+```

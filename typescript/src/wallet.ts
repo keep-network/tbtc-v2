@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
+import { Event } from "./chain"
 
 /* eslint-disable no-unused-vars */
 export enum WalletState {
@@ -98,3 +99,18 @@ export interface Wallet {
    */
   movingFundsTargetWalletsCommitmentHash: Hex
 }
+
+/**
+ * Represents an event emitted when new wallet is registered on the on-chain bridge.
+ */
+export type NewWalletRegisteredEvent = {
+  /**
+   * Identifier of a ECDSA Wallet registered in the ECDSA Wallet Registry.
+   */
+  ecdsaWalletID: Hex
+  /**
+   * 20-byte public key hash of the ECDSA Wallet. It is computed by applying
+   * hash160 on the compressed public key of the ECDSA Wallet.
+   */
+  walletPublicKeyHash: Hex
+} & Event
