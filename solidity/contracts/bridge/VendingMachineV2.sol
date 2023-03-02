@@ -19,6 +19,7 @@ import "../token/TBTC.sol";
 ///         The redeemer may decide to withdraw their deposited tBTC v2 at any
 ///         moment in time. The amount withdrawable is lower than the amount
 ///         deposited in case tBTC v1 was exchanged for tBTC v2.
+///         This contract is owned by the redeemer.
 contract VendingMachineV2 is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTC;

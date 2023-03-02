@@ -18,6 +18,7 @@ import "../token/TBTC.sol";
 ///         deposit tBTC v2 into the contract and is allowed to withdraw tBTC v2
 ///         only if tBTC v2 left in this contract is enough to cover the upgrade
 ///         of all tBTC v1 left on the market.
+///         This contract is owned by the governance.
 contract VendingMachineV3 is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for TBTC;
