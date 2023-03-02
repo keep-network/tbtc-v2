@@ -18,7 +18,11 @@ import {
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
-import { DkgResultSubmittedEvent, NewWalletRegisteredEvent } from "./wallet"
+import {
+  DkgResultApprovedEvent,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+} from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -248,6 +252,12 @@ export interface WalletRegistry {
    * @see GetEventsFunction
    */
   getDkgResultSubmittedEvents: GetEvents.Function<DkgResultSubmittedEvent>
+
+  /**
+   * Get emitted DkgResultApprovedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
 }
 
 /**

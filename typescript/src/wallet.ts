@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
-import { Event } from "./chain"
+import { Event, Identifier } from "./chain"
 
 /* eslint-disable no-unused-vars */
 export enum WalletState {
@@ -132,6 +132,21 @@ export type DkgResultSubmittedEvent = {
    * DKG result object.
    */
   result: DkgResult
+} & Event
+
+/**
+ * Represents an event emitted when a DKG result is approved on the on-chain
+ * wallet registry.
+ */
+export type DkgResultApprovedEvent = {
+  /**
+   * 32-byte hash of the submitted DKG result.
+   */
+  resultHash: Hex
+  /**
+   * Approver's chain identifier.
+   */
+  approver: Identifier
 } & Event
 
 /**

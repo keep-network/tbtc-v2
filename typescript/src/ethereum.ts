@@ -54,6 +54,7 @@ import type { TBTC as ContractTBTC } from "../typechain/TBTC"
 import { Hex } from "./hex"
 import {
   DkgResult,
+  DkgResultApprovedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
 } from "./wallet"
@@ -735,6 +736,31 @@ class WalletRegistry
         resultHash: Hex.from(event.args!.resultHash),
         seed: Hex.from(BigNumber.from(event.args!.seed).toHexString()),
         result: this.extractDkgResult(event),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultApprovedEvents}
+   */
+  async getDkgResultApprovedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultApprovedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultApproved",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultApprovedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        approver: Address.from(event.args!.approver),
       }
     })
   }
