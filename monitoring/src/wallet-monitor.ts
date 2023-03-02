@@ -36,8 +36,7 @@ const DkgResultSubmitted = (
     submitterMemberIndex: chainEvent.result.submitterMemberIndex.toString(),
     groupPubKey: chainEvent.result.groupPubKey.toPrefixedString(),
     misbehavedMembersIndices:
-      chainEvent.result.misbehavedMembersIndices.toString(),
-    signatures: chainEvent.result.signatures.toPrefixedString(),
+      chainEvent.result.misbehavedMembersIndices.toString() || "none",
     signingMembersIndices: chainEvent.result.signingMembersIndices
       .map((smi) => smi.toString())
       .toString(),
