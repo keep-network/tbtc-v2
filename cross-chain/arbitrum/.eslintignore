@@ -1,3 +1,8 @@
+artifacts/
+build/
 cache/
-external/
-node_modules/
+deployments/
+export/
+hardhat-dependency-compiler/
+typechain/
+export.json

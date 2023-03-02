@@ -1,27 +1,18 @@
 {
   "root": true,
   "extends": ["@thesis-co"],
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "env": {
+    "es6": true,
+    "mocha": true
+  },
   "rules": {
+    "new-cap": "off",
     "import/no-extraneous-dependencies": "off",
-    "no-console": "off",
     "@typescript-eslint/no-use-before-define": "off",
-    "@typescript-eslint/no-extra-semi": "off",
-    "no-plusplus": [ "error", { "allowForLoopAfterthoughts": true } ],
-    "@typescript-eslint/consistent-type-imports": "warn",
-    "import/order": [
-      "warn",
-      {
-        "groups": [ "builtin", "external", "parent", "sibling", "index", "type" ],
-        "newlines-between": "always"
-      }
-    ],
-    "valid-jsdoc": [
-      "error",
-      {
-        "prefer": { "return": "returns" },
-        "requireParamType": false,
-        "requireReturnType": false
-      }
-    ]
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }]
   }
 }
