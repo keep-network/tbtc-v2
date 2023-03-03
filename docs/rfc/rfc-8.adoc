@@ -20,7 +20,7 @@ Efficiency requires minimizing liquidity fragmentation by avoiding the need for
 tBTC wrapper tokens by each chain and bridge. This situation quickly leads to an
 `n*m` problem, where liquidity on `n` chains is divided between `m`
 bridges. Each of these token variants soaks up valuable liquidity that could be
-better utilized elsehwere.
+better utilized elsewhere.
 
 Because tBTC is minted "centrally" on Ethereum L1, we can do better. By
 deploying a canonical token on each chain, we can ensure the supply of tBTC
