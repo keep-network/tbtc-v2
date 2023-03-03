@@ -56,7 +56,7 @@ us to scale to other L2s, sidechains, and chains quickly.
 
 Rather than change our L1 implementation to be aware of L2s and sidechains,
 we'll start as simply as possible. Every tBTC mint will continue to require
-transactions on Ethereum from the user — first a deposit reveal, then a lock
+transactions on Ethereum from the user — first a deposit reveal, then a lock  
 to bridge to another network.
 
 === Canonical token
@@ -145,7 +145,7 @@ for more details.
 The Wormhole bridge will be the first cross-ecosystem bridge to have a minting
 authority for tBTC token on Arbitrum, Polygon, and Optimism.
 
-Other cross-ecosystem bridges may be added in the future given the canonical
+Other cross-ecosystem bridges will be added in the future given the canonical
 tBTC token capability of delegating the minting authority.
 
 ==== Wormhole
@@ -198,77 +198,6 @@ IMPORTANT: The requirement for a seamless user experience is that the Wormhole
 team has to integrate the step of wrapping the token using the gateway contract
 into the Wormhole bridge flow, in the same transaction as the L2 confirmation.
 
-There are two ways to implement a gateway: use plain token transfers or custom
-messages for mint and burn.
-
-===== Plain token transfer gateway
-
-This is the easiest approach and the gateway contract can be integrated directly
-with the token bridge. This approach will benefit from Wormhole security
-measures like various accounting invariant checks and governable notional limits
-between chains. Also, the integration into the UI will be easier and cross-chain
-transfers will be automatically relayed. Last but not least, any possible
-security issues with Wormhole bridge are limited to the amount of tBTC bridged
-from L1 to L2 so far.
-
-The disadvantage of this approach is that cross-chain transfer becomes
-complicated when another way of minting L2 token is added. Since the gateway
-locks wormhole tBTC token representation, someone who crossed another bridge or
-minted tBTC directly on L2 can drain the gateway from wormhole tBTC when
-bridging back to L1, leaving no wormhole tBTC left in the contract for
-depositors who crossed the Wormhole bridge to L2 and now want to go back. Those
-depositors will have to use another bridge or redeem to BTC on L2, depending on
-available options.
-
-Example: Receiving
-```
-// Receive a wormhole token transfer from another chain
-function receiveWormhole(bytes memory encodedVm) public returns (uint64) {
-  // recieve "wormhole wrapped tBTC"
-  BridgeStructs.TransferWithPayload memory vaa = _decodePayload(token_bridge.completeTransferWithPayload(encodedVm));
-  // mint the amount of canonical tBTC to the user.
-  tBTC.mint(user_eoa, vaa.amount);
-  // ...
-}
-```
-
-
-Example: Sending
-```
-// Receive a wormhole token transfer from another chain
-function sendWormhole(address to, uint256 amount /*<other args>*/) public returns (uint64) {
-  // burn the amount of canonical tBTC from the user.
-  tBTC.burn(user_eoa, msg.sender);
-
-  // send "wormhole wrapped tBTC"
-  uint64 sequence = token_bridge.transferTokens(address(this), amount, vaa.tokenChain, to, 0, nonce);
-  return sequence;
-}
-```
-
-A similar approach is implemented by the `Xmint` contract in the Wormhole
-Foundation repository
-link:https://github.com/wormhole-foundation/xdapp-book/blob/c90495d2c61062454529574c5d36d3682b708cec/projects/xmint/chains/evm/src/Xmint.sol[here].
-
-
-===== Custom message gateway
-
-Another possible approach is to send raw Wormhole messages between chains to
-mint and burn tBTC directly. This approach is more complicated to implement and
-transfers will not be relayed automatically until Wormhole completes its generic
-relayer implementation. Any rate limits or accounting-type defense-in-depth
-protections will need to be implemented by the gateway contract. The amount
-bridged back is not limited by the amount of the wormhole tBTC representation
-token locked in the gateway so it is potentially more friendly for native L2
-minting and other bridges.
-
-This approach is implemented in the Wormhole Foundation repository for USDC
-link:https://github.com/wormhole-foundation/wormhole-circle-integration/blob/9572867afc936bf0dde8cf93a07724a90d99ddfd/evm/src/circle_integration/CircleIntegration.sol[here].
-
-For the sake of simplicity, we will implement the gateway using the Plain token
-transfer approach. If the DAO decides to add another way of minting the token in
-the future, we can implement another gateway contract based on the Custom
-message gateway given the canonical token accepts multiple minting authorities. 
 
 === Multisig governance
 
