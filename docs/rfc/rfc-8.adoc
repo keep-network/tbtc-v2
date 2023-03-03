@@ -413,6 +413,9 @@ implementation other than the `TBTCVault`. In this model, tBTC for the given
 Bitcoin deposit is minted on L2 directly, without minting it on L1. The L1
 `Bank` balance is locked under the given vault implementation.
 
+The main challenge of the native L2 minting is extending TBTC L1 minting
+authority to bridges allowing to go from L2 to L1 with tBTC tokens minted on L2.
+
 === Replacing multi-sig governance
 
 It is possible to implement a communication gateway for each L2/sidechain
