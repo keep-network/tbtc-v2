@@ -142,26 +142,21 @@ for more details.
 
 === Supporting cross-ecosystem bridges
 
-The Wormhole bridge will be the first cross-ecosystem bridge to have a minting
-authority for tBTC token on Arbitrum, Polygon, and Optimism.
+Selected cross-ecosystem bridges will be given minting authority for tBTC token
+on L2 and sidechains.
 
-Other cross-ecosystem bridges will be added in the future given the canonical
-tBTC token capability of delegating the minting authority.
+Usually, the process of bridging from L1 to L2 (or sidechain) looks as follows:
 
-==== Wormhole
-
-The Wormhole bridging process from L1 to L2 (or sidechain) will look as follows:
-
-* There is a tBTC holder on L1. The holder goes to the Wormhole Portal and
+* There is a tBTC holder on L1. The holder goes to the Bridge dApp and
   selects the chain they want to bridge to.
 * The holder submits one transaction to L1. After the transaction is mined, they
   wait about 15 minutes for the Ethereum block finality.
 * The holder submits one transaction to L2. After that transaction is mined,
   they have their tBTC on L2.
 
-The Wormhole bridging process from L2 (or sidechain) to L1 will look as follows:
+The bridging process from L2 (or sidechain) to L1 usually looks as follows:
 
-* There is a tBTC holder on L2. That holder goes to the Wormhole portal and
+* There is a tBTC holder on L2. That holder goes to the Bridge dApp and
   selects one of the L2 chains they want to bridge from.
 * The holder submits one transaction to L2. After the transaction is mined, they
   wait about 15 minutes for the L2 block finality.
@@ -171,8 +166,22 @@ The Wormhole bridging process from L2 (or sidechain) to L1 will look as follows:
 What is not immediately obvious is that the token received on L2 may not be the
 canonical token on that L2.
 
-For example, when I crossed the bridge with ETH, I received WETH token at
-address link:https://arbiscan.io/token/0xd8369c2eda18dd6518eabb1f85bd60606deb39ec[`0xd8369c2eda18dd6518eabb1f85bd60606deb39ec`].
+To fully use the capabilities of cross-ecosystem bridges and make the user
+experience seamless, we will implement a gateway contract having the authority to
+wrap bridge-specific tokens into tBTC tokens in a 1:1 ratio. This contract
+will have a minting authority for tBTC on L2. This way, no liquid market has to
+exist on any target chain for users to be able to cross the Wormhole bridge into
+the canonical tBTC.
+
+IMPORTANT: The requirement for a seamless user experience is that the development
+team of the given cross-ecosystem bridge has to integrate the step of wrapping the
+token using the gateway contract into the bridging flow, in the same transaction as
+the L2 confirmation.
+
+==== Example
+
+For example, when I crossed the bridge with ETH using Wormhole, I received WETH
+token at address link:https://arbiscan.io/token/0xd8369c2eda18dd6518eabb1f85bd60606deb39ec[`0xd8369c2eda18dd6518eabb1f85bd60606deb39ec`].
 This is not the canonical WETH on Arbitrum. The canonical WETH on Arbitrum is
 link:https://arbiscan.io/token/0x82af49447d8a07e3bd95bd0d56f35241523fbab1[`0x82af49447d8a07e3bd95bd0d56f35241523fbab1`].
 When I crossed the bridge with USDC I received USDC token at
@@ -186,18 +195,6 @@ canonical representation on the given L2 assuming there is a market for such
 a swap. The overview of liquid markets on each target chain is available in the
 link:https://docs.wormhole.com/wormhole/overview-liquid-markets[Wormhole documentation].
 Not every chain and token pair has a market. 
-
-To fully use the capabilities of the Wormhole portal and make the user
-experience seamless, we will implement a gateway contract having the authority to
-wrap Wormhole-specific tokens into tBTC tokens in a 1:1 ratio. This contract
-will have a minting authority for tBTC on L2. This way, no liquid market has to
-exist on any target chain for users to be able to cross the Wormhole bridge into
-the canonical tBTC.
-
-IMPORTANT: The requirement for a seamless user experience is that the Wormhole
-team has to integrate the step of wrapping the token using the gateway contract
-into the Wormhole bridge flow, in the same transaction as the L2 confirmation.
-
 
 === Multisig governance
 
@@ -294,6 +291,9 @@ up contracts together.
 
 ==== Initial implementation
 
+The initial implementation uses the Wormhole bridge to bring tBTC to Arbitrum,
+Optimism, and Polygon.
+
 ```
                                          +---------------------------------------------------------------------+
                                          |                                Arbitrum                             |
@@ -323,8 +323,6 @@ up contracts together.
                                          +---------------------------------------------------------------------+
 ```
 
-The initial implementation uses the Wormhole bridge to bring tBTC to Arbitrum, Optimism, and Polygon.
-
 Smart contracts involved:
 
 * Wormhole `TokenBridge` on Ethereum is the contract deployed at
@@ -347,50 +345,62 @@ The full list of Wormhole deployed contracts is available link:https://book.worm
 
 ==== Extended implementation
 
-The extended implementation adds support for native L2/sidechain bridges. Each
-L1 and L2 gateway needs to be implemented separately given the specific
-requirements of cross-chain communication of the given L2/sidechain. Two
-contracts have a minting authority for each L2/sidechain tBTC canonical token:
-wormhole gateway and native bridge gateway.
+The extended implementation adds support for native L2/sidechain bridges and
+other cross-ecosystem bridges. Each L1 and L2 gateway needs to be implemented
+separately given the specific requirements of cross-chain communication of the
+given L2/sidechain. Multiple contracts have a minting authority for
+each L2/sidechain tBTC canonical token: cross-ecosystem gateways and the native
+bridge gateway.
 
 ```
-+----------------------------+           +---------------------------------------------------------------------+
-|          Ethereum          |           |                                Arbitrum                             |
-|                            |           |                                                                     |
-|   +-------------------+    |           |  +-------------------+                                              |
-|   | L1ArbitrumGateway |----|-----------|--| L2ArbitrumGateway |-----------------------------------+          |
-|   +-------------------+    |           |  +-------------------+                                   |          |
-|                            |           |                                                          |          |
-|                            |           |  +----------------------+  +-------------------+  +--------------+  |
-|                            |     +-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| ArbitrumTBTC |  |
-|                            |     |     |  +----------------------+  +-------------------+  +--------------+  |
-|                            |     |     |                                                                     |
-|                            |     |     +---------------------------------------------------------------------+
-|                            |     |
-|                            |     |     +---------------------------------------------------------------------+
-|                            |     |     |                                Polygon                              |
-|   +-------------------+    |     |     |  +------------------+                                               |
-|   | L1PolygonGateway  |----|-----------|--| L2PolygonGateway |------------------------------------+          |
-|   +-------------------+    |     |     |  +------------------+                                    |          |
-|                            |     |     |                                                          |          |
-|  +----------------------+  |     |     |  +----------------------+  +-------------------+  +-------------+   |
-|  | Wormhole TokenBridge |--|-----|-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| PolygonTBTC |   |
-|  +----------------------+  |     |     |  +----------------------+  +-------------------+  +-------------+   |
-|                            |     |     |                                                                     |
-|                            |     |     +---------------------------------------------------------------------+
-|                            |     |
-|                            |     |     +---------------------------------------------------------------------+
-|                            |     |     |                                Optimism                             |
-|                            |     |     |                                                                     |
-|                            |     |     |  +----------------------+  +-------------------+  +--------------+  |
-|                            |     +-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| OptimismTBTC |  |
-|                            |           |  +----------------------+  +-------------------+  +--------------+  |
-|                            |           |                                                           |         |
-|   +-------------------+    |           |  +-------------------+                                    |         |
-|   | L1OptimismGateway |----|-----------|--| L2OptimismGateway |------------------------------------+         |
-|   +-------------------+    |           |  +-------------------+                                              |
-|                            |           |                                                                     |
-+----------------------------+           +---------------------------------------------------------------------+
++----------------------------+             +---------------------------------------------------------------------+
+|          Ethereum          |             |                                Arbitrum                             |
+|                            |             |                                                                     |
+|  +-------------------+     |             |  +-------------------+                                              |
+|  | L1ArbitrumGateway |-----|-------------|--| L2ArbitrumGateway |-----------------------------------+          |
+|  +-------------------+     |             |  +-------------------+                                   |          |
+|                            |             |                                                          |          |
+|                            |             |  +---------------------+  +------------------+  +--------------+    |
+|                            |         +---|--| Another TokenBridge |--| L2AnotherGateway |--| ArbitrumTBTC |    |
+|                            |         |   |  +---------------------+  +------------------+  +--------------+    |
+|                            |         |   |                                                          |          |  
+|                            |         |   |  +----------------------+  +-------------------+         |          |
+|                            |     +-------|--| Wormhole TokenBridge |--| L2WormholeGateway |---------+          |
+|                            |     |   |   |  +----------------------+  +-------------------+                    |
+|                            |     |   |   |                                                                     |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |   |                                Polygon                              |
+|  +------------------+      |     |   |   |  +------------------+                                               |
+|  | L1PolygonGateway |------|-------------|--| L2PolygonGateway |------------------------------------+          |
+|  +------------------+      |     |   |   |  +------------------+                                    |          |
+|                            |     |   |   |                                                          |          |
+|  +---------------------+   |     |   |   |  +---------------------+   +------------------+  +-------------+    |
+|  | Another TokenBridge |---|---------+---|--| Another TokenBridge |---| L2AnotherGateway |--| PolygonTBTC |    |
+|  +---------------------+   |     |   |   |  +---------------------+   +------------------+  +-------------+    |
+|  +----------------------+  |     |   |   |  +----------------------+  +-------------------+         |          |
+|  | Wormhole TokenBridge |--|-----+-------|--| Wormhole TokenBridge |--| L2WormholeGateway |---------+          |
+|  +----------------------+  |     |   |   |  +----------------------+  +-------------------+                    |
+|                            |     |   |   |                                                                     |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |
+|                            |     |   |  +---------------------------------------------------------------------+
+|                            |     |   |  |                                Optimism                             |
+|                            |     |   |  |                                                                     |
+|                            |     |   |  |  +---------------------+   +------------------+                     |
+|                            |     |   +--|--| Another TokenBridge |---| L2AnotherGateway |-----------+         |
+|                            |     |      |  +---------------------+   +------------------+           |         |
+|                            |     |      |                                                           |         | 
+|                            |     |      |  +----------------------+  +-------------------+  +--------------+  |
+|                            |     +------|--| Wormhole TokenBridge |--| L2WormholeGateway |--| OptimismTBTC |  |
+|                            |            |  +----------------------+  +-------------------+  +--------------+  |
+|                            |            |                                                           |         |
+|  +-------------------+     |            |  +-------------------+                                    |         |
+|  | L1OptimismGateway |-----|------------|--| L2OptimismGateway |------------------------------------+         |
+|  +-------------------+     |            |  +-------------------+                                              |
+|                            |            |                                                                     |
++----------------------------+            +---------------------------------------------------------------------+
 ```
 
 == Future work
