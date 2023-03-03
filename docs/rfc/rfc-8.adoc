@@ -145,23 +145,27 @@ for more details.
 Selected cross-ecosystem bridges will be given minting authority for tBTC token
 on L2 and sidechains.
 
-Usually, the process of bridging from L1 to L2 (or sidechain) looks as follows:
+Usually, the process of bridging from L1 to L2 (or sidechain) looks as follows
+on a high level:
 
 * There is a tBTC holder on L1. The holder goes to the Bridge dApp and
   selects the chain they want to bridge to.
-* The holder submits one transaction to L1. After the transaction is mined, they
-  wait about 15 minutes for the Ethereum block finality.
-* The holder submits one transaction to L2. After that transaction is mined,
-  they have their tBTC on L2.
+* The holder submits one transaction to L1 locking their tBTC tokens in the
+  bridge's smart contract. After the transaction is mined, they wait about 15
+  minutes for the Ethereum block finality.
+* The holder submits one transaction to L2 that is minting tokens. After that
+  transaction is mined, they have their tBTC on L2.
 
-The bridging process from L2 (or sidechain) to L1 usually looks as follows:
+Usually, the process of bridging from L2 (or sidechain) to L1 looks as follows
+on a high level:
 
 * There is a tBTC holder on L2. That holder goes to the Bridge dApp and
   selects one of the L2 chains they want to bridge from.
-* The holder submits one transaction to L2. After the transaction is mined, they
-  wait about 15 minutes for the L2 block finality.
-* The holder submits one transaction to L1. After that transaction is mined,
-  they have their tBTC on L1.
+* The holder submits one transaction to L2 that is burning the token. After the
+  transaction is mined, they wait about 15 minutes for the L2 block finality.
+* The holder submits one transaction to L1 unlocking their tBTC tokens from the
+  bridge's smart contract. After that transaction is mined, they have their tBTC
+  on L1.
 
 What is not immediately obvious is that the token received on L2 may not be the
 canonical token on that L2.
