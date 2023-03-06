@@ -112,6 +112,9 @@ events produced by the monitoring component are:
 
 * deposit revealed,
 * wallet registered,
+* DKG result submitted,
+* DKG result approved,
+* DKG result challenged,
 * large deposit revealed,
 * optimistic minting canceled,
 * optimistic minting requested too early,
@@ -132,6 +135,26 @@ notification that does not require any action.
 An *informational system event* indicating that a new wallet was registered
 on the on-chain Bridge contract. This event is directly sent to Discord as a
 notification that does not require any action.
+
+==== DKG result submitted
+
+An *informational system event* indicating that a new DKG result was submitted
+to the on-chain WalletRegistry contract. This event is directly sent to Discord
+as a notification that does not require any action.
+
+==== DKG result approved
+
+An *informational system event* indicating that the submitted DKG result was
+approved on the on-chain WalletRegistry contract. This event is directly sent to
+Discord as a notification that does not require any action.
+
+==== DKG result challenged
+
+A *critical system event* indicating that the submitted DKG result was
+challenged on the on-chain WalletRegistry contract. This event is sent to
+Sentry hub and requires an immediate team’s action. The default action is
+checking the reason of the challenge as that event may indicate a malicious
+wallet operator or a serious bug in the off-chain client code.
 
 ==== Large deposit revealed
 
