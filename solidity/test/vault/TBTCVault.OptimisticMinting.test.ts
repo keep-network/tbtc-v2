@@ -15,7 +15,6 @@ import {
   TBTCVault,
   TBTC,
   IRelay,
-  VendingMachine,
 } from "../../typechain"
 import { DepositSweepTestData, SingleP2SHDeposit } from "../data/deposit-sweep"
 
@@ -28,7 +27,6 @@ describe("TBTCVault - OptimisticMinting", () => {
   let bridgeGovernance: BridgeGovernance
   let tbtcVault: TBTCVault
   let tbtc: TBTC
-  let vendingMachine: VendingMachine
   let relay: FakeContract<IRelay>
 
   let deployer: SignerWithAddress
@@ -72,21 +70,11 @@ describe("TBTCVault - OptimisticMinting", () => {
       bridgeGovernance,
       tbtcVault,
       tbtc,
-      vendingMachine,
     } = await waffle.loadFixture(bridgeFixture))
 
-    // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
-    // do not transfer the ownership of `TBTC` token to `TBTCVault`.
-    // We need to do it manually in tests covering `TBTCVault`'s behavior.
-    const { keepTechnicalWalletTeam, keepCommunityMultiSig } =
-      await helpers.signers.getNamedSigners()
-    await vendingMachine
-      .connect(keepTechnicalWalletTeam)
-      .initiateVendingMachineUpgrade(tbtcVault.address)
-    await increaseTime(await vendingMachine.GOVERNANCE_DELAY())
-    await vendingMachine
-      .connect(keepCommunityMultiSig)
-      .finalizeVendingMachineUpgrade()
+    // TBTC token ownership transfer is not performed in deployment scripts.
+    // Check TransferTBTCOwnership deployment step for more information.
+    await tbtc.connect(deployer).transferOwnership(tbtcVault.address)
 
     // Set up test data needed to reveal a deposit via
     // bridge.connect(depositor).revealDeposit(fundingTx, depositRevealInfo)
