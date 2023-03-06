@@ -18,7 +18,12 @@ import {
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
-import { NewWalletRegisteredEvent } from "./wallet"
+import {
+  DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+} from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -225,6 +230,41 @@ export interface Bridge {
    * @see GetEventsFunction
    */
   getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
+
+  /**
+   * Returns the attached WalletRegistry instance.
+   */
+  walletRegistry(): Promise<WalletRegistry>
+}
+
+/**
+ * Interface for communication with the WalletRegistry on-chain contract.
+ */
+export interface WalletRegistry {
+  /**
+   * Gets the public key for the given wallet.
+   * @param walletID ID of the wallet.
+   * @returns Uncompressed public key without the 04 prefix.
+   */
+  getWalletPublicKey(walletID: Hex): Promise<Hex>
+
+  /**
+   * Get emitted DkgResultSubmittedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultSubmittedEvents: GetEvents.Function<DkgResultSubmittedEvent>
+
+  /**
+   * Get emitted DkgResultApprovedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
+
+  /**
+   * Get emitted DkgResultChallengedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultChallengedEvents: GetEvents.Function<DkgResultChallengedEvent>
 }
 
 /**
