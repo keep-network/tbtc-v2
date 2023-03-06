@@ -56,8 +56,10 @@ export { Client as ElectrumClient } from "./electrum"
 
 export {
   Bridge as EthereumBridge,
+  WalletRegistry as EthereumWalletRegistry,
   Address as EthereumAddress,
   TBTCVault as EthereumTBTCVault,
+  TBTCToken as EthereumTBTCToken,
 } from "./ethereum"
 
 export { Hex } from "./hex"

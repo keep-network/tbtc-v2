@@ -1,0 +1,290 @@
+:toc: macro
+
+= Monitoring and telemetry
+
+toc::[]
+
+== High-level structure
+
+The monitoring and telemetry system has the following high-level structure:
+
+[source,mermaid]
+....
+flowchart TD
+    A[Threshold Dashboard] -->|Deposit data| B(Second track deposit verifier)
+    B --> |Status| A
+    A --> |Telemetry| C(Sentry)
+    D[TBTCv2 minters and guardians] --> |Telemetry| C
+    C -->|Alerts| E(PagerDuty)
+    C --> |Alerts| F(Discord)
+    G[TBTCv2 monitoring] --> |Alerts| C
+    G --> |Notifications| F
+....
+
+There are several sources of monitoring and telemetry data:
+
+* https://github.com/threshold-network/token-dashboard[Threshold dashboard] + https://github.com/keep-network/v2-end-to-end[second track deposit verifier]
+* https://github.com/keep-network/optimistic-minting[TBTCv2 minters and guardians]
+* https://github.com/keep-network/tbtc-v2/tree/main/monitoring[TBTCv2 monitoring]
+
+Monitoring and telemetry data are gathered by Sentry hub. Collected data are used to produce and send alerts to:
+
+* https://www.pagerduty.com/[PagerDuty]
+* Discord channels
+
+== Sources of data
+
+Each source produces a different kind of monitoring and telemetry data. Here is
+a detailed description of each data source.
+
+=== Threshold dashboard
+
+The dashboard instances collect the following telemetry data that are sent
+directly to Sentry hub:
+
+* generated deposit data,
+* unhandled errors.
+
+==== Generated deposit data
+
+Each time a new deposit address is generated, the dashboard collects the
+following data:
+
+* BTC address of the deposit
+* JSON recovery file content
+* Second track deposit verification result
+
+Worth noting that those data are send to the telemetry regardless of whether
+the user actually funded and revealed the deposit. Those data are collected
+in order to help users with potential deposit reveals that have not occurred
+automatically and deposit recovery in case of wallet misbehavior. Last but not
+least, all deposit addresses are checked against the second track deposit
+verifier to make sure the address generation logic used by the dashboard is
+proper and will not lead to fund loss.
+
+[NOTE]
+====
+The second track deposit verifier is actually a Google Cloud Function named
+https://console.cloud.google.com/functions/details/us-central1/verify-deposit-address?env=gen1&authuser=1&project=keep-prd-210b[`verify-deposit-address`]
+living in the `keep-prd` GCP project. That function accepts some deposit data
+and return a deposit BTC address computed using their own algorithm,
+independent from the one used by the dashboard. See an https://us-central1-keep-prd-210b.cloudfunctions.net/verify-deposit-address/json/mainnet/latest/1fb2d377340f4b776ed2516b2293bd65fd205858/abb75eb77b3eb032/5efe583da177c3a421578a9a5ee4ad4837991474/390e4165[example call].
+====
+
+==== Unhandled errors
+
+Apart from deposit data, all unhandled errors thrown by the dashboard are also
+captured by the telemetry system. This allows to identify bugs encountered by
+users in an automatic way.
+
+=== TBTCv2 minters and guardians
+
+The minters and guardians instances collect the following telemetry data that
+are sent directly to Sentry hub:
+
+* handled processing and validation errors,
+* unhandled errors.
+
+==== Handled processing and validation errors
+
+During their work, the minters and guardians may encounter several errors
+related to the processing logic and deposit validation. Most of them are
+explicitly sent to the telemetry as errors or warnings. Examples of such
+errors are:
+
+* Revert of an Ethereum transaction created by the bot
+* Failed validation of a revealed deposit
+
+==== Unhandled errors
+
+Apart from handled errors collected explicitly, all unhandled errors thrown by
+the minters and guardians are also captured by the telemetry system.
+
+=== TBTCv2 monitoring
+
+The monitoring component inspects the tBTC v2 system on-chain contracts and
+produce different kind of system events that are sent to Sentry and Discord
+based on their type. A general rule of thumb is that notifications
+(*i.e. informational sytem events*) are sent directly to Discord `pass:[*]-notifications`
+channels while alerts requiring an action (*i.e. warning/critical system events*)
+are propagated to the Sentry hub that decides about next steps. Specific system
+events produced by the monitoring component are:
+
+* deposit revealed,
+* wallet registered,
+* DKG result submitted,
+* DKG result approved,
+* DKG result challenged,
+* large deposit revealed,
+* optimistic minting canceled,
+* optimistic minting requested too early,
+* optimistic minting requested for undetermined Bitcoin transaction,
+* optimistic minting not requested by designated minter,
+* optimistic minting not finalized by designated minter,
+* optimistic minting not requested by any minter,
+* optimistic minting not finalized by any minter,
+* high TBTC token total supply change.
+
+==== Deposit revealed
+
+An *informational system event* indicating that a new deposit was revealed to
+the on-chain Bridge contract. This event is directly sent to Discord as a
+notification that does not require any action.
+
+==== Wallet registered
+
+An *informational system event* indicating that a new wallet was registered
+on the on-chain Bridge contract. This event is directly sent to Discord as a
+notification that does not require any action.
+
+==== DKG result submitted
+
+An *informational system event* indicating that a new DKG result was submitted
+to the on-chain WalletRegistry contract. This event is directly sent to Discord
+as a notification that does not require any action.
+
+==== DKG result approved
+
+An *informational system event* indicating that the submitted DKG result was
+approved on the on-chain WalletRegistry contract. This event is directly sent to
+Discord as a notification that does not require any action.
+
+==== DKG result challenged
+
+A *critical system event* indicating that the submitted DKG result was
+challenged on the on-chain WalletRegistry contract. This event is sent to
+Sentry hub and requires an immediate team’s action. The default action is
+checking the reason of the challenge as that event may indicate a malicious
+wallet operator or a serious bug in the off-chain client code.
+
+==== Large deposit revealed
+
+A *warning system event* indicating that a large deposit was revealed to the
+on-chain Bridge contract. This event is sent to Sentry hub and should get
+team’s attention. The default action is making sure that the deposit is
+handled correctly by the system.
+
+==== Optimistic minting cancelled
+
+A *warning system event* indicating that an optimistic minting request was
+cancelled by a guardian. This event is sent to Sentry hub and should get
+team’s attention. The default action is checking the reason of cancellation
+as that event may indicate a malicious minter or guardian that should be
+evicted from the system.
+
+==== Optimistic minting requested too early
+
+A *critical system event* indicating that an optimistic minting request was
+issued too early regarding their BTC funding transaction confirmation state.
+This event is sent to Sentry hub and requires an immediate team’s action.
+The default action is checking the reason of the early request as that event
+may indicate a malicious minter that should be evicted from the system.
+
+==== Optimistic minting requested for undetermined Bitcoin transaction
+
+A *critical system event* indicating that an optimistic minting request was
+done for an undetermined Bitcoin transaction. This event is sent to Sentry
+hub and requires an immediate team’s action. The default action is checking
+why the Bitcoin transaction cannot be determined as that event may indicate
+problems with the underlying Bitcoin client used by the monitoring component
+or flag a malicious minter that should be evicted from the system.
+
+==== Optimistic minting not requested by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by the designated minter and another minter did that job. This event is
+sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not finalized by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by the designated minter and another minter did that job. This event
+is sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not requested by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
+
+==== Optimistic minting not finalized by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
+
+==== High TBTC token total supply change
+
+A *critical system event* indicating that a high change (i.e. >=10%) of the
+total TBTC v2 token supply took place in the last 12 hours. This event is sent
+to Sentry hub and requires an immediate team’s action. The default action is
+checking the root cause of the supply change and making sure its source is
+actually a proper deposit/redemption and there are no signs of any malicious
+action.
+
+== Sentry hub
+
+The monitoring and telemetry system uses Sentry as hub for relevant monitoring
+and telemetry data that requires an action from the team. Here is a detailed
+description of this component.
+
+=== Configuration
+
+The Sentry application has been configured in the following way:
+
+* There is a https://keep-ko.sentry.io/projects[Keep] organization that groups
+all invited members under the https://keep-ko.sentry.io/settings/teams/keep/members/[#Keep] team
+
+* There are projects corresponding to specific monitoring and telemetry data sources:
+
+** https://keep-ko.sentry.io/projects/prod-threshold-dashboard/?project=4504566725607424[prod-threshold-dashboard]
+that collects telemetry from the production (mainnet) Threshold dashboard as
+well as from production previews
+
+** https://keep-ko.sentry.io/projects/test-threshold-dashboard/?project=4504564892827648[test-threshold-dashboard]
+that collects telemetry from the test (Goerli) Threshold dashboard as well as
+from test previews
+
+** https://keep-ko.sentry.io/projects/prod-tbtc-v2-minters-guardians/?project=4504690017042432[prod-tbtc-v2-minters-guardians]
+that collects telemetry from production (mainnet) TBTCv2 minters and guardians instances
+
+** https://keep-ko.sentry.io/projects/test-tbtc-v2-minters-guardians/?project=4504576597032960[test-tbtc-v2-minters-guardians]
+that collects telemetry from test (Goerli) TBTCv2 minters and guardians instances
+
+** https://keep-ko.sentry.io/projects/prod-tbtc-v2-monitoring/?project=4504684945342464[prod-tbtc-v2-monitoring]
+that collects alerts (i.e. warning/critical system events) from the production
+(mainnet) TBTCv2 monitoring instance
+
+** https://keep-ko.sentry.io/projects/test-tbtc-v2-monitoring/?project=4504672363806720[test-tbtc-v2-monitoring]
+that collects alerts (i.e. warning/critical system events) from the test
+(Goerli) TBTCv2 monitoring instance
+
+=== Alerts
+
+As mentioned earlier, Sentry uses the collected monitoring and telemetry data
+to raise alerts that are propagated to PagerDuty and Discord `pass:[*]-alerts` channels.
+Here is the exact summary of configured alert rules:
+
+[%header,cols=4]
+|===
+|Alert name |Project |Firing conditions |Notified entities
+
+|https://keep-ko.sentry.io/alerts/rules/prod-threshold-dashboard/13626376/details[Mainnet deposit second track verification failure] |https://keep-ko.sentry.io/projects/prod-threshold-dashboard/?project=4504566725607424[prod-threshold-dashboard] |When deposit address returned by the second track deposit verifier is different from the address generated by the dashboard |PagerDuty and Discord `mainnet-alerts` channel
+
+|https://keep-ko.sentry.io/alerts/rules/test-threshold-dashboard/13626401/details[Testnet deposit second track verification failure] |https://keep-ko.sentry.io/projects/test-threshold-dashboard/?project=4504564892827648[test-threshold-dashboard] |When deposit address returned by the second track deposit verifier is different from the address generated by the dashboard |Discord `testnet-alerts` channel
+
+|https://keep-ko.sentry.io/alerts/rules/prod-tbtc-v2-monitoring/13795336/details[Mainnet monitoring alerts Discord router] |https://keep-ko.sentry.io/projects/prod-tbtc-v2-monitoring/?project=4504684945342464[prod-tbtc-v2-monitoring] |When a new alert (i.e. warning/critical system event) is received from the TBTCv2 monitoring component |Discord `mainnet-alerts` channel
+
+|https://keep-ko.sentry.io/alerts/rules/prod-tbtc-v2-monitoring/13795667/details[Mainnet monitoring alerts PagerDuty router] |https://keep-ko.sentry.io/projects/prod-tbtc-v2-monitoring/?project=4504684945342464[prod-tbtc-v2-monitoring] |When a new critical alert (i.e. critical system event) is received from the TBTCv2 monitoring component |PagerDuty
+
+|https://keep-ko.sentry.io/alerts/rules/test-tbtc-v2-monitoring/13795270/details[Testnet monitoring alerts Discord router] |https://keep-ko.sentry.io/projects/test-tbtc-v2-monitoring/?project=4504672363806720[test-tbtc-v2-monitoring] |When a new alert (i.e. warning/critical system event) is received from the TBTCv2 monitoring component |Discord `testnet-alerts` channel

@@ -1,4 +1,4 @@
-import { Bridge, GetEvents, Identifier } from "../../src/chain"
+import { Bridge, WalletRegistry, GetEvents, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
@@ -15,6 +15,7 @@ import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/ethereum"
 import { Hex } from "../../src/hex"
+import { NewWalletRegisteredEvent } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -301,5 +302,16 @@ export class MockBridge implements Bridge {
 
   async activeWalletPublicKey(): Promise<string | undefined> {
     return this._activeWalletPublicKey
+  }
+
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    throw new Error("not implemented")
+  }
+
+  walletRegistry(): Promise<WalletRegistry> {
+    throw new Error("not implemented")
   }
 }

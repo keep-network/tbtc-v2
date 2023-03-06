@@ -1,6 +1,8 @@
 import {
   Bridge as ChainBridge,
+  WalletRegistry as ChainWalletRegistry,
   TBTCVault as ChainTBTCVault,
+  TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
   GetEvents,
 } from "./chain"
@@ -17,6 +19,7 @@ import {
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
+import TBTCDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { backoffRetrier } from "./backoff"
 import {
   DepositScriptParameters,
@@ -34,6 +37,8 @@ import {
   UnspentTransactionOutput,
 } from "./bitcoin"
 import type {
+  OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
@@ -45,7 +50,14 @@ import type {
 } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
+import type { TBTC as ContractTBTC } from "../typechain/TBTC"
 import { Hex } from "./hex"
+import {
+  DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+} from "./wallet"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
 
@@ -565,7 +577,7 @@ export class Bridge
    * @param depositTxHash The revealed deposit transaction's hash.
    * @param depositOutputIndex Index of the deposit transaction output that
    *        funds the revealed deposit.
-   * @returns Revealed deposit data.
+   * @returns Deposit key.
    */
   static buildDepositKey(
     depositTxHash: TransactionHash,
@@ -628,13 +640,42 @@ export class Bridge
 
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
-      ecdsaWalletID
+      Hex.from(ecdsaWalletID)
     )
 
     return compressPublicKey(uncompressedPublicKey)
   }
 
-  private async walletRegistry(): Promise<WalletRegistry> {
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getNewWalletRegisteredEvents}
+   */
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "NewWalletRegistered",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<NewWalletRegisteredEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        ecdsaWalletID: Hex.from(event.args!.ecdsaWalletID),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#walletRegistry}
+   */
+  async walletRegistry(): Promise<ChainWalletRegistry> {
     const { ecdsaWalletRegistry } = await backoffRetrier<{
       ecdsaWalletRegistry: string
     }>(this._totalRetryAttempts)(async () => {
@@ -643,32 +684,130 @@ export class Bridge
 
     return new WalletRegistry({
       address: ecdsaWalletRegistry,
-      signerOrProvider: this._instance.signer,
+      signerOrProvider: this._instance.signer || this._instance.provider,
     })
   }
 }
 
 /**
  * Implementation of the Ethereum WalletRegistry handle.
+ * @see {ChainWalletRegistry} for reference.
  */
-class WalletRegistry extends EthereumContract<ContractWalletRegistry> {
+export class WalletRegistry
+  extends EthereumContract<ContractWalletRegistry>
+  implements ChainWalletRegistry
+{
   constructor(config: ContractConfig) {
     super(config, WalletRegistryDeployment)
   }
 
+  // eslint-disable-next-line valid-jsdoc
   /**
-   * Gets the public key for the given wallet.
-   * @param walletID ID of the wallet.
-   * @returns Uncompressed wallet public key as an unprefixed (neither 0x nor 04)
-   *          hex string.
+   * @see {ChainWalletRegistry#getWalletPublicKey}
    */
-  async getWalletPublicKey(walletID: string): Promise<string> {
+  async getWalletPublicKey(walletID: Hex): Promise<Hex> {
     const publicKey = await backoffRetrier<string>(this._totalRetryAttempts)(
       async () => {
-        return await this._instance.getWalletPublicKey(walletID)
+        return await this._instance.getWalletPublicKey(
+          walletID.toPrefixedString()
+        )
       }
     )
-    return publicKey.substring(2)
+    return Hex.from(publicKey.substring(2))
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultSubmittedEvents}
+   */
+  async getDkgResultSubmittedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultSubmittedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultSubmitted",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultSubmittedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        seed: Hex.from(BigNumber.from(event.args!.seed).toHexString()),
+        result: {
+          submitterMemberIndex: BigNumber.from(
+            event.args!.result.submitterMemberIndex
+          ),
+          groupPubKey: Hex.from(event.args!.result.groupPubKey),
+          misbehavedMembersIndices:
+            event.args!.result.misbehavedMembersIndices.map((mmi: unknown) =>
+              BigNumber.from(mmi).toNumber()
+            ),
+          signatures: Hex.from(event.args!.result.signatures),
+          signingMembersIndices: event.args!.result.signingMembersIndices.map(
+            BigNumber.from
+          ),
+          members: event.args!.result.members.map((m: unknown) =>
+            BigNumber.from(m).toNumber()
+          ),
+          membersHash: Hex.from(event.args!.result.membersHash),
+        },
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultApprovedEvents}
+   */
+  async getDkgResultApprovedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultApprovedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultApproved",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultApprovedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        approver: Address.from(event.args!.approver),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainWalletRegistry#getDkgResultChallengedEvents}
+   */
+  async getDkgResultChallengedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<DkgResultChallengedEvent[]> {
+    const events: EthersEvent[] = await this.getEvents(
+      "DkgResultChallenged",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<DkgResultChallengedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        resultHash: Hex.from(event.args!.resultHash),
+        challenger: Address.from(event.args!.challenger),
+        reason: event.args!.reason,
+      }
+    })
   }
 }
 
@@ -859,7 +998,9 @@ export class TBTCVault
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         minter: new Address(event.args!.minter),
-        depositKey: BigNumber.from(event.args!.depositKey),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         fundingTxHash: TransactionHash.from(
@@ -869,6 +1010,86 @@ export class TBTCVault
           event.args!.fundingOutputIndex
         ).toNumber(),
       }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingCancelledEvents}
+   */
+  async getOptimisticMintingCancelledEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingCancelledEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingCancelled",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingCancelledEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        guardian: new Address(event.args!.guardian),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+      }
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getOptimisticMintingFinalizedEvents}
+   */
+  async getOptimisticMintingFinalizedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<OptimisticMintingFinalizedEvent[]> {
+    const events = await this.getEvents(
+      "OptimisticMintingFinalized",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<OptimisticMintingFinalizedEvent>((event) => {
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        minter: new Address(event.args!.minter),
+        depositKey: Hex.from(
+          BigNumber.from(event.args!.depositKey).toHexString()
+        ),
+        depositor: new Address(event.args!.depositor),
+        optimisticMintingDebt: BigNumber.from(
+          event.args!.optimisticMintingDebt
+        ),
+      }
+    })
+  }
+}
+
+/**
+ * Implementation of the Ethereum TBTC v2 token handle.
+ */
+export class TBTCToken
+  extends EthereumContract<ContractTBTC>
+  implements ChainTBTCToken
+{
+  constructor(config: ContractConfig) {
+    super(config, TBTCDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCToken#totalSupply}
+   */
+  async totalSupply(blockNumber?: number): Promise<BigNumber> {
+    return this._instance.totalSupply({
+      blockTag: blockNumber ?? "latest",
     })
   }
 }

@@ -1,0 +1,304 @@
+:toc: macro
+
+= RFC 7: Sweeping coordination
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+Before generating tECDSA signature, the off-chain client software needs to agree
+in the signing group on the message being signed. In tBTC v2, the information
+needed to evaluate the signed message comes from multiple sources that might not
+be ideally synced with each other. Moreover, it is not possible to establish a
+precise point in time based on which the information should be retrieved.
+
+=== Current Functionality
+
+In tBTC v1, the message to be signed is calculated on-chain
+link:https://github.com/keep-network/tbtc/blob/d18ef9aec7656f0ec7d317ece3e3d5c7aca92cda/solidity/contracts/deposit/DepositRedemption.sol#L133-L160[during the redemption request]
+and link:https://github.com/keep-network/tbtc/blob/d18ef9aec7656f0ec7d317ece3e3d5c7aca92cda/solidity/contracts/deposit/DepositRedemption.sol#L291-L316[when increasing the redemption fee].
+Every single deposit is under a separate P2WPKH address and is confirmed with
+SPV proof. This, plus the fact the redemption can be done only one time for the
+given deposit makes it possible to generate the message to be signed on-chain
+and does not require additional coordination between signing group members. The
+signing group members do not have to worry about confirming the P2WPKH deposit
+transaction on Bitcoin because it is covered by the SPV on-chain proof submitted
+to Ethereum by the depositor.
+
+This approach is easy to integrate with off-chain client software but is way
+more expensive on-chain compared to the approach taken by tBTC v2.
+
+In tBTC v2, 51-of-100 tECDSA-backed wallets accept multiple deposits. Depositors
+send BTC to the most-recently-created-wallet using P2SH transaction and reveal
+their deposit transaction to Ethereum chain. The off-chain client software must
+listen for these sorts of events and periodically check the Bitcoin network to
+ensure P2SH deposits are sufficiently confirmed. If everything checks out, the
+off-chain client software should coordinate to produce signatures and perform
+a sweeping Bitcoin transaction that is confirmed on Ethereum with SPV proof and
+updates depositors' balances in the Bridge.
+
+This approach is more cost-effective: it allows to split of the cost of SPV
+proof between multiple depositors and does not require expensive signing group
+key generation for every single deposit. Yet, it requires the off-chain client
+software to coordinate - before producing signatures - to decide which deposits
+should be swept and with what Bitcoin network fee.
+
+== Proposal
+
+This document aims at describing a protocol for reaching an agreement about the
+Bitcoin sweep transaction between the signing group members.
+
+=== Goal
+
+The protocol should tolerate small differences in the state of the world, as
+seen by individual signing group members. It should be compatible with a light
+relay, and support signing retries. All transactions must be sufficiently
+confirmed and the sweep transaction must adhere to the recent Bitcoin network
+fees.
+
+==== Sufficiently confirmed transactions
+
+The P2SH transactions on Bitcoin must be sufficiently confirmed (at least 6
+confirmations) before they are eligible for sweeping. The deposit reveal
+transactions on Ethereum must be sufficiently confirmed (at least 20
+confirmations) before they are eligible for sweeping.
+
+==== No order guaranteed
+
+There is no guarantee which transaction gets a sufficient number of
+confirmations first: Bitcoin P2SH deposit transaction or Ethereum deposit reveal
+transactions. The order in which P2SH deposit transactions gets confirmed on
+Bitcoin does not need to correspond to the order in which deposit reveal
+transaction gets confirmed on Ethereum. There is also no guarantee that the
+Ethereum reveal transaction points to an existing Bitcoin P2SH transaction.
+
+==== State differences
+
+Every tBTC v2 client software instance is connected to different Ethereum and
+Bitcoin clients. Ethereum clients in the network will have a slightly different
+synchronization state at any given point in time. Bitcoin clients in the network
+will also have a slightly different synchronization state. Since the light relay
+is not submitting all Bitcoin headers to Ethereum, there is no way to reference
+from Ethereum to a fixed point in time on Bitcoin. We must accept the fact that
+all tBTC v2 client software will have a slightly different view of the world at
+any point in time.
+
+==== Adhere to network conditions
+
+The Bitcoin sweep transaction must have a fee that allows it to be mined in a
+reasonable time. If the Bitcoin network conditions change, there must be a
+mechanism to increase the fee and replace transactions. The wallet must finish
+the current operation before attempting another one.
+
+==== Retries
+
+The tECDSA protocol used for signing must be able to retry in case some signing
+group members are offline or corrupted.
+
+=== Implementation
+
+==== Coordinator
+
+We introduce a rotating role of Coordinator responsible for proposing a sweep
+Bitcoin transaction. The role of Coordinator rotates every 8 hours across all
+operators in the group. For example, if the group consist of the following
+members: `[0xA, 0xB, 0xC, 0xC, 0xB, 0xD`] the rotation rounds are: `0xA, 0xB,
+0xC, 0xD`. The rotation schedule begins at UNIX epoch (00:00:00 UTC on 1 January
+1970).
+
+==== Sweeping schedule
+
+Sweep can only be proposed by the current Coordinator.
+
+The Coordinator may propose a sweep at any time if either `sweep_period` seconds
+passed since the proof of the last sweep was accepted by the Bridge or if at least
+`sweep_max_deposits` deposits wait in the queue for sweeping.
+In other words, we always attempt to sweep every `sweep_period` seconds, and can
+sweep early if we have enough deposits waiting - at least `sweep_max_deposits`.
+Two aspects put a cap on how many deposits can be swept at once: Ethereum block
+gas limits and the time it takes to sign a sweep transaction input. Given that
+in normal circumstances, the active wallet is not redeeming or moving funds, the
+active wallet can focus on sweeping and optimize its work schedule for this
+operation, depending on the current situation in the Bridge. 
+
+The Coordinator must not propose a sweep if there is currently a pending signing
+operation being executed by the wallet or if the last signed transaction from
+the wallet has not been proven to the Bridge yet.
+
+The Coordinator may slightly delay broadcasting the proposition to give all
+clients in the group a chance to properly recognize a Coordinator rotation.
+
+If we sweep early because a lot of deposits have been revealed, then we don't
+"push back" our scheduled `sweep_period` sweep. Rather, that sweep continues
+as planned.
+
+*Example*: We have a `sweep_period = 8 hours` and `sweep_max_deposits = 15`. At
+08:00 UTC, a sweep just occurred, and the next is scheduled for 16:00 UTC.
+At 10:00 UTC, 15 deposits get revealed which triggers an early sweep due to
+`sweep_max_deposits`. Rather than pushing back the next scheduled sweep to
+18:00 UTC, it remains at 16:00 UTC.
+
+==== Sweep transaction
+
+The Coordinator chooses sufficiently confirmed deposits for the sweep. To avoid
+synchronization problems with deposits on the brink of being sufficiently
+confirmed, the Coordinator may choose deposits with more than 6 confirmations
+on Bitcoin and 20 confirmations on Ethereum. To avoid problems with proving
+large transactions and too many signatures to be executed, the Coordinator
+should not pick more than 15 deposits. The Coordinator chooses the Bitcoin
+transaction fee reflecting the current situation in the Bitcoin network and the
+maximum possible fee accepted by the Bridge. To leave enough time for retries,
+deposits for which Bitcoin transactions unlock for a refund earlier than two
+weeks from now are skipped (`sweeping_refund_safety_time`).
+
+The Coordinator must not propose a sweep if there is currently a pending signing
+operation being executed by the wallet or if the last transaction from the
+wallet does not have 6 Bitcoin confirmations yet.
+
+The Coordinator proposes a sweep over the wallet's broadcast channel.
+
+All signing group members must confirm that all deposits in the proposed sweep
+are sufficiently confirmed, that the maximum number of deposits is not exceeded,
+that the proposed fee reflects the current situation in the Bitcoin network
+plus/minus some margin, that the fee does not exceed the maximum one allowed
+by the Bridge, that all deposit UTXOs can be unlocked with the wallet's public
+key, and that there is enough time to unlock UTXO before the refund.
+
+When proposing a sweep, the Coordinator sets the Ethereum block number at which
+the signing protocol should start. All clients validate if that block's number
+is +-2 blocks from the current one.
+
+If all these requirements are met, the last transaction executed by the wallet
+is sufficiently confirmed, and there is no other signing by the wallet in
+progress, the signing group members proceed with tECDSA signing protocol.
+
+Each UTXO being an input to the sweep transaction is unlocked sequentially in
+a separate signing session. Each signing session begins with an announcement
+phase allowing to exclude offline operators. There is a 30-blocks (~6 minutes)
+timeout for each signing attempt.
+
+If the given signing attempt fails for any reason (error or timeout), the next
+attempt starts exactly 30 blocks after the previous one started.
+
+All signers selected for the given signing attempt must confirm successful
+execution by sending a message with the produced signature over the broadcast
+channel. The signing attempt is considered successful only if all signers
+produced a valid signature. Successful signers broadcast the block number at
+which the signing completed from their perspective in the message with the
+signature. Once all successful execution confirmation messages are received,
+the signing of the next UTXO starts. The start block of the announcement phase
+is set to the highest block number from all the confirmation messages. The block
+must be confirmed as already mined.
+
+==== Benchmarks
+
+The most computationally expensive part of the signing protocol takes 2.08s
+on a 10-core Apple M1 machine for a single signing group member. Assuming the
+client works on a 2-core machine and there are no more than 5 signing group
+members on a single machine, the bottleneck phase should take no more than
+1 minute.
+
+The announcement phase takes always 7 blocks, so ~1.5 minutes assuming 12s block
+time. With 30 blocks timeout for a single attempt, it leaves more than 3 minutes
+for the rest of the signing protocol which should be more than enough.
+This should also be enough for local development when all signing group members
+reside on the same computer. Based on the local benchmarks, the entire signing
+never takes more than 5 minutes locally, and usually, it takes less than 4
+minutes.
+
+Assuming it takes no more than 4 minutes in the happy path to sign a single
+input, it should take no more than an hour to sign 15 inputs. Given that the
+entire sweep operation - including 6 Bitcoin confirmations - should complete
+within 4 hours, it gives just enough time for a single Bitcoin miner fee bump.
+
+==== Retries
+
+
+The signing protocol is non-attributable and we need to retry in case of
+corrupted data:
+
+- With 1 malicious member in a signing group, we need 2 attempts of the protocol
+in the worst case (`P = (99 choose 51) / (100 choose 51) = 0.49`).
+In the worst case, it takes approximately 2h 30min to sign 15 inputs.
+
+- With 2 malicious members in a signing group, we need 5 attempts of the protocol
+in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.2375757575`).
+In the worst case, it takes approximately 7h 30min to sign 15 inputs.
+
+- With 3 malicious members in a signing group, we need 10 attempts of the protocol
+in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.1139393939`).
+In the worst case, it takes approximately 15h to sign 15 inputs.
+
+- With 4 malicious members in a signing group, we need 20 attempts of the
+protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.0540331146`).
+In the worst case, it takes approximately 30h to sign 15 inputs.
+
+- With 5 malicious members in a signing group, we need 40 attempts of the protocol
+in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.0253280224`).
+In the worst case, it takes approximately 60h to sign 15 inputs.
+
+This attack slows down the sweeping schedule but given that the active wallet is
+not performing redemptions or moving funds, it does not affect the funds already
+bridged.
+
+In the first release, the client should assume no more than 3% of the network is
+corrupted and retry the signing of a single input no more than 10 times. If the
+signing of an input failed 10 times, the entire sweep is stopped. This puts the
+group in danger of a fraud challenge from one of the group members but the group
+will have a chance to sweep the deposit during the next sweep window. To defeat
+the fraud challenge, it is enough that the deposit has been swept, and it does
+not matter in which particular transaction (see <<increasing-fee,Increasine Fee>>).
+
+In the first release, the group maintains the signing state in memory, without
+persisting it to disk. It means that if t+1 or more members restarted their
+clients, the current sweep will not succeed, and everyone needs to wait for the
+next sweep window.
+
+[[increasing-fee]]
+==== Increasing fee
+
+At any point in time, the current Coordinator (who is not necessarily the same
+Coordinator who proposed the batch) can propose increasing the Bitcoin fee for
+the sweep transaction that is in the mempool. The signing group members sign the
+transaction if the original transaction is in the mempool for at least
+`sweeping_fee_bump_period` and the fee increase does not exceed the maximum one
+allowed by the Bridge. Given that the wallet is blocked with any other action
+until the sweep transaction is in the mempool, the fee bump signing protocol
+retries until the signature is produced or until the transaction is mined.
+
+When increasing a fee, we increment a fee multiplier:
+`fee_multiplier = fee_multiplier + sweeping_fee_multiplier_increment` and then
+calculate the new fee: `fee = base_fee * fee_multiplier`. We repeat until
+either the transaction posts or the fee exceeds the maximum one allowed by the
+Bridge.
+
+The wallet members must hold all the signed preimages to be able to defeat fraud
+challenges, even if the signatures were not used for the eventually mined
+transaction, that is, the transaction fee was increased.
+
+*Note*: Frauds work in a challenge and defeat-the-challenge mode. The challenger
+provides a signature and sha256 of the preimage. If the wallet signed
+a transaction, submitted it to the mempool, and after some time decided to bump
+up the miner fee providing signature over another transaction, the first
+signature can be used for a challenge.
+
+==== Governable parameters
+
+- `sweeping_refund_safety_time`: The amount of time prior to when a UTXO
+  becomes eligible for a refund where we will not include it in a sweeping
+  transaction.
+- `sweep_period`: The amount of time we wait between scheduled sweeps on a wallet.
+  Set to 8 hours initially.
+- `sweep_max_deposits`: The number of non-dust unswept revealed bitcoin deposits
+  that will trigger an early sweep on a wallet.
+  Set to 15 initially.
+- `sweeping_fee_bump_period`: The amount of time we wait to see if a sweeping
+  transaction is mined before increasing the fee.
+  Set to 1 hour initially.
+- `sweeping_fee_multiplier_increment`: The amount we add to the sweeping fee
+  multiplier each time a sweeping transaction is not mined within the
+  `sweeping_fee_bump_period`. For example, if this param is set to 0.2 and we
+  are currently at 1.6x, then the next time we would try 1.8x.
+  Set to 0.2 initially.
