@@ -1,9 +1,17 @@
-import { EthereumBridge, EthereumTBTCVault } from "@keep-network/tbtc-v2.ts"
+import {
+  EthereumBridge,
+  EthereumTBTCToken,
+  EthereumTBTCVault,
+} from "@keep-network/tbtc-v2.ts"
 import { providers } from "ethers"
 
 import { context, Environment } from "./context"
 
-import type { Bridge, TBTCVault } from "@keep-network/tbtc-v2.ts/dist/src/chain"
+import type {
+  Bridge,
+  TBTCVault,
+  TBTCToken,
+} from "@keep-network/tbtc-v2.ts/dist/src/chain"
 
 const resolve = () => {
   let packageName: string
@@ -47,7 +55,15 @@ const resolve = () => {
     deployedAtBlockNumber: tbtcVaultArtifact.receipt.blockNumber,
   })
 
-  return { bridge, tbtcVault, latestBlock }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require,import/no-dynamic-require
+  const tbtcTokenArtifact = require(`${packageName}/artifacts/TBTC.json`)
+  const tbtcToken: TBTCToken = new EthereumTBTCToken({
+    address: tbtcTokenArtifact.address,
+    signerOrProvider: provider,
+    deployedAtBlockNumber: tbtcTokenArtifact.receipt.blockNumber,
+  })
+
+  return { bridge, tbtcVault, tbtcToken, latestBlock }
 }
 
 export const contracts = resolve()

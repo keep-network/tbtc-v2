@@ -122,7 +122,8 @@ events produced by the monitoring component are:
 * optimistic minting not requested by designated minter,
 * optimistic minting not finalized by designated minter,
 * optimistic minting not requested by any minter,
-* optimistic minting not finalized by any minter.
+* optimistic minting not finalized by any minter,
+* high TBTC token total supply change.
 
 ==== Deposit revealed
 
@@ -221,6 +222,15 @@ finalized by any minter. This event is sent to Sentry hub and should get team’
 attention. The default action is investigating the cause of the minters idleness
 as the underlying deposit may be invalid, minters may be unhealthy/malicious or
 there may be a bug in the minters bot code.
+
+==== High TBTC token total supply change
+
+A *critical system event* indicating that a high change (i.e. >=10%) of the
+total TBTC v2 token supply took place in the last 12 hours. This event is sent
+to Sentry hub and requires an immediate team’s action. The default action is
+checking the root cause of the supply change and making sure its source is
+actually a proper deposit/redemption and there are no signs of any malicious
+action.
 
 == Sentry hub
 
