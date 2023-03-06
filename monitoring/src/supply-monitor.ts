@@ -28,7 +28,13 @@ const HighTotalSupplyChange = (
 })
 
 export interface SupplyMonitorPersistence {
+  // Returns the end block of the check when the alert of the high total
+  // supply change was triggered the last time. If the alert was never
+  // triggered, this is 0.
   lastHighTotalSupplyChangeBlock: () => Promise<number>
+  // Once a high total supply change alert is triggered, this function is
+  // used to update the last alert block using the end block of the current
+  // check.
   updateLastHighTotalSupplyChangeBlock: (block: number) => Promise<void>
 }
 
@@ -49,6 +55,8 @@ export class SupplyMonitor implements SystemEventMonitor {
     // By default, the supply change is checked between the current and
     // reference blocks.
     const currentBlock = toBlock
+    // For this particular monitor, the fromBlock is ignored and referenceBlock
+    // replaces it.
     let referenceBlock =
       currentBlock - totalSupplyBlockSpan > 0
         ? currentBlock - totalSupplyBlockSpan
