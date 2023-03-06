@@ -60,6 +60,17 @@ export class SupplyMonitor implements SystemEventMonitor {
     // the monitor uses the event block as reference in order to not produce
     // a duplicated event. Since the checked window is shorter, the threshold
     // is reduced by half.
+    //
+    // Example of usual case block widow assuming current block is 10000,
+    // reference block is 10000 - 3600 = 6400, and last event occurred at block
+    // 2000 before the reference block:
+    // | --- 2000 -------- 6400 ------ 10000
+    //                      ^            ^
+    // Example of special case block window assuming current block is 10000,
+    // reference block is 10000 - 3600 = 6400, and last event occurred at block
+    // 8500 after the reference block:
+    // | ----------- 6400 --- 8500 -- 10000
+    //                         ^        ^
     const lastEventBlock =
       await this.persistence.lastHighTotalSupplyChangeBlock()
     if (lastEventBlock > referenceBlock) {
