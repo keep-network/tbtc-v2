@@ -61,6 +61,10 @@ describe("VendingMachine - Upgrade", () => {
     ;({ tbtcVault, tbtc, vendingMachine, bank, bridge, relay } =
       await waffle.loadFixture(bridgeFixture))
 
+    // TBTC token ownership transfer is not performed in deployment scripts.
+    // Check TransferTBTCOwnership deployment step for more information.
+    await tbtc.connect(deployer).transferOwnership(vendingMachine.address)
+
     // Set the deposit dust threshold to 0.0001 BTC, i.e. 100x smaller than
     // the initial value in the Bridge in order to save test Bitcoins.
     await bridge.setDepositDustThreshold(10000)
@@ -80,9 +84,6 @@ describe("VendingMachine - Upgrade", () => {
       .connect(account2)
       .approveAndCall(vendingMachine.address, initialTbtcBalance, [])
 
-    // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
-    // do not transfer the ownership of `TBTC` token to `TBTCVault`.
-    // We need to do it manually in tests covering `TBTCVault` behavior.
     await vendingMachine
       .connect(keepTechnicalWalletTeam)
       .initiateVendingMachineUpgrade(tbtcVault.address)

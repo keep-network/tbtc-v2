@@ -48,6 +48,10 @@ describe("VendingMachine", () => {
     tbtcV2 = await helpers.contracts.getContract("TBTC")
     vendingMachine = await helpers.contracts.getContract("VendingMachine")
 
+    // TBTC token ownership transfer is not performed in deployment scripts.
+    // Check TransferTBTCOwnership deployment step for more information.
+    await tbtcV2.connect(deployer).transferOwnership(vendingMachine.address)
+
     await tbtcV1
       .connect(deployer)
       .mint(await tokenHolder.getAddress(), initialBalance)
