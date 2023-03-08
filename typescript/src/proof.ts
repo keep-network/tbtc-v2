@@ -266,7 +266,7 @@ function validateBlockHeadersChain(
     const difficultyTarget = bitsToDifficultyTarget(currentHeader.bits)
 
     const currentBlockHeaderHash = computeHash256(
-      serializeBlockHeader(currentHeader)
+      serializeBlockHeader(currentHeader).toString()
     )
 
     // Ensure the header has sufficient work.
@@ -324,7 +324,9 @@ export function splitHeaders(blockHeaders: string): BlockHeader[] {
 
   const result: BlockHeader[] = []
   for (let i = 0; i < blockHeaders.length; i += 160) {
-    result.push(deserializeBlockHeader(blockHeaders.substring(i, i + 160)))
+    result.push(
+      deserializeBlockHeader(Hex.from(blockHeaders.substring(i, i + 160)))
+    )
   }
 
   return result

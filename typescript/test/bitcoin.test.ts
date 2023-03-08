@@ -378,12 +378,13 @@ describe("Bitcoin", () => {
         nonce: 778087099,
       }
 
-      const expectedSerializedBlockHeader: string =
+      const expectedSerializedBlockHeader = Hex.from(
         "04000020a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef30004566000000" +
-        "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b49649775112" +
-        "939edd612ac0001abbaa602e"
+          "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b496497751" +
+          "12939edd612ac0001abbaa602e"
+      )
 
-      expect(serializeBlockHeader(blockHeader)).to.be.equal(
+      expect(serializeBlockHeader(blockHeader)).to.be.deep.equal(
         expectedSerializedBlockHeader
       )
     })
@@ -391,10 +392,11 @@ describe("Bitcoin", () => {
 
   describe("deserializeBlockHeader", () => {
     it("calculates correct value", () => {
-      const rawBlockHeader: string =
+      const rawBlockHeader = Hex.from(
         "04000020a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef30004566000000" +
-        "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b49649775112" +
-        "939edd612ac0001abbaa602e"
+          "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b496497751" +
+          "12939edd612ac0001abbaa602e"
+      )
 
       const expectedBlockHeader: BlockHeader = {
         version: 536870916,

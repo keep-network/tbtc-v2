@@ -217,7 +217,7 @@ export interface BlockHeader {
  * @param blockHeader - block header.
  * @returns Serialized block header.
  */
-export function serializeBlockHeader(blockHeader: BlockHeader): string {
+export function serializeBlockHeader(blockHeader: BlockHeader): Hex {
   const buffer = Buffer.alloc(80)
   buffer.writeUInt32LE(blockHeader.version, 0)
   blockHeader.previousBlockHeaderHash.toBuffer().copy(buffer, 4)
@@ -225,7 +225,7 @@ export function serializeBlockHeader(blockHeader: BlockHeader): string {
   buffer.writeUInt32LE(blockHeader.time, 68)
   buffer.writeUInt32LE(blockHeader.bits, 72)
   buffer.writeUInt32LE(blockHeader.nonce, 76)
-  return buffer.toString("hex")
+  return Hex.from(buffer)
 }
 
 /**
@@ -233,8 +233,8 @@ export function serializeBlockHeader(blockHeader: BlockHeader): string {
  * @param rawBlockHeader - BlockHeader in the raw format.
  * @returns Block header as a BlockHeader.
  */
-export function deserializeBlockHeader(rawBlockHeader: string): BlockHeader {
-  const buffer = Hex.from(rawBlockHeader).toBuffer()
+export function deserializeBlockHeader(rawBlockHeader: Hex): BlockHeader {
+  const buffer = rawBlockHeader.toBuffer()
   const version = buffer.readUInt32LE(0)
   const previousBlockHeaderHash = buffer.slice(4, 36)
   const merkleRootHash = buffer.slice(36, 68)
