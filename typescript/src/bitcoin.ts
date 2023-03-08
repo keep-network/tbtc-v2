@@ -253,18 +253,16 @@ export function deserializeBlockHeader(rawBlockHeader: Hex): BlockHeader {
 }
 
 /**
- * Converts a block header's bits into difficulty target.
+ * Converts a block header's bits into target.
  * @param bits - bits from block header.
- * @returns Difficulty target as a BigNumber.
+ * @returns Target as a BigNumber.
  */
-export function bitsToDifficultyTarget(bits: number): BigNumber {
+export function bitsToTarget(bits: number): BigNumber {
   const exponent = ((bits >>> 24) & 0xff) - 3
   const mantissa = bits & 0xffffff
 
-  const difficultyTarget = BigNumber.from(mantissa).mul(
-    BigNumber.from(256).pow(exponent)
-  )
-  return difficultyTarget
+  const target = BigNumber.from(mantissa).mul(BigNumber.from(256).pow(exponent))
+  return target
 }
 
 /**

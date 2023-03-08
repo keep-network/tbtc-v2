@@ -9,7 +9,7 @@ import {
   serializeBlockHeader,
   deserializeBlockHeader,
   hashLEToBigNumber,
-  bitsToDifficultyTarget,
+  bitsToTarget,
   targetToDifficulty,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
@@ -428,15 +428,13 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("bitsToDifficultyTarget", () => {
+  describe("bitsToTarget", () => {
     it("calculates correct value for random block header bits", () => {
       const difficultyBits = 436256810
       const expectedDifficultyTarget = BigNumber.from(
         "1206233370197704583969288378458116959663044038027202007138304"
       )
-      expect(bitsToDifficultyTarget(difficultyBits)).to.equal(
-        expectedDifficultyTarget
-      )
+      expect(bitsToTarget(difficultyBits)).to.equal(expectedDifficultyTarget)
     })
 
     it("calculates correct value for block header with difficulty of 1", () => {
@@ -444,9 +442,7 @@ describe("Bitcoin", () => {
       const expectedDifficultyTarget = BigNumber.from(
         "26959535291011309493156476344723991336010898738574164086137773096960"
       )
-      expect(bitsToDifficultyTarget(difficultyBits)).to.equal(
-        expectedDifficultyTarget
-      )
+      expect(bitsToTarget(difficultyBits)).to.equal(expectedDifficultyTarget)
     })
   })
 

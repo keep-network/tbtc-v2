@@ -6,7 +6,7 @@ import {
   TransactionHash,
   computeHash256,
   deserializeBlockHeader,
-  bitsToDifficultyTarget,
+  bitsToTarget,
   targetToDifficulty,
   hashLEToBigNumber,
   serializeBlockHeader,
@@ -263,7 +263,7 @@ function validateBlockHeadersChain(
       }
     }
 
-    const difficultyTarget = bitsToDifficultyTarget(currentHeader.bits)
+    const difficultyTarget = bitsToTarget(currentHeader.bits)
 
     const currentBlockHeaderHash = computeHash256(
       serializeBlockHeader(currentHeader).toString()
