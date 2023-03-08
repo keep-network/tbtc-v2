@@ -180,34 +180,37 @@ export interface TransactionMerkleBranch {
 export interface BlockHeader {
   /**
    * The block version number that indicates which set of block validation rules
-   * to follow.
+   * to follow. The field is 4-byte long.
    */
   version: number
 
   /**
-   * The hash of the previous block's header.
+   * The hash of the previous block's header. The field is 32-byte long.
    */
   previousBlockHeaderHash: Hex
 
   /**
    * The hash derived from the hashes of all transactions included in this block.
+   * The field is 32-byte long.
    */
   merkleRootHash: Hex
 
   /**
-   * The Unix epoch time when the miner started hashing the header.
+   * The Unix epoch time when the miner started hashing the header. The field is
+   * 4-byte long.
    */
   time: number
 
   /**
    * Bits that determine the target threshold this block's header hash must be
-   * less than or equal to.
+   * less than or equal to. The field is 4-byte long.
    */
   bits: number
 
   /**
    * An arbitrary number miners change to modify the header hash in order to
-   * produce a hash less than or equal to the target threshold.
+   * produce a hash less than or equal to the target threshold. The field is
+   * 4-byte long.
    */
   nonce: number
 }
