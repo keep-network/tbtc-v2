@@ -17,9 +17,8 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./L2TBTC.sol";
 import "../token/TBTC.sol";
@@ -78,10 +77,10 @@ interface IWormholeTokenBridge {
 /// @dev This contract is supposed to be deployed behind a transparent
 ///      upgradeable proxy.
 contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IWormholeTokenBridge public bridge;
-    IERC20 public bridgeToken; // wormhole tBTC token representation
+    IERC20Upgradeable public bridgeToken; // wormhole tBTC token representation
     L2TBTC public tbtc;
 
     // TODO: an absolute, governable minting limit for early days?
@@ -90,7 +89,7 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
 
     function initialize(
         IWormholeTokenBridge _bridge,
-        IERC20 _bridgeToken,
+        IERC20Upgradeable _bridgeToken,
         L2TBTC _tbtc
     ) external initializer {
         __ReentrancyGuard_init();
@@ -108,6 +107,7 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
             "L2TBTC token address must not be 0x0"
         );
 
+        bridge = _bridge;
         bridgeToken = _bridgeToken;
         tbtc = _tbtc;
     }
