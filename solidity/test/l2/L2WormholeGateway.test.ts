@@ -196,6 +196,12 @@ describe("L2WormholeGateway", () => {
           )
           .withArgs(encodedVm)
       })
+
+      it("should emit the WormholeTbtcReceived event", async () => {
+        await expect(tx)
+          .to.emit(gateway, "WormholeTbtcReceived")
+          .withArgs(depositor.address, transferAmount)
+      })
     })
   })
 
@@ -278,6 +284,12 @@ describe("L2WormholeGateway", () => {
             arbiterFee,
             nonce
           )
+      })
+
+      it("should emit the WormholeTbtcSent event", async () => {
+        await expect(tx)
+          .to.emit(gateway, "WormholeTbtcSent")
+          .withArgs(amount, recipientChain, recipient, arbiterFee, nonce)
       })
     })
   })

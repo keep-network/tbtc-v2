@@ -85,7 +85,15 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
 
     // TODO: an absolute, governable minting limit for early days?
 
-    // TODO: events?
+    event WormholeTbtcReceived(address receiver, uint256 amount);
+
+    event WormholeTbtcSent(
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint256 arbiterFee,
+        uint32 nonce
+    );
 
     function initialize(
         IWormholeTokenBridge _bridge,
@@ -142,6 +150,8 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         address receiver = abi.decode(payload, (address));
         require(receiver != address(0), "0x0 receiver not allowed");
         tbtc.mint(receiver, amount);
+
+        emit WormholeTbtcReceived(receiver, amount);
     }
 
     /// @notice This function is called when the user sends their token from L2.
@@ -174,6 +184,14 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         require(
             bridgeToken.balanceOf(address(this)) >= amount,
             "Not enough liquidity in wormhole to bridge"
+        );
+
+        emit WormholeTbtcSent(
+            amount,
+            recipientChain,
+            recipient,
+            arbiterFee,
+            nonce
         );
 
         tbtc.burnFrom(msg.sender, amount);
