@@ -1,0 +1,199 @@
+name: Generate and publish contracts documentation 
+
+on:
+  workflow_call:
+    inputs:
+      projectSubfolder:
+        description: A root's subfolder containing `contracts` folder and
+          Yarn / Hardhat configuration. Leave empty ('') if project config 
+          resides in the root. If config resides in subfolder, provide the
+          subfolder name/path, without leading `.` and ending `/`. For example,
+          type `/v2/solidity` if path to the `contracts` folder
+          is `./v2/solidity/contracts`.
+        required: false
+        default: ''
+        type: string
+      preProcessingCommand:
+        description: An optional additional bash command to be executed before
+          transforming the Solidity files to an HTML file.
+        required: false
+        type: string
+      docName:
+        description: A name (without extension) of the generated file (for
+          example, 'tbtc-v2-contracts'); will be used in the final URL.
+        required: true
+        type: string
+      publish:
+        description: True if you want to publish the generated HTML file to the
+          GCR bucket (main or preview).
+        required: false
+        default: true
+        type: boolean
+      gcpProject:
+        description: A name of the GCP project hosting the bucket where the
+          generated HTML file will land. Required if publish=true.
+        required: false
+        type: string
+      gcpBucketName:
+        description: A name of the the bucket where the generated HTML file will
+          land. Required if publish=true.
+        required: false
+        type: string
+      gcpBucketPath:
+        description: A bucket's subfolder where the generated HTML file will
+          land. If no subfolder is to be used, please type `.`. For publishing
+          previews of the documentation we suggest using a path with the ref
+          name at the end of the path (`/dollar{{ github.ref_name }}`,
+          where `dollar` is `$`).
+        required: false
+        default: '.'
+        type: string
+      commentPR:
+        description: True if you want to add a comment with the path to the
+          generated file in the PR invoking the workflow. If workflow is not
+          triggered by the PR, having this input set to `true` will not brake
+          the execution.
+        required: false
+        default: true
+        type: boolean
+      debug:
+        description: True if you want to see the generated artifacts in GH run
+          details.
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      gcpServiceKeyBase64:
+        description: GCP service key encoded as base64. The account associated
+          with the key should have permissions to make changes in the storage
+          bucket.
+        required: false
+
+jobs:
+  docs-generate-html-and-publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .${{ inputs.projectSubfolder }}
+    steps:
+      - uses: actions/checkout@v3
+
+      # In this step we modify the format of the comments in the Solidity
+      # contracts files. We do that because our original formatting is not
+      # processed by Docgen in the way we would like.
+      # To nicely display lists (like the list of requirements) we need to
+      # remove multiple space chars after the `///` comment. We do that by
+      # executing `sed 's_///[[:blank:]]*_///_'` on all contracts files, which
+      # substitutes `///` + 0 or more spaces/tabs with just `///`.
+
+      - name: Prepare contract files for further processing
+        shell: bash
+        run: |
+          find ./contracts \
+            -name "*.sol" \
+            -type f \
+            -exec sed -i 's_///[[:blank:]]*_///_' {} \;
+      
+      - name: Execute additional command
+        if: inputs.preProcessingCommand != null
+        shell: bash
+        run: ${{ inputs.preProcessingCommand }}
+
+      - name: Export artifacts
+        if: inputs.debug == true
+        uses: actions/upload-artifact@master
+        with:
+          name: modified-contracts
+          path: .${{ inputs.projectSubfolder }}/contracts
+
+      # We need this step because the `@keep-network/tbtc` which we update in
+      # next steps has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`. This step also prevents the
+      # error during `yarn install --frozen-lockfile` step in case `git://` gets
+      # introduced to tbtc-v2's `yarn.lock`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Install dependencies
+        shell: bash
+        run: yarn install --frozen-lockfile
+
+      - name: Build Markdown docs # Outputs file to `.${{ inputs.projectSubfolder }}/generated-docs/index.md`
+        run: yarn run hardhat docgen
+
+      - name: Export artifacts
+        if: inputs.debug == true
+        uses: actions/upload-artifact@master
+        with:
+          name: md
+          path: .${{ inputs.projectSubfolder }}/generated-docs
+
+      # We need Ruby to install Kramdown AsciiDoc
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1.138.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install Kramdown AsciiDoc
+        shell: bash
+        run: gem install kramdown-asciidoc
+
+      - name: Convert Markdown to Asciidoc
+        shell: bash
+        run: kramdoc --output=./generated-docs/${{ inputs.docName }}.adoc ./generated-docs/index.md
+
+      - name: Add Table of Contents
+        shell: bash
+        run: |
+          sed -i '1s/^/:toclevels: 1 \n/' ./generated-docs/${{ inputs.docName }}.adoc
+          sed -i '1s/^/:toc: left \n/' ./generated-docs/${{ inputs.docName }}.adoc
+
+      - name: Export artifacts
+        if: inputs.debug == true
+        uses: actions/upload-artifact@master
+        with:
+          name: adoc
+          path: .${{ inputs.projectSubfolder }}/generated-docs
+
+      - name: Build HTML docs
+        id: html
+        uses: thesis/asciidoctor-action@v1.1
+        with:
+          files: '.${{ inputs.projectSubfolder }}/generated-docs/${{ inputs.docName }}.adoc'
+          args: '-a revdate=`date +%Y-%m-%d` --failure-level=ERROR'
+
+      - name: Export artifacts
+        if: inputs.debug == true
+        uses: actions/upload-artifact@master
+        with:
+          name: asciidoc-out
+          path: ./asciidoc-out
+
+      - name: Upload asciidocs preview
+        if: inputs.publish == true
+        uses: thesis/gcp-storage-bucket-action@v3.1.0
+        with:
+          service-key: ${{ secrets.gcpServiceKeyBase64 }}
+          project: ${{ inputs.gcpProject }}
+          bucket-name: ${{ inputs.gcpBucketName }}
+          bucket-path: ${{ inputs.gcpBucketPath }}
+          build-folder: ${{ steps.html.outputs.asciidoctor-artifacts }}${{ inputs.projectSubfolder }}/generated-docs
+
+      - name: Post preview URL to PR
+        if: |
+          inputs.publish == true
+            && inputs.commentPR == true
+            && startsWith(github.ref, 'refs/pull')
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Documentation preview uploaded to https://${{ inputs.gcpBucketName }}/${{ inputs.gcpBucketPath }}/${{ inputs.docName }}.html.'
+            })
