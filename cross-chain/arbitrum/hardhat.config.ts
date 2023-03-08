@@ -7,7 +7,6 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 import "hardhat-deploy"
-import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 
@@ -41,7 +40,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.ACCOUNTS_L1_PRIVATE_KEYS
         ? process.env.ACCOUNTS_L1_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["tenderly"],
+      tags: ["etherscan"],
     },
     mainnetEthereum: {
       url: process.env.CHAIN_L1_API_URL || "",
@@ -50,7 +49,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.ACCOUNTS_L1_PRIVATE_KEYS
         ? process.env.ACCOUNTS_L1_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["etherscan", "tenderly"],
+      tags: ["etherscan"],
     },
     goerliArbitrum: {
       url: process.env.CHAIN_L2_API_URL || "",
@@ -59,7 +58,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.ACCOUNTS_L2_PRIVATE_KEYS
         ? process.env.ACCOUNTS_L2_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["tenderly"],
+      tags: ["arbiscan"],
       companionNetworks: {
         l1: "goerliEthereum",
       },
@@ -71,16 +70,11 @@ const config: HardhatUserConfig = {
       accounts: process.env.ACCOUNTS_L2_PRIVATE_KEYS
         ? process.env.ACCOUNTS_L2_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["arbiscan", "tenderly"],
+      tags: ["arbiscan"],
       companionNetworks: {
         l1: "mainnetEthereum",
       },
     },
-  },
-
-  tenderly: {
-    username: "thesis",
-    project: "",
   },
 
   external: {
@@ -89,6 +83,13 @@ const config: HardhatUserConfig = {
       goerliArbitrum: ["./external/goerliArbitrum"],
       mainnetEthereum: ["./external/mainnetEthereum"],
       mainnetArbitrum: ["./external/mainnetArbitrum"],
+    },
+  },
+
+  etherscan: {
+    apiKey: {
+      goerli: process.env.ETHERSCAN_GOERLI_API_KEY,
+      arbitrumGoerli: process.env.ARBISCAN_GOERLI_API_KEY,
     },
   },
 
