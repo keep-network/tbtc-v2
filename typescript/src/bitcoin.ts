@@ -261,6 +261,40 @@ export function deserializeBlockHeader(rawBlockHeader: Hex): BlockHeader {
  * @returns Target as a BigNumber.
  */
 export function bitsToTarget(bits: number): BigNumber {
+  // A serialized 80-byte block header stores the `bits` value as a 4-byte
+  // little-endian hexadecimal value in a slot including bytes 73, 74, 75, and
+  // 76. This function's input argument is expected to be a numerical
+  // representation of that 4-byte value reverted to the big-endian order.
+  // For example, if the `bits` little-endian value in the header is
+  // `0xcb04041b`, it must be reverted to the big-endian form `0x1b0404cb` and
+  // turned to a decimal number `453248203` in order to be used as this
+  // function's input.
+  //
+  // The `bits` 4-byte big-endian representation is a compact value that works
+  // like a base-256 version of scientific notation. It encodes the target
+  // exponent in the first byte and the target mantissa in the last three bytes.
+  // Referring to the previous example, if `bits = 453248203`, the hexadecimal
+  // representation is `0x1b0404cb` so the exponent is `0x1b` while the mantissa
+  // is `0x0404cb`.
+  //
+  // To extract the exponent, we need to shift right by 3 bytes (24 bits),
+  // extract the last byte of the result, and subtract 3 (because of the
+  // mantissa length):
+  // - 0x1b0404cb >>> 24 = 0x0000001b
+  // - 0x0000001b & 0xff = 0x1b
+  // - 0x1b - 3 = 24 (decimal)
+  //
+  // To extract the mantissa, we just need to take the last three bytes:
+  // - 0x1b0404cb & 0xffffff = 0x0404cb = 263371 (decimal)
+  //
+  // The final difficulty can be computed as mantissa * 256^exponent:
+  // - 263371 * 256^24 =
+  // 1653206561150525499452195696179626311675293455763937233695932416 (decimal)
+  //
+  // Sources:
+  // - https://developer.bitcoin.org/reference/block_chain.html#target-nbits
+  // - https://wiki.bitcoinsv.io/index.php/Target
+
   const exponent = ((bits >>> 24) & 0xff) - 3
   const mantissa = bits & 0xffffff
 
