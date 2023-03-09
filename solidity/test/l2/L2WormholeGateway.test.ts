@@ -208,6 +208,10 @@ describe("L2WormholeGateway", () => {
             .to.emit(gateway, "WormholeTbtcReceived")
             .withArgs(depositor1.address, transferAmount)
         })
+
+        it("should increase the minted amount counter", async () => {
+          expect(await gateway.mintedAmount()).to.equal(transferAmount)
+        })
       })
 
       context("when the minting limit was reached", () => {
@@ -253,6 +257,12 @@ describe("L2WormholeGateway", () => {
         it("should send wormhole tBTC to the receiver after reaching the minting limit", async () => {
           // the last call to receiveWormhole exceeded the minting limit
           expect(await wormholeTbtc.balanceOf(depositor2.address)).to.equal(10)
+        })
+
+        it("should increase the minted amount counter", async () => {
+          // minted 40 + 40 + 19 canonical tBTC; the last bridge transfer did
+          // not lead to minting given the minting limit was reached
+          expect(await gateway.mintedAmount()).to.equal(99)
         })
       })
     })

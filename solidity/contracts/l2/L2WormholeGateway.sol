@@ -173,17 +173,16 @@ contract L2WormholeGateway is
         address receiver = abi.decode(payload, (address));
         require(receiver != address(0), "0x0 receiver not allowed");
 
-        // Function is nonReentrant and we need to update the balance with
-        // a call to completeTransferWithPayload first to know the amount.
-        // slither-disable-next-line reentrancy-benign
-        mintedAmount += amount;
-
         // We send wormhole tBTC OR mint canonical tBTC. We do not want to send
         // dust. Sending wormhole tBTC is an exceptional situation and we want
         // to keep it simple.
-        if (mintedAmount > mintingLimit) {
+        if (mintedAmount + amount > mintingLimit) {
             bridgeToken.safeTransfer(receiver, amount);
         } else {
+            // Function is nonReentrant and we need to update the balance with
+            // a call to completeTransferWithPayload first to know the amount.
+            // slither-disable-next-line reentrancy-benign
+            mintedAmount += amount;
             tbtc.mint(receiver, amount);
         }
 
