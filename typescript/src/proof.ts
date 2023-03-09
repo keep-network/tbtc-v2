@@ -123,7 +123,7 @@ export async function validateTransactionProof(
 
   validateMerkleTree(
     transactionHash,
-    merkleRootHash.toString(),
+    merkleRootHash,
     proof.merkleProof,
     proof.txIndexInBlock
   )
@@ -151,13 +151,13 @@ export async function validateTransactionProof(
  */
 function validateMerkleTree(
   transactionHash: TransactionHash,
-  merkleRootHash: string,
+  merkleRootHash: Hex,
   intermediateNodeHashes: string,
   transactionIndex: number
 ) {
   // Shortcut the empty-block case
   if (
-    transactionHash.reverse().toString() == merkleRootHash &&
+    transactionHash.reverse().equals(merkleRootHash) &&
     transactionIndex == 0 &&
     intermediateNodeHashes.length == 0
   ) {
@@ -191,7 +191,7 @@ function validateMerkleTree(
 function validateMerkleTreeHashes(
   transactionHash: TransactionHash,
   intermediateNodesHashes: string,
-  merkleRootHash: string,
+  merkleRootHash: Hex,
   transactionIndex: number
 ) {
   if (
@@ -218,7 +218,7 @@ function validateMerkleTreeHashes(
     idx = idx >> 1
   }
 
-  if (current.toString() !== merkleRootHash) {
+  if (!current.equals(merkleRootHash)) {
     throw new Error(
       "Transaction Merkle proof is not valid for provided header and transaction hash"
     )
