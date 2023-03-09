@@ -122,7 +122,7 @@ export async function validateTransactionProof(
   const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
 
   validateMerkleTree(
-    transactionHash.reverse().toString(),
+    transactionHash,
     merkleRootHash.toString(),
     proof.merkleProof,
     proof.txIndexInBlock
@@ -150,14 +150,14 @@ export async function validateTransactionProof(
  * @returns An empty return value.
  */
 function validateMerkleTree(
-  transactionHash: string,
+  transactionHash: TransactionHash,
   merkleRootHash: string,
   intermediateNodeHashes: string,
   transactionIndex: number
 ) {
   // Shortcut the empty-block case
   if (
-    transactionHash == merkleRootHash &&
+    transactionHash.reverse().toString() == merkleRootHash &&
     transactionIndex == 0 &&
     intermediateNodeHashes.length == 0
   ) {
@@ -189,7 +189,7 @@ function validateMerkleTree(
  * @returns An empty return value.
  */
 function validateMerkleTreeHashes(
-  transactionHash: string,
+  transactionHash: TransactionHash,
   intermediateNodesHashes: string,
   merkleRootHash: string,
   transactionIndex: number
@@ -202,23 +202,23 @@ function validateMerkleTreeHashes(
   }
 
   let idx = transactionIndex
-  let current = transactionHash
+  let current = transactionHash.reverse()
 
   // i moves in increments of 64
   for (let i = 0; i < intermediateNodesHashes.length; i += 64) {
     if (idx % 2 === 1) {
       current = computeHash256(
         Hex.from(intermediateNodesHashes.slice(i, i + 64) + current)
-      ).toString()
+      )
     } else {
       current = computeHash256(
         Hex.from(current + intermediateNodesHashes.slice(i, i + 64))
-      ).toString()
+      )
     }
     idx = idx >> 1
   }
 
-  if (current !== merkleRootHash) {
+  if (current.toString() !== merkleRootHash) {
     throw new Error(
       "Transaction Merkle proof is not valid for provided header and transaction hash"
     )
