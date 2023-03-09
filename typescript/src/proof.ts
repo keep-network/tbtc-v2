@@ -119,12 +119,14 @@ export async function validateTransactionProof(
   if (bitcoinHeaders.length != requiredConfirmations) {
     throw new Error("Wrong number of confirmations")
   }
+
   const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
+  const intermediateNodesHashes: Hex[] = splitMerkleProof(proof.merkleProof)
 
   validateMerkleTree(
     transactionHash,
     merkleRootHash,
-    proof.merkleProof,
+    intermediateNodesHashes,
     proof.txIndexInBlock
   )
 
@@ -152,7 +154,7 @@ export async function validateTransactionProof(
 function validateMerkleTree(
   transactionHash: TransactionHash,
   merkleRootHash: Hex,
-  intermediateNodeHashes: string,
+  intermediateNodeHashes: Hex[],
   transactionIndex: number
 ) {
   // Shortcut the empty-block case
@@ -191,28 +193,24 @@ function validateMerkleTree(
 function validateMerkleTreeHashes(
   transactionHash: TransactionHash,
   merkleRootHash: Hex,
-  intermediateNodesHashes: string,
+  intermediateNodesHashes: Hex[],
   transactionIndex: number
 ) {
-  if (
-    intermediateNodesHashes.length === 0 ||
-    intermediateNodesHashes.length % 64 !== 0
-  ) {
+  if (intermediateNodesHashes.length === 0) {
     throw new Error("Invalid merkle tree")
   }
 
   let idx = transactionIndex
   let current = transactionHash.reverse()
 
-  // i moves in increments of 64
-  for (let i = 0; i < intermediateNodesHashes.length; i += 64) {
+  for (let i = 0; i < intermediateNodesHashes.length; i++) {
     if (idx % 2 === 1) {
       current = computeHash256(
-        Hex.from(intermediateNodesHashes.slice(i, i + 64) + current)
+        Hex.from(intermediateNodesHashes[i].toString() + current.toString())
       )
     } else {
       current = computeHash256(
-        Hex.from(current + intermediateNodesHashes.slice(i, i + 64))
+        Hex.from(current.toString() + intermediateNodesHashes[i].toString())
       )
     }
     idx = idx >> 1
@@ -308,6 +306,25 @@ function validateBlockHeadersChain(
     // be at current difficulty as well.
     requireCurrentDifficulty = difficulty.eq(currentEpochDifficulty)
   }
+}
+
+/**
+ * Splits a given Merkle proof string into an array of intermediate node hashes.
+ * @param merkleProof A string representation of the Merkle proof.
+ * @returns An array of intermediate node hashes.
+ * @throws {Error} If the length of the Merkle proof is not a multiple of 64.
+ */
+export function splitMerkleProof(merkleProof: string): Hex[] {
+  if (merkleProof.length % 64 != 0) {
+    throw new Error("Incorrect length of Merkle proof")
+  }
+
+  const intermediateNodeHashes: Hex[] = []
+  for (let i = 0; i < merkleProof.length; i += 64) {
+    intermediateNodeHashes.push(Hex.from(merkleProof.slice(i, i + 64)))
+  }
+
+  return intermediateNodeHashes
 }
 
 /**
