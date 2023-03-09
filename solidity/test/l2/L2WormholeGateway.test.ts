@@ -83,17 +83,20 @@ describe("L2WormholeGateway", () => {
     const gateway = deployment[0] as L2WormholeGateway
 
     //
-    // Wire up contracts.
+    // Wire up contracts and transfer ownership.
     //
     await canonicalTbtc.addMinter(gateway.address)
     await wormholeTbtc.transferOwnership(wormholeBridgeStub.address)
+    await gateway.transferOwnership(governance.address)
 
     const accounts = await getUnnamedAccounts()
-    depositor = await ethers.getSigner(accounts[1])
+    const depositor1 = await ethers.getSigner(accounts[1])
+    const depositor2 = await ethers.getSigner(accounts[2])
 
     return {
       governance,
-      depositor,
+      depositor1,
+      depositor2,
       wormholeTbtc,
       canonicalTbtc,
       wormholeBridgeStub,
@@ -107,7 +110,8 @@ describe("L2WormholeGateway", () => {
     "0x1230000000000000000000000000000000000000000000000000000000000321"
 
   let governance: SignerWithAddress
-  let depositor: SignerWithAddress
+  let depositor1: SignerWithAddress
+  let depositor2: SignerWithAddress
   let wormholeTbtc: TestERC20
   let canonicalTbtc: L2TBTC
   let wormholeBridgeStub: WormholeBridgeStub
@@ -117,7 +121,8 @@ describe("L2WormholeGateway", () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;({
       governance,
-      depositor,
+      depositor1,
+      depositor2,
       wormholeTbtc,
       canonicalTbtc,
       wormholeBridgeStub,
@@ -160,47 +165,95 @@ describe("L2WormholeGateway", () => {
     })
 
     context("when receiver is non-zero address", () => {
-      const transferAmount = 13373
+      context("when the minting limit was not reached", () => {
+        const transferAmount = 13373
 
-      let tx: ContractTransaction
+        let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
-        await wormholeBridgeStub.setReceiverAddress(depositor.address)
-        await wormholeBridgeStub.setTransferAmount(transferAmount)
+        before(async () => {
+          await createSnapshot()
+          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setTransferAmount(transferAmount)
 
-        tx = await gateway.receiveWormhole(encodedVm)
-      })
+          tx = await gateway.receiveWormhole(encodedVm)
+        })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-      it("should transfer wormhole tBTC to the contract", async () => {
-        expect(await wormholeTbtc.balanceOf(gateway.address)).to.equal(
-          transferAmount
-        )
-      })
-
-      it("should mint tBTC to the receiver", async () => {
-        expect(await canonicalTbtc.balanceOf(depositor.address)).to.equal(
-          transferAmount
-        )
-      })
-
-      it("should complete transfer with the bridge", async () => {
-        await expect(tx)
-          .to.emit(
-            wormholeBridgeStub,
-            "WormholeBridgeStub_completeTransferWithPayload"
+        it("should transfer wormhole tBTC to the contract", async () => {
+          expect(await wormholeTbtc.balanceOf(gateway.address)).to.equal(
+            transferAmount
           )
-          .withArgs(encodedVm)
+        })
+
+        it("should mint tBTC to the receiver", async () => {
+          expect(await canonicalTbtc.balanceOf(depositor1.address)).to.equal(
+            transferAmount
+          )
+        })
+
+        it("should complete transfer with the bridge", async () => {
+          await expect(tx)
+            .to.emit(
+              wormholeBridgeStub,
+              "WormholeBridgeStub_completeTransferWithPayload"
+            )
+            .withArgs(encodedVm)
+        })
+
+        it("should emit the WormholeTbtcReceived event", async () => {
+          await expect(tx)
+            .to.emit(gateway, "WormholeTbtcReceived")
+            .withArgs(depositor1.address, transferAmount)
+        })
       })
 
-      it("should emit the WormholeTbtcReceived event", async () => {
-        await expect(tx)
-          .to.emit(gateway, "WormholeTbtcReceived")
-          .withArgs(depositor.address, transferAmount)
+      context("when the minting limit was reached", () => {
+        before(async () => {
+          await createSnapshot()
+          await gateway.connect(governance).setMintingLimit(100)
+
+          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setTransferAmount(40)
+          await gateway.receiveWormhole(encodedVm)
+
+          await wormholeBridgeStub.setReceiverAddress(depositor2.address)
+          await wormholeBridgeStub.setTransferAmount(40)
+          await gateway.receiveWormhole(encodedVm)
+
+          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setTransferAmount(19)
+          await gateway.receiveWormhole(encodedVm)
+
+          await wormholeBridgeStub.setReceiverAddress(depositor2.address)
+          await wormholeBridgeStub.setTransferAmount(10)
+          await gateway.receiveWormhole(encodedVm)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should transfer wormhole tBTC to the contract", async () => {
+          // 40 + 40 + 19 + 10 transferred to the contract, the last 10
+          // sent to the depositor2 after reaching the minting limit
+          expect(await wormholeTbtc.balanceOf(gateway.address)).to.equal(99)
+        })
+
+        it("should mint tBTC to the receiver before reaching the minting limit", async () => {
+          // 40 + 19, minting limit not exceeded
+          expect(await canonicalTbtc.balanceOf(depositor1.address)).to.equal(59)
+
+          // 40, then the minting limit exceeded
+          expect(await canonicalTbtc.balanceOf(depositor2.address)).to.equal(40)
+        })
+
+        it("should send wormhole tBTC to the receiver after reaching the minting limit", async () => {
+          // the last call to receiveWormhole exceeded the minting limit
+          expect(await wormholeTbtc.balanceOf(depositor2.address)).to.equal(10)
+        })
       })
     })
   })
@@ -217,7 +270,7 @@ describe("L2WormholeGateway", () => {
     before(async () => {
       await createSnapshot()
 
-      await wormholeBridgeStub.setReceiverAddress(depositor.address)
+      await wormholeBridgeStub.setReceiverAddress(depositor1.address)
       await wormholeBridgeStub.setTransferAmount(liquidity)
 
       await gateway.receiveWormhole(encodedVm)
@@ -231,7 +284,7 @@ describe("L2WormholeGateway", () => {
       it("should revert", async () => {
         await expect(
           gateway
-            .connect(depositor)
+            .connect(depositor1)
             .sendWormhole(
               liquidity + 1,
               recipientChain,
@@ -251,9 +304,9 @@ describe("L2WormholeGateway", () => {
       before(async () => {
         await createSnapshot()
 
-        await canonicalTbtc.connect(depositor).approve(gateway.address, amount)
+        await canonicalTbtc.connect(depositor1).approve(gateway.address, amount)
         tx = await gateway
-          .connect(depositor)
+          .connect(depositor1)
           .sendWormhole(amount, recipientChain, recipient, arbiterFee, nonce)
       })
 
@@ -264,7 +317,7 @@ describe("L2WormholeGateway", () => {
       it("should burn canonical tBTC from the caller", async () => {
         expect(tx)
           .to.emit(canonicalTbtc, "Transfer")
-          .withArgs(depositor.address, ZERO_ADDRESS, amount)
+          .withArgs(depositor1.address, ZERO_ADDRESS, amount)
       })
 
       it("should approve burned amount of wormhole tBTC to the bridge", async () => {
@@ -290,6 +343,37 @@ describe("L2WormholeGateway", () => {
         await expect(tx)
           .to.emit(gateway, "WormholeTbtcSent")
           .withArgs(amount, recipientChain, recipient, arbiterFee, nonce)
+      })
+    })
+  })
+
+  describe("setMintingLimit", () => {
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          gateway.connect(depositor1).setMintingLimit(10)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx = await gateway.connect(governance).setMintingLimit(777)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update the minting limit", async () => {
+        expect(await gateway.mintingLimit()).to.equal(777)
+      })
+
+      it("should emit the MintingLimitUpdated event", async () => {
+        await expect(tx).to.emit(gateway, "MintingLimitUpdated").withArgs(777)
       })
     })
   })

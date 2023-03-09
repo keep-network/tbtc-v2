@@ -76,14 +76,30 @@ interface IWormholeTokenBridge {
 ///         Wormhole tBTC representation through the bridge in an equal amount.
 /// @dev This contract is supposed to be deployed behind a transparent
 ///      upgradeable proxy.
-contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
+contract L2WormholeGateway is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    /// @notice Reference to the Wormhole Token Bridge contract.
     IWormholeTokenBridge public bridge;
-    IERC20Upgradeable public bridgeToken; // wormhole tBTC token representation
+
+    /// @notice Wormhole tBTC token representation.
+    IERC20Upgradeable public bridgeToken;
+
+    /// @notice Canonical tBTC token.
     L2TBTC public tbtc;
 
-    // TODO: an absolute, governable minting limit for early days?
+    /// @notice Minting limit for this gateway. Useful for early days of testing
+    ///         the system. The gateway can not mint more canonical tBTC than
+    ///         this limit.
+    uint256 public mintingLimit;
+
+    /// @notice The amount of tBTC minted by this contract. tBTC burned by this
+    ///         contract decreases this amount.
+    uint256 public mintedAmount;
 
     event WormholeTbtcReceived(address receiver, uint256 amount);
 
@@ -95,11 +111,14 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         uint32 nonce
     );
 
+    event MintingLimitUpdated(uint256 mintingLimit);
+
     function initialize(
         IWormholeTokenBridge _bridge,
         IERC20Upgradeable _bridgeToken,
         L2TBTC _tbtc
     ) external initializer {
+        __Ownable_init();
         __ReentrancyGuard_init();
 
         require(
@@ -118,11 +137,15 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         bridge = _bridge;
         bridgeToken = _bridgeToken;
         tbtc = _tbtc;
+        mintingLimit = type(uint256).max;
     }
 
     /// @notice This function is called when the user redeems their token on L2.
     ///         The contract receives Wormhole tBTC representation and mints the
     ///         canonical tBTC for the user.
+    ///         If the tBTC minting limit has been reached by this contract,
+    ///         instead of minting tBTC the receiver address receives Wormhole
+    ///         tBTC representation.
     /// @dev Requirements:
     ///      - The receiver of Wormhole tBTC should be the L2WormholeGateway
     ///        contract.
@@ -149,7 +172,17 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         uint256 amount = balanceAfter - balanceBefore;
         address receiver = abi.decode(payload, (address));
         require(receiver != address(0), "0x0 receiver not allowed");
-        tbtc.mint(receiver, amount);
+
+        mintedAmount += amount;
+
+        // We send wormhole tBTC OR mint canonical tBTC. We do not want to send
+        // dust. Sending wormhole tBTC is an exceptional situation and we want
+        // to keep it simple.
+        if (mintedAmount > mintingLimit) {
+            bridgeToken.safeTransfer(receiver, amount);
+        } else {
+            tbtc.mint(receiver, amount);
+        }
 
         emit WormholeTbtcReceived(receiver, amount);
     }
@@ -195,6 +228,7 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
         );
 
         tbtc.burnFrom(msg.sender, amount);
+        mintedAmount -= amount;
         bridgeToken.safeApprove(address(bridge), amount);
         return
             bridge.transferTokens(
@@ -205,5 +239,13 @@ contract L2WormholeGateway is Initializable, ReentrancyGuardUpgradeable {
                 arbiterFee,
                 nonce
             );
+    }
+
+    /// @notice Lets the governance to update the tBTC minting limit for this
+    ///         contract.
+    /// @param _mintingLimit The new minting limit.
+    function setMintingLimit(uint256 _mintingLimit) external onlyOwner {
+        mintingLimit = _mintingLimit;
+        emit MintingLimitUpdated(_mintingLimit);
     }
 }
