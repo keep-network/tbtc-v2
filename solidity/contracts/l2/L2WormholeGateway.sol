@@ -173,6 +173,9 @@ contract L2WormholeGateway is
         address receiver = abi.decode(payload, (address));
         require(receiver != address(0), "0x0 receiver not allowed");
 
+        // Function is nonReentrant and we need to update the balance with
+        // a call to completeTransferWithPayload first to know the amount.
+        // slither-disable-next-line reentrancy-benign
         mintedAmount += amount;
 
         // We send wormhole tBTC OR mint canonical tBTC. We do not want to send
@@ -184,6 +187,9 @@ contract L2WormholeGateway is
             tbtc.mint(receiver, amount);
         }
 
+        // Function is nonReentrant and we need to extract the payload with
+        // a call to completeTransferWithPayload first.
+        // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
     }
 
@@ -227,8 +233,9 @@ contract L2WormholeGateway is
             nonce
         );
 
-        tbtc.burnFrom(msg.sender, amount);
         mintedAmount -= amount;
+        tbtc.burnFrom(msg.sender, amount);
+
         bridgeToken.safeApprove(address(bridge), amount);
         return
             bridge.transferTokens(
