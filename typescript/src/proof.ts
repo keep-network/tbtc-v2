@@ -208,11 +208,11 @@ function validateMerkleTreeHashes(
   for (let i = 0; i < intermediateNodesHashes.length; i += 64) {
     if (idx % 2 === 1) {
       current = computeHash256(
-        intermediateNodesHashes.slice(i, i + 64) + current
+        Hex.from(intermediateNodesHashes.slice(i, i + 64) + current)
       ).toString()
     } else {
       current = computeHash256(
-        current + intermediateNodesHashes.slice(i, i + 64)
+        Hex.from(current + intermediateNodesHashes.slice(i, i + 64))
       ).toString()
     }
     idx = idx >> 1
@@ -266,13 +266,11 @@ function validateBlockHeadersChain(
     const difficultyTarget = bitsToTarget(currentHeader.bits)
 
     const currentBlockHeaderHash = computeHash256(
-      serializeBlockHeader(currentHeader).toString()
+      serializeBlockHeader(currentHeader)
     )
 
     // Ensure the header has sufficient work.
-    if (
-      hashLEToBigNumber(currentBlockHeaderHash.toString()).gt(difficultyTarget)
-    ) {
+    if (hashLEToBigNumber(currentBlockHeaderHash).gt(difficultyTarget)) {
       throw new Error("Insufficient work in the header")
     }
 

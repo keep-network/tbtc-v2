@@ -419,8 +419,9 @@ describe("Bitcoin", () => {
 
   describe("hashLEToBigNumber", () => {
     it("calculates correct value", () => {
-      const hash =
+      const hash = Hex.from(
         "31552151fbef8e96a33f979e6253d29edf65ac31b04802319e00000000000000"
+      )
       const expectedBigNumber = BigNumber.from(
         "992983769452983078390935942095592601503357651673709518345521"
       )

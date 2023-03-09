@@ -521,9 +521,9 @@ export function computeHash160(text: string): string {
  * @param text - Text the double SHA256 is computed for.
  * @returns Hash as a 32-byte un-prefixed hex string.
  */
-export function computeHash256(text: string): Hex {
-  const firstHash = sha256.digest(Buffer.from(text, "hex"))
-  const secondHash = sha256.digest(firstHash)
+export function computeHash256(text: Hex): Hex {
+  const firstHash: Buffer = sha256.digest(text.toBuffer())
+  const secondHash: Buffer = sha256.digest(firstHash)
   return Hex.from(secondHash)
 }
 
@@ -532,8 +532,8 @@ export function computeHash256(text: string): Hex {
  * @param hash - Hash in hex-string format.
  * @returns BigNumber representation of the hash.
  */
-export function hashLEToBigNumber(hash: string): BigNumber {
-  return BigNumber.from(Hex.from(hash).reverse().toPrefixedString())
+export function hashLEToBigNumber(hash: Hex): BigNumber {
+  return BigNumber.from(hash.reverse().toPrefixedString())
 }
 
 /**
