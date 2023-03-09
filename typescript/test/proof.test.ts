@@ -221,6 +221,27 @@ describe("Proof", () => {
 
           await expect(
             runProofValidationScenario(corruptedProofData)
+          ).to.be.rejectedWith("Incorrect length of Merkle proof")
+        })
+      })
+
+      context("when the merkle proof is empty", () => {
+        it("should throw", async () => {
+          // Corrupt the data by making the Merkle proof empty.
+          const corruptedProofData: TransactionProofData = {
+            ...transactionConfirmationsInOneEpochData,
+            bitcoinChainData: {
+              ...transactionConfirmationsInOneEpochData.bitcoinChainData,
+              transactionMerkleBranch: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .transactionMerkleBranch,
+                merkle: [],
+              },
+            },
+          }
+
+          await expect(
+            runProofValidationScenario(corruptedProofData)
           ).to.be.rejectedWith("Invalid merkle tree")
         })
       })
