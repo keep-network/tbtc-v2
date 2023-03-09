@@ -45,6 +45,11 @@ export async function assembleTransactionProof(
   const latestBlockHeight = await bitcoinClient.latestBlockHeight()
   const txBlockHeight = latestBlockHeight - confirmations + 1
 
+  // We subtract `1` from `requiredConfirmations` because the header at
+  // `txBlockHeight` is already included in the headers chain and is considered
+  // the first confirmation. So we only need to retrieve `requiredConfirmations - 1`
+  // subsequent block headers to reach the desired number of confirmations for
+  // the transaction.
   const headersChain = await bitcoinClient.getHeadersChain(
     txBlockHeight,
     requiredConfirmations - 1
