@@ -200,7 +200,7 @@ client works on a 2-core machine and there are no more than 5 signing group
 members on a single machine, the bottleneck phase should take no more than
 1 minute.
 
-The announcement phase takes always 6 blocks, so ~1.5 minutes assuming 12s block
+The announcement phase takes always 6 blocks, so 1min 12s assuming 12s block
 time. With 36 blocks timeout for a single attempt, it leaves more than 6 minutes
 for the rest of the signing protocol which should be more than enough.
 This should also be enough for local development when all signing group members
