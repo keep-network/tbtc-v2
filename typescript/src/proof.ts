@@ -166,8 +166,8 @@ function validateMerkleTree(
 
   validateMerkleTreeHashes(
     transactionHash,
-    intermediateNodeHashes,
     merkleRootHash,
+    intermediateNodeHashes,
     transactionIndex
   )
 }
@@ -178,10 +178,10 @@ function validateMerkleTree(
  * hashes to compute the root hash. If the computed root hash does not match the
  * merkle root hash, an error is thrown.
  * @param transactionHash The hash of the transaction being validated.
- * @param intermediateNodesHashes The Merkle tree intermediate nodes hashes,
- *        concatenated as a single string.
  * @param merkleRootHash The Merkle root hash that the intermediate nodes should
  *        compute to.
+ * @param intermediateNodesHashes The Merkle tree intermediate nodes hashes,
+ *        concatenated as a single string.
  * @param transactionIndex The index of the transaction in the block, used
  *        to determine the path to traverse in the Merkle tree.
  * @throws {Error} If the intermediate nodes are of an invalid length or if the
@@ -190,8 +190,8 @@ function validateMerkleTree(
  */
 function validateMerkleTreeHashes(
   transactionHash: TransactionHash,
-  intermediateNodesHashes: string,
   merkleRootHash: Hex,
+  intermediateNodesHashes: string,
   transactionIndex: number
 ) {
   if (
