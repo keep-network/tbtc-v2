@@ -54,7 +54,7 @@ jobs:
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
-      # A workaround for transitive dependencies that use the obsolete git:// 
+      # A workaround for transitive dependencies that use the obsolete git://
       # prefix instead of the recommended https://
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
@@ -86,7 +86,7 @@ jobs:
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
-      # A workaround for transitive dependencies that use the obsolete git:// 
+      # A workaround for transitive dependencies that use the obsolete git://
       # prefix instead of the recommended https://
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
@@ -177,7 +177,7 @@ jobs:
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
-      # A workaround for transitive dependencies that use the obsolete git:// 
+      # A workaround for transitive dependencies that use the obsolete git://
       # prefix instead of the recommended https://
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
@@ -226,7 +226,7 @@ jobs:
           SLITHER_VERSION: 0.8.3
         run: pip3 install slither-analyzer==$SLITHER_VERSION
 
-      # A workaround for transitive dependencies that use the obsolete git:// 
+      # A workaround for transitive dependencies that use the obsolete git://
       # prefix instead of the recommended https://
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
