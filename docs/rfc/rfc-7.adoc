@@ -176,11 +176,11 @@ progress, the signing group members proceed with tECDSA signing protocol.
 
 Each UTXO being an input to the sweep transaction is unlocked sequentially in
 a separate signing session. Each signing session begins with an announcement
-phase allowing to exclude offline operators. There is a 30-blocks (~6 minutes)
+phase allowing to exclude offline operators. There is a 36-blocks (~7 minutes)
 timeout for each signing attempt.
 
 If the given signing attempt fails for any reason (error or timeout), the next
-attempt starts exactly 30 blocks after the previous one started.
+attempt starts exactly 41 blocks after the previous one started.
 
 All signers selected for the given signing attempt must confirm successful
 execution by sending a message with the produced signature over the broadcast
@@ -200,8 +200,8 @@ client works on a 2-core machine and there are no more than 5 signing group
 members on a single machine, the bottleneck phase should take no more than
 1 minute.
 
-The announcement phase takes always 7 blocks, so ~1.5 minutes assuming 12s block
-time. With 30 blocks timeout for a single attempt, it leaves more than 3 minutes
+The announcement phase takes always 6 blocks, so ~1.5 minutes assuming 12s block
+time. With 36 blocks timeout for a single attempt, it leaves more than 6 minutes
 for the rest of the signing protocol which should be more than enough.
 This should also be enough for local development when all signing group members
 reside on the same computer. Based on the local benchmarks, the entire signing
@@ -221,23 +221,23 @@ corrupted data:
 
 - With 1 malicious member in a signing group, we need 2 attempts of the protocol
 in the worst case (`P = (99 choose 51) / (100 choose 51) = 0.49`).
-In the worst case, it takes approximately 2h 30min to sign 15 inputs.
+In the worst case, it takes approximately 3h 30min to sign 15 inputs.
 
 - With 2 malicious members in a signing group, we need 5 attempts of the protocol
 in the worst case (`P = (98 choose 51) / (100 choose 51) = 0.2375757575`).
-In the worst case, it takes approximately 7h 30min to sign 15 inputs.
+In the worst case, it takes approximately 8h 45min to sign 15 inputs.
 
 - With 3 malicious members in a signing group, we need 10 attempts of the protocol
 in the worst case (`P = (97 choose 51) / (100 choose 51) = 0.1139393939`).
-In the worst case, it takes approximately 15h to sign 15 inputs.
+In the worst case, it takes approximately 17h 30min to sign 15 inputs.
 
 - With 4 malicious members in a signing group, we need 20 attempts of the
 protocol in the worst case (`P = (96 choose 51) / (100 choose 51) = 0.0540331146`).
-In the worst case, it takes approximately 30h to sign 15 inputs.
+In the worst case, it takes approximately 35h to sign 15 inputs.
 
 - With 5 malicious members in a signing group, we need 40 attempts of the protocol
 in the worst case (`P = (95 choose 51) / (100 choose 51) = 0.0253280224`).
-In the worst case, it takes approximately 60h to sign 15 inputs.
+In the worst case, it takes approximately 70h to sign 15 inputs.
 
 This attack slows down the sweeping schedule but given that the active wallet is
 not performing redemptions or moving funds, it does not affect the funds already
