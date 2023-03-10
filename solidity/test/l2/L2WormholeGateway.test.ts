@@ -217,7 +217,7 @@ describe("L2WormholeGateway", () => {
       context("when the minting limit was reached", () => {
         before(async () => {
           await createSnapshot()
-          await gateway.connect(governance).setMintingLimit(100)
+          await gateway.connect(governance).updateMintingLimit(100)
 
           await wormholeBridgeStub.setReceiverAddress(depositor1.address)
           await wormholeBridgeStub.setTransferAmount(40)
@@ -357,11 +357,11 @@ describe("L2WormholeGateway", () => {
     })
   })
 
-  describe("setMintingLimit", () => {
+  describe("updateMintingLimit", () => {
     context("when called by a third party", () => {
       it("should revert", async () => {
         await expect(
-          gateway.connect(depositor1).setMintingLimit(10)
+          gateway.connect(depositor1).updateMintingLimit(10)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -371,7 +371,7 @@ describe("L2WormholeGateway", () => {
 
       before(async () => {
         await createSnapshot()
-        tx = await gateway.connect(governance).setMintingLimit(777)
+        tx = await gateway.connect(governance).updateMintingLimit(777)
       })
 
       after(async () => {

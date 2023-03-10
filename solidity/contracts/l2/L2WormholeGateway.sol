@@ -249,7 +249,7 @@ contract L2WormholeGateway is
     /// @notice Lets the governance to update the tBTC minting limit for this
     ///         contract.
     /// @param _mintingLimit The new minting limit.
-    function setMintingLimit(uint256 _mintingLimit) external onlyOwner {
+    function updateMintingLimit(uint256 _mintingLimit) external onlyOwner {
         mintingLimit = _mintingLimit;
         emit MintingLimitUpdated(_mintingLimit);
     }
