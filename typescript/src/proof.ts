@@ -126,12 +126,12 @@ export async function validateTransactionProof(
   }
 
   const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
-  const intermediateNodesHashes: Hex[] = splitMerkleProof(proof.merkleProof)
+  const intermediateNodeHashes: Hex[] = splitMerkleProof(proof.merkleProof)
 
   validateMerkleTree(
     transactionHash,
     merkleRootHash,
-    intermediateNodesHashes,
+    intermediateNodeHashes,
     proof.txIndexInBlock
   )
 
@@ -149,8 +149,9 @@ export async function validateTransactionProof(
  * @param transactionHash The hash of the transaction being validated.
  * @param merkleRootHash The Merkle root hash that the intermediate node hashes
  *        should compute to.
- * @param intermediateNodeHashes The Merkle tree intermediate node hashes,
- *        concatenated as a single string.
+ * @param intermediateNodeHashes The Merkle tree intermediate node hashes.
+ *        This is a list of hashes the transaction being validated is paired
+ *        with in the Merkle tree.
  * @param transactionIndex The index of the transaction being validated within
  *        the block, used to determine the path to traverse in the Merkle tree.
  * @throws {Error} If the Merkle tree is not valid.
@@ -187,8 +188,9 @@ function validateMerkleTree(
  * @param transactionHash The hash of the transaction being validated.
  * @param merkleRootHash The Merkle root hash that the intermediate nodes should
  *        compute to.
- * @param intermediateNodesHashes The Merkle tree intermediate nodes hashes,
- *        concatenated as a single string.
+ * @param intermediateNodeHashes The Merkle tree intermediate node hashes.
+ *        This is a list of hashes the transaction being validated is paired
+ *        with in the Merkle tree.
  * @param transactionIndex The index of the transaction in the block, used
  *        to determine the path to traverse in the Merkle tree.
  * @throws {Error} If the intermediate nodes are of an invalid length or if the
@@ -198,24 +200,24 @@ function validateMerkleTree(
 function validateMerkleTreeHashes(
   transactionHash: TransactionHash,
   merkleRootHash: Hex,
-  intermediateNodesHashes: Hex[],
+  intermediateNodeHashes: Hex[],
   transactionIndex: number
 ) {
-  if (intermediateNodesHashes.length === 0) {
+  if (intermediateNodeHashes.length === 0) {
     throw new Error("Invalid merkle tree")
   }
 
   let idx = transactionIndex
   let current = transactionHash.reverse()
 
-  for (let i = 0; i < intermediateNodesHashes.length; i++) {
+  for (let i = 0; i < intermediateNodeHashes.length; i++) {
     if (idx % 2 === 1) {
       current = computeHash256(
-        Hex.from(intermediateNodesHashes[i].toString() + current.toString())
+        Hex.from(intermediateNodeHashes[i].toString() + current.toString())
       )
     } else {
       current = computeHash256(
-        Hex.from(current.toString() + intermediateNodesHashes[i].toString())
+        Hex.from(current.toString() + intermediateNodeHashes[i].toString())
       )
     }
     idx = idx >> 1
