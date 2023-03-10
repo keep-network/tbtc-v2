@@ -13,7 +13,7 @@ on:
       - main
     paths:
       - "cross-chain/arbitrum/**"
-      - "cross-chain-arbitrum.yml"
+      - ".github/workflows/cross-chain-arbitrum.yml"
   workflow_dispatch:
     inputs:
       environment:
@@ -77,6 +77,50 @@ jobs:
       - name: Run tests
         run: yarn test
 
+  npm-compile-publish-contracts:
+    if: |
+      github.event_name == 'push'
+        || (github.event_name == 'workflow_dispatch' 
+        && github.event.inputs.environment == 'dev')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./cross-chain/arbitrum
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: "yarn"
+          cache-dependency-path: cross-chain/arbitrum/yarn.lock
+
+      # A workaround for transitive dependencies that use the obsolete git://
+      # prefix instead of the recommended https://
+      - name: Configure git to not use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Resolve latest contracts
+        run: yarn upgrade --exact @keep-network/tbtc-v2
+
+      - name: Compile
+        run: yarn build
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          work-dir: ./cross-chain/arbitrum
+          environment: dev
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --tag=development
+
   contracts-deployment-dry-run:
     needs: contracts-detect-changes
     if: |
@@ -109,7 +153,8 @@ jobs:
   contracts-deployment-testnet:
     needs: [contracts-build-and-test]
     if: |
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' 
+        && github.event.inputs.environment != 'dev'
     runs-on: ubuntu-latest
     defaults:
       run:
