@@ -31,7 +31,7 @@ jobs:
         run: git config --global url."https://".insteadOf git://
 
       - name: Resolve latest contracts
-        run: yarn upgrade --exact @keep-network/tbtc-2
+        run: yarn upgrade --exact @keep-network/tbtc-v2
 
       - name: Compile
         run: yarn build
