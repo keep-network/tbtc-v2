@@ -39,9 +39,21 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
 
         // In a real implementation, encodedVm is parsed. To avoid copy-pasting
         // Wormhole code to this contract and then encoding parmaters in unit
-        // tests, we allow to set the address on the stub contract and we return
-        // it here.
-        return abi.encode(receiverAddress);
+        // tests, we allow to set the receiver address on the stub contract and
+        // we return it here. The rest of the parameters does not matter.
+        IWormholeTokenBridge.TransferWithPayload memory transfer = IWormholeTokenBridge
+            .TransferWithPayload(
+                1, // payloadID
+                2, // amount
+                0x3000000000000000000000000000000000000000000000000000000000000000, // tokenAddress
+                4, // tokenChain
+                0x5000000000000000000000000000000000000000000000000000000000000000, // to
+                6, // toChain
+                0x7000000000000000000000000000000000000000000000000000000000000000, // fromAddress
+                abi.encode(receiverAddress)
+            );
+
+        return abi.encode(transfer);
     }
 
     function transferTokens(
@@ -61,6 +73,14 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
             nonce
         );
         return 777;
+    }
+
+    function parseTransferWithPayload(bytes memory encoded)
+        external
+        pure
+        returns (IWormholeTokenBridge.TransferWithPayload memory transfer)
+    {
+        return abi.decode(encoded, (IWormholeTokenBridge.TransferWithPayload));
     }
 
     function setTransferAmount(uint256 _transferAmount) external {

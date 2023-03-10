@@ -30,6 +30,11 @@ interface IWormholeTokenBridge {
         external
         returns (bytes memory);
 
+    function parseTransferWithPayload(bytes memory encoded)
+        external
+        pure
+        returns (TransferWithPayload memory transfer);
+
     function transferTokens(
         address token,
         uint256 amount,
@@ -38,6 +43,17 @@ interface IWormholeTokenBridge {
         uint256 arbiterFee,
         uint32 nonce
     ) external payable returns (uint64 sequence);
+
+    struct TransferWithPayload {
+        uint8 payloadID;
+        uint256 amount;
+        bytes32 tokenAddress;
+        uint16 tokenChain;
+        bytes32 to;
+        uint16 toChain;
+        bytes32 fromAddress;
+        bytes payload;
+    }
 }
 
 /// @title L2WormholeGateway
@@ -165,11 +181,14 @@ contract L2WormholeGateway is
         // all potential upgrades of ITokenBridge implementation and no other
         // validations are needed.
         uint256 balanceBefore = bridgeToken.balanceOf(address(this));
-        bytes memory payload = bridge.completeTransferWithPayload(encodedVm);
+        bytes memory encoded = bridge.completeTransferWithPayload(encodedVm);
         uint256 balanceAfter = bridgeToken.balanceOf(address(this));
 
         uint256 amount = balanceAfter - balanceBefore;
-        address receiver = abi.decode(payload, (address));
+        address receiver = abi.decode(
+            bridge.parseTransferWithPayload(encoded).payload,
+            (address)
+        );
         require(receiver != address(0), "0x0 receiver not allowed");
 
         // We send wormhole tBTC OR mint canonical tBTC. We do not want to send
