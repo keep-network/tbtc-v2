@@ -1,5 +1,10 @@
 name: Cross chain Arbitrum
 
+# There are a couple of places where we hardcode the environment name to
+# "goerliArbitrum". As of adding this config file, there is no easy way of passing
+# an additional paramater to this workflow like ${{ github.event.inputs.environment-l2 }}
+# and would require a rebuild of the existing CI workflows across the project.
+
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -8,10 +13,14 @@ on:
       - main
     paths:
       - "cross-chain/arbitrum/**"
+      - "cross-chain-arbitrum.yml"
   workflow_dispatch:
     inputs:
       environment:
         description: "Environment (network) for workflow execution, e.g. `goerli`"
+        required: false
+      upstream_builds:
+        description: "Upstream builds"
         required: false
       upstream_ref:
         description: "Git reference to checkout (e.g. branch name)"
@@ -101,7 +110,6 @@ jobs:
     needs: [contracts-build-and-test]
     if: |
       github.event_name == 'workflow_dispatch'
-        && github.ref != 'refs/heads/dapp-development'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -124,37 +132,45 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Get upstream packages versions
+        uses: keep-network/ci/actions/upstream-builds-query@v2
+        id: upstream-builds-query
+        with:
+          upstream-builds: ${{ github.event.inputs.upstream_builds }}
+          query: tbtc-v2-contracts-version = github.com/keep-network/tbtc-v2#version
+
       - name: Resolve latest contracts
-        run: yarn upgrade @keep-network/tbtc-v2@${{ github.event.inputs.environment }}
+        run: yarn upgrade @keep-network/tbtc-v2@${{ steps.upstream-builds-query.outputs.tbtc-v2-contracts-version }}
 
       - name: Deploy contracts
         env:
           CHAIN_API_URL: ${{ secrets.ARBITRUM_GOERLI_HOSTNAME_HTTP }}
           ACCOUNTS_PRIVATE_KEYS: ${{ secrets.ARBITRUM_GOERLI_CONTRACT_OWNER_PRIVATE_KEY }}
-        run: yarn deploy --network ${{ github.event.inputs.environment }}
+          ARBISCAN_GOERLI_API_KEY: ${{ secrets.ARBISCAN_GOERLI_API_KEY }}
+        run: yarn deploy --network goerliArbitrum
 
       - name: Bump up package version
         id: npm-version-bump
         uses: keep-network/npm-version-bump@v2
         with:
           work-dir: cross-chain/arbitrum
-          environment: ${{ github.event.inputs.environment }}
+          environment: goerli-arbitrum
           branch: ${{ github.ref }}
           commit: ${{ github.sha }}
 
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --tag ${{ github.event.inputs.environment }} --network=${{ github.event.inputs.environment }}
+        run: npm publish --access=public --tag goerli-arbitrum --network=goerliArbitrum
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/ci/actions/notify-workflow-completed@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
-          module: "github.com/keep-network/tbtc-v2"
+          module: "github.com/keep-network/cross-chain/arbitrum"
           url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          environment: ${{ github.event.inputs.environment }}
+          environment: goerli-arbitrum
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
           upstream_ref: ${{ github.event.inputs.upstream_ref }}
           version: ${{ steps.npm-version-bump.outputs.version }}

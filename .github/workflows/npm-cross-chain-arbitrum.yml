@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "cross-chain/arbitrum/**"
+      - ".github/workflows/npm-cross-chain-arbitrum.yml"
   workflow_dispatch:
 
 jobs:
