@@ -162,7 +162,7 @@ function validateMerkleTree(
   intermediateNodeHashes: Hex[],
   transactionIndex: number
 ) {
-  // Shortcut the empty-block case
+  // Shortcut for a block that contains only a single transaction (coinbase).
   if (
     transactionHash.reverse().equals(merkleRootHash) &&
     transactionIndex == 0 &&
