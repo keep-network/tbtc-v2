@@ -22,6 +22,8 @@ import {
   getOptimisticMintingRequest,
 } from "./optimistic-minting"
 
+import { validateTransactionProof } from "./proof"
+
 export const TBTC = {
   calculateDepositAddress,
   suggestDepositWallet,
@@ -41,6 +43,10 @@ export const OptimisticMinting = {
   cancelOptimisticMint,
   finalizeOptimisticMint,
   getOptimisticMintingRequest,
+}
+
+export const Bitcoin = {
+  validateTransactionProof,
 }
 
 export {
