@@ -21,7 +21,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./L2TBTC.sol";
-import "../token/TBTC.sol";
 
 /// @title IWormholeTokenBridge
 /// @notice Wormhole Token Bridge interface. Contains only selected functions
