@@ -32,6 +32,7 @@ export async function assembleTransactionProof(
   const confirmations = await bitcoinClient.getTransactionConfirmations(
     transactionHash
   )
+
   if (confirmations < requiredConfirmations) {
     throw new Error(
       "Transaction confirmations number[" +
@@ -203,27 +204,70 @@ function validateMerkleTreeHashes(
   intermediateNodeHashes: Hex[],
   transactionIndex: number
 ) {
+  // To prove the transaction inclusion in a block we only need the hashes that
+  // form a path from the transaction being validated to the Merkle root hash.
+  // If the Merkle tree looks like this:
+  //
+  //           h_01234567
+  //          /           \
+  //      h_0123          h_4567
+  //     /      \       /        \
+  //   h_01    h_23    h_45     h_67
+  //   /  \    /  \    /  \    /   \
+  //  h_0 h_1 h_2 h_3 h_4 h_5 h_6 h_7
+  //
+  // and the transaction hash to be validated is h_5 the following data
+  // will be used:
+  // - `transactionHash`: h_5
+  // - `merkleRootHash`: h_01234567
+  // - `intermediateNodeHashes`: [h_4, h_67, h_0123]
+  // - `transactionIndex`: 5
+  //
+  // The following calculations will be performed:
+  // - h_4 and h_5 will be hashed to obtain h_45
+  // - h_45 and h_67 will be hashed to obtain h_4567
+  // - h_0123 will be hashed with h_4567 to obtain h_1234567 (Merkle root hash).
+
+  // Note that when we move up the Merkle tree calculating parent hashes we need
+  // to join children hashes. The information which child hash should go first
+  // is obtained from `transactionIndex`. When `transactionIndex` is odd the
+  // hash taken from `intermediateNodeHashes` must go first. If it is even the
+  // hash from previous calculation must go first. The `transactionIndex` is
+  // divided by `2` after every hash calculation.
+
   if (intermediateNodeHashes.length === 0) {
     throw new Error("Invalid merkle tree")
   }
 
   let idx = transactionIndex
-  let current = transactionHash.reverse()
+  let currentHash = transactionHash.reverse()
 
+  // Move up the Merkle tree hashing current hash value with hashes taken
+  // from `intermediateNodeHashes`. Use `idx` to determine the order of joining
+  // children hashes.
   for (let i = 0; i < intermediateNodeHashes.length; i++) {
     if (idx % 2 === 1) {
-      current = computeHash256(
-        Hex.from(intermediateNodeHashes[i].toString() + current.toString())
+      // If the current value of idx is odd the hash taken from
+      // `intermediateNodeHashes` goes before the current hash.
+      currentHash = computeHash256(
+        Hex.from(intermediateNodeHashes[i].toString() + currentHash.toString())
       )
     } else {
-      current = computeHash256(
-        Hex.from(current.toString() + intermediateNodeHashes[i].toString())
+      // If the current value of idx is even the hash taken from the current
+      // hash goes before the hash taken from `intermediateNodeHashes`.
+      currentHash = computeHash256(
+        Hex.from(currentHash.toString() + intermediateNodeHashes[i].toString())
       )
     }
+
+    // Divide the value of `idx` by `2` when we move one level up the Merkle
+    // tree.
     idx = idx >> 1
   }
 
-  if (!current.equals(merkleRootHash)) {
+  // Verify we arrived at the same value of Merkle root hash as the one stored
+  // in the block header.
+  if (!currentHash.equals(merkleRootHash)) {
     throw new Error(
       "Transaction Merkle proof is not valid for provided header and transaction hash"
     )
