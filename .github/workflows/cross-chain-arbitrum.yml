@@ -2,8 +2,9 @@ name: Cross chain Arbitrum
 
 # There are a couple of places where we hardcode the environment name to
 # "goerliArbitrum". As of adding this config file, there is no easy way of passing
-# an additional paramater to this workflow like ${{ github.event.inputs.environment-l2 }}
-# and would require a rebuild of the existing CI workflows across the project.
+# an additional parameter to this workflow like ${{ github.event.inputs.environment-l2 }}
+# and would require a rebuild of the custom GH actions used to handle the
+# triggering of workflows in the CI flow.
 
 on:
   schedule:
@@ -14,6 +15,7 @@ on:
     paths:
       - "cross-chain/arbitrum/**"
       - ".github/workflows/cross-chain-arbitrum.yml"
+  pull_request:
   workflow_dispatch:
     inputs:
       environment:
@@ -213,7 +215,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
-          module: "github.com/keep-network/cross-chain/arbitrum"
+          module: "github.com/keep-network/tbtc-v2/arbitrum"
           url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           environment: goerli-arbitrum
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
