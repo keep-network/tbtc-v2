@@ -16,6 +16,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
+  // TODO: Investigate the possibility of adding Tenderly verification for
+  // L2 and upgradable proxy.
+
   // Contracts can be verified on L2 Arbiscan in a similar way as we do it on
   // L1 Etherscan
   if (hre.network.tags.arbiscan) {
