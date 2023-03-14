@@ -23,3 +23,5 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 export default func
 
 func.tags = ["TransferProxyAdminOwnership"]
+func.dependencies = ["ArbitrumTBTC", "ArbitrumWormholeGateway"]
+func.runAtTheEnd = true
