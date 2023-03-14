@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "1.1.0-dev",
+  "version": "1.1.0",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -25,8 +25,8 @@
     "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault,TBTC}.json"
   },
   "dependencies": {
-    "@keep-network/ecdsa": "development",
-    "@keep-network/tbtc-v2": "development",
+    "@keep-network/ecdsa": "2.0.0",
+    "@keep-network/tbtc-v2": "1.1.0",
     "bcoin": "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8",
     "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
     "bufio": "^1.0.6",
