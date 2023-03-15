@@ -31,24 +31,36 @@ contract WalletCoordinator is OwnableUpgradeable {
 
     Bridge public bridge;
 
-    mapping(bytes20 => uint32) public walletLock;
+    uint32 public depositSweepProposalValidity;
+
+    uint16 public depositSweepMaxSize;
 
     mapping(address => bool) public isProposalSubmitter;
 
-    uint32 public depositSweepProposalValidity;
+    mapping(bytes20 => uint32) public walletLock;
+
+    event DepositSweepProposalValidityUpdated(
+        uint32 depositSweepProposalValidity
+    );
+
+    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
+
+    event ProposalSubmitterAdded(address indexed proposalSubmitter);
+
+    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
         address indexed proposalSubmitter
     );
 
-    event ProposalSubmitterAdded(address indexed proposalSubmitter);
-
-    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
-
-    event DepositSweepProposalValidityUpdated(
-        uint32 depositSweepProposalValidity
-    );
+    modifier onlyProposalSubmitter() {
+        require(
+            isProposalSubmitter[msg.sender],
+            "Caller is not proposal submitter"
+        );
+        _;
+    }
 
     modifier onlyAfterWalletLock(bytes20 walletPubKeyHash) {
         require(
@@ -59,19 +71,12 @@ contract WalletCoordinator is OwnableUpgradeable {
         _;
     }
 
-    modifier onlyProposalSubmitter() {
-        require(
-            isProposalSubmitter[msg.sender],
-            "Caller is not proposal submitter"
-        );
-        _;
-    }
-
     function initialize(Bridge _bridge) external initializer {
         __Ownable_init();
 
         bridge = _bridge;
         depositSweepProposalValidity = 4 hours;
+        depositSweepMaxSize = 5;
     }
 
     function updateDepositSweepProposalValidity(
@@ -79,6 +84,14 @@ contract WalletCoordinator is OwnableUpgradeable {
     ) external onlyOwner {
         depositSweepProposalValidity = _depositSweepProposalValidity;
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
+    }
+
+    function updateDepositSweepMaxSizeUpdated(uint32 _depositSweepMaxSize)
+        external
+        onlyOwner
+    {
+        depositSweepMaxSize = _depositSweepMaxSize;
+        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
     }
 
     function addProposalSubmitter(address proposalSubmitter)
@@ -139,7 +152,10 @@ contract WalletCoordinator is OwnableUpgradeable {
             "Arrays must have the same length"
         );
 
-        // TODO: Check against the governable maximum swept deposits limit.
+        require(
+            proposal.fundingTxHash.length <= depositSweepMaxSize,
+            "Sweep exceeds the max size"
+        );
 
         for (uint256 i = 0; i < proposal.fundingTxHash.length; i++) {
             uint256 depositKey = uint256(
