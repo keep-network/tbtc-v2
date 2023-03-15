@@ -164,6 +164,25 @@ describe("L2WormholeGateway", () => {
       })
     })
 
+    context("when the transferred amount is zero", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+        await wormholeBridgeStub.setTransferAmount(0)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(gateway.receiveWormhole(encodedVm)).to.be.revertedWith(
+          "No tBTC transferred"
+        )
+      })
+    })
+
     context("when receiver is non-zero address", () => {
       context("when the minting limit was not reached", () => {
         const transferAmount = 13373

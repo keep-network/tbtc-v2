@@ -185,6 +185,9 @@ contract L2WormholeGateway is
         uint256 balanceAfter = bridgeToken.balanceOf(address(this));
 
         uint256 amount = balanceAfter - balanceBefore;
+        // Protect against the custody of irrelevant tokens.
+        require(amount > 0, "No tBTC transferred");
+
         address receiver = abi.decode(
             bridge.parseTransferWithPayload(encoded).payload,
             (address)
