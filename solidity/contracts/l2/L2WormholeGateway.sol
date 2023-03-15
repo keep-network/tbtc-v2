@@ -169,7 +169,7 @@ contract L2WormholeGateway is
     ///      - The receiver of the canonical tBTC must not be the zero address.
     /// @param encodedVm A byte array containing a Wormhole VAA signed by the
     ///        guardians.
-    function receiveWormhole(bytes memory encodedVm) external nonReentrant {
+    function receiveWormhole(bytes calldata encodedVm) external nonReentrant {
         // ITokenBridge.completeTransferWithPayload completes a contract-controlled
         // transfer of an ERC20 token. Calling this function is not enough to
         // ensure L2WormholeGateway received Wormhole tBTC representation.
