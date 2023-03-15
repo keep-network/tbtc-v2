@@ -167,9 +167,14 @@ contract L2WormholeGateway is
     ///      - The receiver of the canonical tBTC should be abi-encoded in the
     ///        payload.
     ///      - The receiver of the canonical tBTC must not be the zero address.
+    ///      The Wormhole Token Bridge contract has protection against redeeming
+    ///      the same VAA again. When a Token Bridge VAA is redeemed, its
+    ///      message body hash is stored in a map. This map is used to check
+    ///      whether the hash has already been set in this map. For this reason,
+    ///      this function does not have to be nonReentrant.
     /// @param encodedVm A byte array containing a Wormhole VAA signed by the
     ///        guardians.
-    function receiveWormhole(bytes calldata encodedVm) external nonReentrant {
+    function receiveWormhole(bytes calldata encodedVm) external {
         // ITokenBridge.completeTransferWithPayload completes a contract-controlled
         // transfer of an ERC20 token. Calling this function is not enough to
         // ensure L2WormholeGateway received Wormhole tBTC representation.
@@ -200,15 +205,15 @@ contract L2WormholeGateway is
         if (mintedAmount + amount > mintingLimit) {
             bridgeToken.safeTransfer(receiver, amount);
         } else {
-            // Function is nonReentrant and we need to update the balance with
-            // a call to completeTransferWithPayload first to know the amount.
+            // The function is non-reentrant given bridge.completeTransferWithPayload
+            // call that does not allow to use the same VAA again.
             // slither-disable-next-line reentrancy-benign
             mintedAmount += amount;
             tbtc.mint(receiver, amount);
         }
 
-        // Function is nonReentrant and we need to extract the payload with
-        // a call to completeTransferWithPayload first.
+        // The function is non-reentrant given bridge.completeTransferWithPayload
+        // call that does not allow to use the same VAA again.
         // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
     }
