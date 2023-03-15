@@ -29,37 +29,40 @@ contract WalletCoordinator is OwnableUpgradeable {
         uint32[] fundingOutputIndex;
     }
 
-    Bridge internal bridge;
+    Bridge public bridge;
 
     mapping(bytes20 => uint32) public walletLock;
 
-    // TODO: Make it governable.
     mapping(address => bool) public isProposalSubmitter;
 
     uint32 public depositSweepProposalValidity;
+
+    event DepositSweepProposalSubmitted(
+        DepositSweepProposal proposal,
+        address indexed proposalSubmitter
+    );
+
+    event ProposalSubmitterAdded(address indexed proposalSubmitter);
+
+    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
 
     event DepositSweepProposalValidityUpdated(
         uint32 depositSweepProposalValidity
     );
 
-    event DepositSweepProposalSubmitted(
-        DepositSweepProposal proposal,
-        address submitter
-    );
+    modifier onlyAfterWalletLock(bytes20 walletPubKeyHash) {
+        require(
+        /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp > walletLock[walletPubKeyHash],
+            "Wallet locked"
+        );
+        _;
+    }
 
     modifier onlyProposalSubmitter() {
         require(
             isProposalSubmitter[msg.sender],
             "Caller is not proposal submitter"
-        );
-        _;
-    }
-
-    modifier onlyAfterWalletLock(bytes20 walletPubKeyHash) {
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp > walletLock[walletPubKeyHash],
-            "Wallet locked"
         );
         _;
     }
@@ -76,6 +79,18 @@ contract WalletCoordinator is OwnableUpgradeable {
     ) external onlyOwner {
         depositSweepProposalValidity = _depositSweepProposalValidity;
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
+    }
+
+    function addProposalSubmitter(address proposalSubmitter) external onlyOwner {
+        require(!isProposalSubmitter[proposalSubmitter], "This address is already a proposal submitter");
+        isProposalSubmitter[proposalSubmitter] = true;
+        emit ProposalSubmitterAdded(proposalSubmitter);
+    }
+
+    function removeProposalSubmitter(address proposalSubmitter) external onlyOwner {
+        require(isProposalSubmitter[proposalSubmitter], "This address is not a proposal submitter");
+        delete isProposalSubmitter[proposalSubmitter];
+        emit ProposalSubmitterRemoved(proposalSubmitter);
     }
 
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
