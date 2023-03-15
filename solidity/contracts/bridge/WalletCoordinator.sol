@@ -36,8 +36,11 @@ contract WalletCoordinator is OwnableUpgradeable {
     // TODO: Make it governable.
     mapping(address => bool) public isProposalSubmitter;
 
-    // TODO: Make it governable.
     uint32 public depositSweepProposalValidity;
+
+    event DepositSweepProposalValidityUpdated(
+        uint32 depositSweepProposalValidity
+    );
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
@@ -66,6 +69,13 @@ contract WalletCoordinator is OwnableUpgradeable {
 
         bridge = _bridge;
         depositSweepProposalValidity = 4 hours;
+    }
+
+    function updateDepositSweepProposalValidity(
+        uint32 _depositSweepProposalValidity
+    ) external onlyOwner {
+        depositSweepProposalValidity = _depositSweepProposalValidity;
+        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
