@@ -52,7 +52,7 @@ contract WalletCoordinator is OwnableUpgradeable {
 
     modifier onlyAfterWalletLock(bytes20 walletPubKeyHash) {
         require(
-        /* solhint-disable-next-line not-rely-on-time */
+            /* solhint-disable-next-line not-rely-on-time */
             block.timestamp > walletLock[walletPubKeyHash],
             "Wallet locked"
         );
@@ -81,18 +81,32 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
-    function addProposalSubmitter(address proposalSubmitter) external onlyOwner {
-        require(!isProposalSubmitter[proposalSubmitter], "This address is already a proposal submitter");
+    function addProposalSubmitter(address proposalSubmitter)
+        external
+        onlyOwner
+    {
+        require(
+            !isProposalSubmitter[proposalSubmitter],
+            "This address is already a proposal submitter"
+        );
         isProposalSubmitter[proposalSubmitter] = true;
         emit ProposalSubmitterAdded(proposalSubmitter);
     }
 
-    function removeProposalSubmitter(address proposalSubmitter) external onlyOwner {
-        require(isProposalSubmitter[proposalSubmitter], "This address is not a proposal submitter");
+    function removeProposalSubmitter(address proposalSubmitter)
+        external
+        onlyOwner
+    {
+        require(
+            isProposalSubmitter[proposalSubmitter],
+            "This address is not a proposal submitter"
+        );
         delete isProposalSubmitter[proposalSubmitter];
         emit ProposalSubmitterRemoved(proposalSubmitter);
     }
 
+    // TODO: We can also add an ability for the wallet members to unlock on
+    //       their own.
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
         // Just in case, allow the owner to unlock the wallet earlier.
         walletLock[walletPubKeyHash] = 0;
