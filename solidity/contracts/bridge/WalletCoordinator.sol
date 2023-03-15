@@ -18,6 +18,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "./Bridge.sol";
+import "./Deposit.sol";
 import "./Wallets.sol";
 
 // TODO: Documentation and unit tests.
@@ -86,7 +87,7 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
-    function updateDepositSweepMaxSizeUpdated(uint32 _depositSweepMaxSize)
+    function updateDepositSweepMaxSizeUpdated(uint16 _depositSweepMaxSize)
         external
         onlyOwner
     {
@@ -167,7 +168,7 @@ contract WalletCoordinator is OwnableUpgradeable {
                 )
             );
 
-            Deposit memory deposit = bridge.deposits(depositKey);
+            Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
             require(deposit.sweptAt == 0, "Deposit already swept");
 
