@@ -290,7 +290,7 @@ describe("L2WormholeGateway", () => {
       await restoreSnapshot()
     })
 
-    context("when there is not enough liquidity in wormhole", () => {
+    context("when there is not enough wormhole tBTC", () => {
       it("should revert", async () => {
         await expect(
           gateway
@@ -302,11 +302,13 @@ describe("L2WormholeGateway", () => {
               arbiterFee,
               nonce
             )
-        ).to.be.revertedWith("Not enough liquidity in wormhole to bridge")
+        ).to.be.revertedWith(
+          "Not enough wormhole tBTC in the gateway to bridge"
+        )
       })
     })
 
-    context("when there is enough liquidity in wormhole", () => {
+    context("when there is enough wormhole tBTC", () => {
       const amount = 997
 
       let tx: ContractTransaction

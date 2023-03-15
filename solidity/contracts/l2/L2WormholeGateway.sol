@@ -239,7 +239,7 @@ contract L2WormholeGateway is
     ) external nonReentrant returns (uint64) {
         require(
             bridgeToken.balanceOf(address(this)) >= amount,
-            "Not enough liquidity in wormhole to bridge"
+            "Not enough wormhole tBTC in the gateway to bridge"
         );
 
         emit WormholeTbtcSent(
