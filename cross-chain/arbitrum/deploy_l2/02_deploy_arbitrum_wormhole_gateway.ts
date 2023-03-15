@@ -2,7 +2,7 @@ import { smock } from "@defi-wonderland/smock"
 
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
-import type { ITokenBridge } from "../typechain/ITokenBridge"
+import type { IWormholeTokenBridge, IERC20 } from "../typechain"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, getNamedAccounts, helpers, deployments } = hre
@@ -10,21 +10,39 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const L2TokenBridge = await deployments.getOrNull("TokenBridge") // L2
-  let tokenBridgeAddress = ""
+  const WormholeTBTC = await deployments.getOrNull("WormholeTBTC") // L2
+  const ArbitrumTBTC = await deployments.get("ArbitrumTBTC")
 
+  let tokenBridgeAddress = ""
   if (L2TokenBridge && helpers.address.isValid(L2TokenBridge.address)) {
     log(`using existing L2 TokenBridge at ${L2TokenBridge.address}`)
     tokenBridgeAddress = L2TokenBridge.address
   } else {
     // For local development
-    const FakeTokenBridge = await smock.fake<ITokenBridge>("ITokenBridge")
-    tokenBridgeAddress = FakeTokenBridge.address
+    const FakeWormholeTokenBridge = await smock.fake<IWormholeTokenBridge>(
+      "IWormholeTokenBridge"
+    )
+    tokenBridgeAddress = FakeWormholeTokenBridge.address
+  }
+
+  let wormholeTBTCAddress = ""
+  if (WormholeTBTC && helpers.address.isValid(WormholeTBTC.address)) {
+    log(`using existing L2 WormholeTBTC at ${WormholeTBTC.address}`)
+    wormholeTBTCAddress = WormholeTBTC.address
+  } else {
+    // For local development
+    const TestERC20 = await smock.fake<IERC20>("IERC20")
+    wormholeTBTCAddress = TestERC20.address
   }
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumWormholeGateway",
     {
-      initializerArgs: [tokenBridgeAddress],
+      initializerArgs: [
+        tokenBridgeAddress,
+        wormholeTBTCAddress,
+        ArbitrumTBTC.address,
+      ],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
       proxyOpts: {
         kind: "transparent",

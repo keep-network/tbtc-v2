@@ -2,15 +2,10 @@
 
 pragma solidity ^0.8.17;
 
-import "./interfaces/ITokenBridge.sol";
+import "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol";
 
-/// @notice This contract acts as a vending machine converting
-///         'wormholeArbitrumTBTC <-> arbitrumTBTC'
-// TODO: inherit from a generic L2WormholeGateway
-contract ArbitrumWormholeGateway {
-    ITokenBridge public tokenBridge;
+/// @notice Wormhole gateway for L2 Arbitrum.
+///         See more details in a generic L2WormholeGateway contract.
+contract ArbitrumWormholeGateway is L2WormholeGateway {
 
-    function initialize(address wormholeTokenBridgeAddress) external {
-        tokenBridge = ITokenBridge(wormholeTokenBridgeAddress);
-    }
 }
