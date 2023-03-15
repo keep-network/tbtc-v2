@@ -168,6 +168,7 @@ contract WalletCoordinator is OwnableUpgradeable {
                 )
             );
 
+            // slither-disable-next-line calls-loop
             Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
             require(deposit.sweptAt == 0, "Deposit already swept");
