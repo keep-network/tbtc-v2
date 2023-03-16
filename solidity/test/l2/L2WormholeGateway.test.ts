@@ -378,6 +378,59 @@ describe("L2WormholeGateway", () => {
     })
   })
 
+  describe("updateGatewayAddress", () => {
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          gateway
+            .connect(depositor1)
+            .updateGatewayAddress(
+              10,
+              "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E"
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the governance", () => {
+      const chainId1 = 7
+      const chainId2 = 9
+      const gatewayAddress1 = "0xc0ffee254729296a45a3885639AC7E10F9d54979"
+      const gatewayAddress2 = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E"
+
+      let tx1: ContractTransaction
+      let tx2: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        tx1 = await gateway
+          .connect(governance)
+          .updateGatewayAddress(chainId1, gatewayAddress1)
+        tx2 = await gateway
+          .connect(governance)
+          .updateGatewayAddress(chainId2, gatewayAddress2)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update the gateway address", async () => {
+        expect(await gateway.gateways(chainId1)).to.equal(gatewayAddress1)
+        expect(await gateway.gateways(chainId2)).to.equal(gatewayAddress2)
+      })
+
+      it("should emit the GatewayAddressUpdated event", async () => {
+        await expect(tx1)
+          .to.emit(gateway, "GatewayAddressUpdated")
+          .withArgs(chainId1, gatewayAddress1)
+        await expect(tx2)
+          .to.emit(gateway, "GatewayAddressUpdated")
+          .withArgs(chainId2, gatewayAddress2)
+      })
+    })
+  })
+
   describe("updateMintingLimit", () => {
     context("when called by a third party", () => {
       it("should revert", async () => {

@@ -107,6 +107,12 @@ contract L2WormholeGateway is
     /// @notice Canonical tBTC token.
     L2TBTC public tbtc;
 
+    /// @notice Maps Wormhole chain ID to the tBTC gateway address on that chain.
+    ///         For example, this chain's ID should be mapped to this contract's
+    ///         address. If there is no tBTC gateway address on the given chain,
+    ///         there is no entry in this mapping.
+    mapping(uint16 => address) public gateways;
+
     /// @notice Minting limit for this gateway. Useful for early days of testing
     ///         the system. The gateway can not mint more canonical tBTC than
     ///         this limit.
@@ -125,6 +131,8 @@ contract L2WormholeGateway is
         uint256 arbiterFee,
         uint32 nonce
     );
+
+    event GatewayAddressUpdated(uint16 chainId, address gateway);
 
     event MintingLimitUpdated(uint256 mintingLimit);
 
@@ -271,6 +279,14 @@ contract L2WormholeGateway is
         // call that does not allow to use the same VAA again.
         // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
+    }
+
+    function updateGatewayAddress(uint16 chainId, address gateway)
+        external
+        onlyOwner
+    {
+        gateways[chainId] = gateway;
+        emit GatewayAddressUpdated(chainId, gateway);
     }
 
     /// @notice Lets the governance to update the tBTC minting limit for this
