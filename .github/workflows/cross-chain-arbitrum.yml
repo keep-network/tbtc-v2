@@ -191,8 +191,14 @@ jobs:
 
       - name: Deploy contracts
         env:
-          CHAIN_API_URL: ${{ secrets.ARBITRUM_GOERLI_HOSTNAME_HTTP }}
-          ACCOUNTS_PRIVATE_KEYS: ${{ secrets.ARBITRUM_GOERLI_CONTRACT_OWNER_PRIVATE_KEY }}
+          CHAIN_L1_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          CONTRACT_L1_OWNER_ADDRESS: ${{ secrets.CONTRACT_OWNER_ADDRESS }} # deployer
+          THRESHOLD_L1_COUNCIL_ADDRESS: ${{ secrets.THRESHOLD_COUNCIL_ADDRESS }}
+          ACCOUNTS_L1_PRIVATE_KEYS: ${{ secrets.ACCOUNTS_PRIVATE_KEYS }} # <0xL1_OWNER_PRIV_KEY,0xL1_COUNCIL_PRIV_KEY>
+          CHAIN_L2_API_URL: ${{ secrets.GOERLI_ARBITRUM_API_URL }}
+          CONTRACT_L2_OWNER_ADDRESS: ${{ secrets.CONTRACT_OWNER_ADDRESS }} # deployer
+          THRESHOLD_L2_COUNCIL_ADDRESS: ${{ secrets.THRESHOLD_COUNCIL_ADDRESS }}
+          ACCOUNTS_L2_PRIVATE_KEYS: ${{ secrets.ACCOUNTS_PRIVATE_KEYS }} # <0xL1_OWNER_PRIV_KEY,0xL1_COUNCIL_PRIV_KEY>
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
         run: yarn deploy --network goerliArbitrum
 
