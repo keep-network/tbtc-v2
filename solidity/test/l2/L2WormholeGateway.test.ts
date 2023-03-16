@@ -509,35 +509,71 @@ describe("L2WormholeGateway", () => {
   describe("depositBridgeToken", () => {
     const amount = 129
 
-    let tx: ContractTransaction
+    context("when the minting limit is not exceeded", () => {
+      let tx: ContractTransaction
 
-    before(async () => {
-      await createSnapshot()
+      before(async () => {
+        await createSnapshot()
 
-      await wormholeBridgeStub.mintWormholeToken(depositor1.address, amount)
+        await wormholeBridgeStub.mintWormholeToken(depositor1.address, amount)
 
-      await wormholeTbtc.connect(depositor1).approve(gateway.address, amount)
-      tx = await gateway.connect(depositor1).depositBridgeToken(amount)
+        await wormholeTbtc.connect(depositor1).approve(gateway.address, amount)
+        tx = await gateway.connect(depositor1).depositBridgeToken(amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should transfer wormhole tBTC from user to the gateway", async () => {
+        expect(tx)
+          .to.emit(wormholeTbtc, "Transfer")
+          .withArgs(depositor1.address, gateway.address, amount)
+      })
+
+      it("should mint canonical tBTC to the user", async () => {
+        expect(await canonicalTbtc.balanceOf(depositor1.address)).to.equal(
+          amount
+        )
+      })
+
+      it("should emit the WormholeTbtcDeposited event", async () => {
+        await expect(tx)
+          .to.emit(gateway, "WormholeTbtcDeposited")
+          .withArgs(depositor1.address, amount)
+      })
+
+      it("should increase the minted amount counter", async () => {
+        expect(await gateway.mintedAmount()).to.equal(amount)
+      })
     })
 
-    after(async () => {
-      await restoreSnapshot()
-    })
+    context("when the minting limit is exceeded", () => {
+      before(async () => {
+        await createSnapshot()
 
-    it("should transfer wormhole tBTC from user to the gateway", async () => {
-      expect(tx)
-        .to.emit(wormholeTbtc, "Transfer")
-        .withArgs(depositor1.address, gateway.address, amount)
-    })
+        await gateway.connect(governance).updateMintingLimit(amount)
 
-    it("should mint canonical tBTC to the user", async () => {
-      expect(await canonicalTbtc.balanceOf(depositor1.address)).to.equal(amount)
-    })
+        await wormholeBridgeStub.mintWormholeToken(
+          depositor1.address,
+          2 * amount
+        )
+        await wormholeTbtc
+          .connect(depositor1)
+          .approve(gateway.address, 2 * amount)
 
-    it("should emit the WormholeTbtcDeposited event", async () => {
-      await expect(tx)
-        .to.emit(gateway, "WormholeTbtcDeposited")
-        .withArgs(depositor1.address, amount)
+        await gateway.connect(depositor1).depositBridgeToken(amount)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          gateway.connect(depositor1).depositBridgeToken(amount)
+        ).to.be.revertedWith("Minting limit exceeded")
+      })
     })
   })
 

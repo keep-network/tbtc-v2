@@ -330,11 +330,18 @@ contract L2WormholeGateway is
     /// @dev Requirements:
     ///      - The sender must have at least `amount` of the Wormhole tBTC and
     ///        it has to be approved for L2WormholeGateway.
+    ///      - The minting limit must allow for minting the given amount.
     /// @param amount The amount of Wormhole tBTC to deposit.
     function depositBridgeToken(uint256 amount) external {
-        bridgeToken.transferFrom(msg.sender, address(this), amount);
-        tbtc.mint(msg.sender, amount);
+        require(
+            mintedAmount + amount <= mintingLimit,
+            "Minting limit exceeded"
+        );
+
         emit WormholeTbtcDeposited(msg.sender, amount);
+        mintedAmount += amount;
+        bridgeToken.safeTransferFrom(msg.sender, address(this), amount);
+        tbtc.mint(msg.sender, amount);
     }
 
     /// @notice Lets the governance to update the tBTC gateway address on the
