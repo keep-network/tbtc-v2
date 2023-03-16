@@ -155,6 +155,61 @@ contract L2WormholeGateway is
         mintingLimit = type(uint256).max;
     }
 
+    /// @notice This function is called when the user sends their token from L2.
+    ///         The contract burns the canonical tBTC from the user and sends
+    ///         wormhole tBTC representation over the bridge.
+    ///         Keep in mind that when multiple bridges receive a minting
+    ///         authority on the canonical tBTC, this function may not be able
+    ///         to send all amounts of tBTC through the Wormhole bridge. The
+    ///         capability of Wormhole Bridge to send tBTC from the chain is
+    ///         limited to the amount of tBTC bridged through Wormhole to that
+    ///         chain.
+    /// @dev Requirements:
+    ///      - The sender must have at least `amount` of the canonical tBTC and
+    ///        it has to be approved for L2WormholeGateway.
+    ///      - The L2WormholeGateway must have at least `amount` of the wormhole
+    ///        tBTC.
+    /// @param amount The amount of tBTC to be sent.
+    /// @param recipientChain The Wormhole recipient chain ID.
+    /// @param recipient The address of the recipient in the Wormhole format.
+    /// @param arbiterFee The Wormhole arbiter fee.
+    /// @param nonce The Wormhole nonce used to batch messages together.
+    /// @return The Wormhole sequence number.
+    function sendWormhole(
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint256 arbiterFee,
+        uint32 nonce
+    ) external nonReentrant returns (uint64) {
+        require(
+            bridgeToken.balanceOf(address(this)) >= amount,
+            "Not enough wormhole tBTC in the gateway to bridge"
+        );
+
+        emit WormholeTbtcSent(
+            amount,
+            recipientChain,
+            recipient,
+            arbiterFee,
+            nonce
+        );
+
+        mintedAmount -= amount;
+        tbtc.burnFrom(msg.sender, amount);
+
+        bridgeToken.safeApprove(address(bridge), amount);
+        return
+            bridge.transferTokens(
+                address(bridgeToken),
+                amount,
+                recipientChain,
+                recipient,
+                arbiterFee,
+                nonce
+            );
+    }
+
     /// @notice This function is called when the user redeems their token on L2.
     ///         The contract receives Wormhole tBTC representation and mints the
     ///         canonical tBTC for the user.
@@ -216,61 +271,6 @@ contract L2WormholeGateway is
         // call that does not allow to use the same VAA again.
         // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
-    }
-
-    /// @notice This function is called when the user sends their token from L2.
-    ///         The contract burns the canonical tBTC from the user and sends
-    ///         wormhole tBTC representation over the bridge.
-    ///         Keep in mind that when multiple bridges receive a minting
-    ///         authority on the canonical tBTC, this function may not be able
-    ///         to send all amounts of tBTC through the Wormhole bridge. The
-    ///         capability of Wormhole Bridge to send tBTC from the chain is
-    ///         limited to the amount of tBTC bridged through Wormhole to that
-    ///         chain.
-    /// @dev Requirements:
-    ///      - The sender must have at least `amount` of the canonical tBTC and
-    ///        it has to be approved for L2WormholeGateway.
-    ///      - The L2WormholeGateway must have at least `amount` of the wormhole
-    ///        tBTC.
-    /// @param amount The amount of tBTC to be sent.
-    /// @param recipientChain The Wormhole recipient chain ID.
-    /// @param recipient The address of the recipient in the Wormhole format.
-    /// @param arbiterFee The Wormhole arbiter fee.
-    /// @param nonce The Wormhole nonce used to batch messages together.
-    /// @return The Wormhole sequence number.
-    function sendWormhole(
-        uint256 amount,
-        uint16 recipientChain,
-        bytes32 recipient,
-        uint256 arbiterFee,
-        uint32 nonce
-    ) external nonReentrant returns (uint64) {
-        require(
-            bridgeToken.balanceOf(address(this)) >= amount,
-            "Not enough wormhole tBTC in the gateway to bridge"
-        );
-
-        emit WormholeTbtcSent(
-            amount,
-            recipientChain,
-            recipient,
-            arbiterFee,
-            nonce
-        );
-
-        mintedAmount -= amount;
-        tbtc.burnFrom(msg.sender, amount);
-
-        bridgeToken.safeApprove(address(bridge), amount);
-        return
-            bridge.transferTokens(
-                address(bridgeToken),
-                amount,
-                recipientChain,
-                recipient,
-                arbiterFee,
-                nonce
-            );
     }
 
     /// @notice Lets the governance to update the tBTC minting limit for this
