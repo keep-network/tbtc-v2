@@ -144,6 +144,8 @@ contract L2WormholeGateway is
         uint32 nonce
     );
 
+    event WormholeTbtcDeposited(address depositor, uint256 amount);
+
     event GatewayAddressUpdated(uint16 chainId, bytes32 gateway);
 
     event MintingLimitUpdated(uint256 mintingLimit);
@@ -314,6 +316,20 @@ contract L2WormholeGateway is
         // call that does not allow to use the same VAA again.
         // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
+    }
+
+    /// @notice Allows to deposit Wormhole tBTC token in exchange for canonical
+    ///         tBTC. Useful in a situation when user received wormhole tBTC
+    ///         instead of canonical tBTC. One example of such situation is
+    ///         when the minting limit was exceeded but the user minted anyway.
+    /// @dev Requirements:
+    ///      - The sender must have at least `amount` of the Wormhole tBTC and
+    ///        it has to be approved for L2WormholeGateway.
+    /// @param amount The amount of Wormhole tBTC to deposit.
+    function depositBridgeToken(uint256 amount) external {
+        bridgeToken.transferFrom(msg.sender, address(this), amount);
+        tbtc.mint(msg.sender, amount);
+        emit WormholeTbtcDeposited(msg.sender, amount);
     }
 
     /// @notice Lets the governance to update the tBTC gateway address on the

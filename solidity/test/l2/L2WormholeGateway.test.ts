@@ -472,6 +472,41 @@ describe("L2WormholeGateway", () => {
     })
   })
 
+  describe("depositBridgeToken", () => {
+    const amount = 129
+
+    let tx: ContractTransaction
+
+    before(async () => {
+      await createSnapshot()
+
+      await wormholeBridgeStub.mintWormholeToken(depositor1.address, amount)
+
+      await wormholeTbtc.connect(depositor1).approve(gateway.address, amount)
+      tx = await gateway.connect(depositor1).depositBridgeToken(amount)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should transfer wormhole tBTC from user to the gateway", async () => {
+      expect(tx)
+        .to.emit(wormholeTbtc, "Transfer")
+        .withArgs(depositor1.address, gateway.address, amount)
+    })
+
+    it("should mint canonical tBTC to the user", async () => {
+      expect(await canonicalTbtc.balanceOf(depositor1.address)).to.equal(amount)
+    })
+
+    it("should emit the WormholeTbtcDeposited event", async () => {
+      await expect(tx)
+        .to.emit(gateway, "WormholeTbtcDeposited")
+        .withArgs(depositor1.address, amount)
+    })
+  })
+
   describe("updateGatewayAddress", () => {
     context("when called by a third party", () => {
       it("should revert", async () => {
