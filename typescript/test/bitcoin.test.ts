@@ -5,9 +5,17 @@ import {
   decodeBitcoinAddress,
   isPublicKeyHashLength,
   locktimeToNumber,
+  BlockHeader,
+  serializeBlockHeader,
+  deserializeBlockHeader,
+  hashLEToBigNumber,
+  bitsToTarget,
+  targetToDifficulty,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
+import { Hex } from "../src/hex"
+import { BigNumber } from "ethers"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -352,6 +360,108 @@ describe("Bitcoin", () => {
           })
         })
       })
+    })
+  })
+
+  describe("serializeBlockHeader", () => {
+    it("calculates correct value", () => {
+      const blockHeader: BlockHeader = {
+        version: 536870916,
+        previousBlockHeaderHash: Hex.from(
+          "a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef300045660000000000"
+        ),
+        merkleRootHash: Hex.from(
+          "e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b49649775112"
+        ),
+        time: 1641914003,
+        bits: 436256810,
+        nonce: 778087099,
+      }
+
+      const expectedSerializedBlockHeader = Hex.from(
+        "04000020a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef30004566000000" +
+          "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b496497751" +
+          "12939edd612ac0001abbaa602e"
+      )
+
+      expect(serializeBlockHeader(blockHeader)).to.be.deep.equal(
+        expectedSerializedBlockHeader
+      )
+    })
+  })
+
+  describe("deserializeBlockHeader", () => {
+    it("calculates correct value", () => {
+      const rawBlockHeader = Hex.from(
+        "04000020a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef30004566000000" +
+          "0000e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b496497751" +
+          "12939edd612ac0001abbaa602e"
+      )
+
+      const expectedBlockHeader: BlockHeader = {
+        version: 536870916,
+        previousBlockHeaderHash: Hex.from(
+          "a5a3501e6ba1f3e2a1ee5d29327a549524ed33f272dfef300045660000000000"
+        ),
+        merkleRootHash: Hex.from(
+          "e27d241ca36de831ab17e6729056c14a383e7a3f43d56254f846b49649775112"
+        ),
+        time: 1641914003,
+        bits: 436256810,
+        nonce: 778087099,
+      }
+
+      expect(deserializeBlockHeader(rawBlockHeader)).to.deep.equal(
+        expectedBlockHeader
+      )
+    })
+  })
+
+  describe("hashLEToBigNumber", () => {
+    it("calculates correct value", () => {
+      const hash = Hex.from(
+        "31552151fbef8e96a33f979e6253d29edf65ac31b04802319e00000000000000"
+      )
+      const expectedBigNumber = BigNumber.from(
+        "992983769452983078390935942095592601503357651673709518345521"
+      )
+      expect(hashLEToBigNumber(hash)).to.equal(expectedBigNumber)
+    })
+  })
+
+  describe("bitsToTarget", () => {
+    it("calculates correct value for random block header bits", () => {
+      const difficultyBits = 436256810
+      const expectedDifficultyTarget = BigNumber.from(
+        "1206233370197704583969288378458116959663044038027202007138304"
+      )
+      expect(bitsToTarget(difficultyBits)).to.equal(expectedDifficultyTarget)
+    })
+
+    it("calculates correct value for block header with difficulty of 1", () => {
+      const difficultyBits = 486604799
+      const expectedDifficultyTarget = BigNumber.from(
+        "26959535291011309493156476344723991336010898738574164086137773096960"
+      )
+      expect(bitsToTarget(difficultyBits)).to.equal(expectedDifficultyTarget)
+    })
+  })
+
+  describe("targetToDifficulty", () => {
+    it("calculates correct value for random block header bits", () => {
+      const target = BigNumber.from(
+        "1206233370197704583969288378458116959663044038027202007138304"
+      )
+      const expectedDifficulty = BigNumber.from("22350181")
+      expect(targetToDifficulty(target)).to.equal(expectedDifficulty)
+    })
+
+    it("calculates correct value for block header with difficulty of 1", () => {
+      const target = BigNumber.from(
+        "26959535291011309493156476344723991336010898738574164086137773096960"
+      )
+      const expectedDifficulty = BigNumber.from("1")
+      expect(targetToDifficulty(target)).to.equal(expectedDifficulty)
     })
   })
 })
