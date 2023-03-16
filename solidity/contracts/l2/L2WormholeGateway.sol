@@ -191,6 +191,7 @@ contract L2WormholeGateway is
     ///        it has to be approved for L2WormholeGateway.
     ///      - The L2WormholeGateway must have at least `amount` of the wormhole
     ///        tBTC.
+    ///      - The recipient must not be 0x0.
     ///      Depending if Wormhole tBTC gateway is registered on the target
     ///      chain, this function uses transfer or transfer with payload over
     ///      the Wormhole bridge.
@@ -212,6 +213,8 @@ contract L2WormholeGateway is
             bridgeToken.balanceOf(address(this)) >= amount,
             "Not enough wormhole tBTC in the gateway to bridge"
         );
+
+        require(recipient != bytes32(0), "0x0 recipient not allowed");
 
         bytes32 gateway = gateways[recipientChain];
 

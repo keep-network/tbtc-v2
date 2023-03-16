@@ -344,129 +344,147 @@ describe("L2WormholeGateway", () => {
     })
 
     context("when there is enough wormhole tBTC", () => {
-      context("when the target chain has no tBTC gateway", () => {
-        const amount = 997
-
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          await canonicalTbtc
-            .connect(depositor1)
-            .approve(gateway.address, amount)
-          tx = await gateway
-            .connect(depositor1)
-            .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        it("should burn canonical tBTC from the caller", async () => {
-          expect(tx)
-            .to.emit(canonicalTbtc, "Transfer")
-            .withArgs(depositor1.address, ZERO_ADDRESS, amount)
-        })
-
-        it("should approve burned amount of wormhole tBTC to the bridge", async () => {
-          expect(tx)
-            .to.emit(wormholeTbtc, "Approved")
-            .withArgs(wormholeBridgeStub.address, amount)
-        })
-
-        it("should sent tokens through the bridge", async () => {
-          await expect(tx)
-            .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
-            .withArgs(
-              wormholeTbtc.address,
-              amount,
-              recipientChain,
-              recipient,
-              arbiterFee,
-              nonce
-            )
-        })
-
-        it("should emit the WormholeTbtcSent event", async () => {
-          await expect(tx)
-            .to.emit(gateway, "WormholeTbtcSent")
-            .withArgs(
-              amount,
-              recipientChain,
-              padTo32Bytes(ZERO_ADDRESS),
-              recipient,
-              arbiterFee,
-              nonce
-            )
+      context("when the receiver address is zero", () => {
+        it("should revert", async () => {
+          await expect(
+            gateway
+              .connect(depositor1)
+              .sendTbtc(
+                liquidity,
+                recipientChain,
+                padTo32Bytes(ZERO_ADDRESS),
+                arbiterFee,
+                nonce
+              )
+          ).to.be.revertedWith("0x0 recipient not allowed")
         })
       })
 
-      context("when the target chain has a tBTC gateway", () => {
-        const amount = 998
-        const targetGateway = "0x4c810fe802d68c6ef0e1291b52fca5812bbc97c9"
+      context("when the receiver address is non-zero", () => {
+        context("when the target chain has no tBTC gateway", () => {
+          const amount = 997
 
-        let tx: ContractTransaction
+          let tx: ContractTransaction
 
-        before(async () => {
-          await createSnapshot()
+          before(async () => {
+            await createSnapshot()
 
-          await gateway
-            .connect(governance)
-            .updateGatewayAddress(recipientChain, targetGateway)
+            await canonicalTbtc
+              .connect(depositor1)
+              .approve(gateway.address, amount)
+            tx = await gateway
+              .connect(depositor1)
+              .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          })
 
-          await canonicalTbtc
-            .connect(depositor1)
-            .approve(gateway.address, amount)
-          tx = await gateway
-            .connect(depositor1)
-            .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should burn canonical tBTC from the caller", async () => {
+            expect(tx)
+              .to.emit(canonicalTbtc, "Transfer")
+              .withArgs(depositor1.address, ZERO_ADDRESS, amount)
+          })
+
+          it("should approve burned amount of wormhole tBTC to the bridge", async () => {
+            expect(tx)
+              .to.emit(wormholeTbtc, "Approved")
+              .withArgs(wormholeBridgeStub.address, amount)
+          })
+
+          it("should sent tokens through the bridge", async () => {
+            await expect(tx)
+              .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
+              .withArgs(
+                wormholeTbtc.address,
+                amount,
+                recipientChain,
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
+
+          it("should emit the WormholeTbtcSent event", async () => {
+            await expect(tx)
+              .to.emit(gateway, "WormholeTbtcSent")
+              .withArgs(
+                amount,
+                recipientChain,
+                padTo32Bytes(ZERO_ADDRESS),
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
         })
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+        context("when the target chain has a tBTC gateway", () => {
+          const amount = 998
+          const targetGateway = "0x4c810fe802d68c6ef0e1291b52fca5812bbc97c9"
 
-        it("should burn canonical tBTC from the caller", async () => {
-          expect(tx)
-            .to.emit(canonicalTbtc, "Transfer")
-            .withArgs(depositor1.address, ZERO_ADDRESS, amount)
-        })
+          let tx: ContractTransaction
 
-        it("should approve burned amount of wormhole tBTC to the bridge", async () => {
-          expect(tx)
-            .to.emit(wormholeTbtc, "Approved")
-            .withArgs(wormholeBridgeStub.address, amount)
-        })
+          before(async () => {
+            await createSnapshot()
 
-        it("should sent tokens through the bridge", async () => {
-          await expect(tx)
-            .to.emit(
-              wormholeBridgeStub,
-              "WormholeBridgeStub_transferTokensWithPayload"
-            )
-            .withArgs(
-              wormholeTbtc.address,
-              amount,
-              recipientChain,
-              padTo32Bytes(targetGateway),
-              nonce,
-              recipient
-            )
-        })
+            await gateway
+              .connect(governance)
+              .updateGatewayAddress(recipientChain, targetGateway)
 
-        it("should emit the WormholeTbtcSent event", async () => {
-          await expect(tx)
-            .to.emit(gateway, "WormholeTbtcSent")
-            .withArgs(
-              amount,
-              recipientChain,
-              padTo32Bytes(targetGateway),
-              recipient,
-              arbiterFee,
-              nonce
-            )
+            await canonicalTbtc
+              .connect(depositor1)
+              .approve(gateway.address, amount)
+            tx = await gateway
+              .connect(depositor1)
+              .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should burn canonical tBTC from the caller", async () => {
+            expect(tx)
+              .to.emit(canonicalTbtc, "Transfer")
+              .withArgs(depositor1.address, ZERO_ADDRESS, amount)
+          })
+
+          it("should approve burned amount of wormhole tBTC to the bridge", async () => {
+            expect(tx)
+              .to.emit(wormholeTbtc, "Approved")
+              .withArgs(wormholeBridgeStub.address, amount)
+          })
+
+          it("should sent tokens through the bridge", async () => {
+            await expect(tx)
+              .to.emit(
+                wormholeBridgeStub,
+                "WormholeBridgeStub_transferTokensWithPayload"
+              )
+              .withArgs(
+                wormholeTbtc.address,
+                amount,
+                recipientChain,
+                padTo32Bytes(targetGateway),
+                nonce,
+                recipient
+              )
+          })
+
+          it("should emit the WormholeTbtcSent event", async () => {
+            await expect(tx)
+              .to.emit(gateway, "WormholeTbtcSent")
+              .withArgs(
+                amount,
+                recipientChain,
+                padTo32Bytes(targetGateway),
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
         })
       })
     })
