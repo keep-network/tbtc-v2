@@ -44,6 +44,15 @@ interface IWormholeTokenBridge {
         uint32 nonce
     ) external payable returns (uint64 sequence);
 
+    function transferTokensWithPayload(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint32 nonce,
+        bytes memory payload
+    ) external payable returns (uint64 sequence);
+
     struct TransferWithPayload {
         uint8 payloadID;
         uint256 amount;
@@ -107,11 +116,13 @@ contract L2WormholeGateway is
     /// @notice Canonical tBTC token.
     L2TBTC public tbtc;
 
-    /// @notice Maps Wormhole chain ID to the tBTC gateway address on that chain.
-    ///         For example, this chain's ID should be mapped to this contract's
-    ///         address. If there is no tBTC gateway address on the given chain,
-    ///         there is no entry in this mapping.
-    mapping(uint16 => address) public gateways;
+    /// @notice Maps Wormhole chain ID to the Wormhole tBTC gateway address on
+    ///         that chain. For example, this chain's ID should be mapped to
+    ///         this contract's address. If there is no Wormhole tBTC gateway
+    ///         address on the given chain, there is no entry in this mapping.
+    ///         The mapping holds addresses in a Wormhole-specific format, where
+    ///         Ethereum address is left-padded with zeros.
+    mapping(uint16 => bytes32) public gateways;
 
     /// @notice Minting limit for this gateway. Useful for early days of testing
     ///         the system. The gateway can not mint more canonical tBTC than
@@ -127,12 +138,13 @@ contract L2WormholeGateway is
     event WormholeTbtcSent(
         uint256 amount,
         uint16 recipientChain,
+        bytes32 gateway,
         bytes32 recipient,
         uint256 arbiterFee,
         uint32 nonce
     );
 
-    event GatewayAddressUpdated(uint16 chainId, address gateway);
+    event GatewayAddressUpdated(uint16 chainId, bytes32 gateway);
 
     event MintingLimitUpdated(uint256 mintingLimit);
 
@@ -177,10 +189,14 @@ contract L2WormholeGateway is
     ///        it has to be approved for L2WormholeGateway.
     ///      - The L2WormholeGateway must have at least `amount` of the wormhole
     ///        tBTC.
+    ///      Depending if Wormhole tBTC gateway is registered on the target
+    ///      chain, this function uses transfer or transfer with payload over
+    ///      the Wormhole bridge.
     /// @param amount The amount of tBTC to be sent.
     /// @param recipientChain The Wormhole recipient chain ID.
     /// @param recipient The address of the recipient in the Wormhole format.
-    /// @param arbiterFee The Wormhole arbiter fee.
+    /// @param arbiterFee The Wormhole arbiter fee. Ignored if sending
+    ///                   tBTC to chain with Wormhole tBTC gateway.
     /// @param nonce The Wormhole nonce used to batch messages together.
     /// @return The Wormhole sequence number.
     function sendTbtc(
@@ -189,15 +205,18 @@ contract L2WormholeGateway is
         bytes32 recipient,
         uint256 arbiterFee,
         uint32 nonce
-    ) external nonReentrant returns (uint64) {
+    ) external payable nonReentrant returns (uint64) {
         require(
             bridgeToken.balanceOf(address(this)) >= amount,
             "Not enough wormhole tBTC in the gateway to bridge"
         );
 
+        bytes32 gateway = gateways[recipientChain];
+
         emit WormholeTbtcSent(
             amount,
             recipientChain,
+            gateway,
             recipient,
             arbiterFee,
             nonce
@@ -205,17 +224,34 @@ contract L2WormholeGateway is
 
         mintedAmount -= amount;
         tbtc.burnFrom(msg.sender, amount);
-
         bridgeToken.safeApprove(address(bridge), amount);
-        return
-            bridge.transferTokens(
-                address(bridgeToken),
-                amount,
-                recipientChain,
-                recipient,
-                arbiterFee,
-                nonce
-            );
+
+        if (gateway == bytes32(0)) {
+            // No Wormhole tBTC gateway on the target chain. The token minted
+            // by Wormhole should be considered canonical.
+            return
+                bridge.transferTokens{value: msg.value}(
+                    address(bridgeToken),
+                    amount,
+                    recipientChain,
+                    recipient,
+                    arbiterFee,
+                    nonce
+                );
+        } else {
+            // There is a Wormhole tBTC gateway on the target chain.
+            // The gateway needs to mint canonical tBTC for the recipient
+            // encoded in the payload.
+            return
+                bridge.transferTokensWithPayload{value: msg.value}(
+                    address(bridgeToken),
+                    amount,
+                    recipientChain,
+                    gateway,
+                    nonce,
+                    abi.encode(recipient)
+                );
+        }
     }
 
     /// @notice This function is called when the user redeems their token on L2.
@@ -256,9 +292,8 @@ contract L2WormholeGateway is
         // Protect against the custody of irrelevant tokens.
         require(amount > 0, "No tBTC transferred");
 
-        address receiver = abi.decode(
-            bridge.parseTransferWithPayload(encoded).payload,
-            (address)
+        address receiver = fromWormholeAddress(
+            bytes32(bridge.parseTransferWithPayload(encoded).payload)
         );
         require(receiver != address(0), "0x0 receiver not allowed");
 
@@ -281,12 +316,17 @@ contract L2WormholeGateway is
         emit WormholeTbtcReceived(receiver, amount);
     }
 
+    /// @notice Lets the governance to update the tBTC gateway address on the
+    ///         chain with the given Wormhole ID.
+    /// @param chainId Wormhole ID of the chain.
+    /// @param gateway Address of tBTC gateway on the given chain.
     function updateGatewayAddress(uint16 chainId, address gateway)
         external
         onlyOwner
     {
-        gateways[chainId] = gateway;
-        emit GatewayAddressUpdated(chainId, gateway);
+        bytes32 wormholeAddress = toWormholeAddress(gateway);
+        gateways[chainId] = wormholeAddress;
+        emit GatewayAddressUpdated(chainId, wormholeAddress);
     }
 
     /// @notice Lets the governance to update the tBTC minting limit for this
@@ -295,5 +335,21 @@ contract L2WormholeGateway is
     function updateMintingLimit(uint256 _mintingLimit) external onlyOwner {
         mintingLimit = _mintingLimit;
         emit MintingLimitUpdated(_mintingLimit);
+    }
+
+    /// @notice Converts Ethereum address into Wormhole format.
+    /// @param _address The address to convert.
+    function toWormholeAddress(address _address) public pure returns (bytes32) {
+        return bytes32(uint256(uint160(_address)));
+    }
+
+    /// @notice Converts Wormhole address into Ethereum format.
+    /// @param _address The address to convert.
+    function fromWormholeAddress(bytes32 _address)
+        public
+        pure
+        returns (address)
+    {
+        return address(uint160(uint256(_address)));
     }
 }

@@ -12,7 +12,7 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
     TestERC20 public wormholeToken;
 
     uint256 public transferAmount;
-    address public receiverAddress;
+    bytes32 public receiverAddress;
 
     // Two simple events allowing to assert Wormhole bridge functions are
     // called.
@@ -24,6 +24,14 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
         bytes32 recipient,
         uint256 arbiterFee,
         uint32 nonce
+    );
+    event WormholeBridgeStub_transferTokensWithPayload(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint32 nonce,
+        bytes payload
     );
 
     constructor(TestERC20 _wormholeToken) {
@@ -50,7 +58,7 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
                 0x5000000000000000000000000000000000000000000000000000000000000000, // to
                 6, // toChain
                 0x7000000000000000000000000000000000000000000000000000000000000000, // fromAddress
-                abi.encode(receiverAddress)
+                abi.encode(receiverAddress) // payload
             );
 
         return abi.encode(transfer);
@@ -75,6 +83,25 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
         return 777;
     }
 
+    function transferTokensWithPayload(
+        address token,
+        uint256 amount,
+        uint16 recipientChain,
+        bytes32 recipient,
+        uint32 nonce,
+        bytes memory payload
+    ) external payable returns (uint64 sequence) {
+        emit WormholeBridgeStub_transferTokensWithPayload(
+            token,
+            amount,
+            recipientChain,
+            recipient,
+            nonce,
+            payload
+        );
+        return 888;
+    }
+
     function parseTransferWithPayload(bytes memory encoded)
         external
         pure
@@ -87,7 +114,7 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
         transferAmount = _transferAmount;
     }
 
-    function setReceiverAddress(address _receiverAddress) external {
+    function setReceiverAddress(bytes32 _receiverAddress) external {
         receiverAddress = _receiverAddress;
     }
 }

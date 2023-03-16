@@ -130,6 +130,9 @@ describe("L2WormholeGateway", () => {
     } = await waffle.loadFixture(fixture))
   })
 
+  // Returns hexString padded on the left with zeros to 32 bytes.
+  const padTo32Bytes = (hex: string) => ethers.utils.hexZeroPad(hex, 32)
+
   describe("initialization", () => {
     it("should set the wormhole bridge address", async () => {
       expect(await gateway.bridge()).to.equal(wormholeBridgeStub.address)
@@ -149,7 +152,7 @@ describe("L2WormholeGateway", () => {
       before(async () => {
         await createSnapshot()
 
-        await wormholeBridgeStub.setReceiverAddress(ZERO_ADDRESS)
+        await wormholeBridgeStub.setReceiverAddress(padTo32Bytes(ZERO_ADDRESS))
         await wormholeBridgeStub.setTransferAmount(10)
       })
 
@@ -168,7 +171,9 @@ describe("L2WormholeGateway", () => {
       before(async () => {
         await createSnapshot()
 
-        await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+        await wormholeBridgeStub.setReceiverAddress(
+          padTo32Bytes(depositor1.address)
+        )
         await wormholeBridgeStub.setTransferAmount(0)
       })
 
@@ -191,7 +196,9 @@ describe("L2WormholeGateway", () => {
 
         before(async () => {
           await createSnapshot()
-          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setReceiverAddress(
+            padTo32Bytes(depositor1.address)
+          )
           await wormholeBridgeStub.setTransferAmount(transferAmount)
 
           tx = await gateway.receiveTbtc(encodedVm)
@@ -238,19 +245,27 @@ describe("L2WormholeGateway", () => {
           await createSnapshot()
           await gateway.connect(governance).updateMintingLimit(100)
 
-          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setReceiverAddress(
+            padTo32Bytes(depositor1.address)
+          )
           await wormholeBridgeStub.setTransferAmount(40)
           await gateway.receiveTbtc(encodedVm)
 
-          await wormholeBridgeStub.setReceiverAddress(depositor2.address)
+          await wormholeBridgeStub.setReceiverAddress(
+            padTo32Bytes(depositor2.address)
+          )
           await wormholeBridgeStub.setTransferAmount(40)
           await gateway.receiveTbtc(encodedVm)
 
-          await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+          await wormholeBridgeStub.setReceiverAddress(
+            padTo32Bytes(depositor1.address)
+          )
           await wormholeBridgeStub.setTransferAmount(19)
           await gateway.receiveTbtc(encodedVm)
 
-          await wormholeBridgeStub.setReceiverAddress(depositor2.address)
+          await wormholeBridgeStub.setReceiverAddress(
+            padTo32Bytes(depositor2.address)
+          )
           await wormholeBridgeStub.setTransferAmount(10)
           await gateway.receiveTbtc(encodedVm)
         })
@@ -289,8 +304,7 @@ describe("L2WormholeGateway", () => {
 
   describe("sendTbtc", () => {
     const recipientChain = 2
-    const recipient =
-      "0x0000000000000000000000003e7e00b99c98b79c191b0065d177dacf8821f2a7"
+    const recipient = padTo32Bytes("0x3e7e00b99c98b79c191b0065d177dacf8821f2a7")
     const arbiterFee = 3
     const nonce = 4
 
@@ -299,7 +313,9 @@ describe("L2WormholeGateway", () => {
     before(async () => {
       await createSnapshot()
 
-      await wormholeBridgeStub.setReceiverAddress(depositor1.address)
+      await wormholeBridgeStub.setReceiverAddress(
+        padTo32Bytes(depositor1.address)
+      )
       await wormholeBridgeStub.setTransferAmount(liquidity)
 
       await gateway.receiveTbtc(encodedVm)
@@ -317,7 +333,7 @@ describe("L2WormholeGateway", () => {
             .sendTbtc(
               liquidity + 1,
               recipientChain,
-              recipient,
+              padTo32Bytes(recipient),
               arbiterFee,
               nonce
             )
@@ -328,52 +344,130 @@ describe("L2WormholeGateway", () => {
     })
 
     context("when there is enough wormhole tBTC", () => {
-      const amount = 997
+      context("when the target chain has no tBTC gateway", () => {
+        const amount = 997
 
-      let tx: ContractTransaction
+        let tx: ContractTransaction
 
-      before(async () => {
-        await createSnapshot()
+        before(async () => {
+          await createSnapshot()
 
-        await canonicalTbtc.connect(depositor1).approve(gateway.address, amount)
-        tx = await gateway
-          .connect(depositor1)
-          .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          await canonicalTbtc
+            .connect(depositor1)
+            .approve(gateway.address, amount)
+          tx = await gateway
+            .connect(depositor1)
+            .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should burn canonical tBTC from the caller", async () => {
+          expect(tx)
+            .to.emit(canonicalTbtc, "Transfer")
+            .withArgs(depositor1.address, ZERO_ADDRESS, amount)
+        })
+
+        it("should approve burned amount of wormhole tBTC to the bridge", async () => {
+          expect(tx)
+            .to.emit(wormholeTbtc, "Approved")
+            .withArgs(wormholeBridgeStub.address, amount)
+        })
+
+        it("should sent tokens through the bridge", async () => {
+          await expect(tx)
+            .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
+            .withArgs(
+              wormholeTbtc.address,
+              amount,
+              recipientChain,
+              recipient,
+              arbiterFee,
+              nonce
+            )
+        })
+
+        it("should emit the WormholeTbtcSent event", async () => {
+          await expect(tx)
+            .to.emit(gateway, "WormholeTbtcSent")
+            .withArgs(
+              amount,
+              recipientChain,
+              padTo32Bytes(ZERO_ADDRESS),
+              recipient,
+              arbiterFee,
+              nonce
+            )
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      context("when the target chain has a tBTC gateway", () => {
+        const amount = 998
+        const targetGateway = "0x4c810fe802d68c6ef0e1291b52fca5812bbc97c9"
 
-      it("should burn canonical tBTC from the caller", async () => {
-        expect(tx)
-          .to.emit(canonicalTbtc, "Transfer")
-          .withArgs(depositor1.address, ZERO_ADDRESS, amount)
-      })
+        let tx: ContractTransaction
 
-      it("should approve burned amount of wormhole tBTC to the bridge", async () => {
-        expect(tx)
-          .to.emit(wormholeTbtc, "Approved")
-          .withArgs(wormholeBridgeStub.address, amount)
-      })
+        before(async () => {
+          await createSnapshot()
 
-      it("should sent tokens through the bridge", async () => {
-        await expect(tx)
-          .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
-          .withArgs(
-            wormholeTbtc.address,
-            amount,
-            recipientChain,
-            recipient,
-            arbiterFee,
-            nonce
-          )
-      })
+          await gateway
+            .connect(governance)
+            .updateGatewayAddress(recipientChain, targetGateway)
 
-      it("should emit the WormholeTbtcSent event", async () => {
-        await expect(tx)
-          .to.emit(gateway, "WormholeTbtcSent")
-          .withArgs(amount, recipientChain, recipient, arbiterFee, nonce)
+          await canonicalTbtc
+            .connect(depositor1)
+            .approve(gateway.address, amount)
+          tx = await gateway
+            .connect(depositor1)
+            .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should burn canonical tBTC from the caller", async () => {
+          expect(tx)
+            .to.emit(canonicalTbtc, "Transfer")
+            .withArgs(depositor1.address, ZERO_ADDRESS, amount)
+        })
+
+        it("should approve burned amount of wormhole tBTC to the bridge", async () => {
+          expect(tx)
+            .to.emit(wormholeTbtc, "Approved")
+            .withArgs(wormholeBridgeStub.address, amount)
+        })
+
+        it("should sent tokens through the bridge", async () => {
+          await expect(tx)
+            .to.emit(
+              wormholeBridgeStub,
+              "WormholeBridgeStub_transferTokensWithPayload"
+            )
+            .withArgs(
+              wormholeTbtc.address,
+              amount,
+              recipientChain,
+              padTo32Bytes(targetGateway),
+              nonce,
+              recipient
+            )
+        })
+
+        it("should emit the WormholeTbtcSent event", async () => {
+          await expect(tx)
+            .to.emit(gateway, "WormholeTbtcSent")
+            .withArgs(
+              amount,
+              recipientChain,
+              padTo32Bytes(targetGateway),
+              recipient,
+              arbiterFee,
+              nonce
+            )
+        })
       })
     })
   })
@@ -395,8 +489,8 @@ describe("L2WormholeGateway", () => {
     context("when called by the governance", () => {
       const chainId1 = 7
       const chainId2 = 9
-      const gatewayAddress1 = "0xc0ffee254729296a45a3885639AC7E10F9d54979"
-      const gatewayAddress2 = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E"
+      const gatewayAddress1 = "0xc0ffee254729296a45a3885639ac7e10f9d54979"
+      const gatewayAddress2 = "0x999999cf1046e68e36e1aa2e0e07105eddd1f08e"
 
       let tx1: ContractTransaction
       let tx2: ContractTransaction
@@ -416,17 +510,21 @@ describe("L2WormholeGateway", () => {
       })
 
       it("should update the gateway address", async () => {
-        expect(await gateway.gateways(chainId1)).to.equal(gatewayAddress1)
-        expect(await gateway.gateways(chainId2)).to.equal(gatewayAddress2)
+        expect(await gateway.gateways(chainId1)).to.equal(
+          padTo32Bytes(gatewayAddress1)
+        )
+        expect(await gateway.gateways(chainId2)).to.equal(
+          padTo32Bytes(gatewayAddress2)
+        )
       })
 
       it("should emit the GatewayAddressUpdated event", async () => {
         await expect(tx1)
           .to.emit(gateway, "GatewayAddressUpdated")
-          .withArgs(chainId1, gatewayAddress1)
+          .withArgs(chainId1, padTo32Bytes(gatewayAddress1))
         await expect(tx2)
           .to.emit(gateway, "GatewayAddressUpdated")
-          .withArgs(chainId2, gatewayAddress2)
+          .withArgs(chainId2, padTo32Bytes(gatewayAddress2))
       })
     })
   })
@@ -459,6 +557,26 @@ describe("L2WormholeGateway", () => {
       it("should emit the MintingLimitUpdated event", async () => {
         await expect(tx).to.emit(gateway, "MintingLimitUpdated").withArgs(777)
       })
+    })
+  })
+
+  describe("toWormholeAddress", () => {
+    it("should convert Ethereum address into Wormhole format", async () => {
+      const converted = await gateway.toWormholeAddress(
+        "0xef3776ccff55072e007c52d72b2763b7e2fcf0e7"
+      )
+      expect(converted).to.equal(
+        "0x000000000000000000000000ef3776ccff55072e007c52d72b2763b7e2fcf0e7"
+      )
+    })
+  })
+
+  describe("fromWormholeAddress", () => {
+    it("should convert Wormhole address into Ethereum format", async () => {
+      const converted = await gateway.fromWormholeAddress(
+        "0x000000000000000000000000ef3776ccff55072e007c52d72b2763b7e2fcf0e7"
+      )
+      expect(converted).to.equal("0xEf3776CCff55072e007C52d72B2763b7e2fCF0e7")
     })
   })
 })
