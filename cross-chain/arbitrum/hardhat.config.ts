@@ -88,8 +88,8 @@ const config: HardhatUserConfig = {
 
   etherscan: {
     apiKey: {
-      goerli: process.env.ETHERSCAN_GOERLI_API_KEY,
-      arbitrumGoerli: process.env.ARBISCAN_GOERLI_API_KEY,
+      goerli: process.env.ETHERSCAN_API_KEY,
+      arbitrumGoerli: process.env.ARBISCAN_API_KEY,
     },
   },
 

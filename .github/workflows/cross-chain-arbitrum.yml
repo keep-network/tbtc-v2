@@ -193,7 +193,7 @@ jobs:
         env:
           CHAIN_API_URL: ${{ secrets.ARBITRUM_GOERLI_HOSTNAME_HTTP }}
           ACCOUNTS_PRIVATE_KEYS: ${{ secrets.ARBITRUM_GOERLI_CONTRACT_OWNER_PRIVATE_KEY }}
-          ARBISCAN_GOERLI_API_KEY: ${{ secrets.ARBISCAN_GOERLI_API_KEY }}
+          ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
         run: yarn deploy --network goerliArbitrum
 
       - name: Bump up package version
