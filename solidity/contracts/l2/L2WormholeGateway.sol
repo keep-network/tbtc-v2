@@ -175,7 +175,7 @@ contract L2WormholeGateway is
     /// @param arbiterFee The Wormhole arbiter fee.
     /// @param nonce The Wormhole nonce used to batch messages together.
     /// @return The Wormhole sequence number.
-    function sendWormhole(
+    function sendTbtc(
         uint256 amount,
         uint16 recipientChain,
         bytes32 recipient,
@@ -229,7 +229,7 @@ contract L2WormholeGateway is
     ///      this function does not have to be nonReentrant.
     /// @param encodedVm A byte array containing a Wormhole VAA signed by the
     ///        guardians.
-    function receiveWormhole(bytes calldata encodedVm) external {
+    function receiveTbtc(bytes calldata encodedVm) external {
         // ITokenBridge.completeTransferWithPayload completes a contract-controlled
         // transfer of an ERC20 token. Calling this function is not enough to
         // ensure L2WormholeGateway received Wormhole tBTC representation.

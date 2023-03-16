@@ -144,7 +144,7 @@ describe("L2WormholeGateway", () => {
     })
   })
 
-  describe("receiveWormhole", () => {
+  describe("receiveTbtc", () => {
     context("when receiver is the zero address", () => {
       before(async () => {
         await createSnapshot()
@@ -158,7 +158,7 @@ describe("L2WormholeGateway", () => {
       })
 
       it("should revert", async () => {
-        await expect(gateway.receiveWormhole(encodedVm)).to.be.revertedWith(
+        await expect(gateway.receiveTbtc(encodedVm)).to.be.revertedWith(
           "0x0 receiver not allowed"
         )
       })
@@ -177,7 +177,7 @@ describe("L2WormholeGateway", () => {
       })
 
       it("should revert", async () => {
-        await expect(gateway.receiveWormhole(encodedVm)).to.be.revertedWith(
+        await expect(gateway.receiveTbtc(encodedVm)).to.be.revertedWith(
           "No tBTC transferred"
         )
       })
@@ -194,7 +194,7 @@ describe("L2WormholeGateway", () => {
           await wormholeBridgeStub.setReceiverAddress(depositor1.address)
           await wormholeBridgeStub.setTransferAmount(transferAmount)
 
-          tx = await gateway.receiveWormhole(encodedVm)
+          tx = await gateway.receiveTbtc(encodedVm)
         })
 
         after(async () => {
@@ -240,19 +240,19 @@ describe("L2WormholeGateway", () => {
 
           await wormholeBridgeStub.setReceiverAddress(depositor1.address)
           await wormholeBridgeStub.setTransferAmount(40)
-          await gateway.receiveWormhole(encodedVm)
+          await gateway.receiveTbtc(encodedVm)
 
           await wormholeBridgeStub.setReceiverAddress(depositor2.address)
           await wormholeBridgeStub.setTransferAmount(40)
-          await gateway.receiveWormhole(encodedVm)
+          await gateway.receiveTbtc(encodedVm)
 
           await wormholeBridgeStub.setReceiverAddress(depositor1.address)
           await wormholeBridgeStub.setTransferAmount(19)
-          await gateway.receiveWormhole(encodedVm)
+          await gateway.receiveTbtc(encodedVm)
 
           await wormholeBridgeStub.setReceiverAddress(depositor2.address)
           await wormholeBridgeStub.setTransferAmount(10)
-          await gateway.receiveWormhole(encodedVm)
+          await gateway.receiveTbtc(encodedVm)
         })
 
         after(async () => {
@@ -274,7 +274,7 @@ describe("L2WormholeGateway", () => {
         })
 
         it("should send wormhole tBTC to the receiver after reaching the minting limit", async () => {
-          // the last call to receiveWormhole exceeded the minting limit
+          // the last call to receiveTbtc exceeded the minting limit
           expect(await wormholeTbtc.balanceOf(depositor2.address)).to.equal(10)
         })
 
@@ -287,7 +287,7 @@ describe("L2WormholeGateway", () => {
     })
   })
 
-  describe("sendWormhole", () => {
+  describe("sendTbtc", () => {
     const recipientChain = 2
     const recipient =
       "0x0000000000000000000000003e7e00b99c98b79c191b0065d177dacf8821f2a7"
@@ -302,7 +302,7 @@ describe("L2WormholeGateway", () => {
       await wormholeBridgeStub.setReceiverAddress(depositor1.address)
       await wormholeBridgeStub.setTransferAmount(liquidity)
 
-      await gateway.receiveWormhole(encodedVm)
+      await gateway.receiveTbtc(encodedVm)
     })
 
     after(async () => {
@@ -314,7 +314,7 @@ describe("L2WormholeGateway", () => {
         await expect(
           gateway
             .connect(depositor1)
-            .sendWormhole(
+            .sendTbtc(
               liquidity + 1,
               recipientChain,
               recipient,
@@ -338,7 +338,7 @@ describe("L2WormholeGateway", () => {
         await canonicalTbtc.connect(depositor1).approve(gateway.address, amount)
         tx = await gateway
           .connect(depositor1)
-          .sendWormhole(amount, recipientChain, recipient, arbiterFee, nonce)
+          .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
       })
 
       after(async () => {
