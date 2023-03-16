@@ -360,7 +360,23 @@ describe("L2WormholeGateway", () => {
         })
       })
 
-      context("when the receiver address is non-zero", () => {
+      context("when the amount is zero", async () => {
+        it("should revert", async () => {
+          await expect(
+            gateway
+              .connect(depositor1)
+              .sendTbtc(
+                0,
+                recipientChain,
+                padTo32Bytes(recipient),
+                arbiterFee,
+                nonce
+              )
+          ).to.be.revertedWith("Amount must not be 0")
+        })
+      })
+
+      context("when the receiver address and amount are non-zero", () => {
         context("when the target chain has no tBTC gateway", () => {
           const amount = 997
 

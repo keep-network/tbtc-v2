@@ -192,6 +192,7 @@ contract L2WormholeGateway is
     ///      - The L2WormholeGateway must have at least `amount` of the wormhole
     ///        tBTC.
     ///      - The recipient must not be 0x0.
+    ///      - The amount to transfer must not be 0.
     ///      Depending if Wormhole tBTC gateway is registered on the target
     ///      chain, this function uses transfer or transfer with payload over
     ///      the Wormhole bridge.
@@ -215,6 +216,7 @@ contract L2WormholeGateway is
         );
 
         require(recipient != bytes32(0), "0x0 recipient not allowed");
+        require(amount != 0, "Amount must not be 0");
 
         bytes32 gateway = gateways[recipientChain];
 
