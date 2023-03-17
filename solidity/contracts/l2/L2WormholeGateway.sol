@@ -369,7 +369,11 @@ contract L2WormholeGateway is
 
     /// @notice Converts Ethereum address into Wormhole format.
     /// @param _address The address to convert.
-    function toWormholeAddress(address _address) external pure returns (bytes32) {
+    function toWormholeAddress(address _address)
+        external
+        pure
+        returns (bytes32)
+    {
         return bytes32(uint256(uint160(_address)));
     }
 

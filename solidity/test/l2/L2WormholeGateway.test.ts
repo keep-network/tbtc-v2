@@ -632,6 +632,43 @@ describe("L2WormholeGateway", () => {
           .withArgs(chainId2, padTo32Bytes(gatewayAddress2))
       })
     })
+
+    // unit test ensuring there is no 0x0 validation preventing from disabling
+    // a gateway in case it is needed one day
+    context("when disabling gateway", () => {
+      const chainId = 17
+      const gatewayAddress = "0xc0ffee254729296a45a3885639ac7e10f9d54979"
+
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+        // first add
+        await gateway
+          .connect(governance)
+          .updateGatewayAddress(chainId, padTo32Bytes(gatewayAddress))
+        // then remove
+        tx = await gateway
+          .connect(governance)
+          .updateGatewayAddress(chainId, padTo32Bytes(ZERO_ADDRESS))
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update the gateway address", async () => {
+        expect(await gateway.gateways(chainId)).to.equal(
+          padTo32Bytes(ZERO_ADDRESS)
+        )
+      })
+
+      it("should emit the GatewayAddressUpdated event", async () => {
+        await expect(tx)
+          .to.emit(gateway, "GatewayAddressUpdated")
+          .withArgs(chainId, padTo32Bytes(ZERO_ADDRESS))
+      })
+    })
   })
 
   describe("updateMintingLimit", () => {
