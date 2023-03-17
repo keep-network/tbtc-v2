@@ -506,7 +506,7 @@ describe("L2WormholeGateway", () => {
     })
   })
 
-  describe("depositBridgeToken", () => {
+  describe("depositWormholeTbtc", () => {
     const amount = 129
 
     context("when the minting limit is not exceeded", () => {
@@ -518,7 +518,7 @@ describe("L2WormholeGateway", () => {
         await wormholeBridgeStub.mintWormholeToken(depositor1.address, amount)
 
         await wormholeTbtc.connect(depositor1).approve(gateway.address, amount)
-        tx = await gateway.connect(depositor1).depositBridgeToken(amount)
+        tx = await gateway.connect(depositor1).depositWormholeTbtc(amount)
       })
 
       after(async () => {
@@ -562,7 +562,7 @@ describe("L2WormholeGateway", () => {
           .connect(depositor1)
           .approve(gateway.address, 2 * amount)
 
-        await gateway.connect(depositor1).depositBridgeToken(amount)
+        await gateway.connect(depositor1).depositWormholeTbtc(amount)
       })
 
       after(async () => {
@@ -571,7 +571,7 @@ describe("L2WormholeGateway", () => {
 
       it("should revert", async () => {
         await expect(
-          gateway.connect(depositor1).depositBridgeToken(amount)
+          gateway.connect(depositor1).depositWormholeTbtc(amount)
         ).to.be.revertedWith("Minting limit exceeded")
       })
     })

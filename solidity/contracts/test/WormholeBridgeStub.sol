@@ -118,7 +118,7 @@ contract WormholeBridgeStub is IWormholeTokenBridge {
         receiverAddress = _receiverAddress;
     }
 
-    // Allows to mint Wormhole tBTC for depositBridgeToken unit tests.
+    // Allows to mint Wormhole tBTC for depositWormholeTbtc unit tests.
     function mintWormholeToken(address to, uint256 amount) external {
         wormholeToken.mint(to, amount);
     }

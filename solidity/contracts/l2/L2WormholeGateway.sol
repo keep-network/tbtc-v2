@@ -332,7 +332,7 @@ contract L2WormholeGateway is
     ///        it has to be approved for L2WormholeGateway.
     ///      - The minting limit must allow for minting the given amount.
     /// @param amount The amount of Wormhole tBTC to deposit.
-    function depositBridgeToken(uint256 amount) external {
+    function depositWormholeTbtc(uint256 amount) external {
         require(
             mintedAmount + amount <= mintingLimit,
             "Minting limit exceeded"
