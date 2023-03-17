@@ -447,7 +447,7 @@ describe("L2WormholeGateway", () => {
 
             await gateway
               .connect(governance)
-              .updateGatewayAddress(recipientChain, targetGateway)
+              .updateGatewayAddress(recipientChain, padTo32Bytes(targetGateway))
 
             await canonicalTbtc
               .connect(depositor1)
@@ -585,7 +585,7 @@ describe("L2WormholeGateway", () => {
             .connect(depositor1)
             .updateGatewayAddress(
               10,
-              "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E"
+              padTo32Bytes("0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E")
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
@@ -604,10 +604,10 @@ describe("L2WormholeGateway", () => {
         await createSnapshot()
         tx1 = await gateway
           .connect(governance)
-          .updateGatewayAddress(chainId1, gatewayAddress1)
+          .updateGatewayAddress(chainId1, padTo32Bytes(gatewayAddress1))
         tx2 = await gateway
           .connect(governance)
-          .updateGatewayAddress(chainId2, gatewayAddress2)
+          .updateGatewayAddress(chainId2, padTo32Bytes(gatewayAddress2))
       })
 
       after(async () => {

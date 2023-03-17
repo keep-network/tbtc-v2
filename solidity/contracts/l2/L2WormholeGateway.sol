@@ -346,15 +346,17 @@ contract L2WormholeGateway is
 
     /// @notice Lets the governance to update the tBTC gateway address on the
     ///         chain with the given Wormhole ID.
+    /// @dev Use toWormholeAddress function to convert between Ethereum and
+    ///      Wormhole address formats.
     /// @param chainId Wormhole ID of the chain.
-    /// @param gateway Address of tBTC gateway on the given chain.
-    function updateGatewayAddress(uint16 chainId, address gateway)
+    /// @param gateway Address of tBTC gateway on the given chain in a Wormhole
+    ///                format.
+    function updateGatewayAddress(uint16 chainId, bytes32 gateway)
         external
         onlyOwner
     {
-        bytes32 wormholeAddress = toWormholeAddress(gateway);
-        gateways[chainId] = wormholeAddress;
-        emit GatewayAddressUpdated(chainId, wormholeAddress);
+        gateways[chainId] = gateway;
+        emit GatewayAddressUpdated(chainId, gateway);
     }
 
     /// @notice Lets the governance to update the tBTC minting limit for this
@@ -367,7 +369,7 @@ contract L2WormholeGateway is
 
     /// @notice Converts Ethereum address into Wormhole format.
     /// @param _address The address to convert.
-    function toWormholeAddress(address _address) public pure returns (bytes32) {
+    function toWormholeAddress(address _address) external pure returns (bytes32) {
         return bytes32(uint256(uint160(_address)));
     }
 
