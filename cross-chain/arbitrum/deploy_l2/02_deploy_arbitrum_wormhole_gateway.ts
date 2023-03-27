@@ -2,7 +2,7 @@ import { smock } from "@defi-wonderland/smock"
 
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
-import type { IWormholeTokenBridge, IERC20 } from "../typechain"
+import type { IWormholeTokenBridge, IERC20Upgradeable } from "../typechain"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, getNamedAccounts, helpers, deployments } = hre
@@ -31,7 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     wormholeTBTCAddress = WormholeTBTC.address
   } else {
     // For local development
-    const TestERC20 = await smock.fake<IERC20>("IERC20")
+    const TestERC20 = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable")
     wormholeTBTCAddress = TestERC20.address
   }
 
