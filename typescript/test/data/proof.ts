@@ -336,3 +336,265 @@ export const multipleInputsProofTestData: ProofTestData = {
       "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746",
   },
 }
+
+/**
+ * Represents a set of data used for given transaction proof validation scenario.
+ */
+export interface TransactionProofData {
+  requiredConfirmations: number
+  bitcoinChainData: {
+    transaction: Transaction
+    accumulatedTxConfirmations: number
+    latestBlockHeight: number
+    headersChain: string
+    transactionMerkleBranch: TransactionMerkleBranch
+    previousDifficulty: BigNumber
+    currentDifficulty: BigNumber
+  }
+}
+
+/**
+ * Test data that is based on a random Bitcoin mainnet transaction with all the
+ * blocks headers from one difficulty epoch
+ * https://live.blockcypher.com/btc/tx/713525ee9d9ab23433cd6ad470566ba1f47cac2d7f119cc50119128a84d718aa/
+ */
+export const transactionConfirmationsInOneEpochData: TransactionProofData = {
+  requiredConfirmations: 6,
+  bitcoinChainData: {
+    transaction: {
+      transactionHash: TransactionHash.from(
+        "713525ee9d9ab23433cd6ad470566ba1f47cac2d7f119cc50119128a84d718aa"
+      ),
+      inputs: [
+        {
+          transactionHash: TransactionHash.from(
+            "91b83d443f32d5a1e87a200eac5d3501af0f156bef3a59d5e8805b4679c4a2a5"
+          ),
+          outputIndex: 3,
+          scriptSig: Hex.from(
+            "473044022008bfea0e9b8e24b0ab04de42db2dd8aea9e6f764f9f94aa88e284d" +
+              "5c2800706d02200d793f7441ea17802da993914da732e2f4e354e54dd168636b" +
+              "e73e6b60a39eab012103e356007964fc225a44c38352899c41e6293a97f8d811" +
+              "5998ae7e97184704c092"
+          ),
+        },
+      ],
+      outputs: [
+        {
+          outputIndex: 0,
+          value: BigNumber.from(5500),
+          scriptPubKey: Hex.from(
+            "6a4c5058325b63f33166b9786bdd34b2be8160d5e4fbef9a0a45e773c4201a82" +
+              "a4b1eb44793a61d19892a7f8aede51b70953a210e9e8dba54375e4a06d95d68f" +
+              "90aa3c6e8914000bd7e50056000bd775012528"
+          ),
+        },
+        {
+          outputIndex: 1,
+          value: BigNumber.from(48850),
+          scriptPubKey: Hex.from(
+            "76a914953490146c3ae270d66e09c4d12df4573d24c75b88ac"
+          ),
+        },
+        {
+          outputIndex: 2,
+          value: BigNumber.from(48850),
+          scriptPubKey: Hex.from(
+            "a914352481ec2fecfde0c5cdc635a383c4ac27b9f71e87"
+          ),
+        },
+        {
+          outputIndex: 3,
+          value: BigNumber.from(12614691),
+          scriptPubKey: Hex.from(
+            "76a914b00de0cc7b5e518f7d1e43d6e5ecbd52e0cd0c2f88ac"
+          ),
+        },
+      ],
+    },
+    accumulatedTxConfirmations: 1798,
+    latestBlockHeight: 777963,
+    headersChain:
+      "00e0ff2f5ad9c09e1d8aae777a58bf29c41621eb629032598f7900000000000000000" +
+      "0004dea17724c3b7e67d4cf1ac41a4c7527b884f7406575eaf5b8efaf2fb12572ecb1" +
+      "ace86339300717760098100000ff3fd3ab40174610c286e569edd20fa713bd98bab53" +
+      "bee83050000000000000000002345f5ef807cf75de7b30ccfe493c46c6e07aca044aa" +
+      "2aa106141637f1bb8500a6ade863393007177fbbd4b300800120646d493817f0ac988" +
+      "6a0a194ca3a957f70c3eb642ffd05000000000000000000d95674b737f097f042eebe" +
+      "b970c09b274df7e72a9c202ff2292ed72b056ee90967aee863393007172e2bb92e006" +
+      "03b27a391d248c258ef628dfb8c710ce44c8017667a07941402000000000000000000" +
+      "35214e58eb018dea1efa7eaf1b7f19ff2d6f0310c122be6dc8c0258d9524ae9382aee" +
+      "863393007173e82b2000000002003c7003ff9a79f16d956fc764b43b35080efe3a820" +
+      "af050000000000000000007808e96809cd46d5898d86faabc8f28a8b6572eb8399796" +
+      "70b2851d78fc1f75f17b3e86339300717450f17650400e020fb9b6a28bb2e9cea36d3" +
+      "40588f19ffa4e944b050e73f03000000000000000000bbd7534f2550ee99f31efcd77" +
+      "564f1b5b3f3966a76847896a8d9f9ee964d670ba2b4e8633930071777b10cfc",
+    transactionMerkleBranch: {
+      blockHeight: 776166,
+      merkle: [
+        "f6ce0e34cc5b2a4b8cd4fd02a65d7cf62013206969e8e5cf1df18f994abcf1ff",
+        "08899ec43299b324583722f3e7d0938446a1f31a6ab34c8e24cb4ea9ba6cd384",
+        "9677b6075dfa2da8bcc98aa10ae7d30f81e6506215eadd3f3739a5d987e62b35",
+        "aa6712d8820c06ec8ce99f9c19d580ab54bb45f69b426935153b81e7d412ddba",
+        "b38be47e1dd9a7324ad81a395a133f26fc88cb736a4998dbba6cbabca10629a8",
+        "13bdefbf92421aa7861528e16e7046b569d25ee0f4b7649492e42e9ea2331c39",
+        "df429494c5eef971a7ab80c8a0f7f9cdfa30148afef706f07923bd93d5a7e22a",
+        "c8a3f1bc73146bd4a1a0e848f2b0b4a21be86e4930f239d856af8e9646014236",
+        "1f514df87fe2c400e508e01cd8967657ef76db9681f65dc82b0bc6d4004b575f",
+        "e463950c8efd9114237189f07ddf1cfdb72658bad23bce667c269652bd0ade3c",
+        "3d7ae6df787807320fdc397a7055e86c932a7c36ab1d1f942b92c53bf2a1d2f9",
+      ],
+      position: 17,
+    },
+    previousDifficulty: BigNumber.from(39156400059293),
+    currentDifficulty: BigNumber.from(39350942467772),
+  },
+}
+
+/**
+ * Test data that is based on a random Bitcoin mainnet transaction with the
+ * blocks headers spanning two difficulty epochs
+ * https://live.blockcypher.com/btc/tx/e073636400e132b8c1082133ab2b48866919153998f4f04877b580e9932d5a17/
+ */
+export const transactionConfirmationsInTwoEpochsData: TransactionProofData = {
+  requiredConfirmations: 6,
+  bitcoinChainData: {
+    transaction: {
+      transactionHash: TransactionHash.from(
+        "e073636400e132b8c1082133ab2b48866919153998f4f04877b580e9932d5a17"
+      ),
+      inputs: [
+        {
+          transactionHash: TransactionHash.from(
+            "f160a6565d07fd2e8f1d0aaaff538f3150b7f9d2bc64f191076f45c92725b990"
+          ),
+          outputIndex: 0,
+          scriptSig: Hex.from(""),
+        },
+      ],
+      outputs: [
+        {
+          outputIndex: 0,
+          value: BigNumber.from(38385795),
+          scriptPubKey: Hex.from(
+            "00145ade2be870b440e171644f22973db748a2002305"
+          ),
+        },
+        {
+          outputIndex: 1,
+          value: BigNumber.from(2181468),
+          scriptPubKey: Hex.from(
+            "76a914dbdbe7f1c2ba3dfe38c32b9261f5d8fcb36b689788ac"
+          ),
+        },
+      ],
+    },
+    accumulatedTxConfirmations: 3838,
+    latestBlockHeight: 777979,
+    headersChain:
+      "0040f224871a401b605e02c475e05e147bd418e5e2ae9eb599e200000000000000000" +
+      "000193dc07aea4388a163ed0e3e5234ef54594cfc046bce727d2d6b3445d3ce0e8c44" +
+      "0dd663e27c07170c0d54de00e0682c9c27df3b2a1b011753c986c290ce22c60d09a05" +
+      "3707100000000000000000000ddf3b023ed6368bdac8578bd55d0c3fad7f234ae971b" +
+      "902b155bee7318bf0919b30dd663e27c0717be025f2b00000020514a9bd87c51caedd" +
+      "45a20c495f0ba1983b6f3f51639050000000000000000001f4c60a97f4127b4f90fbb" +
+      "7a6a1041881b10d4f7351340b6770301f62b36725ce10dd66320270717c11c5e7b002" +
+      "0002043e99cc906d52209796ecb37b252e4514f197d727ea701000000000000000000" +
+      "274ecaf37779be81c23748d33ef4a0cad36a8abd935a11f0e0a71640c6dd1deaf10dd" +
+      "66320270717846927aa0000c02090a4a88ab1ad55e235932fe0adc7b4c822b4322f58" +
+      "9305000000000000000000decc945dc9cdf595715ffeee3bffc0ec0c8c5ff77e43b8e" +
+      "91213e21a9975c99ddc10d663202707179f93251000203229e618c1eb9274a1acbb74" +
+      "d44bfe9a4ecfae236ea35e8b0300000000000000000029a9f7b4f6671dec5d6ba05ac" +
+      "b060fcd2ffc6e46a992189c6f60d770d9c5a5cda31cd66320270717542691a2",
+    transactionMerkleBranch: {
+      blockHeight: 774142,
+      merkle: [
+        "e80f706f53d5abd77070ea6c8a60c141748400e09fc9b373d5cdb0129cbce5ec",
+        "20d22506199cf00caf2e32e240c77a23c226d5a74de4dc9150ccd6f5200b4dd7",
+        "8b446693fadaae7479725f0e98430c24f8bf8936f5a5cab7c725692cd78e61e3",
+        "93e61f1ac82cf6a66e321c60410ae4bdfcc0ab45b7efd50353d7b08104758403",
+        "1dc52561092701978f1e48a10bc4da5464e668f0f4b3a940853c941474ee52de",
+        "84aca5ec5b339b69a50b93d35c2fd7b146c037842ca76b33cbf835b9e6c86f0c",
+        "ebcd1bb7039d40ac0d477af58964b4582c6741d1c901ab4a2b0de15e600cba69",
+        "38d458a70805902a52342cfc552d374bdb217cd389e9550adfc4f86df6fdce82",
+        "07781ff50552aefea962f0f4972fe882cb38a281ebdd533c2886d5137b80fbeb",
+        "e7e530e181683d272293f19fe18a33f1dc05eded12ec27945b49311b2e14ee42",
+      ],
+      position: 262,
+    },
+    previousDifficulty: BigNumber.from(37590453655497),
+    currentDifficulty: BigNumber.from(39350942467772),
+  },
+}
+
+/**
+ * Test data that is based on a random Bitcoin testnet transaction
+ * https://live.blockcypher.com/btc-testnet/tx/b78636ae08e6c17261a9f3134109c13c2eb69f6df52e591cc0e0780f5ebf6472/
+ */
+export const testnetTransactionData: TransactionProofData = {
+  requiredConfirmations: 6,
+  bitcoinChainData: {
+    transaction: {
+      transactionHash: TransactionHash.from(
+        "b78636ae08e6c17261a9f3134109c13c2eb69f6df52e591cc0e0780f5ebf6472"
+      ),
+      inputs: [
+        {
+          transactionHash: TransactionHash.from(
+            "b230eb52608287da6320fa0926b3ada60f8979fa662d878494d11909d9841aba"
+          ),
+          outputIndex: 1,
+          scriptSig: Hex.from(""),
+        },
+      ],
+      outputs: [
+        {
+          outputIndex: 0,
+          value: BigNumber.from(1342326),
+          scriptPubKey: Hex.from(
+            "0014ffadb0a5ab3f58e651383b478acdc7cd0008e351"
+          ),
+        },
+        {
+          outputIndex: 1,
+          value: BigNumber.from(7218758882),
+          scriptPubKey: Hex.from(
+            "00143c258d94e7abf4695585911b0420c24c1c78213e"
+          ),
+        },
+      ],
+    },
+    accumulatedTxConfirmations: 18,
+    latestBlockHeight: 2421198,
+    headersChain:
+      "000000203528cf6e8112d970a1adeb9743937d2e980afb43cb8ce3600100000000000" +
+      "0007bacd9aa2249c74fdba75dd651a16755e9b4dc3c1953f2baa01d657f317e3eb936" +
+      "62f763ffff001d7045e837000040207184a40ae97e64b2bce8fed41f967eac210e036" +
+      "9a66855bd2b37c86200000000fe261c184d19c15c7b66c284d5f65e79595f65d576cc" +
+      "40f20cccf0fcbae3c063a866f7639cde2c193ed763b904e000209885f5bb4bc96f8ff" +
+      "ed3bf31c6f526f1f71fc6dd3f9bb0ed0200000000000000720c67b13ee8805763110f" +
+      "b345cbfb5369836344e6a990e4ac0c363211362b2c6168f7639cde2c19294a1006000" +
+      "040200aafa9b9e947a9bd6fe2e9f04dece7753863d59b11e5c63b1500000000000000" +
+      "7a63f980ffc1f993c0d7dbe0670e71be2eeae8710a7906f758d3b400dd6a1e6b3c69f" +
+      "7639cde2c1940a3735000008020ba335b0d58de55cf227fdd35ba380a4a288d4f7926" +
+      "8be6a01800000000000000ffdc211cb41a97249e18a54aa4861a77f43093d6716995a" +
+      "9f659370ee1cf8aea406af7639cde2c19254197450000002069b318d3a7c7c154651f" +
+      "23ac4c3a51c7ec5158f40a62783c0400000000000000f452ef784d467c9f541331552" +
+      "32d005bdd0f2d323933646976ef2b7275206d7ff96ef763ffff001db18d224b",
+    transactionMerkleBranch: {
+      blockHeight: 2421181,
+      merkle: [
+        "33610df4f460e1338d9f6a055de18d5c694edf590722211b6feeec77a9479846",
+        "0fd7e0afdde99bdfbfdc0d0e6f5ccda4cd1873eee315bb989622fd58bd5c4446",
+        "2d4ab6c53cedc1a447e21ad2f38c6d9d0d9c761426975a65f83fe10f12e3c9e0",
+        "0eebd6daa03f6db4a27541a91bcf86612c97d100bc37c3eb321d64d943adb2a5",
+        "b25854f31fc046eb0f53cddbf2b6de3d54d52710acd79a796c78c3be235f031a",
+        "1fc5ab77039f59ac2494791fc05c75fb53e2dacf57a20f67e7d6727b38778825",
+        "5b0acfdbb89af64a583a88e92252b8634bd4da06ee102ecd34c2662955e9f1c7",
+      ],
+      position: 4,
+    },
+    previousDifficulty: BigNumber.from(1),
+    currentDifficulty: BigNumber.from(1),
+  },
+}

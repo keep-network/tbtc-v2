@@ -1,4 +1,4 @@
-import { Bridge, GetEvents, Identifier } from "../../src/chain"
+import { Bridge, WalletRegistry, GetEvents, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
@@ -308,6 +308,10 @@ export class MockBridge implements Bridge {
     options?: GetEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
+    throw new Error("not implemented")
+  }
+
+  walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
   }
 }

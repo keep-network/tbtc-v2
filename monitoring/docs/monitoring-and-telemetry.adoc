@@ -112,10 +112,18 @@ events produced by the monitoring component are:
 
 * deposit revealed,
 * wallet registered,
+* DKG result submitted,
+* DKG result approved,
+* DKG result challenged,
 * large deposit revealed,
 * optimistic minting canceled,
 * optimistic minting requested too early,
-* optimistic minting requested for undetermined Bitcoin transaction.
+* optimistic minting requested for undetermined Bitcoin transaction,
+* optimistic minting not requested by designated minter,
+* optimistic minting not finalized by designated minter,
+* optimistic minting not requested by any minter,
+* optimistic minting not finalized by any minter,
+* high TBTC token total supply change.
 
 ==== Deposit revealed
 
@@ -128,6 +136,26 @@ notification that does not require any action.
 An *informational system event* indicating that a new wallet was registered
 on the on-chain Bridge contract. This event is directly sent to Discord as a
 notification that does not require any action.
+
+==== DKG result submitted
+
+An *informational system event* indicating that a new DKG result was submitted
+to the on-chain WalletRegistry contract. This event is directly sent to Discord
+as a notification that does not require any action.
+
+==== DKG result approved
+
+An *informational system event* indicating that the submitted DKG result was
+approved on the on-chain WalletRegistry contract. This event is directly sent to
+Discord as a notification that does not require any action.
+
+==== DKG result challenged
+
+A *critical system event* indicating that the submitted DKG result was
+challenged on the on-chain WalletRegistry contract. This event is sent to
+Sentry hub and requires an immediate team’s action. The default action is
+checking the reason of the challenge as that event may indicate a malicious
+wallet operator or a serious bug in the off-chain client code.
 
 ==== Large deposit revealed
 
@@ -160,6 +188,49 @@ hub and requires an immediate team’s action. The default action is checking
 why the Bitcoin transaction cannot be determined as that event may indicate
 problems with the underlying Bitcoin client used by the monitoring component
 or flag a malicious minter that should be evicted from the system.
+
+==== Optimistic minting not requested by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by the designated minter and another minter did that job. This event is
+sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not finalized by designated minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by the designated minter and another minter did that job. This event
+is sent to Sentry hub and should get team’s attention. The default action is
+investigating the cause of the designated minter idleness as the designated
+minter may be unhealthy/malicious or there may be a bug in the minters
+bot code.
+
+==== Optimistic minting not requested by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+issued by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
+
+==== Optimistic minting not finalized by any minter
+
+A *warning system event* indicating that an optimistic minting request was not
+finalized by any minter. This event is sent to Sentry hub and should get team’s
+attention. The default action is investigating the cause of the minters idleness
+as the underlying deposit may be invalid, minters may be unhealthy/malicious or
+there may be a bug in the minters bot code.
+
+==== High TBTC token total supply change
+
+A *critical system event* indicating that a high change (i.e. >=10%) of the
+total TBTC v2 token supply took place in the last 12 hours. This event is sent
+to Sentry hub and requires an immediate team’s action. The default action is
+checking the root cause of the supply change and making sure its source is
+actually a proper deposit/redemption and there are no signs of any malicious
+action.
 
 == Sentry hub
 

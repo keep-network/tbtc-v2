@@ -22,6 +22,8 @@ import {
   getOptimisticMintingRequest,
 } from "./optimistic-minting"
 
+import { validateTransactionProof } from "./proof"
+
 export const TBTC = {
   calculateDepositAddress,
   suggestDepositWallet,
@@ -43,6 +45,10 @@ export const OptimisticMinting = {
   getOptimisticMintingRequest,
 }
 
+export const Bitcoin = {
+  validateTransactionProof,
+}
+
 export {
   TransactionHash as BitcoinTransactionHash,
   Transaction as BitcoinTransaction,
@@ -56,6 +62,7 @@ export { Client as ElectrumClient } from "./electrum"
 
 export {
   Bridge as EthereumBridge,
+  WalletRegistry as EthereumWalletRegistry,
   Address as EthereumAddress,
   TBTCVault as EthereumTBTCVault,
   TBTCToken as EthereumTBTCToken,
