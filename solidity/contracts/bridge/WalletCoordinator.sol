@@ -15,18 +15,37 @@
 
 pragma solidity 0.8.17;
 
+import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
+import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "./BitcoinTx.sol";
 import "./Bridge.sol";
 import "./Deposit.sol";
 import "./Wallets.sol";
 
 // TODO: Documentation and unit tests.
 contract WalletCoordinator is OwnableUpgradeable {
+    using BTCUtils for bytes;
+    using BytesLib for bytes;
+
     struct DepositSweepProposal {
         bytes20 walletPubKeyHash;
-        bytes32[] fundingTxHash;
-        uint32[] fundingOutputIndex;
+        DepositKey[] depositsKeys;
+    }
+
+    struct DepositKey {
+        bytes32 fundingTxHash;
+        uint32 fundingOutputIndex;
+    }
+
+    struct DepositExtra {
+        BitcoinTx.Info fundingTx;
+        bytes8 blindingFactor;
+        bytes20 walletPubKeyHash;
+        bytes20 refundPubKeyHash;
+        bytes4 refundLocktime;
     }
 
     mapping(address => bool) public isProposalSubmitter;
@@ -147,7 +166,8 @@ contract WalletCoordinator is OwnableUpgradeable {
     }
 
     function validateDepositSweepProposal(
-        DepositSweepProposal calldata proposal
+        DepositSweepProposal calldata proposal,
+        DepositExtra[] calldata depositsExtras
     ) external view {
         require(
             bridge.wallets(proposal.walletPubKeyHash).state ==
@@ -156,41 +176,122 @@ contract WalletCoordinator is OwnableUpgradeable {
         );
 
         require(
-            proposal.fundingTxHash.length == proposal.fundingOutputIndex.length,
-            "Arrays must have the same length"
-        );
-
-        require(
-            proposal.fundingTxHash.length <= depositSweepMaxSize,
+            proposal.depositsKeys.length <= depositSweepMaxSize,
             "Sweep exceeds the max size"
         );
 
-        for (uint256 i = 0; i < proposal.fundingTxHash.length; i++) {
-            uint256 depositKey = uint256(
-                keccak256(
-                    abi.encodePacked(
-                        proposal.fundingTxHash[i],
-                        proposal.fundingOutputIndex[i]
+        require(
+            proposal.depositsKeys.length == depositsExtras.length,
+            "Each deposit key must have matching extra data"
+        );
+
+        for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
+            DepositKey memory depositKey = proposal.depositsKeys[i];
+            DepositExtra memory depositExtra = depositsExtras[i];
+
+            // slither-disable-next-line calls-loop
+            Deposit.DepositRequest memory depositRequest = bridge.deposits(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            depositKey.fundingTxHash,
+                            depositKey.fundingOutputIndex
+                        )
                     )
                 )
             );
 
-            // slither-disable-next-line calls-loop
-            Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
-
-            require(deposit.revealedAt != 0, "Deposit not revealed");
+            require(depositRequest.revealedAt != 0, "Deposit not revealed");
 
             require(
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp > deposit.revealedAt + depositMinAge,
+                block.timestamp > depositRequest.revealedAt + depositMinAge,
                 "Deposit min age not achieved yet"
             );
 
-            require(deposit.sweptAt == 0, "Deposit already swept");
+            require(depositRequest.sweptAt == 0, "Deposit already swept");
+
+            require(
+                isDepositExtraValid(
+                    depositKey,
+                    depositRequest.depositor,
+                    depositExtra
+                ),
+                "Invalid deposit extra data"
+            );
 
             // TODO: Check deposit will not become refundable soon.
         }
 
         // TODO: Make sure all deposits target the same wallet and same vault.
+    }
+
+    function isDepositExtraValid(
+        DepositKey memory depositKey,
+        address depositor,
+        DepositExtra memory depositExtra
+    ) internal view returns (bool) {
+        bytes memory expectedScript = abi.encodePacked(
+            hex"14", // Byte length of depositor Ethereum address.
+            depositor,
+            hex"75", // OP_DROP
+            hex"08", // Byte length of blinding factor value.
+            depositExtra.blindingFactor,
+            hex"75", // OP_DROP
+            hex"76", // OP_DUP
+            hex"a9", // OP_HASH160
+            hex"14", // Byte length of a compressed Bitcoin public key hash.
+            depositExtra.walletPubKeyHash,
+            hex"87", // OP_EQUAL
+            hex"63", // OP_IF
+            hex"ac", // OP_CHECKSIG
+            hex"67", // OP_ELSE
+            hex"76", // OP_DUP
+            hex"a9", // OP_HASH160
+            hex"14", // Byte length of a compressed Bitcoin public key hash.
+            depositExtra.refundPubKeyHash,
+            hex"88", // OP_EQUALVERIFY
+            hex"04", // Byte length of refund locktime value.
+            depositExtra.refundLocktime,
+            hex"b1", // OP_CHECKLOCKTIMEVERIFY
+            hex"75", // OP_DROP
+            hex"ac", // OP_CHECKSIG
+            hex"68" // OP_ENDIF
+        );
+
+        bytes memory fundingOutput = depositExtra
+            .fundingTx
+            .outputVector
+            .extractOutputAtIndex(depositKey.fundingOutputIndex);
+        bytes memory fundingOutputHash = fundingOutput.extractHash();
+
+        if (
+            fundingOutputHash.length == 20 &&
+            fundingOutputHash.slice20(0) != expectedScript.hash160View()
+        ) {
+            return false;
+        } else if (
+            fundingOutputHash.length == 32 &&
+            fundingOutputHash.toBytes32() != sha256(expectedScript)
+        ) {
+            return false;
+        } else {
+            return false;
+        }
+
+        bytes32 fundingTxHash = abi
+            .encodePacked(
+                depositExtra.fundingTx.version,
+                depositExtra.fundingTx.inputVector,
+                depositExtra.fundingTx.outputVector,
+                depositExtra.fundingTx.locktime
+            )
+            .hash256View();
+
+        if (depositKey.fundingTxHash != fundingTxHash) {
+            return false;
+        }
+
+        return true;
     }
 }
