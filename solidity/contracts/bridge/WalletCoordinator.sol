@@ -231,6 +231,21 @@ contract WalletCoordinator is OwnableUpgradeable {
         address depositor,
         DepositExtra memory depositExtra
     ) internal view returns (bool) {
+        bytes32 depositExtraFundingTxHash = abi
+            .encodePacked(
+                depositExtra.fundingTx.version,
+                depositExtra.fundingTx.inputVector,
+                depositExtra.fundingTx.outputVector,
+                depositExtra.fundingTx.locktime
+            )
+            .hash256View();
+
+        // Make sure the funding tx provided as part of deposit extra data
+        // actually matches the deposit referred by the given deposit key.
+        if (depositKey.fundingTxHash != depositExtraFundingTxHash) {
+            return false;
+        }
+
         bytes memory expectedScript = abi.encodePacked(
             hex"14", // Byte length of depositor Ethereum address.
             depositor,
@@ -265,33 +280,24 @@ contract WalletCoordinator is OwnableUpgradeable {
             .extractOutputAtIndex(depositKey.fundingOutputIndex);
         bytes memory fundingOutputHash = fundingOutput.extractHash();
 
+        // Path that checks the deposit extra data validity in case the
+        // referred deposit is a P2SH.
         if (
             fundingOutputHash.length == 20 &&
-            fundingOutputHash.slice20(0) != expectedScript.hash160View()
+            fundingOutputHash.slice20(0) == expectedScript.hash160View()
         ) {
-            return false;
-        } else if (
+            return true;
+        }
+
+        // Path that checks the deposit extra data validity in case the
+        // referred deposit is a P2WSH.
+        if (
             fundingOutputHash.length == 32 &&
-            fundingOutputHash.toBytes32() != sha256(expectedScript)
+            fundingOutputHash.toBytes32() == sha256(expectedScript)
         ) {
-            return false;
-        } else {
-            return false;
+            return true;
         }
 
-        bytes32 fundingTxHash = abi
-            .encodePacked(
-                depositExtra.fundingTx.version,
-                depositExtra.fundingTx.inputVector,
-                depositExtra.fundingTx.outputVector,
-                depositExtra.fundingTx.locktime
-            )
-            .hash256View();
-
-        if (depositKey.fundingTxHash != fundingTxHash) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 }
