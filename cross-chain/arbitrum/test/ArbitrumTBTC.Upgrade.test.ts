@@ -54,7 +54,7 @@ describe("ArbitrumTBTC - Upgrade", async () => {
       expect(await arbitrumTBTCUpgraded.name()).to.be.equal("ArbitrumTBTC")
     })
 
-    it("should revert when V1's initializer was called", async () => {
+    it("should revert when V1's initializer is called", async () => {
       await expect(
         arbitrumTBTCUpgraded.initialize("ArbitrumTBTCv2", "ArbTBTCv2")
       ).to.be.revertedWith("Initializable: contract is already initialized")
