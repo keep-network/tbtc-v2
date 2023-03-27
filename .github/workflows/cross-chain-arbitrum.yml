@@ -81,7 +81,7 @@ jobs:
 
   npm-compile-publish-contracts:
     if: |
-      github.event_name == 'push'
+      github.event_name == 'pull_request' ||
         || (github.event_name == 'workflow_dispatch' 
         && github.event.inputs.environment == 'dev')
     runs-on: ubuntu-latest
@@ -121,7 +121,7 @@ jobs:
       - name: Publish package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --tag=development
+        run: npm publish --access=public --tag=development --dry-run
 
   contracts-deployment-dry-run:
     needs: contracts-detect-changes
