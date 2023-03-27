@@ -29,15 +29,21 @@ contract WalletCoordinator is OwnableUpgradeable {
         uint32[] fundingOutputIndex;
     }
 
+    mapping(address => bool) public isProposalSubmitter;
+
+    mapping(bytes20 => uint32) public walletLock;
+
     Bridge public bridge;
 
     uint32 public depositSweepProposalValidity;
 
     uint16 public depositSweepMaxSize;
 
-    mapping(address => bool) public isProposalSubmitter;
+    uint32 public depositMinAge;
 
-    mapping(bytes20 => uint32) public walletLock;
+    event ProposalSubmitterAdded(address indexed proposalSubmitter);
+
+    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
 
     event DepositSweepProposalValidityUpdated(
         uint32 depositSweepProposalValidity
@@ -45,9 +51,7 @@ contract WalletCoordinator is OwnableUpgradeable {
 
     event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
 
-    event ProposalSubmitterAdded(address indexed proposalSubmitter);
-
-    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
+    event DepositMinAgeUpdated(uint32 depositMinAge);
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
@@ -77,21 +81,7 @@ contract WalletCoordinator is OwnableUpgradeable {
         bridge = _bridge;
         depositSweepProposalValidity = 4 hours;
         depositSweepMaxSize = 5;
-    }
-
-    function updateDepositSweepProposalValidity(
-        uint32 _depositSweepProposalValidity
-    ) external onlyOwner {
-        depositSweepProposalValidity = _depositSweepProposalValidity;
-        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
-    }
-
-    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
-        external
-        onlyOwner
-    {
-        depositSweepMaxSize = _depositSweepMaxSize;
-        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
+        depositMinAge = 2 hours;
     }
 
     function addProposalSubmitter(address proposalSubmitter)
@@ -118,11 +108,29 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit ProposalSubmitterRemoved(proposalSubmitter);
     }
 
-    // TODO: We can also add an ability for the wallet members to unlock on
-    //       their own.
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
         // Just in case, allow the owner to unlock the wallet earlier.
         walletLock[walletPubKeyHash] = 0;
+    }
+
+    function updateDepositSweepProposalValidity(
+        uint32 _depositSweepProposalValidity
+    ) external onlyOwner {
+        depositSweepProposalValidity = _depositSweepProposalValidity;
+        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
+    }
+
+    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
+        external
+        onlyOwner
+    {
+        depositSweepMaxSize = _depositSweepMaxSize;
+        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
+    }
+
+    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
+        depositMinAge = _depositMinAge;
+        emit DepositMinAgeUpdated(_depositMinAge);
     }
 
     function submitDepositSweepProposal(DepositSweepProposal calldata proposal)
@@ -170,12 +178,19 @@ contract WalletCoordinator is OwnableUpgradeable {
             // slither-disable-next-line calls-loop
             Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
 
+            require(deposit.revealedAt != 0, "Deposit not revealed");
+
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp > deposit.revealedAt + depositMinAge,
+                "Deposit min age not achieved yet"
+            );
+
             require(deposit.sweptAt == 0, "Deposit already swept");
 
-            // TODO: Check deposit was revealed enough time ago to ensure block finality.
             // TODO: Check deposit will not become refundable soon.
         }
 
-        // TODO: What else?
+        // TODO: Make sure all deposits target the same wallet and same vault.
     }
 }
