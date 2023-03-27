@@ -22,7 +22,6 @@ import "./Deposit.sol";
 import "./Wallets.sol";
 
 // TODO: Documentation and unit tests.
-// TODO: Should we make it pausable?
 contract WalletCoordinator is OwnableUpgradeable {
     struct DepositSweepProposal {
         bytes20 walletPubKeyHash;
