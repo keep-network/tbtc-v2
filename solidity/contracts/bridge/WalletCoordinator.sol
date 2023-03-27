@@ -87,7 +87,7 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
-    function updateDepositSweepMaxSizeUpdated(uint16 _depositSweepMaxSize)
+    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
         external
         onlyOwner
     {
