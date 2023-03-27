@@ -774,9 +774,9 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc-v2@development":
-  version "1.2.0-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.2.0-dev.0.tgz#215e64a1c946239f10d6140624dff53d0caac446"
-  integrity sha512-LSxsW8BsGaFJEa71qmS1Jit7kgvuUyIpae7/WWs0Y72yq7rW72GRcN7yUmcNVqNtqGZds10LF3AQOLUjl0O04Q==
+  version "1.2.0-dev.1"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.2.0-dev.1.tgz#4a1879e4979afbc06f0f9d9356c789ecc0ffea0e"
+  integrity sha512-cS4kta9XnPPtj5PW64Uso8c19VgEIukpPyCyJ8iXMyHKRmbfZsEw8I0aHmvkyZ2szdbcNJ2qcLL203uHAmyYAA==
   dependencies:
     "@keep-network/bitcoin-spv-sol" "3.4.0-solc-0.8"
     "@keep-network/ecdsa" "2.1.0-dev.6"
