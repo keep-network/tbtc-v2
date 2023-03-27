@@ -81,7 +81,7 @@ jobs:
 
   npm-compile-publish-contracts:
     if: |
-      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request'
         || (github.event_name == 'workflow_dispatch' 
         && github.event.inputs.environment == 'dev')
     runs-on: ubuntu-latest
