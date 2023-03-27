@@ -50,8 +50,12 @@ describe("ArbitrumTBTC - Upgrade", async () => {
       )
     })
 
-    it("should not update already set variable", async () => {
-      expect(await arbitrumTBTCUpgraded.name()).to.be.equal("ArbitrumTBTC")
+    it("should not update already set name", async () => {
+      expect(await arbitrumTBTCUpgraded.name()).to.be.equal("Arbitrum tBTC v2")
+    })
+
+    it("should not update already set symbol", async () => {
+      expect(await arbitrumTBTCUpgraded.symbol()).to.be.equal("tBTC")
     })
 
     it("should revert when V1's initializer is called", async () => {
