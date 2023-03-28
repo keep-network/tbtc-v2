@@ -56,9 +56,11 @@ contract WalletCoordinator is OwnableUpgradeable {
 
     uint32 public depositSweepProposalValidity;
 
-    uint16 public depositSweepMaxSize;
-
     uint32 public depositMinAge;
+
+    uint32 public depositRefundSafetyMargin;
+
+    uint16 public depositSweepMaxSize;
 
     event ProposalSubmitterAdded(address indexed proposalSubmitter);
 
@@ -68,9 +70,11 @@ contract WalletCoordinator is OwnableUpgradeable {
         uint32 depositSweepProposalValidity
     );
 
-    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
-
     event DepositMinAgeUpdated(uint32 depositMinAge);
+
+    event DepositRefundSafetyMarginUpdated(uint32 depositRefundSafetyMargin);
+
+    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
@@ -99,8 +103,9 @@ contract WalletCoordinator is OwnableUpgradeable {
 
         bridge = _bridge;
         depositSweepProposalValidity = 4 hours;
-        depositSweepMaxSize = 5;
         depositMinAge = 2 hours;
+        depositRefundSafetyMargin = 24 hours;
+        depositSweepMaxSize = 5;
     }
 
     function addProposalSubmitter(address proposalSubmitter)
@@ -139,17 +144,25 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
+    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
+        depositMinAge = _depositMinAge;
+        emit DepositMinAgeUpdated(_depositMinAge);
+    }
+
+    function updateDepositRefundSafetyMargin(uint32 _depositRefundSafetyMargin)
+        external
+        onlyOwner
+    {
+        depositRefundSafetyMargin = _depositRefundSafetyMargin;
+        emit DepositRefundSafetyMarginUpdated(_depositRefundSafetyMargin);
+    }
+
     function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
         external
         onlyOwner
     {
         depositSweepMaxSize = _depositSweepMaxSize;
         emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
-    }
-
-    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
-        depositMinAge = _depositMinAge;
-        emit DepositMinAgeUpdated(_depositMinAge);
     }
 
     function submitDepositSweepProposal(DepositSweepProposal calldata proposal)
@@ -220,7 +233,15 @@ contract WalletCoordinator is OwnableUpgradeable {
                 "Invalid deposit extra data"
             );
 
-            // TODO: Check deposit will not become refundable soon.
+            uint32 depositRefundableTimestamp = BTCUtils.reverseUint32(
+                uint32(depositExtra.refundLocktime)
+            );
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp <
+                    depositRefundableTimestamp - depositRefundSafetyMargin,
+                "Deposit refund safety margin cannot be preserved"
+            );
         }
 
         // TODO: Make sure all deposits target the same wallet and same vault.
