@@ -17,6 +17,7 @@ pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
+import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -29,6 +30,11 @@ import "./Wallets.sol";
 contract WalletCoordinator is OwnableUpgradeable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
+
+    struct WalletMemberContext {
+        uint32[] walletMembersIDs;
+        uint256 walletMemberIndex;
+    }
 
     struct DepositSweepProposal {
         bytes20 walletPubKeyHash;
@@ -53,6 +59,8 @@ contract WalletCoordinator is OwnableUpgradeable {
     mapping(bytes20 => uint32) public walletLock;
 
     Bridge public bridge;
+
+    EcdsaWalletRegistry public walletRegistry;
 
     uint32 public depositSweepProposalValidity;
 
@@ -81,11 +89,31 @@ contract WalletCoordinator is OwnableUpgradeable {
         address indexed proposalSubmitter
     );
 
-    modifier onlyProposalSubmitter() {
+    modifier onlyProposalSubmitterOrWalletMember(
+        bytes20 walletPubKeyHash,
+        WalletMemberContext calldata walletMemberContext
+    ) {
+        bool proposalSubmitter = isProposalSubmitter[msg.sender];
+        bool walletMember = false;
+
+        if (!proposalSubmitter) {
+            bytes32 ecdsaWalletID = bridge
+                .wallets(walletPubKeyHash)
+                .ecdsaWalletID;
+
+            walletMember = walletRegistry.isWalletMember(
+                ecdsaWalletID,
+                walletMemberContext.walletMembersIDs,
+                msg.sender,
+                walletMemberContext.walletMemberIndex
+            );
+        }
+
         require(
-            isProposalSubmitter[msg.sender],
-            "Caller is not proposal submitter"
+            proposalSubmitter || walletMember,
+            "Caller is neither a proposal submitter nor a wallet member"
         );
+
         _;
     }
 
@@ -102,6 +130,10 @@ contract WalletCoordinator is OwnableUpgradeable {
         __Ownable_init();
 
         bridge = _bridge;
+        // Pre-fetch wallet registry address to save gas on calls protected
+        // by the onlyProposalSubmitterOrWalletMember modifier.
+        (, , walletRegistry, ) = _bridge.contractReferences();
+
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
@@ -165,9 +197,15 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
     }
 
-    function submitDepositSweepProposal(DepositSweepProposal calldata proposal)
+    function submitDepositSweepProposal(
+        DepositSweepProposal calldata proposal,
+        WalletMemberContext calldata walletMemberContext
+    )
         external
-        onlyProposalSubmitter
+        onlyProposalSubmitterOrWalletMember(
+            proposal.walletPubKeyHash,
+            walletMemberContext
+        )
         onlyAfterWalletLock(proposal.walletPubKeyHash)
     {
         walletLock[proposal.walletPubKeyHash] =
