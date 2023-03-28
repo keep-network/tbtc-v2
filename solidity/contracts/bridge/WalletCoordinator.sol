@@ -360,6 +360,7 @@ contract WalletCoordinator is OwnableUpgradeable {
         // referred deposit is a P2SH.
         if (
             fundingOutputHash.length == 20 &&
+            // slither-disable-next-line calls-loop
             fundingOutputHash.slice20(0) == expectedScript.hash160View()
         ) {
             return true;
