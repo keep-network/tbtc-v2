@@ -26,26 +26,53 @@ import "./Bridge.sol";
 import "./Deposit.sol";
 import "./Wallets.sol";
 
-// TODO: Documentation and unit tests.
+/// @title Wallet coordinator.
+/// @notice The wallet coordinator contract aims to facilitate the coordination
+///         of the off-chain wallet members during complex multi-chain wallet
+///         operations like deposit sweeping, redemptions or moving funds.
+///         Such operations involve various moving parts and many steps that
+///         must be done by each individual member. That means they can
+///         be subject of byzantine faults that may break the execution.
+///         This contract allows to mitigate those pains by providing a single
+///         and trusted on-chain coordination point without the need of
+///         implementing separate consensus algorithms in the off-chain
+///         client software.
 contract WalletCoordinator is OwnableUpgradeable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
+    /// @notice Helper structure carrying data necessary to validate the wallet
+    ///         membership of the caller.
     struct WalletMemberContext {
         uint32[] walletMembersIDs;
         uint256 walletMemberIndex;
     }
 
+    /// @notice Helper structure representing a deposit sweep proposal.
+    ///         Holds the target wallet 20-byte public key hash and candidate
+    ///         deposits that should be part of the sweep.
     struct DepositSweepProposal {
         bytes20 walletPubKeyHash;
         DepositKey[] depositsKeys;
     }
 
+    /// @notice Helper structure representing a plain-text deposit key.
+    ///         Each deposit can be identified by their 32-byte funding
+    ///         transaction hash (Bitcoin internal byte order) an the funding
+    ///         output index (0-based).
+    /// @dev Do not confuse this structure with the deposit key used within the
+    ///      Bridge contract to store deposits. Here we have the plain-text
+    ///      components of the key while the Bridge uses a uint representation of
+    ///      keccak256(fundingTxHash | fundingOutputIndex) for gas efficiency.
     struct DepositKey {
         bytes32 fundingTxHash;
         uint32 fundingOutputIndex;
     }
 
+    /// @notice Helper structure holding deposit extra data required during
+    ///         deposit sweep proposal validation. Basically, this structure
+    ///         is a combination of BitcoinTx.Info and relevant parts of
+    ///         Deposit.DepositRevealInfo.
     struct DepositExtra {
         BitcoinTx.Info fundingTx;
         bytes8 blindingFactor;
@@ -54,20 +81,59 @@ contract WalletCoordinator is OwnableUpgradeable {
         bytes4 refundLocktime;
     }
 
+    /// @notice Mapping that holds addresses allowed to submit proposals.
     mapping(address => bool) public isProposalSubmitter;
 
+    /// @notice Mapping that holds wallet time locks. The key is a 20-byte
+    ///         wallet public key hash. The value is a UNIX timestamp defining
+    ///         the moment until which the wallet is locked and cannot receive
+    ///         new proposals. The value of 0 means the wallet is not locked
+    ///         and can receive a proposal at any time.
     mapping(bytes20 => uint32) public walletLock;
 
+    /// @notice Handle to the Bridge contract.
     Bridge public bridge;
 
+    /// @notice Handle to the WalletRegistry contract.
     EcdsaWalletRegistry public walletRegistry;
 
+    /// @notice Determines the deposit sweep proposal validity time. In other
+    ///         words, this is the worst-case time for a deposit sweep during
+    ///         which the wallet is busy and cannot take another actions. This
+    ///         is also the duration of the time lock applied to the wallet
+    ///         once a new deposit sweep proposal is submitted.
+    ///
+    ///         For example, if a deposit sweep proposal was submitted at
+    ///         2 pm and depositSweepProposalValidity is 4 hours, the next
+    ///         proposal (of any type) can be submitted after 6 pm.
     uint32 public depositSweepProposalValidity;
 
+    /// @notice The minimum time that must elapse since the deposit reveal
+    ///         before a deposit becomes eligible for a deposit sweep.
+    ///
+    ///         For example, if a deposit was revealed at 9 am and depositMinAge
+    ///         is 2 hours, the deposit is eligible for sweep after 11 am.
     uint32 public depositMinAge;
 
+    /// @notice Each deposit can be technically swept until it reaches its
+    ///         refund timestamp after which it can be taken back by the depositor.
+    ///         However, allowing the wallet to sweep deposits that are close
+    ///         to their refund timestamp may cause a race between the wallet
+    ///         and the depositor. In result, the wallet may sign an invalid
+    ///         sweep transaction that aims to sweep an already refunded deposit.
+    ///         Such tx signature may be used to create an undefeatable fraud
+    ///         challenge against the wallet. In order to mitigate that problem,
+    ///         this parameter determines a safety margin that puts the latest
+    ///         moment a deposit can be swept far before the point after which
+    ///         the deposit becomes refundable.
+    ///
+    ///         For example, if a deposit becomes refundable after 8 pm and
+    ///         depositRefundSafetyMargin is 6 hours, the deposit is valid for
+    ///         for a sweep only before 2 pm.
     uint32 public depositRefundSafetyMargin;
 
+    /// @notice The maximum count of deposits that can be swept within a
+    ///         single sweep.
     uint16 public depositSweepMaxSize;
 
     event ProposalSubmitterAdded(address indexed proposalSubmitter);
@@ -140,6 +206,11 @@ contract WalletCoordinator is OwnableUpgradeable {
         depositSweepMaxSize = 5;
     }
 
+    /// @notice Adds the given address to the proposal submitters set.
+    /// @param proposalSubmitter Address of the new proposal submitter.
+    /// @dev Requirements:
+    ///      - The caller must be the owner,
+    ///      - The `proposalSubmitter` must not be an existing proposal submitter.
     function addProposalSubmitter(address proposalSubmitter)
         external
         onlyOwner
@@ -152,6 +223,11 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit ProposalSubmitterAdded(proposalSubmitter);
     }
 
+    /// @notice Removes the given address from the proposal submitters set.
+    /// @param proposalSubmitter Address of the existing proposal submitter.
+    /// @dev Requirements:
+    ///      - The caller must be the owner,
+    ///      - The `proposalSubmitter` must be an existing proposal submitter.
     function removeProposalSubmitter(address proposalSubmitter)
         external
         onlyOwner
@@ -164,11 +240,22 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit ProposalSubmitterRemoved(proposalSubmitter);
     }
 
+    /// @notice Allows to unlock the given wallet before their time lock expires.
+    ///         This function should be used in exceptional cases where
+    ///         something went wrong and there is a need to unlock the wallet
+    ///         without waiting.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
         // Just in case, allow the owner to unlock the wallet earlier.
         walletLock[walletPubKeyHash] = 0;
     }
 
+    /// @notice Updates the value of the depositSweepProposalValidity parameter.
+    /// @param _depositSweepProposalValidity New value.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function updateDepositSweepProposalValidity(
         uint32 _depositSweepProposalValidity
     ) external onlyOwner {
@@ -176,11 +263,19 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
     }
 
+    /// @notice Updates the value of the depositMinAge parameter.
+    /// @param _depositMinAge New value.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
         depositMinAge = _depositMinAge;
         emit DepositMinAgeUpdated(_depositMinAge);
     }
 
+    /// @notice Updates the value of the depositRefundSafetyMargin parameter.
+    /// @param _depositRefundSafetyMargin New value.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function updateDepositRefundSafetyMargin(uint32 _depositRefundSafetyMargin)
         external
         onlyOwner
@@ -189,6 +284,10 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositRefundSafetyMarginUpdated(_depositRefundSafetyMargin);
     }
 
+    /// @notice Updates the value of the depositSweepMaxSize parameter.
+    /// @param _depositSweepMaxSize New value.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
         external
         onlyOwner
@@ -197,6 +296,21 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
     }
 
+    /// @notice Submits a deposit sweep proposal. Locks the target wallet
+    ///         for a specific time, equal to the proposal validity period.
+    ///         This function does not store the proposal in the state but
+    ///         just emits an event that serves as a guiding light for wallet
+    ///         off-chain members. Wallet members are supposed to validate
+    ///         the proposal on their own, before taking any action.
+    /// @param proposal The actual deposit sweep proposal
+    /// @param walletMemberContext Optional parameter holding some data allowing
+    ///        to confirm the wallet membership of the caller. This parameter is
+    ///        relevant only when the caller is not a registered proposal
+    ///        submitter but claims to be a member of the target wallet.
+    /// @dev Requirements:
+    ///      - The caller is either a proposal submitter or a member of the
+    ///        target wallet,
+    ///      - The wallet is not time locked.
     function submitDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         WalletMemberContext calldata walletMemberContext
@@ -216,6 +330,35 @@ contract WalletCoordinator is OwnableUpgradeable {
         emit DepositSweepProposalSubmitted(proposal, msg.sender);
     }
 
+    /// @notice View function encapsulating the main rules of a valid deposit
+    ///         sweep proposal. This function is meant to facilitate the off-chain
+    ///         validation of the incoming proposals. Thanks to it, most
+    ///         of the work can be done using a single readonly contract call.
+    ///         Worth noting, the validation done here is not exhaustive as some
+    ///         conditions may not be verifiable within the on-chain function or
+    ///         checking them may be easier on the off-chain side. For example,
+    ///         this function does not check the SPV proofs and confirmations of
+    ///         the deposit funding transactions as this would require an
+    ///         integration with the difficulty relay that greatly increases
+    ///         complexity. Instead of that, each off-chain wallet member is
+    ///         supposed to do that check on their own.
+    /// @param proposal The validated proposal.
+    /// @param depositsExtras Deposits extra data required to perform the validation.
+    /// @dev Requirements:
+    ///      - The target wallet must be in the Live state,
+    ///      - The number of deposits included in the sweep must be in
+    ///        the range [1, `depositSweepMaxSize`],
+    ///      - The length of `depositsExtras` array must be equal to the
+    ///        length of `proposal.depositsKeys`, i.e. each deposit must
+    ///        have exactly one set of corresponding extra data,
+    ///      - Each deposit must be revealed to the Bridge,
+    ///      - Each deposit must be old enough, i.e. at least `depositMinAge`
+    ///        elapsed since their reveal time,
+    ///      - Each deposit must not be swept yet,
+    ///      - Each deposit must have valid extra data (see `isDepositExtraValid`),
+    ///      - Each deposit must have the refund safety margin preserved,
+    ///      - Each deposit must be controlled by the same wallet,
+    ///      - Each deposit must target the same vault.
     function validateDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         DepositExtra[] calldata depositsExtras
@@ -302,6 +445,23 @@ contract WalletCoordinator is OwnableUpgradeable {
         }
     }
 
+    /// @notice Validates the extra data for the given deposit. This function
+    ///         is heavily based on Deposit.revealDeposit function.
+    /// @param depositKey Key of the given deposit.
+    /// @param depositor Depositor that revealed the deposit.
+    /// @param depositKey Extra data being subject of the validation.
+    /// @return True if extra data are valid. False otherwise.
+    /// @dev Requirements:
+    ///      - The transaction hash computed using `depositExtra.fundingTx`
+    ///        must match the `depositKey.fundingTxHash`. This requirement
+    ///        ensures the funding transaction data provided in the extra
+    ///        data container actually represent the funding transaction of
+    ///        the given deposit.
+    ///      - The P2(W)SH script inferred from `depositExtra` is actually used
+    ///        to lock funds by the `depositKey.fundingOutputIndex` output
+    ///        of the `depositExtra.fundingTx` transaction. This requirement
+    ///        ensures the reveal data provided in the extra data container
+    ///        actually matches the given deposit.
     function isDepositExtraValid(
         DepositKey memory depositKey,
         address depositor,
