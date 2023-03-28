@@ -29,14 +29,16 @@ import "./Wallets.sol";
 /// @title Wallet coordinator.
 /// @notice The wallet coordinator contract aims to facilitate the coordination
 ///         of the off-chain wallet members during complex multi-chain wallet
-///         operations like deposit sweeping, redemptions or moving funds.
-///         Such operations involve various moving parts and many steps that
-///         must be done by each individual member. That means they can
-///         be subject of byzantine faults that may break the execution.
-///         This contract allows to mitigate those pains by providing a single
-///         and trusted on-chain coordination point without the need of
-///         implementing separate consensus algorithms in the off-chain
-///         client software.
+///         operations like deposit sweeping, redemptions, or moving funds.
+///         Such processes involve various moving parts and many steps that each
+///         individual wallet member must do. Given the distributed nature of
+///         the off-chain wallet software, full off-chain implementation is
+///         challenging and prone to errors, especially byzantine faults.
+///         This contract provides a single and trusted on-chain coordination
+///         point thus taking the riskiest part out of the off-chain software.
+///         The off-chain wallet members can focus on the core tasks and do not
+///         bother about electing a trusted coordinator or aligning internal
+///         states using complex consensus algorithms.
 contract WalletCoordinator is OwnableUpgradeable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
