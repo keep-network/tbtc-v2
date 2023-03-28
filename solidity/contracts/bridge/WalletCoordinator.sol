@@ -519,8 +519,8 @@ contract WalletCoordinator is OwnableUpgradeable {
         // Path that checks the deposit extra data validity in case the
         // referred deposit is a P2SH.
         if (
-            fundingOutputHash.length == 20 &&
             // slither-disable-next-line calls-loop
+            fundingOutputHash.length == 20 &&
             fundingOutputHash.slice20(0) == expectedScript.hash160View()
         ) {
             return true;
