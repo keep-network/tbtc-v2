@@ -188,6 +188,8 @@ contract WalletCoordinator is OwnableUpgradeable {
             "Wallet is not in Live state"
         );
 
+        require(proposal.depositsKeys.length > 0, "Sweep below the min size");
+
         require(
             proposal.depositsKeys.length <= depositSweepMaxSize,
             "Sweep exceeds the max size"
@@ -197,6 +199,8 @@ contract WalletCoordinator is OwnableUpgradeable {
             proposal.depositsKeys.length == depositsExtras.length,
             "Each deposit key must have matching extra data"
         );
+
+        address proposalVault = address(0);
 
         for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
             DepositKey memory depositKey = proposal.depositsKeys[i];
@@ -240,11 +244,24 @@ contract WalletCoordinator is OwnableUpgradeable {
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp <
                     depositRefundableTimestamp - depositRefundSafetyMargin,
-                "Deposit refund safety margin cannot be preserved"
+                "Deposit refund safety margin is not preserved"
+            );
+
+            require(
+                depositExtra.walletPubKeyHash == proposal.walletPubKeyHash,
+                "Deposit controlled by different wallet"
+            );
+
+            // Make sure all deposits target the same vault by using the
+            // vault of the first deposit as a reference.
+            if (i == 0) {
+                proposalVault = depositRequest.vault;
+            }
+            require(
+                depositRequest.vault == proposalVault,
+                "Deposit targets different vault"
             );
         }
-
-        // TODO: Make sure all deposits target the same wallet and same vault.
     }
 
     function isDepositExtraValid(
