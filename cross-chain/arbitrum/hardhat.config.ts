@@ -98,15 +98,15 @@ const config: HardhatUserConfig = {
       default: 1,
       goerliEthereum: process.env.CONTRACT_L1_OWNER_ADDRESS || "",
       goerliArbitrum: process.env.CONTRACT_L2_OWNER_ADDRESS || "",
-      mainnetEthereum: "",
-      mainnetArbitrum: "",
+      mainnetEthereum: process.env.CONTRACT_L1_OWNER_ADDRESS || "",
+      mainnetArbitrum: process.env.CONTRACT_L2_OWNER_ADDRESS || "",
     },
     governance: {
       default: 2,
       goerliEthereum: process.env.THRESHOLD_L1_COUNCIL_ADDRESS || "",
       goerliArbitrum: process.env.THRESHOLD_L2_COUNCIL_ADDRESS || "",
-      mainnetEthereum: "", // Threshold Council
-      mainnetArbitrum: "", // Threshold Council
+      mainnetEthereum: process.env.THRESHOLD_L1_COUNCIL_ADDRESS || "",
+      mainnetArbitrum: process.env.THRESHOLD_L2_COUNCIL_ADDRESS || "",
     },
   },
   mocha: {
