@@ -1,7 +1,7 @@
 name: Cross-chain Arbitrum module
 
 # There are a couple of places where we hardcode the environment name to
-# "goerliArbitrum". As of adding this config file, there is no easy way of passing
+# "arbitrumGoerli". As of adding this config file, there is no easy way of passing
 # an additional parameter to this workflow like ${{ github.event.inputs.environment-l2 }}
 # and would require a rebuild of the custom GH actions used to handle the
 # triggering of workflows in the CI flow.
@@ -200,7 +200,7 @@ jobs:
           THRESHOLD_L2_COUNCIL_ADDRESS: ${{ secrets.THRESHOLD_COUNCIL_ADDRESS }}
           ACCOUNTS_L2_PRIVATE_KEYS: ${{ secrets.ACCOUNTS_PRIVATE_KEYS }} # <0xL1_OWNER_PRIV_KEY,0xL1_COUNCIL_PRIV_KEY>
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
-        run: yarn deploy --network goerliArbitrum
+        run: yarn deploy --network arbitrumGoerli
 
       - name: Bump up package version
         id: npm-version-bump
@@ -214,7 +214,7 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --tag goerli-arbitrum --network=goerliArbitrum
+        run: npm publish --access=public --tag goerli-arbitrum --network=arbitrumGoerli
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/ci/actions/notify-workflow-completed@v2

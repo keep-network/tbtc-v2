@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       deploy: ["deploy_l2"],
     },
-    goerliEthereum: {
+    goerli: {
       url: process.env.CHAIN_L1_API_URL || "",
       chainId: 5,
       deploy: ["deploy_l1"],
@@ -41,7 +41,7 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan"],
     },
-    mainnetEthereum: {
+    mainnet: {
       url: process.env.CHAIN_L1_API_URL || "",
       chainId: 1,
       deploy: ["deploy_l1"],
@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan"],
     },
-    goerliArbitrum: {
+    arbitrumGoerli: {
       url: process.env.CHAIN_L2_API_URL || "",
       chainId: 421613,
       deploy: ["deploy_l2"],
@@ -59,10 +59,10 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["arbiscan"],
       companionNetworks: {
-        l1: "goerliEthereum",
+        l1: "goerli",
       },
     },
-    mainnetArbitrum: {
+    arbitrumMainnet: {
       url: process.env.CHAIN_L2_API_URL || "",
       chainId: 42161,
       deploy: ["deploy_l2"],
@@ -71,17 +71,17 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["arbiscan"],
       companionNetworks: {
-        l1: "mainnetEthereum",
+        l1: "mainnet",
       },
     },
   },
 
   external: {
     deployments: {
-      goerliEthereum: ["./external/goerliEthereum"],
-      goerliArbitrum: ["./external/goerliArbitrum"],
-      mainnetEthereum: ["./external/mainnetEthereum"],
-      mainnetArbitrum: ["./external/mainnetArbitrum"],
+      goerli: ["./external/goerli"],
+      arbitrumGoerli: ["./external/arbitrumGoerli"],
+      mainnet: ["./external/mainnet"],
+      arbitrumMainnet: ["./external/arbitrumMainnet"],
     },
   },
 
@@ -95,17 +95,17 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
-      goerliEthereum: process.env.CONTRACT_L1_OWNER_ADDRESS || "",
-      goerliArbitrum: process.env.CONTRACT_L2_OWNER_ADDRESS || "",
-      mainnetEthereum: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
-      mainnetArbitrum: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
+      goerli: process.env.CONTRACT_L1_OWNER_ADDRESS || "",
+      arbitrumGoerli: process.env.CONTRACT_L2_OWNER_ADDRESS || "",
+      mainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
+      arbitrumMainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
     },
     governance: {
       default: 2,
-      goerliEthereum: process.env.THRESHOLD_L1_COUNCIL_ADDRESS || "",
-      goerliArbitrum: process.env.THRESHOLD_L2_COUNCIL_ADDRESS || "",
-      mainnetEthereum: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
-      mainnetArbitrum: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+      goerli: process.env.THRESHOLD_L1_COUNCIL_ADDRESS || "",
+      arbitrumGoerli: process.env.THRESHOLD_L2_COUNCIL_ADDRESS || "",
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+      arbitrumMainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
   },
   mocha: {
