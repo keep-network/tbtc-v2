@@ -2,7 +2,7 @@
   "name": "@keep-network/tbtc-v2-arbitrum",
   "version": "0.0.1-dev",
   "description": "TBTCv2 cross-chain Arbitrum",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
     "build/contracts/",
