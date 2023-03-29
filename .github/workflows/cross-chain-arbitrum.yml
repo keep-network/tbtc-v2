@@ -1,4 +1,4 @@
-name: Cross chain Arbitrum
+name: Cross-chain Arbitrum module
 
 # There are a couple of places where we hardcode the environment name to
 # "goerliArbitrum". As of adding this config file, there is no easy way of passing

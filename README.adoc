@@ -47,7 +47,7 @@ This repository contains:
 - TBTC v2 link:docs/[documentation],
 - TBTC v2 Yearn vault link:yearn/[Solidity smart contracts],
 - TBTC v2 link:monitoring/[monitoring tool],
-- TBTC v2 Cross chain link:cross-chain/arbitrum/[Arbitrum smart contracts].
+- TBTC v2 Cross-chain link:cross-chain/[smart contracts].
 
 toc::[]
 
