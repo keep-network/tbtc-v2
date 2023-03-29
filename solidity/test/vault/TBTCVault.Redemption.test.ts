@@ -15,12 +15,11 @@ import type {
   BridgeStub,
   TBTC,
   TBTCVault,
-  VendingMachine,
 } from "../../typechain"
 
 const { to1e18 } = helpers.number
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { increaseTime, lastBlockTime } = helpers.time
+const { lastBlockTime } = helpers.time
 const { defaultAbiCoder } = ethers.utils
 
 describe("TBTCVault - Redemption", () => {
@@ -35,30 +34,21 @@ describe("TBTCVault - Redemption", () => {
   let bridge: Bridge & BridgeStub
   let bank: Bank & BankStub
   let tbtc: TBTC
-  let vendingMachine: VendingMachine
   let tbtcVault: TBTCVault
 
+  let deployer: SignerWithAddress
   let account1: SignerWithAddress
   let account2: SignerWithAddress
 
   before(async () => {
-    const { keepTechnicalWalletTeam, keepCommunityMultiSig } =
-      await helpers.signers.getNamedSigners()
-
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
-    ;({ bridge, bank, tbtcVault, tbtc, vendingMachine } =
-      await waffle.loadFixture(bridgeFixture))
+    ;({ deployer, bridge, bank, tbtcVault, tbtc } = await waffle.loadFixture(
+      bridgeFixture
+    ))
 
-    // Deployment scripts deploy both `VendingMachine` and `TBTCVault` but they
-    // do not transfer the ownership of `TBTC` token to `TBTCVault`.
-    // We need to do it manually in tests covering `TBTCVault` behavior.
-    await vendingMachine
-      .connect(keepTechnicalWalletTeam)
-      .initiateVendingMachineUpgrade(tbtcVault.address)
-    await increaseTime(await vendingMachine.GOVERNANCE_DELAY())
-    await vendingMachine
-      .connect(keepCommunityMultiSig)
-      .finalizeVendingMachineUpgrade()
+    // TBTC token ownership transfer is not performed in deployment scripts.
+    // Check TransferTBTCOwnership deployment step for more information.
+    await tbtc.connect(deployer).transferOwnership(tbtcVault.address)
 
     const accounts = await getUnnamedAccounts()
     account1 = await ethers.getSigner(accounts[0])

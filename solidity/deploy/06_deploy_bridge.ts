@@ -71,6 +71,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
 
   if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(Deposit)
+    await helpers.etherscan.verify(DepositSweep)
+    await helpers.etherscan.verify(Redemption)
+    await helpers.etherscan.verify(Wallets)
+    await helpers.etherscan.verify(Fraud)
+    await helpers.etherscan.verify(MovingFunds)
+
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
     // in "@openzeppelin/hardhat-upgrades" to perform Etherscan verification
     // of Proxy and Implementation contracts.

@@ -12,12 +12,18 @@ import {
 } from "./deposit"
 import {
   OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 import { Hex } from "./hex"
 import { RedemptionRequest } from "./redemption"
-import { NewWalletRegisteredEvent } from "./wallet"
+import {
+  DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+} from "./wallet"
 
 /**
  * Represents a generic chain identifier.
@@ -224,6 +230,41 @@ export interface Bridge {
    * @see GetEventsFunction
    */
   getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
+
+  /**
+   * Returns the attached WalletRegistry instance.
+   */
+  walletRegistry(): Promise<WalletRegistry>
+}
+
+/**
+ * Interface for communication with the WalletRegistry on-chain contract.
+ */
+export interface WalletRegistry {
+  /**
+   * Gets the public key for the given wallet.
+   * @param walletID ID of the wallet.
+   * @returns Uncompressed public key without the 04 prefix.
+   */
+  getWalletPublicKey(walletID: Hex): Promise<Hex>
+
+  /**
+   * Get emitted DkgResultSubmittedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultSubmittedEvents: GetEvents.Function<DkgResultSubmittedEvent>
+
+  /**
+   * Get emitted DkgResultApprovedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
+
+  /**
+   * Get emitted DkgResultChallengedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultChallengedEvents: GetEvents.Function<DkgResultChallengedEvent>
 }
 
 /**
@@ -323,4 +364,27 @@ export interface TBTCVault {
    * @see GetEventsFunction
    */
   getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
+
+  /**
+   * Get emitted OptimisticMintingFinalized events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
+}
+
+/**
+ * Interface for communication with the TBTC v2 token on-chain contract.
+ */
+export interface TBTCToken {
+  /**
+   * Gets the total supply of the TBTC v2 token. The returned value is in
+   * ERC 1e18 precision, it has to be converted before using as Bitcoin value
+   * with 1e8 precision in satoshi.
+   * @param blockNumber Optional parameter determining the block the total
+   *        supply should be fetched for. If this parameter is not set, the
+   *        total supply is taken for the latest block.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  totalSupply(blockNumber?: number): Promise<BigNumber>
 }
