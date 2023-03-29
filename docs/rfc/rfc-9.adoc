@@ -48,95 +48,102 @@ redemptions, etc, with some slight modifications.
 
 We build a BTC <> Ethereum Ordinal bridge!
 
-We add functionality to the current tBTCv2 client to make future signing groups
-compatible with Ordinals. To deposit to these signing groups, we use the same
-P2SH process including a refund that we use for tBTCv2. They pay a <<Fees,fee>>.
-We optimistically mint using the same Minter & Guardian process we already
-havefootnote:[The structure for Minters and Guardians is the same, but the
-validation rules would be different]. In the background, we sweep to disable the
-refund. Later, someone brings back the NFT and a <<Fees,fee>>. We burn the NFT
-and send them their Ordinal.
+We add functionality to the current tBTCv2 client to add additional signing
+groups specifically for Ordinals. To deposit to these signing groups, a user
+sends their Ordinal to the wallet using an `ord`-compatible wallet, which uses
+ord's own P2SH scheme. The depositor then makes a minting request. The Guardian
+set has a governable amount of time to reject the request. If no guardian
+rejects, the NFT is minted.
+
+To redeem, a NFT holder returns their NFT and submits and redemption request.
+The Guardian set has a governable amount of time to reject the request. If no
+guardian rejects the request, the signing group is instructed to send the
+Ordinal to the redeemer.
+
+For both deposits and redemptions, the user pays a <<Fees,fee>>.
 
 === Depositing Details
 
-Depositing works essentially the same way that it does in tBTCv2 with a few key
-differences.
+There are a two main technical hurdles to using the same depositing mechanism
+that we do for tBTCv2.
 
-Once a deposit is revealed, it is **extremely** important that the wallet does
-not sweep them into the same UTXO; that would be destructive. We still need to
-sweep to disable the refundfootnote:[We can create a transaction with a batch of
-Ordinal inputs, and a separate re-locking for each output. See
-https://bitcoin.stackexchange.com/questions/35686[this stack overflow post].].
-The sweep needs to preserve the individual satoshis.
+* `ord` uses a special transfer P2SH script to send Ordinals to addresses. This
+  interferes with our ability to create P2SH scripts that associate ethereum
+  addresses and provide refunds.
+* Bitcoin headers do not have sufficient information to prove that a UTXO
+  contains an Ordinal. This interferes with our ability to prove that an Ordinal
+  has been deposited.
 
-Once custodied, we would mint an ERC721 where the `metadata` field references
-the https://docs.ordinals.com/overview.html[Ordinal ID]. They offer multiple
-notations; using the Integer Notation looks simple. The reference to the Ordinal
-ID is enough for a dApp to pull the underlying content, but it needs to be
-plugged in to both Bitcoin and Ethereum.
+We can associate each deposit to an ethereum address for minting by leveraging
+https://www.ledger.com/academy/crypto/what-are-hierarchical-deterministic-hd-wallets[HD
+Wallets]. Rather than giving the user a different P2SH address for each wallet,
+we instead derive a different child address for each wallet. For example, a
+depositor with eth address `0xDBC0 5B1E CB4F DAEF 9438 19C0 B04E 9EF6 DF4B ABD6`
+could use
+`m/0xDBC0/0x5B1E/0xCB4F/0xDAEF/0x9438/0x19C0/0xB04E/0x9EF6/0xDF4B/0xABD6` which
+is `m/56256/23326/52047/56047/37944/6592/45134/40694/57163/43990`.
 
-The ERC721 in the user's Ethereum Wallet points at the Ordinal ID. Then, the
-https://github.com/casey/ord[ord] program can identify the associated Ordinal on
-BTC, and extract its payload, which looks like:
+We would add more paths for a blinding factor (and whatever else data we need).
 
-```
-OP_FALSE
-OP_IF
-  OP_PUSH "ord"
-  OP_1
-  OP_PUSH "<content-type>" // example: OP_PUSH "text/plain;charset=utf-8"
-  OP_0
-  OP_PUSH "<content>" // example: OP_PUSH "Hello, world!"
-OP_ENDIF
-```
+Deposits to this address look meaningless from the outside but are verifiable
+to a guardian (or from ethereum). We do lose the ability to offer refunds,
+unfortunately.
+
+The lack of provability is more problematic. Here's an excerpt from the
+https://github.com/casey/ord/blob/master/bip.mediawiki[BIP]:
+
+> A proof can be constructed that demonstrates that a particular sat is
+contained in a particular output, however the proofs are large. Such a proof
+consists of:
+> 
+> * Block headers 
+> * A Merkle path to the coinbase transaction that created the sat 
+> * The coinbase transaction that created the sat 
+> * And for every spend of that sat:
+>   * The spend transaction
+>   * The transactions that created the inputs before the input that was spent,
+>     to determine the values of the preceding inputs, to determine the position
+>     of the sat
+>   * And, if the sat was used as fees, all prior transaction in the block in
+>     which it was spent, and the coinbase transaction, to determine the location
+>     of the sat in the outputs.
+
+This looks infeasible for use on ethereum. Under the assumption that we are not
+able to prove on-chain that a deposit has a particular Ordinal, we can pivot to
+leaning fully on a permissioned Guardian model. In this model, a user sends the
+wallet their Ordinal using `ord`, and then requests a mint on ethereum by
+revealing their blinding factor, Ordinal id, and ethereum address. The Guardians
+have a governable amount of time to inspect the deposit and reject it if
+anything looks wrong. In addition, the depositor supplies a <<Fees,fee>>.
+
+After the timeout period, anyone (a bot) can confirm a non-rejected mint to
+create an Ordinal NFT on ethereum. We encode the
+https://docs.ordinals.com/guides/explorer.html[Ordinal ID] into the NFT's
+metadata field, and then store a mapping from Ordinal -> UTXO on-chain. A dApp
+can read the Ordinal ID from the metadata and then use that to look up the
+Ordinal (and any associated Inscription) on Bitcoin.
 
 === Redemption Details
 
-Since NFTs are unique, there is no longer choice about which wallet a NFT is
-redeemed from. It **must** be the wallet that is the custody of that Ordinal.
+To redeem an Ordinal NFT on ethereum, the redeemer sends back the NFT,
+supplies a Bitcoin address, and supplies a <<Fees,fee>>. The off-chain clients
+listen for this transaction, and the associated signing group keeps track of
+which Ordinals they are custodying off-chain. When one of the Ordinals that they
+are in charge of is redeemed, they use `ord` to send it to the associated
+Bitcoin address.
 
-The redemption process is otherwise identical to tBTCv2. Someone sends the NFT,
-a <<Fees,fee>>, and an ethereum address back to contracts. The associated wallet
-sends them their Ordinal to the provided address with a 51-of-100 signature.
+In cleanup, we remove the Ordinal from the Ordinal -> UTXO mapping.
 
 === Fraud Detection
 
-Rather than storing the full list of custodied Ordinals per
-walletfootnote:[Storing the full list would of Ordinals be very gas
-inefficient.], we instead:
+After we accept the deposit and add the Oridinal ID to our Ordinal -> UTXO
+mapping, we can perform fraud proofs leveraging this information. If a UTXO for
+an Ordinal is spent in a way other than by transferring the Ordinal to the
+redemption address, or to the appropriate wallet during wallet closure, that is
+punishable with slashing and wallet closure.
 
-* Take the merkle root of all Ordinals under custody
-* A Proposer, determined by the ethereum hash of the mint/redeem transaction,
-  proposes this root on chainfootnote:[We reimburse the gas of the proposer here
-  like we do in v2]
-* Let anyone challenge this for a <<Optimistic Challenges,reward>> if the root is
-  wrong
-* Let anyone challenge this for a <<Optimistic Challenges,reward>> if the root does
-  not appear on chain within a timeout
-
-This means we are efficiently sure that we have the right merkle root and
-underlying custody.
-
-Later, there are two sorts of misbehavior from the custody side:
-
-(1) Sending an Ordinal to an address that did not redeem it and not having it be
-  associated with a wallet closure.
-
-(2) Not redeeming an Ordinal within the allotted time.
-
-Anyone can challenge any time (at a cost) for (1). The challenge is defeated by
-providing the legimate request within the timeout.
-
-In order to create challenge (2), the challenger must provide a proof that the
-Ordinal is being custodied and that a redemption was requested. The challenge is
-defeated by providing a SPV proof that the Ordinal was properly transferred.
-
-=== Optimistic Challenges
-
-In order to stop folks from creating false challenges to attack the system,
-creating a challenge costs a governable amount of ETH. To compensate the
-challenger for their risk, the challenger is awarded a governable percentage of
-the slashed T stake if their challenge is not defeated.
+If a wallet fails to redeem an Ordinal that it has custody of within a
+governable time-out, that is punishable with slashing and wallet closure.
 
 === Fees
 
