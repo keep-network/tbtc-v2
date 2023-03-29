@@ -9,4 +9,4 @@
 !/deployments/mainnet/
 
 # OZ
-.openzeppelin
+/.openzeppelin/unknown-*.json 
