@@ -38,6 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumWormholeGateway",
     {
+      contractName: "L2WormholeGateway",
       initializerArgs: [
         tokenBridgeAddress,
         wormholeTBTCAddress,
@@ -63,8 +64,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.run("verify", {
       address: proxyDeployment.address,
       constructorArgsParams: proxyDeployment.args,
-      // Implementation contract
-      contract: "contracts/ArbitrumWormholeGateway.sol:ArbitrumWormholeGateway",
     })
   }
 }

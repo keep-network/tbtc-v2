@@ -8,6 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumTBTC",
     {
+      contractName: "L2TBTC",
       initializerArgs: ["Arbitrum tBTC v2", "tBTC"],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
       proxyOpts: {
@@ -29,7 +30,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await hre.run("verify", {
       address: proxyDeployment.address,
       constructorArgsParams: proxyDeployment.args,
-      contract: "contracts/ArbitrumTBTC.sol:ArbitrumTBTC", // Implementation contract
     })
   }
 }
