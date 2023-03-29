@@ -34,7 +34,7 @@ describe("ArbitrumWormholeGatewayUpgraded - Upgrade", async () => {
         "ArbitrumTBTC"
       )) as ArbitrumTBTC
 
-      arbitrumWormholeGatewayUpgraded = (await upgradeProxy(
+      const [upgradedContract] = await upgradeProxy(
         "ArbitrumWormholeGateway",
         "ArbitrumWormholeGatewayUpgraded",
         {
@@ -48,7 +48,9 @@ describe("ArbitrumWormholeGatewayUpgraded - Upgrade", async () => {
             signer: governance,
           },
         }
-      )) as ArbitrumWormholeGatewayUpgraded
+      )
+      arbitrumWormholeGatewayUpgraded =
+        upgradedContract as ArbitrumWormholeGatewayUpgraded
     })
 
     it("new instance should have the same address as the old one", async () => {

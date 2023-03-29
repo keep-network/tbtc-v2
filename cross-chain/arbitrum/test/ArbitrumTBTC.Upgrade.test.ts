@@ -23,7 +23,7 @@ describe("ArbitrumTBTC - Upgrade", async () => {
     let arbitrumTBTCUpgraded: ArbitrumTBTCUpgraded
 
     before(async () => {
-      arbitrumTBTCUpgraded = (await upgradeProxy(
+      const [upgradedContract] = await upgradeProxy(
         "ArbitrumTBTC",
         "ArbitrumTBTCUpgraded",
         {
@@ -37,7 +37,8 @@ describe("ArbitrumTBTC - Upgrade", async () => {
             signer: governance,
           },
         }
-      )) as ArbitrumTBTCUpgraded
+      )
+      arbitrumTBTCUpgraded = upgradedContract as ArbitrumTBTCUpgraded
     })
 
     it("new instance should have the same address as the old one", async () => {

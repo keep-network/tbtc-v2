@@ -1,4 +1,5 @@
-import { deployments, ethers, upgrades } from "hardhat"
+import { Deployment } from "hardhat-deploy/types"
+import { helpers } from "hardhat"
 
 import type { FactoryOptions } from "hardhat/types"
 import type { Contract } from "ethers"
@@ -15,17 +16,10 @@ export async function upgradeProxy(
   currentContractName: string,
   newContractName: string,
   opts?: UpgradesUpgradeOptions
-): Promise<Contract> {
-  const currentContract = await deployments.get(currentContractName)
-
-  const newContract = await ethers.getContractFactory(
-    opts?.contractName || newContractName,
-    opts?.factoryOpts
-  )
-
-  return upgrades.upgradeProxy(
-    currentContract.address,
-    newContract,
-    opts?.proxyOpts
+): Promise<[Contract, Deployment]> {
+  return helpers.upgrades.upgradeProxy(
+    currentContractName,
+    newContractName,
+    opts
   )
 }
