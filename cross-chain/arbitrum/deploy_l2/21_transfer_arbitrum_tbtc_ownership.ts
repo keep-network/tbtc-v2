@@ -12,3 +12,4 @@ export default func
 
 func.tags = ["TransferArbitrumTBTCOwnership"]
 func.dependencies = ["ArbitrumTBTC"]
+func.runAtTheEnd = true

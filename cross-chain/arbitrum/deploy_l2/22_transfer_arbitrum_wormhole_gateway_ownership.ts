@@ -16,3 +16,4 @@ export default func
 
 func.tags = ["TransferArbitrumWormholeGatewayOwnership"]
 func.dependencies = ["ArbitrumWormholeGateway"]
+func.runAtTheEnd = true
