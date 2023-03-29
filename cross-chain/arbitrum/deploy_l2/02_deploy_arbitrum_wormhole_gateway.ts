@@ -1,13 +1,14 @@
-import { smock } from "@defi-wonderland/smock"
-
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
-import type { IWormholeTokenBridge, IERC20Upgradeable } from "../typechain"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers, getNamedAccounts, helpers, deployments } = hre
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
+
+  // These are the fake random addresses for local development purposes only.
+  const fakeTokenBridge = "0x0af5DC16568EFF2d480a43A77E6C409e497FcFb9"
+  const fakeWormholeTBTC = "0xe1F0b28a3518cCeC430d0d86Ea1725e6256b0296"
 
   const L2TokenBridge = await deployments.getOrNull("TokenBridge") // L2
   const WormholeTBTC = await deployments.getOrNull("WormholeTBTC") // L2
@@ -18,11 +19,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`using existing L2 TokenBridge at ${L2TokenBridge.address}`)
     tokenBridgeAddress = L2TokenBridge.address
   } else {
-    // For local development
-    const FakeWormholeTokenBridge = await smock.fake<IWormholeTokenBridge>(
-      "IWormholeTokenBridge"
-    )
-    tokenBridgeAddress = FakeWormholeTokenBridge.address
+    log(`using fake L2 TokenBridge at ${fakeTokenBridge}`)
+    tokenBridgeAddress = fakeTokenBridge
   }
 
   let wormholeTBTCAddress = ""
@@ -30,9 +28,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`using existing L2 WormholeTBTC at ${WormholeTBTC.address}`)
     wormholeTBTCAddress = WormholeTBTC.address
   } else {
-    // For local development
-    const TestERC20 = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable")
-    wormholeTBTCAddress = TestERC20.address
+    log(`using fake L2 WormholeTBTC at ${fakeWormholeTBTC}`)
+    wormholeTBTCAddress = fakeWormholeTBTC
   }
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
