@@ -18,18 +18,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (L2TokenBridge && helpers.address.isValid(L2TokenBridge.address)) {
     log(`using existing L2 TokenBridge at ${L2TokenBridge.address}`)
     tokenBridgeAddress = L2TokenBridge.address
-  } else {
+  } else if (hre.network.name === "hardhat") {
     log(`using fake L2 TokenBridge at ${fakeTokenBridge}`)
     tokenBridgeAddress = fakeTokenBridge
+  } else {
+    throw new Error("deployed L2TokenBridge contract not found")
   }
 
   let wormholeTBTCAddress = ""
   if (WormholeTBTC && helpers.address.isValid(WormholeTBTC.address)) {
     log(`using existing L2 WormholeTBTC at ${WormholeTBTC.address}`)
     wormholeTBTCAddress = WormholeTBTC.address
-  } else {
+  } else if (hre.network.name === "hardhat") {
     log(`using fake L2 WormholeTBTC at ${fakeWormholeTBTC}`)
     wormholeTBTCAddress = fakeWormholeTBTC
+  } else {
+    throw new Error("deployed L2TokenBridge contract not found")
   }
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
