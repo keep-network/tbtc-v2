@@ -25,5 +25,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["GatewayAddress"]
+func.tags = ["SetGatewayAddress"]
 func.dependencies = ["ArbitrumWormholeGateway"]
