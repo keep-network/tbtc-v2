@@ -5,7 +5,8 @@
 /external/npm
 /typechain/
 /export.json
-/deployments/
+/deployments/*
+!/deployments/mainnet/
 
 # OZ
 .openzeppelin
