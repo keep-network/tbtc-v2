@@ -10,20 +10,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const fakeTokenBridge = "0x0af5DC16568EFF2d480a43A77E6C409e497FcFb9"
   const fakeWormholeTBTC = "0xe1F0b28a3518cCeC430d0d86Ea1725e6256b0296"
 
-  const L2TokenBridge = await deployments.getOrNull("TokenBridge") // L2
-  const WormholeTBTC = await deployments.getOrNull("WormholeTBTC") // L2
+  const ArbitrumTokenBridge = await deployments.getOrNull("ArbitrumTokenBridge")
+  const ArbitrumWormholeTBTC = await deployments.getOrNull(
+    "ArbitrumWormholeTBTC"
+  )
+
   const ArbitrumTBTC = await deployments.get("ArbitrumTBTC")
 
-  let tokenBridgeAddress = L2TokenBridge?.address
+  let arbitrumTokenBridgeAddress = ArbitrumTokenBridge?.address
   if (hre.network.name === "hardhat") {
-    tokenBridgeAddress = fakeTokenBridge
-    log(`fake L2 TokenBridge address ${tokenBridgeAddress}`)
+    arbitrumTokenBridgeAddress = fakeTokenBridge
+    log(`fake Arbitrum TokenBridge address ${arbitrumTokenBridgeAddress}`)
   }
 
-  let wormholeTBTCAddress = WormholeTBTC?.address
+  let arbitrumWormholeTBTCAddress = ArbitrumWormholeTBTC?.address
   if (hre.network.name === "hardhat") {
-    wormholeTBTCAddress = fakeWormholeTBTC
-    log(`fake L2 WormholeTBTC address ${wormholeTBTCAddress}`)
+    arbitrumWormholeTBTCAddress = fakeWormholeTBTC
+    log(`fake Arbitrum WormholeTBTC address ${arbitrumWormholeTBTCAddress}`)
   }
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
@@ -32,8 +35,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contractName:
         "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol:L2WormholeGateway",
       initializerArgs: [
-        tokenBridgeAddress,
-        wormholeTBTCAddress,
+        arbitrumTokenBridgeAddress,
+        arbitrumWormholeTBTCAddress,
         ArbitrumTBTC.address,
       ],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
@@ -63,3 +66,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["ArbitrumWormholeGateway"]
+func.dependencies = ["ArbitrumTokenBridge", "ArbitrumWormholeTBTC"]
