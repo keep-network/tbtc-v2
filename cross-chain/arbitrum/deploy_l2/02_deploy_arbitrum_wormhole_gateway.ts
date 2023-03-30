@@ -18,13 +18,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const ArbitrumTBTC = await deployments.get("ArbitrumTBTC")
 
   let arbitrumTokenBridgeAddress = ArbitrumTokenBridge?.address
-  if (hre.network.name === "hardhat") {
+  if (!arbitrumTokenBridgeAddress && hre.network.name === "hardhat") {
     arbitrumTokenBridgeAddress = fakeTokenBridge
     log(`fake Arbitrum TokenBridge address ${arbitrumTokenBridgeAddress}`)
   }
 
   let arbitrumWormholeTBTCAddress = ArbitrumWormholeTBTC?.address
-  if (hre.network.name === "hardhat") {
+  if (!arbitrumWormholeTBTCAddress && hre.network.name === "hardhat") {
     arbitrumWormholeTBTCAddress = fakeWormholeTBTC
     log(`fake Arbitrum WormholeTBTC address ${arbitrumWormholeTBTCAddress}`)
   }
