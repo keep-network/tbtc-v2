@@ -1,4 +1,5 @@
 # Hardhat
+/artifacts/
 /build/
 /cache/
 /export/
@@ -10,4 +11,4 @@
 !/deployments/arbitrumOne/
 
 # OZ
-/.openzeppelin/unknown-*.json 
+/.openzeppelin/unknown-*.json
