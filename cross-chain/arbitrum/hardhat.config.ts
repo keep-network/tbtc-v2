@@ -100,15 +100,15 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 1,
-      goerli: process.env.L1_CONTRACT_OWNER_ADDRESS || "",
-      arbitrumGoerli: process.env.L2_CONTRACT_OWNER_ADDRESS || "",
+      goerli: 0,
+      arbitrumGoerli: 0,
       mainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
       arbitrumOne: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
     },
     governance: {
       default: 2,
-      goerli: process.env.L1_THRESHOLD_COUNCIL_ADDRESS || "",
-      arbitrumGoerli: process.env.L2_THRESHOLD_COUNCIL_ADDRESS || "",
+      goerli: 0,
+      arbitrumGoerli: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
       arbitrumOne: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
