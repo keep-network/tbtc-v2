@@ -33,7 +33,7 @@ yarn deploy --network <network>
 Supported networks:
 - `hardhat` - for local development
 - `arbitrumGoerli` - L2 testing network
-- `arbitrumMainnet` - L2 mainnet
+- `arbitrumOne` - L2 mainnet
 
 Currently, this module does not deploy any contracts on L1. All the existing 
 Wormhole contract addresses that are used in this module are stored under 
@@ -44,8 +44,8 @@ the contracts before running the deployment script. This command produces
 an `export.json` file containing contract deployment info. Note that for the
 chains other than `hardhat` the following env. variables are needed:
 
-- `CHAIN_L2_API_URL` - URL to access blockchain services, e.g. `https://arb-goerli.g.alchemy.com/v2/<alchemy_api_key>`
-- `CONTRACT_L2_OWNER_ADDRESS` - Deployer / Contract Owner address
-- `THRESHOLD_L2_COUNCIL_ADDRESS` - Council / Governance address
-- `ACCOUNTS_L2_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
+- `L2_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://arb-goerli.g.alchemy.com/v2/<alchemy_api_key>`
+- `L2_CONTRACT_OWNER_ADDRESS` - Deployer / Contract Owner address
+- `L2_THRESHOLD_COUNCIL_ADDRESS` - Council / Governance address
+- `L2_ACCOUNTS_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
 - `ARBISCAN_API_KEY` - Arbiscan API key
