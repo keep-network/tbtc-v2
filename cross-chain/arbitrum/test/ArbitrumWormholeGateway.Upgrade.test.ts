@@ -2,7 +2,6 @@ import { ethers, deployments, helpers } from "hardhat"
 import { expect } from "chai"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { upgradeProxy } from "./utils/upgrades"
 
 import type {
   ArbitrumTBTC,
@@ -34,7 +33,7 @@ describe("ArbitrumWormholeGatewayUpgraded - Upgrade", async () => {
         "ArbitrumTBTC"
       )) as ArbitrumTBTC
 
-      const [upgradedContract] = await upgradeProxy(
+      const [upgradedContract] = await helpers.upgrades.upgradeProxy(
         "ArbitrumWormholeGateway",
         "ArbitrumWormholeGatewayUpgraded",
         {

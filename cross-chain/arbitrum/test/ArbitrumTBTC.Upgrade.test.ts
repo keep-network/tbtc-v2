@@ -2,7 +2,6 @@ import { deployments, helpers } from "hardhat"
 import { expect } from "chai"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { upgradeProxy } from "./utils/upgrades"
 
 import type { ArbitrumTBTC, ArbitrumTBTCUpgraded } from "../typechain"
 
@@ -23,7 +22,7 @@ describe("ArbitrumTBTC - Upgrade", async () => {
     let arbitrumTBTCUpgraded: ArbitrumTBTCUpgraded
 
     before(async () => {
-      const [upgradedContract] = await upgradeProxy(
+      const [upgradedContract] = await helpers.upgrades.upgradeProxy(
         "ArbitrumTBTC",
         "ArbitrumTBTCUpgraded",
         {
