@@ -1,4 +1,4 @@
-name: Cross-chain: Arbitrum
+name: Cross-chain Arbitrum
 
 on:
   schedule:
