@@ -79,8 +79,8 @@ const config: HardhatUserConfig = {
   external: {
     deployments: {
       goerli: ["./external/goerli"],
-      arbitrumGoerli: ["./external/arbitrumGoerli"],
       mainnet: ["./external/mainnet"],
+      arbitrumGoerli: ["./external/arbitrumGoerli"],
       arbitrumOne: ["./external/arbitrumOne"],
     },
   },
