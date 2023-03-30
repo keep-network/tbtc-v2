@@ -42,7 +42,7 @@ Wormhole contract addresses that are used in this module are stored under
 If contracts haven't been built yet or changes occurred, `deploy` task will build
 the contracts before running the deployment script. This command produces
 an `export.json` file containing contract deployment info. Note that for the
-chains other than `hardhat` the following env. variables are needed:
+chains other than `hardhat` the following environment variables are needed:
 
 - `L2_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://arb-goerli.g.alchemy.com/v2/<alchemy_api_key>`
 - `L2_CONTRACT_OWNER_ADDRESS` - Deployer / Contract Owner address
