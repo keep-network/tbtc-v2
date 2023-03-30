@@ -43,9 +43,11 @@ edition quarters]. The linked quarter trades for ~$350, but is also legal tender
 worth $0.25. An owner of such a quarter probably does not want to use it to pay
 for parking. Ordinals work the same way.
 
-Since Ordinals are still BTC, we can use most of the same tBTCv2 ideas for
-custodying Ordinals: rotating wallets, P2SH addresses, fraud proofs,
-redemptions, etc, with some slight modifications.
+Since Ordinals are still BTC, we can use many of the same tBTCv2 ideas for
+custodying Ordianls: rotating wallets (and the wallet lifecycle), threshold
+signatures, Minters, and Guardians. Since Ordinals use special P2SH scripts to
+transfer and track them (via the `ord` program), this affects our depositing and
+redemption process. The differences are detailed below.
 
 == Proposal
 
