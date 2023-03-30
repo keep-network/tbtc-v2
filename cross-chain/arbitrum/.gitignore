@@ -7,6 +7,7 @@
 /export.json
 /deployments/*
 !/deployments/mainnet/
+!/deployments/arbitrumOne/
 
 # OZ
 /.openzeppelin/unknown-*.json 
