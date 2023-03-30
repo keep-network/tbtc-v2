@@ -21,22 +21,27 @@ Here is an https://ordinals.com/inscription/cfa453dbf693641b8f0c6b83cb733e718326
 
 === Current Functionality
 
-Ordinals, at a high level, are single satoshis with metadata stuck into their
+Ordinals are a numbering scheme for satoshis that allows tracking and
+transferring individual sats. Satoshis are numbered in the order in which
+they're mined, and transferred from transaction inputs to transaction outputs
+first-in-first-out.
+
+Inscriptions are single satoshis with metadata stuck into their
 witness field (called Inscribing). Each satoshi has an immutable age, which
 effectively gives them serial numbers.
 
-These Inscribed Satoshis (called Inscriptions) can be transferred like normal
+These Ordinals (some of which are Inscriptions) can be transferred like normal
 BTC. The sender's wallet software needs to be careful to not merge the
 Inscriptions with "normal" UTXOs, and needs to be careful to not accidentally
 send the Inscription as part of a payment. The
 https://github.com/casey/ord[casey/ord] repo provides the primatives for the
 handling of Ordinals on BTC.
 
-A good mental model here is thinking about Inscriptions like
+A good mental model here is thinking about Ordinals like
 https://www.apmex.com/product/117942/1932-s-washington-quarter-choice-au[special
 edition quarters]. The linked quarter trades for ~$350, but is also legal tender
 worth $0.25. An owner of such a quarter probably does not want to use it to pay
-for parking. Inscriptions work the same way.
+for parking. Ordinals work the same way.
 
 Since Ordinals are still BTC, we can use most of the same tBTCv2 ideas for
 custodying Ordinals: rotating wallets, P2SH addresses, fraud proofs,
