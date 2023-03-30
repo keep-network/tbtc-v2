@@ -1,11 +1,5 @@
 name: Cross-chain Arbitrum module
 
-# There are a couple of places where we hardcode the environment name to
-# "arbitrumGoerli". As of adding this config file, there is no easy way of passing
-# an additional parameter to this workflow like ${{ github.event.inputs.environment-l2 }}
-# and would require a rebuild of the custom GH actions used to handle the
-# triggering of workflows in the CI flow.
-
 on:
   schedule:
     - cron: "0 0 * * *"
