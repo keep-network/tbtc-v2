@@ -1,4 +1,4 @@
-name: Cross-chain Arbitrum module
+name: Cross-chain: Arbitrum
 
 on:
   schedule:
