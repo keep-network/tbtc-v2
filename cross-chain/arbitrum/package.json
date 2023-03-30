@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2-arbitrum",
-  "version": "0.0.1-dev",
+  "version": "1.0.0-dev",
   "description": "tBTC v2 on Arbitrum",
   "license": "GPL-3.0-only",
   "files": [
