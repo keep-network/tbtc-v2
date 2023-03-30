@@ -30,7 +30,10 @@ const config: HardhatUserConfig = {
 
   networks: {
     hardhat: {
-      deploy: ["deploy_l1", "deploy_l2"],
+      deploy: [
+        // "deploy_l1",
+        "deploy_l2",
+      ],
     },
     goerli: {
       url: process.env.L1_CHAIN_API_URL || "",
