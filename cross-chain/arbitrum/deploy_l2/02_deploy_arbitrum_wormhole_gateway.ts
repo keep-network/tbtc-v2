@@ -29,7 +29,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
     "ArbitrumWormholeGateway",
     {
-      contractName: "L2WormholeGateway",
+      contractName:
+        "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol:L2WormholeGateway",
       initializerArgs: [
         tokenBridgeAddress,
         wormholeTBTCAddress,
