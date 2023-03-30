@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (L2TokenBridge && helpers.address.isValid(L2TokenBridge.address)) {
     log(`using existing L2 TokenBridge at ${L2TokenBridge.address}`)
   } else if (hre.network.name === "hardhat") {
-    log('using fake L2 TokenBridge for hardhat network')
+    log("using fake L2 TokenBridge for hardhat network")
   } else {
     throw new Error("deployed L2 TokenBridge contract not found")
   }

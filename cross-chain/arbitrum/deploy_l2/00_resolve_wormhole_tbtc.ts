@@ -10,11 +10,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (WormholeTBTC && helpers.address.isValid(WormholeTBTC.address)) {
     log(`using existing L2 WormholeTBTC at ${WormholeTBTC.address}`)
   } else if (hre.network.name === "hardhat") {
-    log('using fake L2 WormholeTBTC for hardhat network')
+    log("using fake L2 WormholeTBTC for hardhat network")
   } else {
     throw new Error("deployed L2 WormholeTBTC contract not found")
   }
-
 }
 
 export default func
