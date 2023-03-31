@@ -9,7 +9,8 @@
     "contracts/",
     "!contracts/hardhat-dependency-compiler",
     "!**/test/",
-    "deploy/",
+    "deploy_l1/",
+    "deploy_l2/",
     "export/",
     "tasks/",
     "export.json"
