@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2-arbitrum",
-  "version": "1.0.0-dev",
+  "version": "1.0.0",
   "description": "tBTC v2 on Arbitrum",
   "license": "GPL-3.0-only",
   "files": [
@@ -34,7 +34,7 @@
     "test": "hardhat test"
   },
   "dependencies": {
-    "@keep-network/tbtc-v2": "development",
+    "@keep-network/tbtc-v2": "1.2.0",
     "@openzeppelin/contracts": "^4.8.1",
     "@openzeppelin/contracts-upgradeable": "^4.8.1"
   },
