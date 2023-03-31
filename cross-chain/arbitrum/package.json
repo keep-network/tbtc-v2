@@ -9,7 +9,8 @@
     "contracts/",
     "!contracts/hardhat-dependency-compiler",
     "!**/test/",
-    "deploy/",
+    "deploy_l1/",
+    "deploy_l2/",
     "export/",
     "tasks/",
     "export.json"
@@ -29,7 +30,7 @@
     "lint:config": "prettier --check '**/*.@(json|yaml)'",
     "lint:config:fix": "prettier --write '**/*.@(json|yaml)'",
     "prepack": "tsc -p tsconfig.export.json && hardhat export-artifacts export/artifacts",
-    "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network",
+    "prepublishOnly": "echo TODO: Copy deployment artifacts to artifacts directory",
     "test": "hardhat test"
   },
   "dependencies": {
