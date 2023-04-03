@@ -88,6 +88,13 @@ const config: HardhatUserConfig = {
     },
   },
 
+  deploymentArtifactsExport: {
+    goerli: "artifacts/l1",
+    mainnet: "artifacts/l1",
+    arbitrumGoerli: "artifacts/l2",
+    arbitrumOne: "artifacts/l2",
+  },
+
   etherscan: {
     apiKey: {
       goerli: process.env.ETHERSCAN_API_KEY,
