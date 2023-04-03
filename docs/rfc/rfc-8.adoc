@@ -1,0 +1,428 @@
+:toc: macro
+
+= RFC 8: Cross-chain Tokenized Threshold BTC
+
+:icons: font
+:numbered:
+toc::[]
+
+== Goal
+
+The goal of this proposal is to enable *efficient* cross-chain tBTC liquidity.
+
+In the Ethereum ecosystem, that means bringing Bitcoin to L2s and sidechains like
+Arbitrum, Optimism, Polygon, Avalanche, and Binance Smart Chain. In the Cosmos
+ecosystem, that means Bitcoin on IBC-enabled zones (chains) like Osmosis and
+Penumbra. And in newer ecosystems, that means chains like Solana, Aptos, and
+Sui.
+
+Efficiency requires minimizing liquidity fragmentation by avoiding the need for
+tBTC wrapper tokens by each chain and bridge. This situation quickly leads to an
+`n*m` problem, where liquidity on `n` chains is divided between `m`
+bridges. Each of these token variants soaks up valuable liquidity that could be
+better utilized elsewhere.
+
+Because tBTC is minted "centrally" on Ethereum L1, we can do better. By
+deploying a canonical token on each chain, we can ensure the supply of tBTC
+remains sacrosanct, while enabling quick, interoperable cross-chain bridges and
+localizing ecosystem risk.
+
+== Overview
+
+To achieve this goal, I propose we deploy a canonical tBTC contract on each
+chain we support. This contract should be flexible enough to:
+
+* Delegate restricted minting authority to a native bridge on the chain, if
+  present.
+* Delegate restricted minting authority to a short list of ecosystem bridges
+* Be paused by any one of `n` guardians, allowing avoidance of contagion in case
+  of a chain- or bridge-specific incident.
+* Be governed by the Threshold Council until we can land on a longer-term
+  cross-chain governance mechanism.
+
+== Initial implementation
+
+The goal of the initial implementation is to bring Bitcoin to the following L2s
+and sidechains:
+
+* Arbitrum,
+* Polygon,
+* Optimism.
+
+The cross-bridge architecture and patterns we are going to choose should allow
+us to scale to other L2s, sidechains, and chains quickly.
+
+=== Minting on L1
+
+Rather than change our L1 implementation to be aware of L2s and sidechains,
+we'll start as simply as possible. Every tBTC mint will continue to require
+transactions on Ethereum from the user — first a deposit reveal, then a lock  
+to bridge to another network.
+
+=== Canonical token
+
+The canonical token we are going to deploy will be different from the L1 token
+deployed at `0x18084fbA666a33d37592fA2633fD49a74DD93a88`. The L2/sidechain token
+will be upgradeable, owned by Threshold Council, will delegate the minting
+authority to multiple parties, and have a pause functionality for mints and
+burns.
+
+Given those requirements, the address of the canonical tBTC token on L2s and
+sidechains will be different from the one deployed on L1.
+
+A generic implementation of the token will be provided in the `solidity` smart
+contracts directory.
+
+=== Supporting native bridges
+
+A number of relevant chains include "native" bridges — canonical bridges for the
+chain that require interoperability. These bridges are both the most important
+and the trickiest to support.
+
+Each native bridge has its own way mechanism to manage an Ethereum-to-chain
+token contract mapping, sometimes called a token registry.
+
+Examples of chains with native bridges include:
+
+* Arbitrum,
+* Polygon,
+* Optimism.
+
+==== Arbitrum native bridge
+
+Since our tBTC L2 token is upgradeable and will allow multiple minting
+authorities, the Arbitrum Standard ERC20 Gateway is not sufficient.
+
+Given our tBTC L1 token does not conform to `ICustomToken` interface, we can not
+use Arbitrum Generic Custom Gateway.
+
+The only option is to implement our custom gateway that will have a minting
+authority for Arbitrum L2 tBTC token.
+
+One working example of a custom gateway is the DAI gateway:
+
+* The L1 gateway contract: link:https://etherscan.io/address/0xD3B5b60020504bc3489D6949d545893982BA3011[`L1DaiGateway`],
+* The L2 gateway contract: link:https://arbiscan.io/address/0x467194771dAe2967Aef3ECbEDD3Bf9a310C76C65[`L2DaiGateway`].
+
+Another working example of a custom gateway is the Livepeer gateway:
+
+* The L1 gateway contract: link:https://etherscan.io/address/0x6142f1C8bBF02E6A6bd074E8d564c9A5420a0676[`L1LPTGateway`],
+* The L2 gateway contract: link:https://arbiscan.io/address/0x6D2457a4ad276000A615295f7A80F79E48CcD318[`L2LPTGateway`].
+
+This is out of the scope of the initial implementation.
+
+See link:https://developer.arbitrum.io/asset-bridging[Arbitrum documentation for token bridging]
+for more information.
+
+==== Polygon native bridge
+
+For similar reasons as for Arbitrum, we have to implement our custom `FxTunnel`
+implementation. The child tunnel implementation on the Polygon sidechain will
+have a minting authority for the Polygon tBTC token.
+
+This is out of the scope of the initial implementation.
+
+See link:https://wiki.polygon.technology/docs/develop/l1-l2-communication/fx-portal[Polygon FxPortal documentation]
+for more information.
+
+==== Optimism native bridge
+
+The Optimism Standard Bridge creates L2 token with a call to
+`OptimismMintableERC20Factory`. The created token does not have the capabilities
+we expect from tBTC canonical tokens on L2. For this reason, using the Optimism
+Standard Bridge is not an option and we must implement our own L2 minter
+contract with an authority to mint Optimism tBTC. Note that going back from L2
+to L1 will take at least one week given the one-week Optimism challenge period.
+
+This is out of the scope of the initial implementation.
+
+See link:https://github.com/ethereum-optimism/optimism-tutorial/tree/main/standard-bridge-standard-token[Optimism guide for the standard bridge]
+and link:https://community.optimism.io/docs/developers/bridge/messaging/#fees-for-l2-%E2%87%92-l1-transactions[Optimism documentation on sending data between L1 and L2]
+for more details.
+
+=== Supporting cross-ecosystem bridges
+
+Selected cross-ecosystem bridges will be given minting authority for tBTC token
+on L2 and sidechains.
+
+Usually, the process of bridging from L1 to L2 (or sidechain) looks as follows
+on a high level:
+
+* There is a tBTC holder on L1. The holder goes to the Bridge dApp and
+  selects the chain they want to bridge to.
+* The holder submits one transaction to L1 locking their tBTC tokens in the
+  bridge's smart contract. After the transaction is mined, they wait about 15
+  minutes for the Ethereum block finality.
+* The holder submits one transaction to L2 that is minting tokens. After that
+  transaction is mined, they have their tBTC on L2.
+
+Usually, the process of bridging from L2 (or sidechain) to L1 looks as follows
+on a high level:
+
+* There is a tBTC holder on L2. That holder goes to the Bridge dApp and
+  selects one of the L2 chains they want to bridge from.
+* The holder submits one transaction to L2 that is burning the token. After the
+  transaction is mined, they wait about 15 minutes for the L2 block finality.
+* The holder submits one transaction to L1 unlocking their tBTC tokens from the
+  bridge's smart contract. After that transaction is mined, they have their tBTC
+  on L1.
+
+What is not immediately obvious is that the token received on L2 may not be the
+canonical token on that L2.
+
+To fully use the capabilities of cross-ecosystem bridges and make the user
+experience seamless, we will implement a gateway contract having the authority to
+wrap bridge-specific tokens into tBTC tokens in a 1:1 ratio. This contract
+will have a minting authority for tBTC on L2. This way, no liquid market has to
+exist on any target chain for users to be able to cross the Wormhole bridge into
+the canonical tBTC.
+
+IMPORTANT: The requirement for a seamless user experience is that the development
+team of the given cross-ecosystem bridge has to integrate the step of wrapping the
+token using the gateway contract into the bridging flow, in the same transaction as
+the L2 confirmation.
+
+==== Example
+
+For example, when I crossed the bridge with ETH using Wormhole, I received WETH
+token at address link:https://arbiscan.io/token/0xd8369c2eda18dd6518eabb1f85bd60606deb39ec[`0xd8369c2eda18dd6518eabb1f85bd60606deb39ec`].
+This is not the canonical WETH on Arbitrum. The canonical WETH on Arbitrum is
+link:https://arbiscan.io/token/0x82af49447d8a07e3bd95bd0d56f35241523fbab1[`0x82af49447d8a07e3bd95bd0d56f35241523fbab1`].
+When I crossed the bridge with USDC I received USDC token at
+link:https://arbiscan.io/token/0xc96f2715e2a242d50d1b0bc923dbe1740b8ecf18[`0xc96f2715e2a242d50d1b0bc923dbe1740b8ecf18`]
+which is not the canonical USDC on Arbitrum. The canonical USDC on Arbitrum is
+link:https://arbiscan.io/token/0xff970a61a04b1ca14834a43f5de4533ebddb5cc8[`0xff970a61a04b1ca14834a43f5de4533ebddb5cc8`].
+
+Wormhole cannot magically mint all tokens on Arbitrum or other L2s. Wormhole
+mints its own token representing the bridged asset that may be swapped to the
+canonical representation on the given L2 assuming there is a market for such
+a swap. The overview of liquid markets on each target chain is available in the
+link:https://docs.wormhole.com/wormhole/overview-liquid-markets[Wormhole documentation].
+Not every chain and token pair has a market. 
+
+=== Multisig governance
+
+The Governance in the initial implementation should be based on Gnosis Safe
+6-of-9 Threshold Council Multisig. Since the Gnosis Safe for Threshold Council
+was deployed using Safe Proxy factory v1.3.0, it
+link:https://help.safe.global/en/articles/5267779-i-sent-assets-to-a-safe-address-on-the-wrong-network-any-chance-to-recover[should be possible]
+to replay the same transaction creating Gnosis Safe with the same address on the
+supported L2s and sidechains.
+
+The Governance will be able to add and remove minters to L2/sidechain tBTC
+canonical contract.
+
+=== Code organization
+
+The code that exists in the `solidity` directory should contain components
+specific to L1 and generic L2 components that will be reused between EVM
+L2 and sidechain implementations. The code specific to individual chains should
+be placed in a chain-specific directory, in a separate NPM project:
+`cross-chain/{$chainName}`.
+
+For example:
+
+* `cross-chain/arbitrum`,
+* `cross-chain/polygon`,
+* `cross-chain/optimism`.
+
+Each `cross-chain` project should contain L1 and L2
+contracts specific to that individual subchain. This separation will allow us to
+abstract out the complexity of deployment and avoid redeploying all L1 testnet
+contracts in case a single change in one of L2 contracts is needed.
+
+This organization of the code will also allow us to not add subchain-specific
+dependencies to the L1 project and to deploy NPM packages separately:
+
+* `@keep-network/tbtc-v2-arbitrum`,
+* `@keep-network/tbtc-v2-polygon`,
+* `@keep-network/tbtc-v2-optimism`.
+
+Every chain requires its own network and compiler configuration.
+The `@keep-network/tbtc-v2` package is quite heavy and there is no
+straightforward way to distinguish on which chain the given contract was
+deployed if we do not separate NPM packages.
+
+Each project should have its own CI process that may incorporate jobs specific
+to that chain if needed. 
+
+The CI processes of `cross-chain` projects should include Goerli deployment
+jobs. Note that the separation of the code does not mean the deployment is fully
+separated between chains. Both L1 and L2 contracts need to be deployed from the
+given `cross-chain` module. L1 contracts may require addresses of contracts from
+L2 and L2 contract addresses may require addresses of contracts from L1.
+
+```
+├── solidity
+│   ├── (...)
+│   └── l2
+│       └── L2TBTC.sol
+└── cross-chain
+    ├── arbitrum
+    │   ├── package.json
+    │   └── solidity
+    │      ├── L1ArbitrumGateway.sol 
+    │      ├── L2ArbitrumGateway.sol 
+    │      └── ArbitrumTBTC.sol 
+    ├── optimism
+    │   ├── package.json
+    │   └── solidity
+    │      ├── L1OptimismGateway.sol 
+    │      ├── L2OptimismGateway.sol 
+    │      └── OptimismTBTC.sol 
+    └── polygon
+        ├── package.json
+        └── solidity
+           ├── L1PolygonGateway.sol 
+           ├── L2PolygonGateway.sol 
+           └── PolygonTBTC.sol 
+```
+
+`L2TBTC.sol` is an abstract contract doing all the heavy lifting: upgradeability,
+authorization of minters, and minting pause. This generic contract is inherited
+by L2-specific tokens: `ArbitrumTBTC`, `OptimismTBTC`, and `PolygonTBTC`.
+
+Each `cross-chain` module has its own `package.json` so it's an independent
+project with a separate NPM package deployment job and CI jobs.
+
+Both L1 and L2 contracts specific to the given chain are placed next to each
+other. For example, `ArbitrumL1Gateway` deployed on L1 Ethereum, and
+`ArbitrumL2Gateway` deployed on L2 Arbitrum. It means the deployment job of the
+given `cross-chain` module must be able to work both with L1 and L2 and to wire
+up contracts together.
+
+=== Smart contracts
+
+==== Initial implementation
+
+The initial implementation uses the Wormhole bridge to bring tBTC to Arbitrum,
+Optimism, and Polygon.
+
+```
+                                         +---------------------------------------------------------------------+
+                                         |                                Arbitrum                             |
+                                         |                                                                     |
+                                         |  +----------------------+  +-------------------+  +--------------+  |
+                                   +-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| ArbitrumTBTC |  |
+                                   |     |  +----------------------+  +-------------------+  +--------------+  |
+                                   |     |                                                                     |
+                                   |     +---------------------------------------------------------------------+
+                                   |
++----------------------------+     |     +---------------------------------------------------------------------+
+|          Ethereum          |     |     |                                Polygon                              |
+|                            |     |     |                                                                     |
+|  +----------------------+  |     |     |  +----------------------+  +-------------------+  +-------------+   |
+|  | Wormhole TokenBridge |--|-----|-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| PolygonTBTC |   |
+|  +----------------------+  |     |     |  +----------------------+  +-------------------+  +-------------+   |
+|                            |     |     |                                                                     |
++----------------------------+     |     +---------------------------------------------------------------------+
+                                   |
+                                   |     +---------------------------------------------------------------------+
+                                   |     |                                Optimism                             |
+                                   |     |                                                                     |
+                                   |     |  +----------------------+  +-------------------+  +--------------+  |
+                                   +-----|--| Wormhole TokenBridge |--| L2WormholeGateway |--| OptimismTBTC |  |
+                                         |  +----------------------+  +-------------------+  +--------------+  |
+                                         |                                                                     |
+                                         +---------------------------------------------------------------------+
+```
+
+Smart contracts involved:
+
+* Wormhole `TokenBridge` on Ethereum is the contract deployed at
+  link:https://etherscan.io/address/0x3ee18b2214aff97000d974cf647e7c347e8fa585[`0x3ee18b2214aff97000d974cf647e7c347e8fa585`].
+* Wormhole `TokenBridge` on Arbitrum is the contract deployed at
+  link:https://arbiscan.io/address/0x0b2402144bb366a632d14b83f244d2e0e21bd39c[`0x0b2402144Bb366A632D14B83F244D2e0e21bD39c`].
+* Wormhole `TokenBridge` on Polygon is the contract deployed at
+  link:https://polygonscan.com/address/0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE[`0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE`].
+* Wormhole `TokenBridge` on Optimism is the contract deployed at
+  link:https://optimistic.etherscan.io/address/0x1d68124e65fafc907325e3edbf8c4d84499daa8b[`0x1d68124e65fafc907325e3edbf8c4d84499daa8b`].
+* `L2WormholeGateway` on each chain is a smart contract wrapping and unwrapping
+  Wormhole-specific tBTC representation into the canonical tBTC token on the
+  given chain. This contract needs to be implemented and deployed behind an
+  upgradeable proxy.
+* `ArbitrumTBTC`, `PolygonTBTC`, and `OptimismTBTC` are token contracts with
+  a minting authority delegated to `L2WormholeGateway`. This is the canonical
+  tBTC token on the given chain. This contract needs to be implemented.
+
+The full list of Wormhole deployed contracts is available link:https://book.wormhole.com/reference/contracts.html[here].
+
+==== Extended implementation
+
+The extended implementation adds support for native L2/sidechain bridges and
+other cross-ecosystem bridges. Each L1 and L2 gateway needs to be implemented
+separately given the specific requirements of cross-chain communication of the
+given L2/sidechain. Multiple contracts have a minting authority for
+each L2/sidechain tBTC canonical token: cross-ecosystem gateways and the native
+bridge gateway.
+
+```
++----------------------------+             +---------------------------------------------------------------------+
+|          Ethereum          |             |                                Arbitrum                             |
+|                            |             |                                                                     |
+|  +-------------------+     |             |  +-------------------+                                              |
+|  | L1ArbitrumGateway |-----|-------------|--| L2ArbitrumGateway |-----------------------------------+          |
+|  +-------------------+     |             |  +-------------------+                                   |          |
+|                            |             |                                                          |          |
+|                            |             |  +---------------------+  +------------------+  +--------------+    |
+|                            |         +---|--| Another TokenBridge |--| L2AnotherGateway |--| ArbitrumTBTC |    |
+|                            |         |   |  +---------------------+  +------------------+  +--------------+    |
+|                            |         |   |                                                          |          |  
+|                            |         |   |  +----------------------+  +-------------------+         |          |
+|                            |     +-------|--| Wormhole TokenBridge |--| L2WormholeGateway |---------+          |
+|                            |     |   |   |  +----------------------+  +-------------------+                    |
+|                            |     |   |   |                                                                     |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |   |                                Polygon                              |
+|  +------------------+      |     |   |   |  +------------------+                                               |
+|  | L1PolygonGateway |------|-------------|--| L2PolygonGateway |------------------------------------+          |
+|  +------------------+      |     |   |   |  +------------------+                                    |          |
+|                            |     |   |   |                                                          |          |
+|  +---------------------+   |     |   |   |  +---------------------+   +------------------+  +-------------+    |
+|  | Another TokenBridge |---|---------+---|--| Another TokenBridge |---| L2AnotherGateway |--| PolygonTBTC |    |
+|  +---------------------+   |     |   |   |  +---------------------+   +------------------+  +-------------+    |
+|  +----------------------+  |     |   |   |  +----------------------+  +-------------------+         |          |
+|  | Wormhole TokenBridge |--|-----+-------|--| Wormhole TokenBridge |--| L2WormholeGateway |---------+          |
+|  +----------------------+  |     |   |   |  +----------------------+  +-------------------+                    |
+|                            |     |   |   |                                                                     |
+|                            |     |   |   +---------------------------------------------------------------------+
+|                            |     |   |
+|                            |     |   |  +---------------------------------------------------------------------+
+|                            |     |   |  |                                Optimism                             |
+|                            |     |   |  |                                                                     |
+|                            |     |   |  |  +---------------------+   +------------------+                     |
+|                            |     |   +--|--| Another TokenBridge |---| L2AnotherGateway |-----------+         |
+|                            |     |      |  +---------------------+   +------------------+           |         |
+|                            |     |      |                                                           |         | 
+|                            |     |      |  +----------------------+  +-------------------+  +--------------+  |
+|                            |     +------|--| Wormhole TokenBridge |--| L2WormholeGateway |--| OptimismTBTC |  |
+|                            |            |  +----------------------+  +-------------------+  +--------------+  |
+|                            |            |                                                           |         |
+|  +-------------------+     |            |  +-------------------+                                    |         |
+|  | L1OptimismGateway |-----|------------|--| L2OptimismGateway |------------------------------------+         |
+|  +-------------------+     |            |  +-------------------+                                              |
+|                            |            |                                                                     |
++----------------------------+            +---------------------------------------------------------------------+
+```
+
+== Future work
+
+=== Minting on L2
+
+Canonical tBTC token implementation on each L2/sidechain will allow delegating
+the minting authority to new contracts. Such a contract could be an L1 vault
+implementation other than the `TBTCVault`. In this model, tBTC for the given
+Bitcoin deposit is minted on L2 directly, without minting it on L1. The L1
+`Bank` balance is locked under the given vault implementation.
+
+The main challenge of the native L2 minting is extending TBTC L1 minting
+authority to bridges allowing to go from L2 to L1 with tBTC tokens minted on L2.
+
+=== Replacing multi-sig governance
+
+It is possible to implement a communication gateway for each L2/sidechain
+allowing the DAO from L1 to vote on changes that would be reflected on
+L2/sidechain. This is a potential mechanism to replace Threshold Council
+ownership of L2/sidechain canonical tBTC token with the Threshold DAO ownership.
