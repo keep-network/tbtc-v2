@@ -81,7 +81,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      emitted by the `Bridge.revealDeposit` function. The `fundingTx`
     ///      field must be taken directly from the Bitcoin chain, using the
     ///      `DepositRevealed.fundingTxHash` as transaction identifier.
-    struct DepositExtra {
+    struct DepositExtraInfo {
         BitcoinTx.Info fundingTx;
         bytes8 blindingFactor;
         bytes20 walletPubKeyHash;
@@ -374,25 +374,25 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         complexity. Instead of that, each off-chain wallet member is
     ///         supposed to do that check on their own.
     /// @param proposal The sweeping proposal to validate.
-    /// @param depositsExtras Deposits extra data required to perform the validation.
+    /// @param depositsExtraInfo Deposits extra data required to perform the validation.
     /// @dev Requirements:
     ///      - The target wallet must be in the Live state,
     ///      - The number of deposits included in the sweep must be in
     ///        the range [1, `depositSweepMaxSize`],
-    ///      - The length of `depositsExtras` array must be equal to the
+    ///      - The length of `depositsExtraInfo` array must be equal to the
     ///        length of `proposal.depositsKeys`, i.e. each deposit must
     ///        have exactly one set of corresponding extra data,
     ///      - Each deposit must be revealed to the Bridge,
     ///      - Each deposit must be old enough, i.e. at least `depositMinAge`
     ///        elapsed since their reveal time,
     ///      - Each deposit must not be swept yet,
-    ///      - Each deposit must have valid extra data (see `isDepositExtraValid`),
+    ///      - Each deposit must have valid extra data (see `isDepositExtraInfoValid`),
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
     ///      - Each deposit must target the same vault.
     function validateDepositSweepProposal(
         DepositSweepProposal calldata proposal,
-        DepositExtra[] calldata depositsExtras
+        DepositExtraInfo[] calldata depositsExtraInfo
     ) external view {
         require(
             bridge.wallets(proposal.walletPubKeyHash).state ==
@@ -408,7 +408,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         );
 
         require(
-            proposal.depositsKeys.length == depositsExtras.length,
+            proposal.depositsKeys.length == depositsExtraInfo.length,
             "Each deposit key must have matching extra data"
         );
 
@@ -416,7 +416,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
             DepositKey memory depositKey = proposal.depositsKeys[i];
-            DepositExtra memory depositExtra = depositsExtras[i];
+            DepositExtraInfo memory depositExtraInfo = depositsExtraInfo[i];
 
             // slither-disable-next-line calls-loop
             Deposit.DepositRequest memory depositRequest = bridge.deposits(
@@ -441,16 +441,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             require(depositRequest.sweptAt == 0, "Deposit already swept");
 
             require(
-                isDepositExtraValid(
+                isDepositExtraInfoValid(
                     depositKey,
                     depositRequest.depositor,
-                    depositExtra
+                    depositExtraInfo
                 ),
                 "Invalid deposit extra data"
             );
 
             uint32 depositRefundableTimestamp = BTCUtils.reverseUint32(
-                uint32(depositExtra.refundLocktime)
+                uint32(depositExtraInfo.refundLocktime)
             );
             require(
                 /* solhint-disable-next-line not-rely-on-time */
@@ -460,7 +460,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             );
 
             require(
-                depositExtra.walletPubKeyHash == proposal.walletPubKeyHash,
+                depositExtraInfo.walletPubKeyHash == proposal.walletPubKeyHash,
                 "Deposit controlled by different wallet"
             );
 
@@ -480,30 +480,30 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         is heavily based on Deposit.revealDeposit function.
     /// @param depositKey Key of the given deposit.
     /// @param depositor Depositor that revealed the deposit.
-    /// @param depositKey Extra data being subject of the validation.
+    /// @param depositExtraInfo Extra data being subject of the validation.
     /// @return True if extra data are valid. False otherwise.
     /// @dev Requirements:
-    ///      - The transaction hash computed using `depositExtra.fundingTx`
+    ///      - The transaction hash computed using `depositExtraInfo.fundingTx`
     ///        must match the `depositKey.fundingTxHash`. This requirement
     ///        ensures the funding transaction data provided in the extra
     ///        data container actually represent the funding transaction of
     ///        the given deposit.
-    ///      - The P2(W)SH script inferred from `depositExtra` is actually used
-    ///        to lock funds by the `depositKey.fundingOutputIndex` output
-    ///        of the `depositExtra.fundingTx` transaction. This requirement
+    ///      - The P2(W)SH script inferred from `depositExtraInfo` is actually
+    ///        used to lock funds by the `depositKey.fundingOutputIndex` output
+    ///        of the `depositExtraInfo.fundingTx` transaction. This requirement
     ///        ensures the reveal data provided in the extra data container
     ///        actually matches the given deposit.
-    function isDepositExtraValid(
+    function isDepositExtraInfoValid(
         DepositKey memory depositKey,
         address depositor,
-        DepositExtra memory depositExtra
+        DepositExtraInfo memory depositExtraInfo
     ) internal view returns (bool) {
         bytes32 depositExtraFundingTxHash = abi
             .encodePacked(
-                depositExtra.fundingTx.version,
-                depositExtra.fundingTx.inputVector,
-                depositExtra.fundingTx.outputVector,
-                depositExtra.fundingTx.locktime
+                depositExtraInfo.fundingTx.version,
+                depositExtraInfo.fundingTx.inputVector,
+                depositExtraInfo.fundingTx.outputVector,
+                depositExtraInfo.fundingTx.locktime
             )
             .hash256View();
 
@@ -518,12 +518,12 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             depositor,
             hex"75", // OP_DROP
             hex"08", // Byte length of blinding factor value.
-            depositExtra.blindingFactor,
+            depositExtraInfo.blindingFactor,
             hex"75", // OP_DROP
             hex"76", // OP_DUP
             hex"a9", // OP_HASH160
             hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtra.walletPubKeyHash,
+            depositExtraInfo.walletPubKeyHash,
             hex"87", // OP_EQUAL
             hex"63", // OP_IF
             hex"ac", // OP_CHECKSIG
@@ -531,17 +531,17 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             hex"76", // OP_DUP
             hex"a9", // OP_HASH160
             hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtra.refundPubKeyHash,
+            depositExtraInfo.refundPubKeyHash,
             hex"88", // OP_EQUALVERIFY
             hex"04", // Byte length of refund locktime value.
-            depositExtra.refundLocktime,
+            depositExtraInfo.refundLocktime,
             hex"b1", // OP_CHECKLOCKTIMEVERIFY
             hex"75", // OP_DROP
             hex"ac", // OP_CHECKSIG
             hex"68" // OP_ENDIF
         );
 
-        bytes memory fundingOutput = depositExtra
+        bytes memory fundingOutput = depositExtraInfo
             .fundingTx
             .outputVector
             .extractOutputAtIndex(depositKey.fundingOutputIndex);
