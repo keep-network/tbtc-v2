@@ -148,6 +148,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event ProposalSubmitterRemoved(address indexed proposalSubmitter);
 
+    event WalletManuallyUnlocked(bytes20 indexed walletPubKeyHash);
+
     event DepositSweepProposalValidityUpdated(
         uint32 depositSweepProposalValidity
     );
@@ -268,6 +270,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
         // Just in case, allow the owner to unlock the wallet earlier.
         walletLock[walletPubKeyHash] = 0;
+        emit WalletManuallyUnlocked(walletPubKeyHash);
     }
 
     /// @notice Updates the value of the depositSweepProposalValidity parameter.
