@@ -53,7 +53,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     }
 
     /// @notice Helper structure representing a deposit sweep proposal.
-    ///         Holds the target wallet 20-byte public key hash and candidate
+    ///         Holds the target wallet 20-byte public key hash and
     ///         deposits that should be part of the sweep.
     struct DepositSweepProposal {
         bytes20 walletPubKeyHash;
@@ -77,6 +77,10 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         deposit sweep proposal validation. Basically, this structure
     ///         is a combination of BitcoinTx.Info and relevant parts of
     ///         Deposit.DepositRevealInfo.
+    /// @dev These data can be pulled from respective `DepositRevealed` events
+    ///      emitted by the `Bridge.revealDeposit` function. The `fundingTx`
+    ///      field must be taken directly from the Bitcoin chain, using the
+    ///      `DepositRevealed.fundingTxHash` as transaction identifier.
     struct DepositExtra {
         BitcoinTx.Info fundingTx;
         bytes8 blindingFactor;
@@ -316,7 +320,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         just emits an event that serves as a guiding light for wallet
     ///         off-chain members. Wallet members are supposed to validate
     ///         the proposal on their own, before taking any action.
-    /// @param proposal The actual deposit sweep proposal
+    /// @param proposal The deposit sweep proposal
     /// @param walletMemberContext Optional parameter holding some data allowing
     ///        to confirm the wallet membership of the caller. This parameter is
     ///        relevant only when the caller is not a registered proposal
@@ -324,7 +328,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @dev Requirements:
     ///      - The caller is either a proposal submitter or a member of the
     ///        target wallet,
-    ///      - The wallet is not time locked.
+    ///      - The wallet is not time-locked.
     function submitDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         WalletMemberContext calldata walletMemberContext
@@ -366,7 +370,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         integration with the difficulty relay that greatly increases
     ///         complexity. Instead of that, each off-chain wallet member is
     ///         supposed to do that check on their own.
-    /// @param proposal The validated proposal.
+    /// @param proposal The sweeping proposal to validate.
     /// @param depositsExtras Deposits extra data required to perform the validation.
     /// @dev Requirements:
     ///      - The target wallet must be in the Live state,
