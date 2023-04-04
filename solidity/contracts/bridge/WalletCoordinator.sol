@@ -18,6 +18,8 @@ pragma solidity 0.8.17;
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
 import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
+import "@keep-network/random-beacon/contracts/Reimbursable.sol";
+import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -39,7 +41,7 @@ import "./Wallets.sol";
 ///         The off-chain wallet members can focus on the core tasks and do not
 ///         bother about electing a trusted coordinator or aligning internal
 ///         states using complex consensus algorithms.
-contract WalletCoordinator is OwnableUpgradeable {
+contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
@@ -194,13 +196,23 @@ contract WalletCoordinator is OwnableUpgradeable {
         _;
     }
 
-    function initialize(Bridge _bridge) external initializer {
+    modifier onlyReimbursableAdmin() override {
+        require(owner() == msg.sender, "Caller is not the owner");
+        _;
+    }
+
+    function initialize(Bridge _bridge, ReimbursementPool _reimbursementPool)
+        external
+        initializer
+    {
         __Ownable_init();
 
         bridge = _bridge;
         // Pre-fetch wallet registry address to save gas on calls protected
         // by the onlyProposalSubmitterOrWalletMember modifier.
         (, , walletRegistry, ) = _bridge.contractReferences();
+
+        reimbursementPool = _reimbursementPool;
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
@@ -317,7 +329,7 @@ contract WalletCoordinator is OwnableUpgradeable {
         DepositSweepProposal calldata proposal,
         WalletMemberContext calldata walletMemberContext
     )
-        external
+        public
         onlyProposalSubmitterOrWalletMember(
             proposal.walletPubKeyHash,
             walletMemberContext
@@ -330,6 +342,16 @@ contract WalletCoordinator is OwnableUpgradeable {
             depositSweepProposalValidity;
 
         emit DepositSweepProposalSubmitted(proposal, msg.sender);
+    }
+
+    /// @notice Wraps `submitDepositSweepProposal` call and reimburses the
+    ///         caller's transaction cost.
+    /// @dev See `submitDepositSweepProposal` function documentation.
+    function submitDepositSweepProposalWithReimbursement(
+        DepositSweepProposal calldata proposal,
+        WalletMemberContext calldata walletMemberContext
+    ) external refundable(msg.sender) {
+        submitDepositSweepProposal(proposal, walletMemberContext);
     }
 
     /// @notice View function encapsulating the main rules of a valid deposit
