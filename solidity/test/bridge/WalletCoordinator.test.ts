@@ -794,7 +794,7 @@ describe("WalletCoordinator", () => {
     )
   })
 
-  describe.only("submitDepositSweepProposalWithReimbursement", () => {
+  describe("submitDepositSweepProposalWithReimbursement", () => {
     const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
     const ecdsaWalletID =
       "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863"
