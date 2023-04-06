@@ -53,11 +53,13 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     }
 
     /// @notice Helper structure representing a deposit sweep proposal.
-    ///         Holds the target wallet 20-byte public key hash and
-    ///         deposits that should be part of the sweep.
     struct DepositSweepProposal {
+        // 20-byte public key hash of the target wallet.
         bytes20 walletPubKeyHash;
+        // Deposits that should be part of the sweep.
         DepositKey[] depositsKeys;
+        // Proposed BTC fee for the entire transaction.
+        uint256 sweepTxFee;
     }
 
     /// @notice Helper structure representing a plain-text deposit key.
@@ -389,6 +391,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - The length of `depositsExtraInfo` array must be equal to the
     ///        length of `proposal.depositsKeys`, i.e. each deposit must
     ///        have exactly one set of corresponding extra data,
+    ///      - The proposed sweep tx fee must be grater than zero,
+    ///      - The proposed maximum per-deposit sweep tx fee must be lesser than
+    ///        or equal the maximum fee allowed by the Bridge (`Bridge.depositTxMaxFee`),
     ///      - Each deposit must be revealed to the Bridge,
     ///      - Each deposit must be old enough, i.e. at least `depositMinAge`
     ///        elapsed since their reveal time,
@@ -422,6 +427,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             proposal.depositsKeys.length == depositsExtraInfo.length,
             "Each deposit key must have matching extra data"
         );
+
+        validateSweepTxFee(proposal.sweepTxFee, proposal.depositsKeys.length);
 
         address proposalVault = address(0);
 
@@ -487,8 +494,36 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         }
     }
 
+    /// @notice Validates the sweep tx fee by checking if the part of the fee
+    ///         incurred by each deposit does not exceed the maximum value
+    ///         allowed by the Bridge. This function is heavily based on
+    ///         `DepositSweep.depositSweepTxFeeDistribution` function.
+    /// @param sweepTxFee The sweep transaction fee.
+    /// @param depositsCount Count of the deposits swept by the sweep transaction.
+    /// @dev Requirements:
+    ///      - The sweep tx fee must be grater than zero,
+    ///      - The maximum per-deposit sweep tx fee must be lesser than or equal
+    ///        the maximum fee allowed by the Bridge (`Bridge.depositTxMaxFee`).
+    function validateSweepTxFee(uint256 sweepTxFee, uint256 depositsCount)
+        internal
+        view
+    {
+        require(sweepTxFee > 0, "Proposed transaction fee cannot be zero");
+
+        uint256 depositTxFeeRemainder = sweepTxFee % depositsCount;
+        uint256 depositTxFee = (sweepTxFee - depositTxFeeRemainder) /
+            depositsCount;
+
+        (, , uint64 depositTxMaxFee, ) = bridge.depositParameters();
+
+        require(
+            depositTxFee + depositTxFeeRemainder <= depositTxMaxFee,
+            "Proposed transaction fee is too high"
+        );
+    }
+
     /// @notice Validates the extra data for the given deposit. This function
-    ///         is heavily based on Deposit.revealDeposit function.
+    ///         is heavily based on `Deposit.revealDeposit` function.
     /// @param depositKey Key of the given deposit.
     /// @param depositor Depositor that revealed the deposit.
     /// @param depositExtraInfo Extra data being subject of the validation.
