@@ -393,7 +393,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - Each deposit must be old enough, i.e. at least `depositMinAge`
     ///        elapsed since their reveal time,
     ///      - Each deposit must not be swept yet,
-    ///      - Each deposit must have valid extra data (see `isDepositExtraInfoValid`),
+    ///      - Each deposit must have valid extra data (see `validateDepositExtraInfo`),
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
     ///      - Each deposit must target the same vault.
@@ -453,13 +453,10 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
             require(depositRequest.sweptAt == 0, "Deposit already swept");
 
-            require(
-                isDepositExtraInfoValid(
-                    depositKey,
-                    depositRequest.depositor,
-                    depositExtraInfo
-                ),
-                "Invalid deposit extra data"
+            validateDepositExtraInfo(
+                depositKey,
+                depositRequest.depositor,
+                depositExtraInfo
             );
 
             uint32 depositRefundableTimestamp = BTCUtils.reverseUint32(
@@ -522,7 +519,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @param depositKey Key of the given deposit.
     /// @param depositor Depositor that revealed the deposit.
     /// @param depositExtraInfo Extra data being subject of the validation.
-    /// @return True if extra data are valid. False otherwise.
     /// @dev Requirements:
     ///      - The transaction hash computed using `depositExtraInfo.fundingTx`
     ///        must match the `depositKey.fundingTxHash`. This requirement
@@ -534,11 +530,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///        of the `depositExtraInfo.fundingTx` transaction. This requirement
     ///        ensures the reveal data provided in the extra data container
     ///        actually matches the given deposit.
-    function isDepositExtraInfoValid(
+    function validateDepositExtraInfo(
         DepositKey memory depositKey,
         address depositor,
         DepositExtraInfo memory depositExtraInfo
-    ) internal view returns (bool) {
+    ) internal view {
         bytes32 depositExtraFundingTxHash = abi
             .encodePacked(
                 depositExtraInfo.fundingTx.version,
@@ -551,7 +547,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         // Make sure the funding tx provided as part of deposit extra data
         // actually matches the deposit referred by the given deposit key.
         if (depositKey.fundingTxHash != depositExtraFundingTxHash) {
-            return false;
+            revert("Extra info funding tx hash does not match");
         }
 
         bytes memory expectedScript = abi.encodePacked(
@@ -595,7 +591,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             fundingOutputHash.length == 20 &&
             fundingOutputHash.slice20(0) == expectedScript.hash160View()
         ) {
-            return true;
+            return;
         }
 
         // Path that checks the deposit extra data validity in case the
@@ -604,9 +600,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             fundingOutputHash.length == 32 &&
             fundingOutputHash.toBytes32() == sha256(expectedScript)
         ) {
-            return true;
+            return;
         }
 
-        return false;
+        revert("Extra info funding output script does not match");
     }
 }

@@ -1513,7 +1513,9 @@ describe("WalletCoordinator", () => {
                                 proposal,
                                 depositsExtraInfo
                               )
-                            ).to.be.revertedWith("Invalid deposit extra data")
+                            ).to.be.revertedWith(
+                              "Extra info funding tx hash does not match"
+                            )
                           })
                         })
 
@@ -1575,7 +1577,9 @@ describe("WalletCoordinator", () => {
                                   proposal,
                                   depositsExtraInfo
                                 )
-                              ).to.be.revertedWith("Invalid deposit extra data")
+                              ).to.be.revertedWith(
+                                "Extra info funding output script does not match"
+                              )
                             })
                           }
                         )
@@ -1638,7 +1642,9 @@ describe("WalletCoordinator", () => {
                                   proposal,
                                   depositsExtraInfo
                                 )
-                              ).to.be.revertedWith("Invalid deposit extra data")
+                              ).to.be.revertedWith(
+                                "Extra info funding output script does not match"
+                              )
                             })
                           }
                         )
