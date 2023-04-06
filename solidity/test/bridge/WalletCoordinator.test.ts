@@ -552,10 +552,10 @@ describe("WalletCoordinator", () => {
         })
 
         after(async () => {
-          await restoreSnapshot()
-
           bridge.wallets.reset()
           walletRegistry.isWalletMember.reset()
+
+          await restoreSnapshot()
         })
 
         it("should revert", async () => {
@@ -782,10 +782,10 @@ describe("WalletCoordinator", () => {
           })
 
           after(async () => {
-            await restoreSnapshot()
-
             bridge.wallets.reset()
             walletRegistry.isWalletMember.reset()
+
+            await restoreSnapshot()
           })
 
           it("should succeed", async () => {
@@ -861,10 +861,10 @@ describe("WalletCoordinator", () => {
         })
 
         after(async () => {
-          await restoreSnapshot()
-
           bridge.wallets.reset()
           walletRegistry.isWalletMember.reset()
+
+          await restoreSnapshot()
         })
 
         it("should revert", async () => {
@@ -929,9 +929,9 @@ describe("WalletCoordinator", () => {
         })
 
         after(async () => {
-          await restoreSnapshot()
-
           reimbursementPool.refund.reset()
+
+          await restoreSnapshot()
         })
 
         it("should do the refund", async () => {
@@ -1013,9 +1013,9 @@ describe("WalletCoordinator", () => {
           })
 
           after(async () => {
-            await restoreSnapshot()
-
             bridge.wallets.reset()
+
+            await restoreSnapshot()
           })
 
           it("should revert", async () => {
@@ -1053,9 +1053,9 @@ describe("WalletCoordinator", () => {
       })
 
       after(async () => {
-        await restoreSnapshot()
-
         bridge.wallets.reset()
+
+        await restoreSnapshot()
       })
 
       context("when sweep is below the min size", () => {
@@ -1155,9 +1155,9 @@ describe("WalletCoordinator", () => {
                 })
 
                 after(async () => {
-                  await restoreSnapshot()
-
                   bridge.deposits.reset()
+
+                  await restoreSnapshot()
                 })
 
                 it("should revert", async () => {
@@ -1223,9 +1223,9 @@ describe("WalletCoordinator", () => {
                   })
 
                   after(async () => {
-                    await restoreSnapshot()
-
                     bridge.deposits.reset()
+
+                    await restoreSnapshot()
                   })
 
                   it("should revert", async () => {
@@ -1290,9 +1290,9 @@ describe("WalletCoordinator", () => {
                 })
 
                 after(async () => {
-                  await restoreSnapshot()
-
                   bridge.deposits.reset()
+
+                  await restoreSnapshot()
                 })
 
                 it("should revert", async () => {
@@ -1361,9 +1361,9 @@ describe("WalletCoordinator", () => {
                   })
 
                   after(async () => {
-                    await restoreSnapshot()
-
                     bridge.deposits.reset()
+
+                    await restoreSnapshot()
                   })
 
                   it("should revert", async () => {
@@ -1431,9 +1431,9 @@ describe("WalletCoordinator", () => {
                     })
 
                     after(async () => {
-                      await restoreSnapshot()
-
                       bridge.deposits.reset()
+
+                      await restoreSnapshot()
                     })
 
                     it("should revert", async () => {
@@ -1484,9 +1484,9 @@ describe("WalletCoordinator", () => {
                           })
 
                           after(async () => {
-                            await restoreSnapshot()
-
                             bridge.deposits.reset()
+
+                            await restoreSnapshot()
                           })
 
                           it("should revert", async () => {
@@ -1542,9 +1542,9 @@ describe("WalletCoordinator", () => {
                             })
 
                             after(async () => {
-                              await restoreSnapshot()
-
                               bridge.deposits.reset()
+
+                              await restoreSnapshot()
                             })
 
                             it("should revert", async () => {
@@ -1605,9 +1605,9 @@ describe("WalletCoordinator", () => {
                             })
 
                             after(async () => {
-                              await restoreSnapshot()
-
                               bridge.deposits.reset()
+
+                              await restoreSnapshot()
                             })
 
                             it("should revert", async () => {
@@ -1701,9 +1701,9 @@ describe("WalletCoordinator", () => {
                           })
 
                           after(async () => {
-                            await restoreSnapshot()
-
                             bridge.deposits.reset()
+
+                            await restoreSnapshot()
                           })
 
                           it("should revert", async () => {
@@ -1781,9 +1781,9 @@ describe("WalletCoordinator", () => {
                               })
 
                               after(async () => {
-                                await restoreSnapshot()
-
                                 bridge.deposits.reset()
+
+                                await restoreSnapshot()
                               })
 
                               it("should revert", async () => {
@@ -1864,9 +1864,9 @@ describe("WalletCoordinator", () => {
                                   })
 
                                   after(async () => {
-                                    await restoreSnapshot()
-
                                     bridge.deposits.reset()
+
+                                    await restoreSnapshot()
                                   })
 
                                   it("should revert", async () => {
@@ -1937,9 +1937,9 @@ describe("WalletCoordinator", () => {
                                   })
 
                                   after(async () => {
-                                    await restoreSnapshot()
-
                                     bridge.deposits.reset()
+
+                                    await restoreSnapshot()
                                   })
 
                                   it("should succeed", async () => {
