@@ -165,6 +165,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         address indexed proposalSubmitter
     );
 
+    // TODO: Enhance this modifier by adding the coordinator role check. See:
+    //       https://github.com/keep-network/tbtc-v2/pull/575#discussion_r1151564813
     modifier onlyProposalSubmitterOrWalletMember(
         bytes20 walletPubKeyHash,
         WalletMemberContext calldata walletMemberContext
