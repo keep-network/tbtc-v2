@@ -35,3 +35,9 @@ repos:
         files: "^monitoring/"
         language: script
         description: "Checks monitoring directory code according to the formatting configuration"
+      - id: cross-chain-arbitrum-format
+        name: "Check cross-chain/arbitrum directory code formatting"
+        entry: /usr/bin/env bash -c "cd cross-chain/arbitrum && yarn format"
+        files: "^cross-chain/arbitrum/"
+        language: script
+        description: "Checks cross-chain/arbitrum directory code according to the formatting configuration"
