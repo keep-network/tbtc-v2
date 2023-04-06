@@ -707,10 +707,10 @@
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
     "@threshold-network/solidity-contracts" "1.3.0-dev.3"
 
-"@keep-network/hardhat-helpers@^0.6.0-pre.18":
-  version "0.6.0-pre.19"
-  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.19.tgz#a33b9cf6844222fc2529f771214fdbf9ee9e8d32"
-  integrity sha512-a/rMJ01+7w4zp9E1iAWf0lIUQ0GzwrMJnd+haVQpWVBhGu4Sqk/tCr18hijoR5y7+Sq8QvziKCBhmLJCWwSzkA==
+"@keep-network/hardhat-helpers@^0.6.0-pre.20":
+  version "0.6.0-pre.20"
+  resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.20.tgz#9634c9f013df653f7dfbf2c70307e1a5d0748d1e"
+  integrity sha512-Qz1waJM3nRo7mrm9+7RbsSL3CtL44i6WN/R6X6+2g9l9vWxWjQMeWW5lBKT6WAxBZYsFQ1opFTm5MxFlcUHB3Q==
 
 "@keep-network/keep-core@1.8.1-goerli.0":
   version "1.8.1-goerli.0"
