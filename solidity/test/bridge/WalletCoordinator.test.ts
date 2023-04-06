@@ -462,6 +462,57 @@ describe("WalletCoordinator", () => {
     })
   })
 
+  describe("updateDepositSweepProposalSubmissionGasOffset", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          walletCoordinator
+            .connect(thirdParty)
+            .updateDepositSweepProposalSubmissionGasOffset(1000000)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await walletCoordinator
+          .connect(owner)
+          .updateDepositSweepProposalSubmissionGasOffset(1000000)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update the parameter", async () => {
+        expect(
+          await walletCoordinator.depositSweepProposalSubmissionGasOffset()
+        ).to.be.equal(1000000)
+      })
+
+      it("should emit the DepositSweepProposalSubmissionGasOffsetUpdated event", async () => {
+        await expect(tx)
+          .to.emit(
+            walletCoordinator,
+            "DepositSweepProposalSubmissionGasOffsetUpdated"
+          )
+          .withArgs(1000000)
+      })
+    })
+  })
+
   describe("updateReimbursementPool", () => {
     before(async () => {
       await createSnapshot()
@@ -939,8 +990,8 @@ describe("WalletCoordinator", () => {
           expect(reimbursementPool.refund).to.have.been.calledOnce
 
           expect(reimbursementPool.refund.getCall(0).args[0]).to.be.closeTo(
-            BigNumber.from(32000),
-            2000
+            BigNumber.from(60000),
+            1000
           )
 
           expect(reimbursementPool.refund.getCall(0).args[1]).to.be.equal(

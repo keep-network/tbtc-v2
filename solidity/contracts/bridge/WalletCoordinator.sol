@@ -151,6 +151,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         single sweep.
     uint16 public depositSweepMaxSize;
 
+    /// @notice Gas that is meant to balance the deposit sweep proposal
+    ///         submission overall cost. Can be updated by the owner based on
+    ///         the current market conditions.
+    uint32 public depositSweepProposalSubmissionGasOffset;
+
     event ProposalSubmitterAdded(address indexed proposalSubmitter);
 
     event ProposalSubmitterRemoved(address indexed proposalSubmitter);
@@ -166,6 +171,10 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     event DepositRefundSafetyMarginUpdated(uint32 depositRefundSafetyMargin);
 
     event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
+
+    event DepositSweepProposalSubmissionGasOffsetUpdated(
+        uint32 depositSweepProposalSubmissionGasOffset
+    );
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
@@ -228,6 +237,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
+        depositSweepProposalSubmissionGasOffset = 25000;
     }
 
     /// @notice Adds the given address to the proposal submitters set.
@@ -321,6 +331,20 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
     }
 
+    /// @notice Updates the value of the depositSweepProposalSubmissionGasOffset
+    ///         parameter.
+    /// @param _depositSweepProposalSubmissionGasOffset New value.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
+    function updateDepositSweepProposalSubmissionGasOffset(
+        uint32 _depositSweepProposalSubmissionGasOffset
+    ) external onlyOwner {
+        depositSweepProposalSubmissionGasOffset = _depositSweepProposalSubmissionGasOffset;
+        emit DepositSweepProposalSubmissionGasOffsetUpdated(
+            _depositSweepProposalSubmissionGasOffset
+        );
+    }
+
     /// @notice Submits a deposit sweep proposal. Locks the target wallet
     ///         for a specific time, equal to the proposal validity period.
     ///         This function does not store the proposal in the state but
@@ -361,8 +385,15 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     function submitDepositSweepProposalWithReimbursement(
         DepositSweepProposal calldata proposal,
         WalletMemberContext calldata walletMemberContext
-    ) external refundable(msg.sender) {
+    ) external {
+        uint256 gasStart = gasleft();
+
         submitDepositSweepProposal(proposal, walletMemberContext);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + depositSweepProposalSubmissionGasOffset,
+            msg.sender
+        );
     }
 
     /// @notice View function encapsulating the main rules of a valid deposit
