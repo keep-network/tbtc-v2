@@ -10,20 +10,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // This ID is valid for both Optimism Goerli and Mainnet
   const wormholeChainID = 24
 
-  const optimisticWormholeGateway = await deployments.get(
-    "OptimisticWormholeGateway"
+  const optimismWormholeGateway = await deployments.get(
+    "OptimismWormholeGateway"
   )
 
   await execute(
-    "OptimisticWormholeGateway",
+    "OptimismWormholeGateway",
     { from: deployer, log: true, waitConfirmations: 1 },
     "updateGatewayAddress",
     wormholeChainID,
-    ethers.utils.hexZeroPad(optimisticWormholeGateway.address, 32)
+    ethers.utils.hexZeroPad(optimismWormholeGateway.address, 32)
   )
 }
 
 export default func
 
 func.tags = ["SetGatewayAddress"]
-func.dependencies = ["OptimisticWormholeGateway"]
+func.dependencies = ["OptimismWormholeGateway"]

@@ -3,28 +3,28 @@ import { expect } from "chai"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
-import type { OptimisticTBTC, OptimisticTBTCUpgraded } from "../typechain"
+import type { OptimismTBTC, OptimismTBTCUpgraded } from "../typechain"
 
-describe("OptimisticTBTC - Upgrade", async () => {
+describe("OptimismTBTC - Upgrade", async () => {
   let governance: SignerWithAddress
-  let optimisticTBTC: OptimisticTBTC
+  let optimismTBTC: OptimismTBTC
 
   before(async () => {
     await deployments.fixture()
     ;({ governance } = await helpers.signers.getNamedSigners())
 
-    optimisticTBTC = (await helpers.contracts.getContract(
-      "OptimisticTBTC"
-    )) as OptimisticTBTC
+    optimismTBTC = (await helpers.contracts.getContract(
+      "OptimismTBTC"
+    )) as OptimismTBTC
   })
 
   describe("when a new contract is valid", () => {
-    let optimisticTBTCUpgraded: OptimisticTBTCUpgraded
+    let optimismTBTCUpgraded: OptimismTBTCUpgraded
 
     before(async () => {
       const [upgradedContract] = await helpers.upgrades.upgradeProxy(
-        "OptimisticTBTC",
-        "OptimisticTBTCUpgraded",
+        "OptimismTBTC",
+        "OptimismTBTCUpgraded",
         {
           proxyOpts: {
             call: {
@@ -37,32 +37,30 @@ describe("OptimisticTBTC - Upgrade", async () => {
           },
         }
       )
-      optimisticTBTCUpgraded = upgradedContract as OptimisticTBTCUpgraded
+      optimismTBTCUpgraded = upgradedContract as OptimismTBTCUpgraded
     })
 
     it("new instance should have the same address as the old one", async () => {
-      expect(optimisticTBTCUpgraded.address).equal(optimisticTBTC.address)
+      expect(optimismTBTCUpgraded.address).equal(optimismTBTC.address)
     })
 
     it("should initialize new variable", async () => {
-      expect(await optimisticTBTCUpgraded.newVar()).to.be.equal(
+      expect(await optimismTBTCUpgraded.newVar()).to.be.equal(
         "Hello darkness my old friend"
       )
     })
 
     it("should not update already set name", async () => {
-      expect(await optimisticTBTCUpgraded.name()).to.be.equal(
-        "Optimism tBTC v2"
-      )
+      expect(await optimismTBTCUpgraded.name()).to.be.equal("Optimism tBTC v2")
     })
 
     it("should not update already set symbol", async () => {
-      expect(await optimisticTBTCUpgraded.symbol()).to.be.equal("tBTC")
+      expect(await optimismTBTCUpgraded.symbol()).to.be.equal("tBTC")
     })
 
     it("should revert when V1's initializer is called", async () => {
       await expect(
-        optimisticTBTCUpgraded.initialize("OptimisticTBTCv2", "ArbTBTCv2")
+        optimismTBTCUpgraded.initialize("OptimismTBTCv2", "ArbTBTCv2")
       ).to.be.revertedWith("Initializable: contract is already initialized")
     })
   })

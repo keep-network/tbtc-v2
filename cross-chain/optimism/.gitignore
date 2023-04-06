@@ -8,7 +8,7 @@
 /export.json
 /deployments/*
 !/deployments/mainnet/
-!/deployments/optimisticEthereum/
+!/deployments/optimism/
 
 # OZ
 /.openzeppelin/unknown-*.json

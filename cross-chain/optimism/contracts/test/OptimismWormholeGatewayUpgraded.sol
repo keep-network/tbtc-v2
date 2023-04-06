@@ -9,7 +9,7 @@ import "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol";
 ///      stands in the implementation of L2WormholeGateway.sol, there are no
 ///      reserved storage gap slots available, thereby limiting the upgradability
 ///      to a child contract only.
-contract OptimisticWormholeGatewayUpgraded is L2WormholeGateway {
+contract OptimismWormholeGatewayUpgraded is L2WormholeGateway {
     string public newVar;
 
     function initializeV2(string memory _newVar) public {

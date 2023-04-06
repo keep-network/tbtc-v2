@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
-    "OptimisticTBTC",
+    "OptimismTBTC",
     {
       contractName: "@keep-network/tbtc-v2/contracts/l2/L2TBTC.sol:L2TBTC",
       initializerArgs: ["Optimism tBTC v2", "tBTC"],
@@ -36,4 +36,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["OptimisticTBTC"]
+func.tags = ["OptimismTBTC"]

@@ -4,38 +4,38 @@ import { expect } from "chai"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 import type {
-  OptimisticTBTC,
-  OptimisticWormholeGateway,
-  OptimisticWormholeGatewayUpgraded,
+  OptimismTBTC,
+  OptimismWormholeGateway,
+  OptimismWormholeGatewayUpgraded,
 } from "../typechain"
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
-describe("OptimisticWormholeGatewayUpgraded - Upgrade", async () => {
+describe("OptimismWormholeGatewayUpgraded - Upgrade", async () => {
   let governance: SignerWithAddress
-  let optimisticWormholeGateway: OptimisticWormholeGateway
+  let optimismWormholeGateway: OptimismWormholeGateway
 
   before(async () => {
     await deployments.fixture()
     ;({ governance } = await helpers.signers.getNamedSigners())
 
-    optimisticWormholeGateway = (await helpers.contracts.getContract(
-      "OptimisticWormholeGateway"
-    )) as OptimisticWormholeGateway
+    optimismWormholeGateway = (await helpers.contracts.getContract(
+      "OptimismWormholeGateway"
+    )) as OptimismWormholeGateway
   })
 
   describe("when a new contract is valid", () => {
-    let optimisticWormholeGatewayUpgraded: OptimisticWormholeGatewayUpgraded
-    let OptimisticTBTC: OptimisticTBTC
+    let optimismWormholeGatewayUpgraded: OptimismWormholeGatewayUpgraded
+    let OptimismTBTC: OptimismTBTC
 
     before(async () => {
-      OptimisticTBTC = (await helpers.contracts.getContract(
-        "OptimisticTBTC"
-      )) as OptimisticTBTC
+      OptimismTBTC = (await helpers.contracts.getContract(
+        "OptimismTBTC"
+      )) as OptimismTBTC
 
       const [upgradedContract] = await helpers.upgrades.upgradeProxy(
-        "OptimisticWormholeGateway",
-        "OptimisticWormholeGatewayUpgraded",
+        "OptimismWormholeGateway",
+        "OptimismWormholeGatewayUpgraded",
         {
           proxyOpts: {
             call: {
@@ -48,31 +48,31 @@ describe("OptimisticWormholeGatewayUpgraded - Upgrade", async () => {
           },
         }
       )
-      optimisticWormholeGatewayUpgraded =
-        upgradedContract as OptimisticWormholeGatewayUpgraded
+      optimismWormholeGatewayUpgraded =
+        upgradedContract as OptimismWormholeGatewayUpgraded
     })
 
     it("new instance should have the same address as the old one", async () => {
-      expect(optimisticWormholeGatewayUpgraded.address).equal(
-        optimisticWormholeGateway.address
+      expect(optimismWormholeGatewayUpgraded.address).equal(
+        optimismWormholeGateway.address
       )
     })
 
     it("should initialize new variable", async () => {
-      expect(await optimisticWormholeGatewayUpgraded.newVar()).to.be.equal(
+      expect(await optimismWormholeGatewayUpgraded.newVar()).to.be.equal(
         "Hello darkness my old friend"
       )
     })
 
     it("should not update already set variable", async () => {
-      expect(await optimisticWormholeGatewayUpgraded.tbtc()).to.be.equal(
-        OptimisticTBTC.address
+      expect(await optimismWormholeGatewayUpgraded.tbtc()).to.be.equal(
+        OptimismTBTC.address
       )
     })
 
     it("should revert when V1's initializer is called", async () => {
       await expect(
-        optimisticWormholeGatewayUpgraded.initialize(
+        optimismWormholeGatewayUpgraded.initialize(
           ZERO_ADDRESS,
           ZERO_ADDRESS,
           ZERO_ADDRESS

@@ -9,7 +9,7 @@ import "@keep-network/tbtc-v2/contracts/l2/L2TBTC.sol";
 ///      stands in the implementation of L2TBTC.sol, there are no reserved
 ///      storage gap slots available, thereby limiting the upgradability to a
 ///      child contract only.
-contract OptimisticTBTCUpgraded is L2TBTC {
+contract OptimismTBTCUpgraded is L2TBTC {
     string public newVar;
 
     function initializeV2(string memory _newVar) public {

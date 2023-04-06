@@ -10,36 +10,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const fakeTokenBridge = "0x0af5DC16568EFF2d480a43A77E6C409e497FcFb9"
   const fakeWormholeTBTC = "0xe1F0b28a3518cCeC430d0d86Ea1725e6256b0296"
 
-  const optimisticTokenBridge = await deployments.getOrNull(
-    "OptimisticTokenBridge"
-  )
-  const optimisticWormholeTBTC = await deployments.getOrNull(
-    "OptimisticWormholeTBTC"
+  const optimismTokenBridge = await deployments.getOrNull("OptimismTokenBridge")
+  const optimismWormholeTBTC = await deployments.getOrNull(
+    "OptimismWormholeTBTC"
   )
 
-  const optimisticTBTC = await deployments.get("OptimisticTBTC")
+  const optimismTBTC = await deployments.get("OptimismTBTC")
 
-  let optimisticTokenBridgeAddress = optimisticTokenBridge?.address
-  if (!optimisticTokenBridgeAddress && hre.network.name === "hardhat") {
-    optimisticTokenBridgeAddress = fakeTokenBridge
-    log(`fake Optimistic TokenBridge address ${optimisticTokenBridgeAddress}`)
+  let optimismTokenBridgeAddress = optimismTokenBridge?.address
+  if (!optimismTokenBridgeAddress && hre.network.name === "hardhat") {
+    optimismTokenBridgeAddress = fakeTokenBridge
+    log(`fake Optimism TokenBridge address ${optimismTokenBridgeAddress}`)
   }
 
-  let optimisticWormholeTBTCAddress = optimisticWormholeTBTC?.address
-  if (!optimisticWormholeTBTCAddress && hre.network.name === "hardhat") {
-    optimisticWormholeTBTCAddress = fakeWormholeTBTC
-    log(`fake Optimistic WormholeTBTC address ${optimisticWormholeTBTCAddress}`)
+  let optimismWormholeTBTCAddress = optimismWormholeTBTC?.address
+  if (!optimismWormholeTBTCAddress && hre.network.name === "hardhat") {
+    optimismWormholeTBTCAddress = fakeWormholeTBTC
+    log(`fake Optimism WormholeTBTC address ${optimismWormholeTBTCAddress}`)
   }
 
   const [, proxyDeployment] = await helpers.upgrades.deployProxy(
-    "OptimisticWormholeGateway",
+    "OptimismWormholeGateway",
     {
       contractName:
         "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol:L2WormholeGateway",
       initializerArgs: [
-        optimisticTokenBridgeAddress,
-        optimisticWormholeTBTCAddress,
-        optimisticTBTC.address,
+        optimismTokenBridgeAddress,
+        optimismWormholeTBTCAddress,
+        optimismTBTC.address,
       ],
       factoryOpts: { signer: await ethers.getSigner(deployer) },
       proxyOpts: {
@@ -67,5 +65,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["OptimisticWormholeGateway"]
-func.dependencies = ["OptimisticTokenBridge", "OptimisticWormholeTBTC"]
+func.tags = ["OptimismWormholeGateway"]
+func.dependencies = ["OptimismTokenBridge", "OptimismWormholeTBTC"]

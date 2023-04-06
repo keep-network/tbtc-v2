@@ -53,7 +53,7 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan"],
     },
-    optimisticGoerli: {
+    optimismGoerli: {
       url: process.env.L2_CHAIN_API_URL || "",
       chainId: 420,
       deploy: ["deploy_l2"],
@@ -65,7 +65,7 @@ const config: HardhatUserConfig = {
       //   l1: "goerli",
       // },
     },
-    optimisticEthereum: {
+    optimism: {
       url: process.env.L2_CHAIN_API_URL || "",
       chainId: 10,
       deploy: ["deploy_l2"],
@@ -83,16 +83,16 @@ const config: HardhatUserConfig = {
     deployments: {
       goerli: ["./external/goerli"],
       mainnet: ["./external/mainnet"],
-      optimisticGoerli: ["./external/optimisticGoerli"],
-      optimisticEthereum: ["./external/optimisticEthereum"],
+      optimismGoerli: ["./external/optimismGoerli"],
+      optimism: ["./external/optimism"],
     },
   },
 
   deploymentArtifactsExport: {
     goerli: "artifacts/l1",
     mainnet: "artifacts/l1",
-    optimisticGoerli: "artifacts/l2",
-    optimisticEthereum: "artifacts/l2",
+    optimismGoerli: "artifacts/l2",
+    optimism: "artifacts/l2",
   },
 
   etherscan: {
@@ -108,16 +108,16 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
       goerli: 0,
-      optimisticGoerli: 0,
+      optimismGoerli: 0,
       mainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
-      optimisticEthereum: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
+      optimism: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
     },
     governance: {
       default: 2,
       goerli: 0,
-      optimisticGoerli: 0,
+      optimismGoerli: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
-      optimisticEthereum: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+      optimism: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
   },
   mocha: {
