@@ -54,6 +54,7 @@ describe("WalletCoordinator", () => {
     ;[owner, thirdParty] = await helpers.signers.getUnnamedSigners()
 
     walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
+    reimbursementPool = await smock.fake<ReimbursementPool>("ReimbursementPool")
 
     bridge = await smock.fake<Bridge>("Bridge")
 
@@ -61,10 +62,8 @@ describe("WalletCoordinator", () => {
       AddressZero,
       AddressZero,
       walletRegistry.address,
-      AddressZero,
+      reimbursementPool.address,
     ])
-
-    reimbursementPool = await smock.fake<ReimbursementPool>("ReimbursementPool")
 
     const WalletCoordinator = await ethers.getContractFactory(
       "WalletCoordinator"
@@ -72,10 +71,7 @@ describe("WalletCoordinator", () => {
 
     walletCoordinator = await WalletCoordinator.deploy()
 
-    await walletCoordinator.initialize(
-      bridge.address,
-      reimbursementPool.address
-    )
+    await walletCoordinator.initialize(bridge.address)
   })
 
   describe("addProposalSubmitter", () => {

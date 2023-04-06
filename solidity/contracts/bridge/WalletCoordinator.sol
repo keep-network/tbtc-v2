@@ -216,7 +216,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         _;
     }
 
-    function initialize(Bridge _bridge, ReimbursementPool _reimbursementPool)
+    function initialize(Bridge _bridge)
         external
         initializer
     {
@@ -225,9 +225,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         bridge = _bridge;
         // Pre-fetch wallet registry address to save gas on calls protected
         // by the onlyProposalSubmitterOrWalletMember modifier.
-        (, , walletRegistry, ) = _bridge.contractReferences();
-
-        reimbursementPool = _reimbursementPool;
+        (, , walletRegistry, reimbursementPool) = _bridge.contractReferences();
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
