@@ -121,6 +121,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///
     ///         For example, if a deposit was revealed at 9 am and depositMinAge
     ///         is 2 hours, the deposit is eligible for sweep after 11 am.
+    ///
+    /// @dev Forcing deposit minimum age ensures block finality for Ethereum.
+    ///      In the happy path case, i.e. where the deposit is revealed immediately
+    ///      after being broadcast on the Bitcoin network, the minimum age
+    ///      check also ensures block finality for Bitcoin.
     uint32 public depositMinAge;
 
     /// @notice Each deposit can be technically swept until it reaches its
@@ -392,6 +397,10 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
     ///      - Each deposit must target the same vault.
+    ///
+    ///      The following off-chain validation must be performed as a bare minimum:
+    ///      - Inputs used for the sweep transaction have enough Bitcoin confirmations,
+    ///      - Deposits revealed to the Bridge have enough Ethereum confirmations.
     function validateDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         DepositExtraInfo[] calldata depositsExtraInfo
