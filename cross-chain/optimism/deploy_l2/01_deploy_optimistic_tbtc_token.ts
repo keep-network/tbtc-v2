@@ -20,9 +20,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // TODO: Investigate the possibility of adding Tenderly verification for
   // L2 and upgradable proxy.
 
-  // Contracts can be verified on L2 Optimisticscan in a similar way as we do it on
-  // L1 Etherscan
-  if (hre.network.tags.optimisticscan) {
+  // Contracts can be verified on L2 Optimism Etherscan in a similar way as we
+  // do it on L1 Etherscan
+  if (hre.network.tags.optimism_etherscan) {
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
     // in "@openzeppelin/hardhat-upgrades" to verify the proxy’s implementation
     // contract, the proxy itself and any proxy-related contracts, as well as

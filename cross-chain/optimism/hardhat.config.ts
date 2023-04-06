@@ -60,7 +60,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.L2_ACCOUNTS_PRIVATE_KEYS
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["optimisticscan"],
+      tags: ["optimism_etherscan"],
       // companionNetworks: {
       //   l1: "goerli",
       // },
@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.L2_ACCOUNTS_PRIVATE_KEYS
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["optimisticscan"],
+      tags: ["optimism_etherscan"],
       // companionNetworks: {
       //   l1: "mainnet",
       // },
@@ -99,8 +99,8 @@ const config: HardhatUserConfig = {
     apiKey: {
       goerli: process.env.ETHERSCAN_API_KEY,
       mainnet: process.env.ETHERSCAN_API_KEY,
-      optimisticGoerli: process.env.OPTIMISTICSCAN_API_KEY,
-      optimisticEthereum: process.env.OPTIMISTICSCAN_API_KEY,
+      optimisticGoerli: process.env.OPTIMISM_ETHERSCAN_API_KEY,
+      optimisticEthereum: process.env.OPTIMISM_ETHERSCAN_API_KEY,
     },
   },
 

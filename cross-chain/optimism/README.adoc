@@ -46,4 +46,4 @@ chains other than `hardhat` the following environment variables are needed:
 
 - `L2_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://opt-goerli.g.alchemy.com/v2/<alchemy_api_key>`
 - `L2_ACCOUNTS_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
-- `OPTIMISTICSCAN_API_KEY` - Optimisticscan API key
+- `OPTIMISM_ETHERSCAN_API_KEY` - Optimism Etherscan API key
