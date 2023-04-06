@@ -539,6 +539,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         (, , uint64 depositTxMaxFee, ) = bridge.depositParameters();
 
+        // The transaction fee is incurred by each deposit evenly except for the last
+        // deposit that has the indivisible remainder additionally incurred.
+        // See `DepositSweep.submitDepositSweepProof`.
+        // We must make sure the highest value of the deposit transaction fee does
+        // not exceed the maximum value limited by the governable parameter.
         require(
             depositTxFee + depositTxFeeRemainder <= depositTxMaxFee,
             "Proposed transaction fee is too high"
