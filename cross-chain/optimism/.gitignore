@@ -12,4 +12,3 @@
 
 # OZ
 /.openzeppelin/unknown-*.json
-!/.openzeppelin/unknown-42161.json
