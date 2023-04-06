@@ -216,10 +216,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         _;
     }
 
-    function initialize(Bridge _bridge)
-        external
-        initializer
-    {
+    function initialize(Bridge _bridge) external initializer {
         __Ownable_init();
 
         bridge = _bridge;
