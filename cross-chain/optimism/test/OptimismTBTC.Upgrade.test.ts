@@ -60,7 +60,7 @@ describe("OptimismTBTC - Upgrade", async () => {
 
     it("should revert when V1's initializer is called", async () => {
       await expect(
-        optimismTBTCUpgraded.initialize("OptimismTBTCv2", "ArbTBTCv2")
+        optimismTBTCUpgraded.initialize("OptimismTBTCv2", "OptTBTCv2")
       ).to.be.revertedWith("Initializable: contract is already initialized")
     })
   })
