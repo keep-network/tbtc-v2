@@ -533,7 +533,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     {
         require(sweepTxFee > 0, "Proposed transaction fee cannot be zero");
 
+        // Compute the indivisible remainder that remains after dividing the
+        // sweep transaction fee over all deposits evenly.
         uint256 depositTxFeeRemainder = sweepTxFee % depositsCount;
+        // Compute the transaction fee per deposit by dividing the sweep
+        // transaction fee (reduced by the remainder) by the number of deposits.
         uint256 depositTxFee = (sweepTxFee - depositTxFeeRemainder) /
             depositsCount;
 
