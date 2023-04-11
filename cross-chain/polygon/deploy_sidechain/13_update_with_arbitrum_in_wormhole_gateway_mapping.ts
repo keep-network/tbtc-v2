@@ -14,8 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // This ID is valid for both Arbitrum Goerli and Mainnet
   const arbitrumWormholeChainID = 23
 
-  // TODO: Add Optimism mapping
-
   const arbitrumWormholeGateway = await deployments.getOrNull(
     "ArbitrumWormholeGateway"
   )
