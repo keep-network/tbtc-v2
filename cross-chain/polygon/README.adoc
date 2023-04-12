@@ -54,6 +54,6 @@ the contracts before running the deployment script. This command produces
 an `export.json` file containing contract deployment info. Note that for the
 chains other than `hardhat` the following environment variables are needed:
 
-- `PARENTCHAIN_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://opt-goerli.g.alchemy.com/v2/<alchemy_api_key>`
-- `PARENTCHAIN_ACCOUNTS_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
-- `POLYGONSCAN_API_KEY` - Polygon Etherscan API key
+- `SIDECHAIN_API_URL` - URL to access blockchain services, e.g. `https://polygon.g.alchemy.com/v2/<alchemy_api_key>`
+- `SIDECHAIN_ACCOUNTS_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
+- `POLYGONSCAN_API_KEY` - Polygonscan API key
