@@ -27,42 +27,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`fake Polygon WormholeTBTC address ${polygonWormholeTBTCAddress}`)
   }
 
-  const [, proxyDeployment] = await helpers.upgrades.deployProxy(
-    "PolygonWormholeGateway",
-    {
-      contractName:
-        "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol:L2WormholeGateway",
-      initializerArgs: [
-        polygonTokenBridgeAddress,
-        polygonWormholeTBTCAddress,
-        polygonTBTC.address,
-      ],
-      factoryOpts: { signer: await ethers.getSigner(deployer) },
-      proxyOpts: {
-        kind: "transparent",
-      },
-    }
-  )
-
-  // TODO: Investigate the possibility of adding Tenderly verification for the
-  // sidechain and upgradable proxy.
-
-  // Contracts can be verified on Polygonscan in a similar way as we
-  // do it on L1 Etherscan
-  if (hre.network.tags.polygonscan) {
-    // Polygonscan might not include the recently added proxy transaction right
-    // after deployment. We need to wait some time so that transaction is
-    // visible on Polygonscan.
-    await new Promise((resolve) => setTimeout(resolve, 10000))
-    // We use `verify` instead of `verify:verify` as the `verify` task is defined
-    // in "@openzeppelin/hardhat-upgrades" to verify the proxy’s implementation
-    // contract, the proxy itself and any proxy-related contracts, as well as
-    // link the proxy to the implementation contract’s ABI on (Ether)scan.
-    await hre.run("verify", {
-      address: proxyDeployment.address,
-      constructorArgsParams: proxyDeployment.args,
-    })
-  }
+  await helpers.upgrades.deployProxy("PolygonWormholeGateway", {
+    contractName:
+      "@keep-network/tbtc-v2/contracts/l2/L2WormholeGateway.sol:L2WormholeGateway",
+    initializerArgs: [
+      polygonTokenBridgeAddress,
+      polygonWormholeTBTCAddress,
+      polygonTBTC.address,
+    ],
+    factoryOpts: { signer: await ethers.getSigner(deployer) },
+    proxyOpts: {
+      kind: "transparent",
+    },
+  })
 }
 
 export default func
