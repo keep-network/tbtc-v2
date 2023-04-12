@@ -244,7 +244,7 @@ describe("LightRelayMaintainerProxy", () => {
   })
 
   describe("updateReimbursementPool", () => {
-    context("when called by a third party", () => {
+    context("when called by non-owner", () => {
       it("should revert", async () => {
         await expect(
           lightRelayMaintainerProxy
@@ -285,7 +285,7 @@ describe("LightRelayMaintainerProxy", () => {
       await restoreSnapshot()
     })
 
-    context("when called by a third party", () => {
+    context("when called by non-owner", () => {
       it("should revert", async () => {
         await expect(
           lightRelayMaintainerProxy
@@ -332,7 +332,7 @@ describe("LightRelayMaintainerProxy", () => {
       await restoreSnapshot()
     })
 
-    context("when called by an unauthorized third party", () => {
+    context("when called by an unauthorized address", () => {
       const headerHex = longHeaders.chain.map((h) => h.hex)
       const retargetHeaders = concatenateHexStrings(headerHex.slice(85, 105))
 
