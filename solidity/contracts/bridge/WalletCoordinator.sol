@@ -45,6 +45,31 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     using BTCUtils for bytes;
     using BytesLib for bytes;
 
+    /// @notice Represents wallet action:
+    enum WalletAction {
+        /// @dev The wallet does not perform any action.
+        Idle,
+        /// @dev The wallet is handling a deposit sweep action.
+        DepositSweep,
+        /// @dev The wallet is handling a redemption action.
+        Redemption,
+        /// @dev The wallet is handling a moving funds action.
+        MovingFunds,
+        /// @dev The wallet is handling a moved funds sweep action.
+        MovedFundsSweep
+    }
+
+    /// @notice Holds information about a wallet time lock.
+    struct WalletLock {
+        /// @notice A UNIX timestamp defining the moment until which the wallet
+        ///         is locked and cannot receive new proposals. The value of 0
+        ///         means the wallet is not locked and can receive a proposal
+        ///         at any time.
+        uint32 expiresAt;
+        /// @notice The wallet action being the cause of the lock.
+        WalletAction cause;
+    }
+
     /// @notice Helper structure carrying data necessary to validate the wallet
     ///         membership of the caller.
     struct WalletMemberContext {
@@ -95,11 +120,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     mapping(address => bool) public isProposalSubmitter;
 
     /// @notice Mapping that holds wallet time locks. The key is a 20-byte
-    ///         wallet public key hash. The value is a UNIX timestamp defining
-    ///         the moment until which the wallet is locked and cannot receive
-    ///         new proposals. The value of 0 means the wallet is not locked
-    ///         and can receive a proposal at any time.
-    mapping(bytes20 => uint32) public walletLock;
+    ///         wallet public key hash.
+    mapping(bytes20 => WalletLock) public walletLock;
 
     /// @notice Handle to the Bridge contract.
     Bridge public bridge;
@@ -214,7 +236,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     modifier onlyAfterWalletLock(bytes20 walletPubKeyHash) {
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp > walletLock[walletPubKeyHash],
+            block.timestamp > walletLock[walletPubKeyHash].expiresAt,
             "Wallet locked"
         );
         _;
@@ -283,7 +305,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - The caller must be the owner.
     function unlockWallet(bytes20 walletPubKeyHash) external onlyOwner {
         // Just in case, allow the owner to unlock the wallet earlier.
-        walletLock[walletPubKeyHash] = 0;
+        walletLock[walletPubKeyHash] = WalletLock(0, WalletAction.Idle);
         emit WalletManuallyUnlocked(walletPubKeyHash);
     }
 
@@ -371,10 +393,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         )
         onlyAfterWalletLock(proposal.walletPubKeyHash)
     {
-        walletLock[proposal.walletPubKeyHash] =
+        walletLock[proposal.walletPubKeyHash] = WalletLock(
             /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp) +
-            depositSweepProposalValidity;
+            uint32(block.timestamp) + depositSweepProposalValidity,
+            WalletAction.DepositSweep
+        );
 
         emit DepositSweepProposalSubmitted(proposal, msg.sender);
     }
