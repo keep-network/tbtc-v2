@@ -84,30 +84,56 @@ describe("LightRelayMaintainerProxy", () => {
       })
     })
 
-    context("When called by the owner", () => {
-      let tx: ContractTransaction
+    context("when called by the owner", () => {
+      context("When the maintainer is already authorized", () => {
+        before(async () => {
+          await createSnapshot()
 
-      before(async () => {
-        await createSnapshot()
+          // Authorize the maintainer to see if the next attempt reverts.
+          await lightRelayMaintainerProxy
+            .connect(governance)
+            .authorize(maintainer.address)
+        })
 
-        tx = await lightRelayMaintainerProxy
-          .connect(governance)
-          .authorize(maintainer.address)
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            lightRelayMaintainerProxy
+              .connect(governance)
+              .authorize(maintainer.address)
+          ).to.be.revertedWith("Maintainer is already authorized")
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      context("When the maintainer is not authorized yet", () => {
+        let tx: ContractTransaction
 
-      it("should authorize the address", async () => {
-        expect(await lightRelayMaintainerProxy.isAuthorized(maintainer.address))
-          .to.be.true
-      })
+        before(async () => {
+          await createSnapshot()
 
-      it("should emit the MaintainerAuthorized event", async () => {
-        await expect(tx)
-          .to.emit(lightRelayMaintainerProxy, "MaintainerAuthorized")
-          .withArgs(maintainer.address)
+          tx = await lightRelayMaintainerProxy
+            .connect(governance)
+            .authorize(maintainer.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should authorize the address", async () => {
+          expect(
+            await lightRelayMaintainerProxy.isAuthorized(maintainer.address)
+          ).to.be.true
+        })
+
+        it("should emit the MaintainerAuthorized event", async () => {
+          await expect(tx)
+            .to.emit(lightRelayMaintainerProxy, "MaintainerAuthorized")
+            .withArgs(maintainer.address)
+        })
       })
     })
   })
@@ -123,35 +149,56 @@ describe("LightRelayMaintainerProxy", () => {
       })
     })
 
-    context("When called by the owner", () => {
-      let tx: ContractTransaction
+    context("when called by the owner", () => {
+      context("when the maintainer is not authorized", () => {
+        before(async () => {
+          await createSnapshot()
+        })
 
-      before(async () => {
-        await createSnapshot()
+        after(async () => {
+          await restoreSnapshot()
+        })
 
-        // Authorize the maintainer first
-        await lightRelayMaintainerProxy
-          .connect(governance)
-          .authorize(maintainer.address)
-
-        tx = await lightRelayMaintainerProxy
-          .connect(governance)
-          .deauthorize(maintainer.address)
+        it("should revert", async () => {
+          await expect(
+            lightRelayMaintainerProxy
+              .connect(governance)
+              .deauthorize(maintainer.address)
+          ).to.be.revertedWith("Maintainer is not authorized")
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      context("when the maintainer is authorized", () => {
+        let tx: ContractTransaction
 
-      it("should deauthorize the address", async () => {
-        expect(await lightRelayMaintainerProxy.isAuthorized(maintainer.address))
-          .to.be.false
-      })
+        before(async () => {
+          await createSnapshot()
 
-      it("should emit the MaintainerDeauthorized event", async () => {
-        await expect(tx)
-          .to.emit(lightRelayMaintainerProxy, "MaintainerDeauthorized")
-          .withArgs(maintainer.address)
+          // Authorize the maintainer first
+          await lightRelayMaintainerProxy
+            .connect(governance)
+            .authorize(maintainer.address)
+
+          tx = await lightRelayMaintainerProxy
+            .connect(governance)
+            .deauthorize(maintainer.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should deauthorize the address", async () => {
+          expect(
+            await lightRelayMaintainerProxy.isAuthorized(maintainer.address)
+          ).to.be.false
+        })
+
+        it("should emit the MaintainerDeauthorized event", async () => {
+          await expect(tx)
+            .to.emit(lightRelayMaintainerProxy, "MaintainerDeauthorized")
+            .withArgs(maintainer.address)
+        })
       })
     })
   })

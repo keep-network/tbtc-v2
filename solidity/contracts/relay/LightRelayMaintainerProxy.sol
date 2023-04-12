@@ -81,19 +81,25 @@ contract LightRelayMaintainerProxy is Ownable, Reimbursable {
     }
 
     /// @notice Authorizes the given address as a maintainer. Can only be called
-    ///         by the owner.
+    ///         by the owner and the address of the maintainer must not be
+    ///         already authorized.
     /// @dev The function does not implement any governance delay.
     /// @param maintainer The address of the maintainer to be authorized.
     function authorize(address maintainer) external onlyOwner {
+        require(!isAuthorized[maintainer], "Maintainer is already authorized");
+
         isAuthorized[maintainer] = true;
         emit MaintainerAuthorized(maintainer);
     }
 
-    /// @notice Deauthorizes the given address as a maintainer. Can only be called
-    ///         by the owner.
+    /// @notice Deauthorizes the given address as a maintainer. Can only be
+    ///         called by the owner and the address of the maintainer must be
+    ///         authorized.
     /// @dev The function does not implement any governance delay.
     /// @param maintainer The address of the maintainer to be deauthorized.
     function deauthorize(address maintainer) external onlyOwner {
+        require(isAuthorized[maintainer], "Maintainer is not authorized");
+
         isAuthorized[maintainer] = false;
         emit MaintainerDeauthorized(maintainer);
     }
