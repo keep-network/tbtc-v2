@@ -66,7 +66,7 @@ contract LightRelayMaintainerProxy is Ownable, Reimbursable {
         lightRelay = _lightRelay;
         reimbursementPool = _reimbursementPool;
 
-        retargetGasOffset = 52000;
+        retargetGasOffset = 54000;
     }
 
     /// @notice Allows the governance to upgrade the `LightRelay` address.
