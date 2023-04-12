@@ -433,6 +433,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         supposed to do that check on their own.
     /// @param proposal The sweeping proposal to validate.
     /// @param depositsExtraInfo Deposits extra data required to perform the validation.
+    /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
     ///      - The target wallet must be in the Live state,
     ///      - The number of deposits included in the sweep must be in
@@ -458,7 +459,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     function validateDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         DepositExtraInfo[] calldata depositsExtraInfo
-    ) external view {
+    ) external view returns (bool) {
         require(
             bridge.wallets(proposal.walletPubKeyHash).state ==
                 Wallets.WalletState.Live,
@@ -538,6 +539,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
                 "Deposit targets different vault"
             );
         }
+
+        return true;
     }
 
     /// @notice Validates the sweep tx fee by checking if the part of the fee

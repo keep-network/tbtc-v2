@@ -2018,12 +2018,14 @@ describe("WalletCoordinator", () => {
                                       depositTwo.extraInfo,
                                     ]
 
-                                    await expect(
-                                      walletCoordinator.validateDepositSweepProposal(
+                                    const result =
+                                      await walletCoordinator.validateDepositSweepProposal(
                                         proposal,
                                         depositsExtraInfo
                                       )
-                                    ).to.not.be.reverted
+
+                                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                    expect(result).to.be.true
                                   })
                                 }
                               )
