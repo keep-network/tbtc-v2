@@ -7,5 +7,5 @@
     "resolveJsonModule": true
   },
   "files": ["./hardhat.config.ts"],
-  "include": ["./parentchain", "deploy_sidechain", "./test", "./typechain"]
+  "include": ["./deploy_parentchain", "./deploy_sidechain", "./test", "./typechain"]
 }

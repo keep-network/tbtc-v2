@@ -9,8 +9,8 @@
     "contracts/",
     "!contracts/hardhat-dependency-compiler",
     "!**/test/",
-    "parentchain/",
-    "sidechain/",
+    "deploy_parentchain/",
+    "deploy_sidechain/",
     "export/",
     "tasks/",
     "export.json"
