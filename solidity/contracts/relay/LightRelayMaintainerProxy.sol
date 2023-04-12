@@ -76,7 +76,6 @@ contract LightRelayMaintainerProxy is Ownable, Reimbursable {
     ///      before executing this function.
     function updateLightRelay(ILightRelay _lightRelay) external onlyOwner {
         lightRelay = _lightRelay;
-
         emit LightRelayUpdated(address(_lightRelay));
     }
 
