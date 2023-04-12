@@ -17,6 +17,8 @@ const { provider } = waffle
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
+const ZERO_ADDRESS = ethers.constants.AddressZero
+
 const fixture = async () => {
   await deployments.fixture()
 
@@ -214,31 +216,43 @@ describe("LightRelayMaintainerProxy", () => {
       })
     })
 
-    context("When called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await lightRelayMaintainerProxy
-          .connect(governance)
-          .updateLightRelay(thirdParty.address)
+    context("when called by the owner", () => {
+      context("when called with zero address", () => {
+        it("should revert", async () => {
+          await expect(
+            lightRelayMaintainerProxy
+              .connect(governance)
+              .updateLightRelay(ZERO_ADDRESS)
+          ).to.be.revertedWith("New light relay must not be zero address")
+        })
       })
 
-      after(async () => {
-        await restoreSnapshot()
-      })
+      context("When called with a non-zero address", () => {
+        let tx: ContractTransaction
 
-      it("should update the light relay address", async () => {
-        expect(await lightRelayMaintainerProxy.lightRelay()).to.be.equal(
-          thirdParty.address
-        )
-      })
+        before(async () => {
+          await createSnapshot()
 
-      it("should emit the LightRelayUpdated event", async () => {
-        await expect(tx)
-          .to.emit(lightRelayMaintainerProxy, "LightRelayUpdated")
-          .withArgs(thirdParty.address)
+          tx = await lightRelayMaintainerProxy
+            .connect(governance)
+            .updateLightRelay(thirdParty.address)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the light relay address", async () => {
+          expect(await lightRelayMaintainerProxy.lightRelay()).to.be.equal(
+            thirdParty.address
+          )
+        })
+
+        it("should emit the LightRelayUpdated event", async () => {
+          await expect(tx)
+            .to.emit(lightRelayMaintainerProxy, "LightRelayUpdated")
+            .withArgs(thirdParty.address)
+        })
       })
     })
   })

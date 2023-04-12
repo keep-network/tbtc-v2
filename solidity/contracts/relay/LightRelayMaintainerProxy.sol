@@ -63,6 +63,15 @@ contract LightRelayMaintainerProxy is Ownable, Reimbursable {
     }
 
     constructor(ILightRelay _lightRelay, ReimbursementPool _reimbursementPool) {
+        require(
+            address(_lightRelay) != address(0),
+            "Light relay must not be zero address"
+        );
+        require(
+            address(_reimbursementPool) != address(0),
+            "Reimbursement pool must not be zero address"
+        );
+
         lightRelay = _lightRelay;
         reimbursementPool = _reimbursementPool;
 
@@ -75,6 +84,11 @@ contract LightRelayMaintainerProxy is Ownable, Reimbursable {
     ///      needs to ensure all requirements for the upgrade are satisfied
     ///      before executing this function.
     function updateLightRelay(ILightRelay _lightRelay) external onlyOwner {
+        require(
+            address(_lightRelay) != address(0),
+            "New light relay must not be zero address"
+        );
+
         lightRelay = _lightRelay;
         emit LightRelayUpdated(address(_lightRelay));
     }
