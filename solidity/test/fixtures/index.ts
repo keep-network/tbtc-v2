@@ -48,6 +48,14 @@ export const walletState = {
   Terminated: 5,
 }
 
+export const walletAction = {
+  Idle: 0,
+  DepositSweep: 1,
+  Redemption: 2,
+  MovingFunds: 3,
+  MovedFundsSweep: 4,
+}
+
 export const ecdsaDkgState = {
   IDLE: 0,
   AWAITING_SEED: 1,

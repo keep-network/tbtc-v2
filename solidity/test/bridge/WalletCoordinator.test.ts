@@ -10,7 +10,7 @@ import type {
   ReimbursementPool,
   IWalletRegistry,
 } from "../../typechain"
-import { walletState } from "../fixtures"
+import { walletAction, walletState } from "../fixtures"
 
 chai.use(smock.matchers)
 
@@ -267,9 +267,10 @@ describe("WalletCoordinator", () => {
       })
 
       it("should unlock the wallet", async () => {
-        expect(
-          await walletCoordinator.walletLock(walletPubKeyHash)
-        ).to.be.equal(0)
+        const walletLock = await walletCoordinator.walletLock(walletPubKeyHash)
+
+        expect(walletLock.expiresAt).to.be.equal(0)
+        expect(walletLock.cause).to.be.equal(walletAction.Idle)
       })
 
       it("should emit the WalletManuallyUnlocked event", async () => {
@@ -763,9 +764,12 @@ describe("WalletCoordinator", () => {
                 (await lastBlockTime()) +
                 (await walletCoordinator.depositSweepProposalValidity())
 
-              expect(
-                await walletCoordinator.walletLock(walletPubKeyHash)
-              ).to.be.equal(lockedUntil)
+              const walletLock = await walletCoordinator.walletLock(
+                walletPubKeyHash
+              )
+
+              expect(walletLock.expiresAt).to.be.equal(lockedUntil)
+              expect(walletLock.cause).to.be.equal(walletAction.DepositSweep)
             })
 
             it("should emit the DepositSweepProposalSubmitted event", async () => {
@@ -2014,12 +2018,14 @@ describe("WalletCoordinator", () => {
                                       depositTwo.extraInfo,
                                     ]
 
-                                    await expect(
-                                      walletCoordinator.validateDepositSweepProposal(
+                                    const result =
+                                      await walletCoordinator.validateDepositSweepProposal(
                                         proposal,
                                         depositsExtraInfo
                                       )
-                                    ).to.not.be.reverted
+
+                                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                    expect(result).to.be.true
                                   })
                                 }
                               )
