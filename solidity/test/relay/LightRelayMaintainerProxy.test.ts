@@ -76,7 +76,7 @@ describe("LightRelayMaintainerProxy", () => {
   })
 
   describe("authorize", () => {
-    context("When called by non-owner", () => {
+    context("when called by non-owner", () => {
       it("should revert", async () => {
         await expect(
           lightRelayMaintainerProxy
@@ -87,7 +87,7 @@ describe("LightRelayMaintainerProxy", () => {
     })
 
     context("when called by the owner", () => {
-      context("When the maintainer is already authorized", () => {
+      context("when the maintainer is already authorized", () => {
         before(async () => {
           await createSnapshot()
 
@@ -110,7 +110,7 @@ describe("LightRelayMaintainerProxy", () => {
         })
       })
 
-      context("When the maintainer is not authorized yet", () => {
+      context("when the maintainer is not authorized yet", () => {
         let tx: ContractTransaction
 
         before(async () => {
@@ -141,7 +141,7 @@ describe("LightRelayMaintainerProxy", () => {
   })
 
   describe("deauthorize", () => {
-    context("When called by non-owner", () => {
+    context("when called by non-owner", () => {
       it("should revert", async () => {
         await expect(
           lightRelayMaintainerProxy
@@ -206,7 +206,7 @@ describe("LightRelayMaintainerProxy", () => {
   })
 
   describe("updateLightRelay", () => {
-    context("When called by non-owner", () => {
+    context("when called by non-owner", () => {
       it("should revert", async () => {
         await expect(
           lightRelayMaintainerProxy
@@ -227,7 +227,7 @@ describe("LightRelayMaintainerProxy", () => {
         })
       })
 
-      context("When called with a non-zero address", () => {
+      context("when called with a non-zero address", () => {
         let tx: ContractTransaction
 
         before(async () => {
