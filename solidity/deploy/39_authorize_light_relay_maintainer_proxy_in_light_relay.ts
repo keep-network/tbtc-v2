@@ -10,7 +10,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "LightRelayMaintainerProxy"
   )
 
-  // TODO: Find who should call this step
   await execute(
     "LightRelay",
     { from: deployer, log: true, waitConfirmations: 1 },
@@ -24,6 +23,5 @@ export default func
 func.tags = ["AuthorizeLightRelayMaintainerProxyInLightRelay"]
 func.dependencies = ["LightRelay", "LightRelayMaintainerProxy"]
 
-// TODO: Check if it should be done in mainnet
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name === "mainnet"
