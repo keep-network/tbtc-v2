@@ -1,0 +1,14 @@
+# Hardhat
+/artifacts/
+/build/
+/cache/
+/export/
+/external/npm
+/typechain/
+/export.json
+/deployments/*
+!/deployments/mainnet/
+!/deployments/polygon/
+
+# OZ
+/.openzeppelin/unknown-*.json
