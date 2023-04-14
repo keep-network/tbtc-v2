@@ -1,0 +1,510 @@
+{
+  "address": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "chainId",
+          "type": "uint16"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "gateway",
+          "type": "bytes32"
+        }
+      ],
+      "name": "GatewayAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "version",
+          "type": "uint8"
+        }
+      ],
+      "name": "Initialized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "mintingLimit",
+          "type": "uint256"
+        }
+      ],
+      "name": "MintingLimitUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "depositor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "WormholeTbtcDeposited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "WormholeTbtcReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "recipientChain",
+          "type": "uint16"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "gateway",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "recipient",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "arbiterFee",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "nonce",
+          "type": "uint32"
+        }
+      ],
+      "name": "WormholeTbtcSent",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "bridge",
+      "outputs": [
+        {
+          "internalType": "contract IWormholeTokenBridge",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "bridgeToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20Upgradeable",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "depositWormholeTbtc",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_address",
+          "type": "bytes32"
+        }
+      ],
+      "name": "fromWormholeAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "name": "gateways",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IWormholeTokenBridge",
+          "name": "_bridge",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IERC20Upgradeable",
+          "name": "_bridgeToken",
+          "type": "address"
+        },
+        {
+          "internalType": "contract L2TBTC",
+          "name": "_tbtc",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "mintedAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "mintingLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "encodedVm",
+          "type": "bytes"
+        }
+      ],
+      "name": "receiveTbtc",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint16",
+          "name": "recipientChain",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "recipient",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "arbiterFee",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint32",
+          "name": "nonce",
+          "type": "uint32"
+        }
+      ],
+      "name": "sendTbtc",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tbtc",
+      "outputs": [
+        {
+          "internalType": "contract L2TBTC",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "name": "toWormholeAddress",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "chainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "gateway",
+          "type": "bytes32"
+        }
+      ],
+      "name": "updateGatewayAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_mintingLimit",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateMintingLimit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+  "receipt": {
+    "to": null,
+    "from": "0x123694886DBf5Ac94DDA07135349534536D14cAf",
+    "contractAddress": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+    "transactionIndex": 34,
+    "gasUsed": "749615",
+    "logsBloom": "0x00000000000000000000000000000000400000000800000000800000000000000000000000000000000000000000000000008400000000000000000000000400000000000000000000000000000006800001000800000000000100000000000000000000030000000001000000000800000000800000000080000000000000400000000000000000000000000000000000000000000080000000000000800000200000000008000004000000000400000000000000000000000000000000004000000020000000000001000000440000000000000400000000100000000020000000000000000000002000000000000000000000000000000000000000100000",
+    "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3",
+    "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+    "logs": [
+      {
+        "transactionIndex": 34,
+        "blockNumber": 41515765,
+        "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+        "address": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+        "topics": [
+          "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
+          "0x000000000000000000000000292c9fdf2e2475599cbe350cc473c221bd67ae28"
+        ],
+        "data": "0x",
+        "logIndex": 144,
+        "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3"
+      },
+      {
+        "transactionIndex": 34,
+        "blockNumber": 41515765,
+        "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+        "address": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000123694886dbf5ac94dda07135349534536d14caf"
+        ],
+        "data": "0x",
+        "logIndex": 145,
+        "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3"
+      },
+      {
+        "transactionIndex": 34,
+        "blockNumber": 41515765,
+        "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+        "address": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+        "topics": [
+          "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "logIndex": 146,
+        "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3"
+      },
+      {
+        "transactionIndex": 34,
+        "blockNumber": 41515765,
+        "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+        "address": "0x09959798B95d00a3183d20FaC298E4594E599eab",
+        "topics": [
+          "0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f"
+        ],
+        "data": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000001293a54e160d1cd7075487898d65266081a15458",
+        "logIndex": 147,
+        "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3"
+      },
+      {
+        "transactionIndex": 34,
+        "blockNumber": 41515765,
+        "transactionHash": "0x6fbbce7c044a776c67a031fa5de974173ae7dd747c95ab90891d09b50d69c240",
+        "address": "0x0000000000000000000000000000000000001010",
+        "topics": [
+          "0x4dfe1bbbcf077ddc3e01291eea2d5c70c2b422b415d95645b9adcfd678cb1d63",
+          "0x0000000000000000000000000000000000000000000000000000000000001010",
+          "0x000000000000000000000000123694886dbf5ac94dda07135349534536d14caf",
+          "0x000000000000000000000000eb4f2a75cac4bbcb4d71c252e4cc80eb80bb3a34"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000082da2deb4f2812000000000000000000000000000000000000000000000003a1842f4eb9b1aa5e00000000000000000000000000000000000000000000052254a12ab84b8f7f3c000000000000000000000000000000000000000000000003a1015520ce62824c000000000000000000000000000000000000000000000522552404e636dea74e",
+        "logIndex": 148,
+        "blockHash": "0xefcc0a3be4da4e68b72e2b833226bdc14c6cf4e39fa5bc548334efb5af76c5e3"
+      }
+    ],
+    "blockNumber": 41515765,
+    "cumulativeGasUsed": "5384226",
+    "status": 1,
+    "byzantium": true
+  },
+  "numDeployments": 1,
+  "implementation": "0x292C9fdf2e2475599cBe350cc473c221Bd67AE28",
+  "devdoc": "Contract deployed as upgradable proxy"
+}
