@@ -50,16 +50,16 @@ requiring the use of taproot scripts instead.
 link:https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki[BIP-340] defines Schnorr signatures for the curve secp256k1,
 already widely used in Bitcoin.
 A signature for message m and public key point P
-is defined as the (point, scalar) pair (R, s)
-where s * G = R + hash(R || P || m) * P.
+is defined as the (point, scalar) pair `(R, s)`
+where `s * G = R + hash(R || P || m) * P`.
 
 The points P and R are encoded as the X-coordinate,
 and the Y-coordinate is defined to be even.
 This gives a 32-byte encoding
-that corresponds to the standard 33-byte compressed format with the prefix 0x02.
+that corresponds to the standard 33-byte compressed format with the prefix `0x02`.
 
-The hash function for BIP340 signatures hash(tag, x) is defined as
-SHA256(SHA256(tag) || SHA256(tag) || x)
+The hash function for BIP340 signatures `hash(tag, x)` is defined as
+`SHA256(SHA256(tag) || SHA256(tag) || x)`
 where tag is a context-dependent domain separator.
 
 For our purposes, we will consider the verification specification:
@@ -70,7 +70,7 @@ Input:
 * The message m: a 32-byte array
 * A signature sig: a 64-byte array
 
-The algorithm Verify(pk, m, sig) is defined as:
+The algorithm `Verify(pk, m, sig)` is defined as:
 
 * Let P = lift_x(int(pk)); fail if that fails.
 * Let r = int(sig[0:32]); fail if r ≥ p.
@@ -82,12 +82,12 @@ The algorithm Verify(pk, m, sig) is defined as:
 * Fail if x(R) ≠ r.
 * Return success iff no failure occurred before reaching this point.
 
-For every valid secret key sk and message m, Verify(PubKey(sk),m,Sign(sk,m)) will succeed.
+For every valid secret key `sk` and message `m`, `Verify(PubKey(sk),m,Sign(sk,m))` will succeed.
 
 We see that the signature is a concatenation of
 a 32-byte x-coordinate or a curve point R,
 and a 32-byte scalar s.
-The hash function uses the tag BIP0340/challenge.
+The hash function uses the tag `BIP0340/challenge`.
 
 === FROST
 
@@ -100,6 +100,7 @@ which corresponds to a secret key sk shared among n participants using Shamir's 
 These signatures are of the form (R, z) where R is a curve point and z a scalar,
 and are verified against a public key PK and message msg as follows:
 
+----
   prime_order_verify(msg, sig, PK):
 
   Inputs:
@@ -119,13 +120,14 @@ and are verified against a public key PK and message msg as follows:
     l = G.ScalarBaseMult(z)
     r = R + G.ScalarMult(PK, c)
     return l == r
+----
 
 Compared to BIP340,
 we see that the point R matches in both,
 and the scalar z of FROST corresponds to the scalar s of BIP340.
 
 After accounting for encoding differences,
-we see that the hash function H2 producing the challenge c
+we see that the hash function `H2` producing the challenge c
 must match the hash of BIP340 used to compute the scalar e.
 This is the only required deviation from FROST as specified.
 Otherwise an examination of the protocols
@@ -290,6 +292,7 @@ The below details have been replicated from the FROST paper for convenience:
 
 ===== Nonce generation
 
+----
   nonce_generate(secret):
 
   Inputs:
@@ -302,9 +305,11 @@ The below details have been replicated from the FROST paper for convenience:
     random_bytes = random_bytes(32)
     secret_enc = G.SerializeScalar(secret)
     return H3(random_bytes || secret_enc)
+----
 
 ===== Polynomial interpolation
 
+----
   derive_interpolating_value(x_i, L):
 
   Inputs:
@@ -334,9 +339,11 @@ The below details have been replicated from the FROST paper for convenience:
 
     value = numerator / denominator
     return value
+----
 
 ===== Encode commitments to a byte string
 
+----
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -355,9 +362,11 @@ The below details have been replicated from the FROST paper for convenience:
                            G.SerializeElement(binding_nonce_commitment)
       encoded_group_commitment = encoded_group_commitment || encoded_commitment
     return encoded_group_commitment
+----
 
 ===== Extract identifiers from a commitment list
 
+----
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -373,9 +382,11 @@ The below details have been replicated from the FROST paper for convenience:
     for (identifier, _, _) in commitment_list:
       identifiers.append(identifier)
     return identifiers
+----
 
 ===== Extract a blinding factor from a list of blinding factors
 
+----
   Inputs:
   - binding_factor_list = [(i, binding_factor), ...],
     a list of binding factors for each participant, where each element in the list
@@ -393,9 +404,11 @@ The below details have been replicated from the FROST paper for convenience:
       if identifier == i:
         return binding_factor
     raise "invalid participant"
+----
 
 ===== Blinding factors computation
 
+----
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -418,9 +431,11 @@ The below details have been replicated from the FROST paper for convenience:
       binding_factor = H1(rho_input)
       binding_factor_list.append((identifier, binding_factor))
     return binding_factor_list
+----
 
 ===== Group commitment computation
 
+----
   Inputs:
   - commitment_list =
      [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...], a list
@@ -442,9 +457,11 @@ The below details have been replicated from the FROST paper for convenience:
       group_commitment = group_commitment +
         hiding_nonce_commitment + G.ScalarMult(binding_nonce_commitment, binding_factor)
     return group_commitment
+----
 
 ===== Signature challenge computation
 
+----
   Inputs:
   - group_commitment, the group commitment, an Element.
   - group_public_key, the public key corresponding to the group signing key, an
@@ -460,9 +477,11 @@ The below details have been replicated from the FROST paper for convenience:
     challenge_input = group_comm_enc || group_public_key_enc || msg
     challenge = H2(challenge_input)
     return challenge
+----
 
 ===== Round one: commitment
 
+----
   Inputs:
   - sk_i, the secret key share, a Scalar.
 
@@ -479,9 +498,11 @@ The below details have been replicated from the FROST paper for convenience:
     nonce = (hiding_nonce, binding_nonce)
     comm = (hiding_nonce_commitment, binding_nonce_commitment)
     return (nonce, comm)
+----
 
 ===== Round two: signature share generation
 
+----
   Inputs:
   - identifier, identifier i of the participant, a NonZeroScalar.
   - sk_i, Signer secret key share, a Scalar.
@@ -520,9 +541,11 @@ The below details have been replicated from the FROST paper for convenience:
     sig_share = hiding_nonce + (binding_nonce * binding_factor) + (lambda_i * sk_i * challenge)
 
     return sig_share
+----
 
 ===== Signature share aggregation
 
+----
   Inputs:
   - commitment_list =
       [(j, hiding_nonce_commitment_j, binding_nonce_commitment_j), ...], a
@@ -549,9 +572,11 @@ The below details have been replicated from the FROST paper for convenience:
     for z_i in sig_shares:
       z = z + z_i
     return (group_commitment, z)
+----
 
 ===== Signature share verification
 
+----
   Inputs:
   - identifier, identifier i of the participant, a NonZeroScalar.
   - PK_i, the public key for the i-th participant, where PK_i = G.ScalarBaseMult(sk_i),
@@ -598,16 +623,4 @@ The below details have been replicated from the FROST paper for convenience:
     r = comm_share + G.ScalarMult(PK_i, challenge * lambda_i)
 
     return l == r
-
-
-
-
-
-
-
-
-
-
-
-
-
+----
