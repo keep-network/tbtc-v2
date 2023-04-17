@@ -193,6 +193,48 @@ the signers can choose (n - t + 1) Alices from among themselves,
 ensuring that if at least t signers are honest
 at least one Alice must also be honest and the protocol must succeed.
 
+=== Compatibility with tBTC
+
+==== Script
+
+BIP-340 Schnorr signatures are not compatible with existing P2(W)SH deposits,
+and require the use of Tapscript as specified in
+link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki[BIP-341] and
+link:https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki[BIP-342].
+
+==== Fraud proofs
+
+A fraudulent BIP-340 transaction would use a Schnorr signature.
+An on-chain implementation of BIP-340 signature validation is needed.
+Schnorr transactions are not compatible with other signature protocols,
+so proving fraud by the existence of a Schnorr signature
+for a wallet's public key and an unauthorised message
+would be sufficient to detect (attempted) theft of funds by the wallet.
+
+==== Misbehaviour
+
+ROAST and FROST are extremely robust against misbehaviour by participants.
+Invalid messages can be simply ignored and their sender blocklisted by the recipient.
+Validating a received message takes negligible time,
+and if misbehaviour during protocol execution could be proved on-chain,
+malicious participants could simply stop responding instead and appear inactive.
+Thus there is very little motive to put in effort
+to develop a way to speficically punish misbehaviour.
+
+Because ROAST involves multiple concurrent runs of FROST,
+participants must track data for individual runs
+and match messages accordingly.
+
+A coordinator may have multiple runs of FROST,
+where they communicate with the threshold number of participants.
+Thus they must track the state of every run they have started,
+and associate incoming messages with the correct run.
+
+A member has at most one run with each coordinator,
+and will only be receiving messages from that run's coordinator.
+The member must not reuse nonces between different calls to produce a signature share,
+and must erase used nonces immediately.
+
 == tBTC-ROAST
 
 The proposed adaptation of ROAST to produce BIP-340 compliant signatures
@@ -258,7 +300,7 @@ and `m` matches the message `P_i` intended to sign,
 and `cc_i` in `ks` matches the commitment `P_i` made earlier,
 `P_i` calculates  the signature share `s_i` and new commit data `cc'_i`,
 and sends `P_c` the messages `sign(P_i, s_i, m, hash(ks))` and `commit(P_i, cc_i', m)`.
-The member `P_i` then goes on standby,
+The member `P_i` then erases `cc_i` and goes on standby,
 waiting to execute phase 5 again if another signing request comes from the same coordinator,
 or phase 2 with a new coordinator.
 
