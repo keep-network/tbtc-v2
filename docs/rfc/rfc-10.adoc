@@ -1,0 +1,613 @@
+:toc: macro
+
+= RFC 10: ROAST
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+tBTC requires a threshold signature scheme recognised by BTC.
+Until 2021 ECDSA was the only available option,
+but with the introduction of Taproot we now have the option of using Schnorr signatures instead.
+Schnorr signatures enable significantly easier attributability of misbehaviour during signing.
+
+=== Current functionality
+
+The protocol currently used in tBTC (GG18) does not provide attributability
+when signing fails due to one or more members misbehaving.
+Because of this, the only solution is to retry the signing
+until a set of signers with no misbehaving participants is stumbled upon.
+This means that even a small group of misbehaving participants
+can cause a dramatic slowdown in signing,
+rendering the system vulnerable to severe DoS attacks.
+
+Previously, the goal was to replace GG18 with CGGMP21,
+which has attributable misbehaviour at the cost of significant implementation complexity.
+
+== Proposal
+
+Replace ECDSA with Schnorr signatures,
+enabling the use of ROAST with FROST threshold signatures instead of CGGMP21.
+Use GJKR for distributed key generation of signature shares for FROST.
+
+This reduces the complexity of key generation,
+and makes signature production significantly simpler and faster
+while providing the attributability missing from the current tECDSA implementation.
+
+=== Requirements
+
+The Taproot upgrade for Bitcoin enabled Schnorr signature support in 2021.
+BIP-340 defines these Schnorr signatures,
+and our implementation must conform to it.
+
+Schnorr signatures are incompatible with existing Bitcoin scripts,
+requiring the use of taproot scripts instead.
+
+=== BIP-340
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki[BIP-340] defines Schnorr signatures for the curve secp256k1,
+already widely used in Bitcoin.
+A signature for message m and public key point P
+is defined as the (point, scalar) pair (R, s)
+where s * G = R + hash(R || P || m) * P.
+
+The points P and R are encoded as the X-coordinate,
+and the Y-coordinate is defined to be even.
+This gives a 32-byte encoding
+that corresponds to the standard 33-byte compressed format with the prefix 0x02.
+
+The hash function for BIP340 signatures hash(tag, x) is defined as
+SHA256(SHA256(tag) || SHA256(tag) || x)
+where tag is a context-dependent domain separator.
+
+For our purposes, we will consider the verification specification:
+
+Input:
+
+* The public key pk: a 32-byte array
+* The message m: a 32-byte array
+* A signature sig: a 64-byte array
+
+The algorithm Verify(pk, m, sig) is defined as:
+
+* Let P = lift_x(int(pk)); fail if that fails.
+* Let r = int(sig[0:32]); fail if r ≥ p.
+* Let s = int(sig[32:64]); fail if s ≥ n.
+* Let e = int(hash(BIP0340/challenge, bytes(r) || bytes(P) || m)) mod n.
+* Let R = s⋅G - e⋅P.
+* Fail if is_infinite(R).
+* Fail if not has_even_y(R).
+* Fail if x(R) ≠ r.
+* Return success iff no failure occurred before reaching this point.
+
+For every valid secret key sk and message m, Verify(PubKey(sk),m,Sign(sk,m)) will succeed.
+
+We see that the signature is a concatenation of
+a 32-byte x-coordinate or a curve point R,
+and a 32-byte scalar s.
+The hash function uses the tag BIP0340/challenge.
+
+=== FROST
+
+link:https://www.ietf.org/id/draft-irtf-cfrg-frost-12.html[FROST (Flexible Round-Optimized Schnorr Threshold)] signing protocol
+is a protocol for generating valid Schnorr signatures for a public key PK
+which corresponds to a secret key sk shared among n participants using Shamir's method.
+
+==== Compatibility with BIP-340
+
+These signatures are of the form (R, z) where R is a curve point and z a scalar,
+and are verified against a public key PK and message msg as follows:
+
+  prime_order_verify(msg, sig, PK):
+
+  Inputs:
+  - msg, signed message, a byte string.
+  - sig, a tuple (R, z) output from signature generation.
+  - PK, public key, an Element.
+
+  Outputs:
+  - True if signature is valid, and False otherwise.
+
+  def prime_order_verify(msg, sig = (R, z), PK):
+    comm_enc = G.SerializeElement(R)
+    pk_enc = G.SerializeElement(PK)
+    challenge_input = comm_enc || pk_enc || msg
+    c = H2(challenge_input)
+
+    l = G.ScalarBaseMult(z)
+    r = R + G.ScalarMult(PK, c)
+    return l == r
+
+Compared to BIP340,
+we see that the point R matches in both,
+and the scalar z of FROST corresponds to the scalar s of BIP340.
+
+After accounting for encoding differences,
+we see that the hash function H2 producing the challenge c
+must match the hash of BIP340 used to compute the scalar e.
+This is the only required deviation from FROST as specified.
+Otherwise an examination of the protocols
+will show that a FROST-generated signature would pass BIP340 verification.
+
+==== Protocol
+
+FROST is a two-round protocol for generating t-of-n threshold Schnorr signatures
+with the help of a semi-trusted coordinator (Alice).
+
+In the first round, each participant (Bobs) produces a pair of commitments
+and sends them to the coordinator Alice.
+
+After the Alice has acquired a sufficient number of commintments,
+she assembles a set of commitments from exactly t Bobs,
+and sends it to those same Bobs, along with the message to sign.
+
+In the second round, each Bob calculates his signature share
+using his secret key share, and the message and commitment list sent by Alice.
+The Bobs then send their signature shares to Alice.
+
+Once Alice has received signature shares from all t Bobs,
+she can aggregate them into a signature candidate.
+If the signature candidate is not valid,
+Alice can verify each signature share sent by the Bobs
+and identify at least one misbehaving Bob
+who sent an invalid share.
+If Alice is misbehaving,
+she can prevent the signature candidate from being created,
+but can learn no secret information.
+
+A more detailed specification of the FROST protocol
+is found in the draft RFC https://www.ietf.org/id/draft-irtf-cfrg-frost-12.html
+
+=== ROAST
+
+link:https://eprint.iacr.org/2022/550.pdf[ROAST (Robust Asynchronous Schnorr Threshold Signatures)]
+is a wrapper for FROST specifying how to deal with misbehaving participants.
+
+In ROAST, Alice begins by requesting commitments from all Bobs.
+As she receives valid messages from Bobs,
+she adds those Bobs to the list of responsive signers R.
+
+Whenever there are t Bobs in R,
+Alice assembles their commitments, asks them to produce a signature share,
+and removes them from R.
+
+When a Bob produces a signature share,
+he also produces new commitments and sends them to Alice alongside the share.
+
+When Alice receives a valid signature share and commitment from a Bob,
+she adds that Bob back to R.
+When Alice receives an invalid signature share from a Bob,
+she does not add that bob back to R.
+As a result, misbehaving or unresponsive Bobs
+are eventually excluded from the executions of the FROST protocol,
+and a valid signature will inevitably be produced by some set of Bobs
+assuming at least t Bobs are honest, Alice is honest,
+and all messages between Alice and Bobs are eventually delivered.
+
+To avoid the dependency on Alice's honesty,
+the signers can choose (n - t + 1) Alices from among themselves,
+ensuring that if at least t signers are honest
+at least one Alice must also be honest and the protocol must succeed.
+
+== tBTC-ROAST
+
+The proposed adaptation of ROAST to produce BIP-340 compliant signatures
+for the purpose of tBTC will be called tBTC-ROAST in this RFC.
+
+tBTC-ROAST has n = 100 participants in a signing group,
+of whom t = 51 are required to cooperate to produce a signature.
+The indices i of the members are in the range [1, 100]
+
+=== DKG
+
+The (51, 100) secret key for a tBTC-ROAST signing group (aka wallet)
+is produced using GJKR.
+
+In the execution of the GJKR DKG protocol,
+inactive and misbehaving operators are identified and removed from the wallet.
+
+=== Signing
+
+==== Coordinator selection
+
+When a wallet is required to sign message msg in ethereum block B,
+one coordinator P_c is selected
+by taking the block number modulo the group size,
+and choosing the member whose index matches this number;
+c = B % n = B % 100.
+
+P_c then executes the signing protocol as the coordinator.
+If a valid signature is not produced by the time block B+1 is mined,
+another coordinator P_c+1 is selected.
+This continues until a valid signature is produced,
+or until block B+99 when all members have become coordinators.
+
+==== Execution
+
+1. P_c sends everyone in the group a coordinator(P_c, msg) message.
+
+2. When a member P_i receives a coordinator(P_c, m) message,
+they check if they have privately listed P_c as being unreliable/malicious,
+whether m is a valid message to sign,
+and whether P_c has been selected as a coordinator yet.
+If both checks are good, P_i sends P_c a message commit(P_i, cc_i, m)
+where cc_i is commit data for the Frost protocol.
+P_i does this to all coordinators P_c passing these checks.
+
+3. When coordinator P_c receives a commit(P_j, cc_j, m) message,
+they check if they consider P_j reliable
+and whether m is the correct message to sign m == msg.
+If these checks pass,
+the commit message is added to the list of commitments cs.
+
+4. Once there are at least 51 commitments in cs,
+P_c chooses 51 members Pks = [P_k1, ..., P_k51]
+based on which commitments were received first.
+P_c then assembles the list ks consisting of the pairs
+[(P_k1, cc_k1), ..., (P_k51, cc_k51)] from those members
+and sends them to all in Pks as message signRequest(P_c, ks, msg).
+P_c also records the sent request as `requests[hash(ks)] = Pks`.
+
+5. When a member P_i who has previously sent a commit message to P_c
+receives a message signRequest(P_c, ks, m) from P_c
+and m matches the message P_i intended to sign,
+and cc_i in ks matches the commitment P_i made earlier,
+P_i calculates  the signature share s_i and new commit data cc'_i,
+and sends P_c the messages sign(P_i, s_i, m, hash(ks)) and commit(P_i, cc_i', m).
+The member P_i then goes on standby,
+waiting to execute phase 5 again if another signing request comes from the same coordinator,
+or phase 2 with a new coordinator.
+
+6. When member P_c receives sign(P_j, s_j, m, h) from P_j,
+they check if P_j was in list Pks = requests[h].
+If yes, they validate s_j and add it to the list of signature shares sks = shares[h].
+The coordinator simultaneously executes step 3 again with the commit(P_j, cc_j', m) message,
+possibly following up with step 4 as well.
+If s_j fails the validation,
+P_c adds P_j to its list of bad participants, ignores P_j's commit message,
+and returns to step 3.
+
+7. Once some sks has all 51 valid shares in it, P_c tries to assemble a signature s.
+If the signature is successful, they send a success(s, m) message to all other members
+so they know to abort the signing for m.
+P_c can now clear all data used in the execution of the protocol.
+
+8. When member P_i receives a message success(s, m) from any other member P_j,
+they check if s is a valid signature for m,
+and that m is the correct message to sign.
+If s and m are valid, they stop executing whatever step they were in
+and clear all data for the execution.
+If s is invalid, P_i adds P_j to the list of bad participants.
+If m is invalid but s is valid,
+P_i should probably raise an alarm over the fraudulent signature
+but in practice this shouldn't happen and is out of scope for this RFC.
+
+==== Details
+
+The below details have been replicated from the FROST paper for convenience:
+
+===== Nonce generation
+
+  nonce_generate(secret):
+
+  Inputs:
+  - secret, a Scalar.
+
+  Outputs:
+  - nonce, a Scalar.
+
+  def nonce_generate(secret):
+    random_bytes = random_bytes(32)
+    secret_enc = G.SerializeScalar(secret)
+    return H3(random_bytes || secret_enc)
+
+===== Polynomial interpolation
+
+  derive_interpolating_value(x_i, L):
+
+  Inputs:
+  - x_i, an x-coordinate contained in L, a NonZeroScalar.
+  - L, the set of x-coordinates, each a NonZeroScalar.
+
+  Outputs:
+  - value, a Scalar.
+
+  Errors:
+  - "invalid parameters", if 1) x_i is not in L, or if 2) any
+    x-coordinate is represented more than once in L.
+
+  def derive_interpolating_value(x_i, L):
+    if x_i not in L:
+      raise "invalid parameters"
+    for x_j in L:
+      if count(x_j, L) > 1:
+        raise "invalid parameters"
+
+    numerator = Scalar(1)
+    denominator = Scalar(1)
+    for x_j in L:
+      if x_j == x_i: continue
+      numerator *= x_j
+      denominator *= x_j - x_i
+
+    value = numerator / denominator
+    return value
+
+===== Encode commitments to a byte string
+
+  Inputs:
+  - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
+    a list of commitments issued by each participant, where each element in the list
+    indicates a NonZeroScalar identifier i and two commitment Element values
+    (hiding_nonce_commitment_i, binding_nonce_commitment_i). This list MUST be sorted
+    in ascending order by identifier.
+
+  Outputs:
+  - encoded_group_commitment, the serialized representation of commitment_list, a byte string.
+
+  def encode_group_commitment_list(commitment_list):
+    encoded_group_commitment = nil
+    for (identifier, hiding_nonce_commitment, binding_nonce_commitment) in commitment_list:
+      encoded_commitment = G.SerializeScalar(identifier) ||
+                           G.SerializeElement(hiding_nonce_commitment) ||
+                           G.SerializeElement(binding_nonce_commitment)
+      encoded_group_commitment = encoded_group_commitment || encoded_commitment
+    return encoded_group_commitment
+
+===== Extract identifiers from a commitment list
+
+  Inputs:
+  - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
+    a list of commitments issued by each participant, where each element in the list
+    indicates a NonZeroScalar identifier i and two commitment Element values
+    (hiding_nonce_commitment_i, binding_nonce_commitment_i). This list MUST be sorted
+    in ascending order by identifier.
+
+  Outputs:
+  - identifiers, a list of NonZeroScalar values.
+
+  def participants_from_commitment_list(commitment_list):
+    identifiers = []
+    for (identifier, _, _) in commitment_list:
+      identifiers.append(identifier)
+    return identifiers
+
+===== Extract a blinding factor from a list of blinding factors
+
+  Inputs:
+  - binding_factor_list = [(i, binding_factor), ...],
+    a list of binding factors for each participant, where each element in the list
+    indicates a NonZeroScalar identifier i and Scalar binding factor.
+  - identifier, participant identifier, a NonZeroScalar.
+
+  Outputs:
+  - binding_factor, a Scalar.
+
+  Errors:
+  - "invalid participant", when the designated participant is not known.
+
+  def binding_factor_for_participant(binding_factor_list, identifier):
+    for (i, binding_factor) in binding_factor_list:
+      if identifier == i:
+        return binding_factor
+    raise "invalid participant"
+
+===== Blinding factors computation
+
+  Inputs:
+  - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
+    a list of commitments issued by each participant, where each element in the list
+    indicates a NonZeroScalar identifier i and two commitment Element values
+    (hiding_nonce_commitment_i, binding_nonce_commitment_i). This list MUST be sorted
+    in ascending order by identifier.
+  - msg, the message to be signed.
+
+  Outputs:
+  - binding_factor_list, a list of (NonZeroScalar, Scalar) tuples representing the binding factors.
+
+  def compute_binding_factors(commitment_list, msg):
+    msg_hash = H4(msg)
+    encoded_commitment_hash = H5(encode_group_commitment_list(commitment_list))
+    rho_input_prefix = msg_hash || encoded_commitment_hash
+
+    binding_factor_list = []
+    for (identifier, hiding_nonce_commitment, binding_nonce_commitment) in commitment_list:
+      rho_input = rho_input_prefix || G.SerializeScalar(identifier)
+      binding_factor = H1(rho_input)
+      binding_factor_list.append((identifier, binding_factor))
+    return binding_factor_list
+
+===== Group commitment computation
+
+  Inputs:
+  - commitment_list =
+     [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...], a list
+    of commitments issued by each participant, where each element in the list
+    indicates a NonZeroScalar identifier i and two commitment Element values
+    (hiding_nonce_commitment_i, binding_nonce_commitment_i). This list MUST be
+    sorted in ascending order by identifier.
+  - binding_factor_list = [(i, binding_factor), ...],
+    a list of (NonZeroScalar, Scalar) tuples representing the binding factor Scalar
+    for the given identifier.
+
+  Outputs:
+  - group_commitment, an Element.
+
+  def compute_group_commitment(commitment_list, binding_factor_list):
+    group_commitment = G.Identity()
+    for (identifier, hiding_nonce_commitment, binding_nonce_commitment) in commitment_list:
+      binding_factor = binding_factor_for_participant(binding_factor_list, identifier)
+      group_commitment = group_commitment +
+        hiding_nonce_commitment + G.ScalarMult(binding_nonce_commitment, binding_factor)
+    return group_commitment
+
+===== Signature challenge computation
+
+  Inputs:
+  - group_commitment, the group commitment, an Element.
+  - group_public_key, the public key corresponding to the group signing key, an
+    Element.
+  - msg, the message to be signed, a byte string.
+
+  Outputs:
+  - challenge, a Scalar.
+
+  def compute_challenge(group_commitment, group_public_key, msg):
+    group_comm_enc = G.SerializeElement(group_commitment)
+    group_public_key_enc = G.SerializeElement(group_public_key)
+    challenge_input = group_comm_enc || group_public_key_enc || msg
+    challenge = H2(challenge_input)
+    return challenge
+
+===== Round one: commitment
+
+  Inputs:
+  - sk_i, the secret key share, a Scalar.
+
+  Outputs:
+  - (nonce, comm), a tuple of nonce and nonce commitment pairs,
+    where each value in the nonce pair is a Scalar and each value in
+    the nonce commitment pair is an Element.
+
+  def commit(sk_i):
+    hiding_nonce = nonce_generate(sk_i)
+    binding_nonce = nonce_generate(sk_i)
+    hiding_nonce_commitment = G.ScalarBaseMult(hiding_nonce)
+    binding_nonce_commitment = G.ScalarBaseMult(binding_nonce)
+    nonce = (hiding_nonce, binding_nonce)
+    comm = (hiding_nonce_commitment, binding_nonce_commitment)
+    return (nonce, comm)
+
+===== Round two: signature share generation
+
+  Inputs:
+  - identifier, identifier i of the participant, a NonZeroScalar.
+  - sk_i, Signer secret key share, a Scalar.
+  - group_public_key, public key corresponding to the group signing key,
+    an Element.
+  - nonce_i, pair of Scalar values (hiding_nonce, binding_nonce) generated in
+    round one.
+  - msg, the message to be signed, a byte string.
+  - commitment_list =
+      [(j, hiding_nonce_commitment_j, binding_nonce_commitment_j), ...], a
+    list of commitments issued in Round 1 by each participant and sent by the Coordinator.
+    Each element in the list indicates a NonZeroScalar identifier j and two commitment
+    Element values (hiding_nonce_commitment_j, binding_nonce_commitment_j).
+    This list MUST be sorted in ascending order by identifier.
+
+  Outputs:
+  - sig_share, a signature share, a Scalar.
+
+  def sign(identifier, sk_i, group_public_key, nonce_i, msg, commitment_list):
+    # Compute the binding factor(s)
+    binding_factor_list = compute_binding_factors(commitment_list, msg)
+    binding_factor = binding_factor_for_participant(binding_factor_list, identifier)
+
+    # Compute the group commitment
+    group_commitment = compute_group_commitment(commitment_list, binding_factor_list)
+
+    # Compute the interpolating value
+    participant_list = participants_from_commitment_list(commitment_list)
+    lambda_i = derive_interpolating_value(identifier, participant_list)
+
+    # Compute the per-message challenge
+    challenge = compute_challenge(group_commitment, group_public_key, msg)
+
+    # Compute the signature share
+    (hiding_nonce, binding_nonce) = nonce_i
+    sig_share = hiding_nonce + (binding_nonce * binding_factor) + (lambda_i * sk_i * challenge)
+
+    return sig_share
+
+===== Signature share aggregation
+
+  Inputs:
+  - commitment_list =
+      [(j, hiding_nonce_commitment_j, binding_nonce_commitment_j), ...], a
+    list of commitments issued in Round 1 by each participant, where each element
+    in the list indicates a NonZeroScalar identifier j and two commitment
+    Element values (hiding_nonce_commitment_j, binding_nonce_commitment_j).
+    This list MUST be sorted in ascending order by identifier.
+  - msg, the message to be signed, a byte string.
+  - sig_shares, a set of signature shares z_i, Scalar values, for each participant,
+    of length NUM_PARTICIPANTS, where MIN_PARTICIPANTS <= NUM_PARTICIPANTS <= MAX_PARTICIPANTS.
+
+  Outputs:
+  - (R, z), a Schnorr signature consisting of an Element R and Scalar z.
+
+  def aggregate(commitment_list, msg, sig_shares):
+    # Compute the binding factors
+    binding_factor_list = compute_binding_factors(commitment_list, msg)
+
+    # Compute the group commitment
+    group_commitment = compute_group_commitment(commitment_list, binding_factor_list)
+
+    # Compute aggregated signature
+    z = Scalar(0)
+    for z_i in sig_shares:
+      z = z + z_i
+    return (group_commitment, z)
+
+===== Signature share verification
+
+  Inputs:
+  - identifier, identifier i of the participant, a NonZeroScalar.
+  - PK_i, the public key for the i-th participant, where PK_i = G.ScalarBaseMult(sk_i),
+    an Element.
+  - comm_i, pair of Element values in G (hiding_nonce_commitment, binding_nonce_commitment)
+    generated in round one from the i-th participant.
+  - sig_share_i, a Scalar value indicating the signature share as produced in
+    round two from the i-th participant.
+  - commitment_list =
+      [(j, hiding_nonce_commitment_j, binding_nonce_commitment_j), ...], a
+    list of commitments issued in Round 1 by each participant, where each element
+    in the list indicates a NonZeroScalar identifier j and two commitment
+    Element values (hiding_nonce_commitment_j, binding_nonce_commitment_j).
+    This list MUST be sorted in ascending order by identifier.
+  - group_public_key, public key corresponding to the group signing key,
+    an Element.
+  - msg, the message to be signed, a byte string.
+
+  Outputs:
+  - True if the signature share is valid, and False otherwise.
+
+  def verify_signature_share(identifier, PK_i, comm_i, sig_share_i, commitment_list,
+                             group_public_key, msg):
+    # Compute the binding factors
+    binding_factor_list = compute_binding_factors(commitment_list, msg)
+    binding_factor = binding_factor_for_participant(binding_factor_list, identifier)
+
+    # Compute the group commitment
+    group_commitment = compute_group_commitment(commitment_list, binding_factor_list)
+
+    # Compute the commitment share
+    (hiding_nonce_commitment, binding_nonce_commitment) = comm_i
+    comm_share = hiding_nonce_commitment + G.ScalarMult(binding_nonce_commitment, binding_factor)
+
+    # Compute the challenge
+    challenge = compute_challenge(group_commitment, group_public_key, msg)
+
+    # Compute the interpolating value
+    participant_list = participants_from_commitment_list(commitment_list)
+    lambda_i = derive_interpolating_value(identifier, participant_list)
+
+    # Compute relation values
+    l = G.ScalarBaseMult(sig_share_i)
+    r = comm_share + G.ScalarMult(PK_i, challenge * lambda_i)
+
+    return l == r
+
+
+
+
+
+
+
+
+
+
+
+
+
