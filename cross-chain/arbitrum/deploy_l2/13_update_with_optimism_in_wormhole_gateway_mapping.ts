@@ -4,11 +4,11 @@ import type { DeployFunction } from "hardhat-deploy/types"
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre
   const { execute, log } = deployments
-  const { deployer } = await getNamedAccounts()
+  const { governance } = await getNamedAccounts()
 
   // Fake OptimismWormholeGateway for local development purposes only.
   const fakeOptimismWormholeGateway =
-    "0x2af5DC16568EFF2d480a43A77E6C409e497FcFb9"
+    "0x1af5DC16568EFF2d480a43A77E6C409e497FcFb9"
 
   // See https://book.wormhole.com/reference/contracts.html
   // This ID is valid for both Optimism Goerli and Mainnet
@@ -27,8 +27,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   await execute(
-    "PolygonWormholeGateway",
-    { from: deployer, log: true, waitConfirmations: 1 },
+    "ArbitrumWormholeGateway",
+    { from: governance, log: true, waitConfirmations: 1 },
     "updateGatewayAddress",
     optimismWormholeChainID,
     ethers.utils.hexZeroPad(optimismWormholeGatewayAddress, 32)
@@ -38,4 +38,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["SetOptimismGatewayAddress"]
-func.dependencies = ["PolygonWormholeGateway"]
+func.dependencies = ["OptimismWormholeGateway"]
