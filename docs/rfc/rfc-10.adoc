@@ -212,76 +212,76 @@ inactive and misbehaving operators are identified and removed from the wallet.
 
 ==== Coordinator selection
 
-When a wallet is required to sign message msg in ethereum block B,
-one coordinator P_c is selected
+When a wallet is required to sign message msg in ethereum block `B`,
+one coordinator `P_c` is selected
 by taking the block number modulo the group size,
 and choosing the member whose index matches this number;
-c = B % n = B % 100.
+`c = B % n = B % 100`.
 
-P_c then executes the signing protocol as the coordinator.
-If a valid signature is not produced by the time block B+1 is mined,
-another coordinator P_c+1 is selected.
+`P_c` then executes the signing protocol as the coordinator.
+If a valid signature is not produced by the time block `B+1` is mined,
+another coordinator `P_c+1` is selected.
 This continues until a valid signature is produced,
 or until block B+99 when all members have become coordinators.
 
 ==== Execution
 
-1. P_c sends everyone in the group a coordinator(P_c, msg) message.
+1. `P_c` sends everyone in the group a `coordinator(P_c, msg)` message.
 
-2. When a member P_i receives a coordinator(P_c, m) message,
-they check if they have privately listed P_c as being unreliable/malicious,
-whether m is a valid message to sign,
-and whether P_c has been selected as a coordinator yet.
-If both checks are good, P_i sends P_c a message commit(P_i, cc_i, m)
-where cc_i is commit data for the Frost protocol.
-P_i does this to all coordinators P_c passing these checks.
+2. When a member `P_i` receives a `coordinator(P_c, m)` message,
+they check if they have privately listed `P_c` as being unreliable/malicious,
+whether `m` is a valid message to sign,
+and whether `P_c` has been selected as a coordinator yet.
+If both checks are good, `P_i` sends `P_c` a message `commit(P_i, cc_i, m)`
+where `cc_i` is commit data for the Frost protocol.
+`P_i` does this to all coordinators `P_c` passing these checks.
 
-3. When coordinator P_c receives a commit(P_j, cc_j, m) message,
-they check if they consider P_j reliable
-and whether m is the correct message to sign m == msg.
+3. When coordinator `P_c` receives a `commit(P_j, cc_j, m)` message,
+they check if they consider `P_j` reliable
+and whether `m` is the correct message to sign `m == msg`.
 If these checks pass,
-the commit message is added to the list of commitments cs.
+the commit message is added to the list of commitments `cs`.
 
-4. Once there are at least 51 commitments in cs,
-P_c chooses 51 members Pks = [P_k1, ..., P_k51]
+4. Once there are at least 51 commitments in `cs`,
+`P_c` chooses 51 members `Pks = [P_k1, ..., P_k51]`
 based on which commitments were received first.
-P_c then assembles the list ks consisting of the pairs
-[(P_k1, cc_k1), ..., (P_k51, cc_k51)] from those members
-and sends them to all in Pks as message signRequest(P_c, ks, msg).
-P_c also records the sent request as `requests[hash(ks)] = Pks`.
+`P_c` then assembles the list `ks` consisting of the pairs
+`[(P_k1, cc_k1), ..., (P_k51, cc_k51)]` from those members
+and sends them to all in Pks as message `signRequest(P_c, ks, msg)`.
+`P_c` also records the sent request as `requests[hash(ks)] = Pks`.
 
-5. When a member P_i who has previously sent a commit message to P_c
-receives a message signRequest(P_c, ks, m) from P_c
-and m matches the message P_i intended to sign,
-and cc_i in ks matches the commitment P_i made earlier,
-P_i calculates  the signature share s_i and new commit data cc'_i,
-and sends P_c the messages sign(P_i, s_i, m, hash(ks)) and commit(P_i, cc_i', m).
-The member P_i then goes on standby,
+5. When a member `P_i` who has previously sent a commit message to `P_c`
+receives a message `signRequest(P_c, ks, m)` from `P_c`
+and `m` matches the message `P_i` intended to sign,
+and `cc_i` in `ks` matches the commitment `P_i` made earlier,
+`P_i` calculates  the signature share `s_i` and new commit data `cc'_i`,
+and sends `P_c` the messages `sign(P_i, s_i, m, hash(ks))` and `commit(P_i, cc_i', m)`.
+The member `P_i` then goes on standby,
 waiting to execute phase 5 again if another signing request comes from the same coordinator,
 or phase 2 with a new coordinator.
 
-6. When member P_c receives sign(P_j, s_j, m, h) from P_j,
-they check if P_j was in list Pks = requests[h].
-If yes, they validate s_j and add it to the list of signature shares sks = shares[h].
-The coordinator simultaneously executes step 3 again with the commit(P_j, cc_j', m) message,
+6. When member `P_c` receives `sign(P_j, s_j, m, h)` from `P_j`,
+they check if `P_j` was in list `Pks = requests[h]`.
+If yes, they validate `s_j` and add it to the list of signature shares `sks = shares[h]`.
+The coordinator simultaneously executes step 3 again with the `commit(P_j, cc_j', m)` message,
 possibly following up with step 4 as well.
-If s_j fails the validation,
-P_c adds P_j to its list of bad participants, ignores P_j's commit message,
+If `s_j` fails the validation,
+`P_c` adds `P_j` to its list of bad participants, ignores `P_j`'s commit message,
 and returns to step 3.
 
-7. Once some sks has all 51 valid shares in it, P_c tries to assemble a signature s.
-If the signature is successful, they send a success(s, m) message to all other members
-so they know to abort the signing for m.
-P_c can now clear all data used in the execution of the protocol.
+7. Once some sks has all 51 valid shares in it, `P_c` tries to assemble a signature `s`.
+If the signature is successful, they send a `success(s, m)` message to all other members
+so they know to abort the signing for `m`.
+`P_c` can now clear all data used in the execution of the protocol.
 
-8. When member P_i receives a message success(s, m) from any other member P_j,
-they check if s is a valid signature for m,
-and that m is the correct message to sign.
-If s and m are valid, they stop executing whatever step they were in
+8. When member `P_i` receives a message `success(s, m)` from any other member `P_j`,
+they check if `s` is a valid signature for `m`,
+and that `m` is the correct message to sign.
+If `s` and `m` are valid, they stop executing whatever step they were in
 and clear all data for the execution.
-If s is invalid, P_i adds P_j to the list of bad participants.
-If m is invalid but s is valid,
-P_i should probably raise an alarm over the fraudulent signature
+If `s` is invalid, `P_i` adds `P_j` to the list of bad participants.
+If `m` is invalid but `s` is valid,
+`P_i` should probably raise an alarm over the fraudulent signature
 but in practice this shouldn't happen and is out of scope for this RFC.
 
 ==== Details
