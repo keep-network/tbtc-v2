@@ -25,7 +25,7 @@ jobs:
           filters: |
             path-filter:
               - './solidity/contracts/**'
-              - './.github/workflows/solidity-docs.yml'
+              - './.github/workflows/contracts-docs.yml'
 
   # This job will be triggered for PRs which modify contracts. It will generate
   # the archive with contracts documentation in Markdown and attatch it to the
@@ -73,7 +73,6 @@ jobs:
       # command substitutes `///` + newline + `//` + newline with just `///` +
       # newline and does this in a loop.
       preProcessingCommand: sed -i ':a;N;$!ba;s_///\n//\n_///\n_g' ./contracts/bridge/BitcoinTx.sol
-      # TODO: change publish to true, uncomment other params below, change branch to `main`
       publish: true
       verifyCommits: true
       destinationRepo: threshold-network/threshold
