@@ -78,8 +78,8 @@ jobs:
       destinationRepo: threshold-network/threshold
       destinationFolder: ./docs/app-development/tbtc-v2/tbtc-v2-api
       destinationBranch: main
-      userEmail: thesis-heimdall@users.noreply.github.com
-      userName: Heimdall
+      userEmail: thesis-valkyrie@users.noreply.github.com
+      userName: Valkyrie
     secrets:
       githubToken: ${{ secrets.THRESHOLD_DOCS_GITHUB_TOKEN }}
       gpgPrivateKey: ${{ secrets.GPG_PRIVATE_KEY }}
