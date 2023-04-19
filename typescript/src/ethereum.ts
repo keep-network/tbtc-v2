@@ -26,7 +26,7 @@ import {
   RevealedDeposit,
   DepositRevealedEvent,
 } from "./deposit"
-import { sendWithRetry } from "./ethereum-helpers"
+import { getEvents, sendWithRetry } from "./ethereum-helpers"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -197,6 +197,10 @@ class EthereumContract<T extends EthersContract> {
 
   /**
    * Get events emitted by the Ethereum contract.
+   * It starts searching from provided block number. If the {@link GetEvents.Options#fromBlock}
+   * option is missing it looks for a contract's defined property
+   * {@link _deployedAtBlockNumber}. If the property is missing starts searching
+   * from block `0`.
    * @param eventName Name of the event.
    * @param options Options for events fetching.
    * @param filterArgs Arguments for events filtering.
@@ -212,10 +216,13 @@ class EthereumContract<T extends EthersContract> {
     return backoffRetrier<EthersEvent[]>(
       options?.retries ?? this._totalRetryAttempts
     )(async () => {
-      return await this._instance.queryFilter(
+      return await getEvents(
+        this._instance,
         this._instance.filters[eventName](...filterArgs),
         options?.fromBlock ?? this._deployedAtBlockNumber,
-        options?.toBlock ?? "latest"
+        options?.toBlock,
+        options?.batchedQueryBlockInterval,
+        options?.logger
       )
     })
   }
