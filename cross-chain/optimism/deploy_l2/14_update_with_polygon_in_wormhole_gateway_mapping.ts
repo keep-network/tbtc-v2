@@ -4,7 +4,7 @@ import type { DeployFunction } from "hardhat-deploy/types"
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre
   const { execute, log } = deployments
-  const { governace } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   // Fake PolygonWormholeGateway for local development purposes only.
   const fakePolygonWormholeGateway =
@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "OptimismWormholeGateway",
-    { from: governace, log: true, waitConfirmations: 1 },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "updateGatewayAddress",
     polygonWormholeChainID,
     ethers.utils.hexZeroPad(polygonWormholeGatewayAddress, 32)
