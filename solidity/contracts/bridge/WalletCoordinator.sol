@@ -116,8 +116,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         bytes4 refundLocktime;
     }
 
-    /// @notice Mapping that holds addresses allowed to submit proposals.
-    mapping(address => bool) public isProposalSubmitter;
+    /// @notice Mapping that holds addresses allowed to submit proposals and
+    ///         request heartbeats.
+    mapping(address => bool) public isCoordinator;
 
     /// @notice Mapping that holds wallet time locks. The key is a 20-byte
     ///         wallet public key hash.
@@ -178,9 +179,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         the current market conditions.
     uint32 public depositSweepProposalSubmissionGasOffset;
 
-    event ProposalSubmitterAdded(address indexed proposalSubmitter);
+    event CoordinatorAdded(address indexed coordinator);
 
-    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
+    event CoordinatorRemoved(address indexed coordinator);
 
     event WalletManuallyUnlocked(bytes20 indexed walletPubKeyHash);
 
@@ -200,19 +201,19 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
-        address indexed proposalSubmitter
+        address indexed coordinator
     );
 
     // TODO: Enhance this modifier by adding the coordinator role check. See:
     //       https://github.com/keep-network/tbtc-v2/pull/575#discussion_r1151564813
-    modifier onlyProposalSubmitterOrWalletMember(
+    modifier onlyCoordinator(
         bytes20 walletPubKeyHash,
         WalletMemberContext calldata walletMemberContext
     ) {
-        bool proposalSubmitter = isProposalSubmitter[msg.sender];
+        bool _isCoordinator = isCoordinator[msg.sender];
         bool walletMember = false;
 
-        if (!proposalSubmitter) {
+        if (!_isCoordinator) {
             bytes32 ecdsaWalletID = bridge
                 .wallets(walletPubKeyHash)
                 .ecdsaWalletID;
@@ -226,8 +227,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         }
 
         require(
-            proposalSubmitter || walletMember,
-            "Caller is neither a proposal submitter nor a wallet member"
+            _isCoordinator || walletMember,
+            "Caller is neither a coordinator nor a wallet member"
         );
 
         _;
@@ -251,8 +252,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         __Ownable_init();
 
         bridge = _bridge;
-        // Pre-fetch wallet registry address to save gas on calls protected
-        // by the onlyProposalSubmitterOrWalletMember modifier.
+        // Pre-fetch addresses to save gas later.
         (, , walletRegistry, reimbursementPool) = _bridge.contractReferences();
 
         depositSweepProposalValidity = 4 hours;
@@ -262,38 +262,32 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositSweepProposalSubmissionGasOffset = 25000;
     }
 
-    /// @notice Adds the given address to the proposal submitters set.
-    /// @param proposalSubmitter Address of the new proposal submitter.
+    /// @notice Adds the given address to the set of coordinator addresses.
+    /// @param coordinator Address of the new coordinator.
     /// @dev Requirements:
     ///      - The caller must be the owner,
-    ///      - The `proposalSubmitter` must not be an existing proposal submitter.
-    function addProposalSubmitter(address proposalSubmitter)
-        external
-        onlyOwner
-    {
+    ///      - The `coordinator` must not be an existing coordinator.
+    function addCoordinator(address coordinator) external onlyOwner {
         require(
-            !isProposalSubmitter[proposalSubmitter],
-            "This address is already a proposal submitter"
+            !isCoordinator[coordinator],
+            "This address is already a coordinator"
         );
-        isProposalSubmitter[proposalSubmitter] = true;
-        emit ProposalSubmitterAdded(proposalSubmitter);
+        isCoordinator[coordinator] = true;
+        emit CoordinatorAdded(coordinator);
     }
 
-    /// @notice Removes the given address from the proposal submitters set.
-    /// @param proposalSubmitter Address of the existing proposal submitter.
+    /// @notice Removes the given address from the set of coordinator addresses.
+    /// @param coordinator Address of the existing coordinator.
     /// @dev Requirements:
     ///      - The caller must be the owner,
-    ///      - The `proposalSubmitter` must be an existing proposal submitter.
-    function removeProposalSubmitter(address proposalSubmitter)
-        external
-        onlyOwner
-    {
+    ///      - The `coordinator` must be an existing coordinator.
+    function removeCoordinator(address coordinator) external onlyOwner {
         require(
-            isProposalSubmitter[proposalSubmitter],
-            "This address is not a proposal submitter"
+            isCoordinator[coordinator],
+            "This address is not a coordinator"
         );
-        delete isProposalSubmitter[proposalSubmitter];
-        emit ProposalSubmitterRemoved(proposalSubmitter);
+        delete isCoordinator[coordinator];
+        emit CoordinatorRemoved(coordinator);
     }
 
     /// @notice Allows to unlock the given wallet before their time lock expires.
@@ -376,21 +370,18 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @param proposal The deposit sweep proposal
     /// @param walletMemberContext Optional parameter holding some data allowing
     ///        to confirm the wallet membership of the caller. This parameter is
-    ///        relevant only when the caller is not a registered proposal
-    ///        submitter but claims to be a member of the target wallet.
+    ///        relevant only when the caller is not a registered coordinator but
+    ///        claims to be a member of the target wallet.
     /// @dev Requirements:
-    ///      - The caller is either a proposal submitter or a member of the
-    ///        target wallet,
+    ///      - The caller is either a coordinator or a member of the target
+    ///        wallet,
     ///      - The wallet is not time-locked.
     function submitDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         WalletMemberContext calldata walletMemberContext
     )
         public
-        onlyProposalSubmitterOrWalletMember(
-            proposal.walletPubKeyHash,
-            walletMemberContext
-        )
+        onlyCoordinator(proposal.walletPubKeyHash, walletMemberContext)
         onlyAfterWalletLock(proposal.walletPubKeyHash)
     {
         walletLock[proposal.walletPubKeyHash] = WalletLock(
