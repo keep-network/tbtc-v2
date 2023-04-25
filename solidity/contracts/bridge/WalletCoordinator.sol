@@ -17,7 +17,6 @@ pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 import "@keep-network/random-beacon/contracts/Reimbursable.sol";
 import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 
@@ -120,9 +119,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @notice Handle to the Bridge contract.
     Bridge public bridge;
 
-    /// @notice Handle to the WalletRegistry contract.
-    EcdsaWalletRegistry public walletRegistry;
-
     /// @notice Determines the deposit sweep proposal validity time. In other
     ///         words, this is the worst-case time for a deposit sweep during
     ///         which the wallet is busy and cannot take another actions. This
@@ -222,7 +218,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         bridge = _bridge;
         // Pre-fetch addresses to save gas later.
-        (, , walletRegistry, reimbursementPool) = _bridge.contractReferences();
+        (, , , reimbursementPool) = _bridge.contractReferences();
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
