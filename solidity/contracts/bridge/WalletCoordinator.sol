@@ -238,12 +238,13 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         (, , , reimbursementPool) = _bridge.contractReferences();
 
         heartbeatRequestValidity = 1 hours; // TODO: Check this value!
+        heartbeatRequestGasOffset = 5_000;
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
-        depositSweepProposalSubmissionGasOffset = 25000;
+        depositSweepProposalSubmissionGasOffset = 5_000;
     }
 
     /// @notice Adds the given address to the set of coordinator addresses.
@@ -309,7 +310,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @param _depositMinAge The new value of `depositMinAge`.
     /// @param _depositRefundSafetyMargin The new value of `depositRefundSafetyMargin`.
     /// @param _depositSweepMaxSize The new value of `depositSweepMaxSize`.
-
     /// @dev Requirements:
     ///      - The caller must be the owner.
     function updateDepositSweepProposalParameters(

@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { ethers, helpers } from "hardhat"
+import { ethers, helpers, waffle } from "hardhat"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -14,6 +14,7 @@ import { walletAction, walletState } from "../fixtures"
 
 chai.use(smock.matchers)
 
+const { provider } = waffle
 const { lastBlockTime, increaseTime } = helpers.time
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { AddressZero, HashZero } = ethers.constants
@@ -40,18 +41,31 @@ describe("WalletCoordinator", () => {
 
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: FakeContract<Bridge>
-  let reimbursementPool: FakeContract<ReimbursementPool>
+  let reimbursementPool: ReimbursementPool
 
   let walletCoordinator: WalletCoordinator
 
   before(async () => {
+    const { deployer } = await helpers.signers.getNamedSigners()
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[owner, thirdParty] = await helpers.signers.getUnnamedSigners()
 
     walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
-    reimbursementPool = await smock.fake<ReimbursementPool>("ReimbursementPool")
-
     bridge = await smock.fake<Bridge>("Bridge")
+
+    const ReimbursementPool = await ethers.getContractFactory(
+      "ReimbursementPool"
+    )
+    // Using the same parameter values as currently on mainnet
+    reimbursementPool = await ReimbursementPool.connect(deployer).deploy(
+      40_800,
+      500_000_000_000
+    )
+
+    const WalletCoordinator = await ethers.getContractFactory(
+      "WalletCoordinator"
+    )
+    walletCoordinator = await WalletCoordinator.connect(deployer).deploy()
 
     bridge.contractReferences.returns([
       AddressZero,
@@ -59,14 +73,18 @@ describe("WalletCoordinator", () => {
       walletRegistry.address,
       reimbursementPool.address,
     ])
+    await walletCoordinator.connect(deployer).initialize(bridge.address)
 
-    const WalletCoordinator = await ethers.getContractFactory(
-      "WalletCoordinator"
-    )
+    await reimbursementPool
+      .connect(deployer)
+      .authorize(walletCoordinator.address)
+    await walletCoordinator.connect(deployer).transferOwnership(owner.address)
 
-    walletCoordinator = await WalletCoordinator.deploy()
-
-    await walletCoordinator.initialize(bridge.address)
+    // Fund the ReimbursementPool
+    await deployer.sendTransaction({
+      to: reimbursementPool.address,
+      value: ethers.utils.parseEther("10"),
+    })
   })
 
   describe("addCoordinator", () => {
@@ -613,14 +631,29 @@ describe("WalletCoordinator", () => {
     // assertions are already done within the scenario stressing the
     // `requestHeartbeat` function.
     context("when the caller is a coordinator", () => {
+      let coordinatorBalanceBefore: BigNumber
+      let coordinatorBalanceAfter: BigNumber
+
       before(async () => {
         await createSnapshot()
-
-        reimbursementPool.refund.returns()
 
         await walletCoordinator
           .connect(owner)
           .addCoordinator(thirdParty.address)
+
+        // The first-ever heartbeat request will be more expensive given it has
+        // to set fields to non-zero values. We shouldn't adjust gas offset
+        // based on it.
+        await walletCoordinator
+          .connect(thirdParty)
+          .requestHeartbeatWithReimbursement(
+            walletPubKeyHash,
+            "0xffffffffffffffff1111111111111111"
+          )
+        // Jump beyond the lock period.
+        await increaseTime(await walletCoordinator.heartbeatRequestValidity())
+
+        coordinatorBalanceBefore = await provider.getBalance(thirdParty.address)
 
         await walletCoordinator
           .connect(thirdParty)
@@ -628,26 +661,18 @@ describe("WalletCoordinator", () => {
             walletPubKeyHash,
             "0xffffffffffffffff1111111111111111"
           )
+
+        coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
       })
 
       after(async () => {
-        reimbursementPool.refund.reset()
-
         await restoreSnapshot()
       })
 
       it("should do the refund", async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(reimbursementPool.refund).to.have.been.calledOnce
-
-        expect(reimbursementPool.refund.getCall(0).args[0]).to.be.closeTo(
-          BigNumber.from(31000),
-          1000
-        )
-
-        expect(reimbursementPool.refund.getCall(0).args[1]).to.be.equal(
-          thirdParty.address
-        )
+        const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
       })
     })
   })
@@ -886,14 +911,38 @@ describe("WalletCoordinator", () => {
     // assertions are already done within the scenario stressing the
     // `submitDepositSweepProposal` function.
     context("when the caller is a coordinator", () => {
+      let coordinatorBalanceBefore: BigNumber
+      let coordinatorBalanceAfter: BigNumber
+
       before(async () => {
         await createSnapshot()
-
-        reimbursementPool.refund.returns()
 
         await walletCoordinator
           .connect(owner)
           .addCoordinator(thirdParty.address)
+
+        // The first-ever proposal will be more expensive given it has to set
+        // fields to non-zero values. We shouldn't adjust gas offset based on it.
+        await walletCoordinator
+          .connect(thirdParty)
+          .submitDepositSweepProposalWithReimbursement({
+            walletPubKeyHash,
+            depositsKeys: [
+              {
+                fundingTxHash:
+                  "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
+                fundingOutputIndex: 0,
+              },
+            ],
+            sweepTxFee: 5000,
+          })
+
+        // Jump beyond the lock period.
+        await increaseTime(
+          await walletCoordinator.depositSweepProposalValidity()
+        )
+
+        coordinatorBalanceBefore = await provider.getBalance(thirdParty.address)
 
         await walletCoordinator
           .connect(thirdParty)
@@ -908,26 +957,18 @@ describe("WalletCoordinator", () => {
             ],
             sweepTxFee: 5000,
           })
+
+        coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
       })
 
       after(async () => {
-        reimbursementPool.refund.reset()
-
         await restoreSnapshot()
       })
 
       it("should do the refund", async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(reimbursementPool.refund).to.have.been.calledOnce
-
-        expect(reimbursementPool.refund.getCall(0).args[0]).to.be.closeTo(
-          BigNumber.from(60000),
-          1000
-        )
-
-        expect(reimbursementPool.refund.getCall(0).args[1]).to.be.equal(
-          thirdParty.address
-        )
+        const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
       })
     })
   })
