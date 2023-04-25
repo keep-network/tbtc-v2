@@ -48,6 +48,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     enum WalletAction {
         /// @dev The wallet does not perform any action.
         Idle,
+        /// @dev The wallet is executing heartbeat.
+        Heartbeat,
         /// @dev The wallet is handling a deposit sweep action.
         DepositSweep,
         /// @dev The wallet is handling a redemption action.
@@ -119,6 +121,21 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @notice Handle to the Bridge contract.
     Bridge public bridge;
 
+    /// @notice Determines the wallet heartbeat request validity time. In other
+    ///         words, this is  the worst-case time for a wallet heartbeat
+    ///         during which the wallet is busy and canot take other actions.
+    ///         This is also the duration of the time lock applied to the wallet
+    ///         once a new heartbeat request is submitted.
+    ///
+    ///         For example, if a deposit sweep proposal was submitted at
+    ///         2 pm and heartbeatRequestValidity is 1 hour, the next request or
+    ///         proposal (of any type) can be submitted after 3 pm.
+    uint32 public heartbeatRequestValidity;
+
+    /// @notice Gas that is meant to balance the heartbeat request overall cost.
+    ///         Can be updated by the owner based on the current conditions.
+    uint32 public heartbeatRequestGasOffset; // TODO: allow to update it
+
     /// @notice Determines the deposit sweep proposal validity time. In other
     ///         words, this is the worst-case time for a deposit sweep during
     ///         which the wallet is busy and cannot take another actions. This
@@ -165,7 +182,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     /// @notice Gas that is meant to balance the deposit sweep proposal
     ///         submission overall cost. Can be updated by the owner based on
-    ///         the current market conditions.
+    ///         the current conditions.
     uint32 public depositSweepProposalSubmissionGasOffset;
 
     event CoordinatorAdded(address indexed coordinator);
@@ -173,6 +190,13 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     event CoordinatorRemoved(address indexed coordinator);
 
     event WalletManuallyUnlocked(bytes20 indexed walletPubKeyHash);
+
+    event HeartbeatRequestParametersUpdated(
+        uint32 heartbeatRequestValidity,
+        uint32 heartbeatRequestGasOffset
+    );
+
+    event HeartbeatRequestSubmitted(bytes20 walletPubKeyHash, bytes message);
 
     event DepositSweepProposalValidityUpdated(
         uint32 depositSweepProposalValidity
@@ -219,6 +243,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         bridge = _bridge;
         // Pre-fetch addresses to save gas later.
         (, , , reimbursementPool) = _bridge.contractReferences();
+
+        heartbeatRequestValidity = 1 hours; // TODO: Check this value!
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
@@ -267,6 +293,23 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         walletLock[walletPubKeyHash] = WalletLock(0, WalletAction.Idle);
         emit WalletManuallyUnlocked(walletPubKeyHash);
     }
+
+    /// @notice Updates values related to heartbeat request.
+    /// @param _heartbeatRequestValidity The new value of heartbeatRequestValidity.
+    /// @param _heartbeatRequestGasOffset The new value of heartbeatRequestGasOffset.
+    function updateHeartbeatRequestParameters(
+        uint32 _heartbeatRequestValidity,
+        uint32 _heartbeatRequestGasOffset
+    ) external onlyOwner {
+        heartbeatRequestValidity = _heartbeatRequestValidity;
+        heartbeatRequestGasOffset = _heartbeatRequestGasOffset;
+        emit HeartbeatRequestParametersUpdated(
+            _heartbeatRequestValidity,
+            _heartbeatRequestGasOffset
+        );
+    }
+
+    // TODO: Introduce updateDepositSweepParameters to save on contract size (?)
 
     /// @notice Updates the value of the depositSweepProposalValidity parameter.
     /// @param _depositSweepProposalValidity New value.
@@ -323,6 +366,53 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositSweepProposalSubmissionGasOffset = _depositSweepProposalSubmissionGasOffset;
         emit DepositSweepProposalSubmissionGasOffsetUpdated(
             _depositSweepProposalSubmissionGasOffset
+        );
+    }
+
+    /// @notice Submits a heartbeat request from the wallet. Locks the wallet
+    ///         for a specific time, equal to the request validity period.
+    ///         This function validates the proposed heartbeat messge to see
+    ///         if it matches the heartbeat format expected by the Bridge.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet that is
+    ///        supposed to execute the heartbeat.
+    /// @param message The proposed heartbeat message for the wallet to sign.
+    /// @dev Requirements:
+    ///      - The caller is a coordinator,
+    ///      - The wallet is not time-locked,
+    ///      - The message to sign is a valid heartbeat message.
+    function requestHeartbeat(bytes20 walletPubKeyHash, bytes calldata message)
+        public
+        onlyCoordinator
+        onlyAfterWalletLock(walletPubKeyHash)
+    {
+        require(
+            Heartbeat.isValidHeartbeatMessage(message),
+            "Not a valid heartbeat message"
+        );
+
+        walletLock[walletPubKeyHash] = WalletLock(
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp) + heartbeatRequestValidity,
+            WalletAction.Heartbeat
+        );
+
+        emit HeartbeatRequestSubmitted(walletPubKeyHash, message);
+    }
+
+    /// @notice Wraps `requestHeartbeat` call and reimburses the caller's
+    ///         transaction cost.
+    /// @dev See `requestHeartbeat` function documentation.
+    function requestHeartbeatWithReimbursement(
+        bytes20 walletPubKeyHash,
+        bytes calldata message
+    ) external {
+        uint256 gasStart = gasleft();
+
+        requestHeartbeat(walletPubKeyHash, message);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + heartbeatRequestGasOffset,
+            msg.sender
         );
     }
 
