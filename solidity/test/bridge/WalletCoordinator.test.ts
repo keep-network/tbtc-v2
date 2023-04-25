@@ -320,7 +320,7 @@ describe("WalletCoordinator", () => {
     })
   })
 
-  describe("updateDepositSweepProposalValidity", () => {
+  describe("updateDepositSweepProposalParameters", () => {
     before(async () => {
       await createSnapshot()
     })
@@ -334,7 +334,7 @@ describe("WalletCoordinator", () => {
         await expect(
           walletCoordinator
             .connect(thirdParty)
-            .updateDepositSweepProposalValidity(120)
+            .updateDepositSweepProposalParameters(101, 102, 103, 104, 105)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -347,208 +347,31 @@ describe("WalletCoordinator", () => {
 
         tx = await walletCoordinator
           .connect(owner)
-          .updateDepositSweepProposalValidity(120)
+          .updateDepositSweepProposalParameters(101, 102, 103, 104, 105)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should update the parameter", async () => {
+      it("should update deposit sweep proposal parameters", async () => {
         expect(
           await walletCoordinator.depositSweepProposalValidity()
-        ).to.be.equal(120)
-      })
-
-      it("should emit the DepositSweepProposalValidityUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositSweepProposalValidityUpdated")
-          .withArgs(120)
-      })
-    })
-  })
-
-  describe("updateDepositMinAge", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator.connect(thirdParty).updateDepositMinAge(140)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator.connect(owner).updateDepositMinAge(140)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
-        expect(await walletCoordinator.depositMinAge()).to.be.equal(140)
-      })
-
-      it("should emit the DepositMinAgeUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositMinAgeUpdated")
-          .withArgs(140)
-      })
-    })
-  })
-
-  describe("updateDepositRefundSafetyMargin", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator
-            .connect(thirdParty)
-            .updateDepositRefundSafetyMargin(160)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator
-          .connect(owner)
-          .updateDepositRefundSafetyMargin(160)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
+        ).to.be.equal(101)
+        expect(await walletCoordinator.depositMinAge()).to.be.equal(102)
         expect(await walletCoordinator.depositRefundSafetyMargin()).to.be.equal(
-          160
+          103
         )
-      })
-
-      it("should emit the DepositRefundSafetyMarginUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositRefundSafetyMarginUpdated")
-          .withArgs(160)
-      })
-    })
-  })
-
-  describe("updateDepositSweepMaxSize", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator.connect(thirdParty).updateDepositSweepMaxSize(15)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator
-          .connect(owner)
-          .updateDepositSweepMaxSize(15)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
-        expect(await walletCoordinator.depositSweepMaxSize()).to.be.equal(15)
-      })
-
-      it("should emit the DepositSweepMaxSizeUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositSweepMaxSizeUpdated")
-          .withArgs(15)
-      })
-    })
-  })
-
-  describe("updateDepositSweepProposalSubmissionGasOffset", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator
-            .connect(thirdParty)
-            .updateDepositSweepProposalSubmissionGasOffset(1000000)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator
-          .connect(owner)
-          .updateDepositSweepProposalSubmissionGasOffset(1000000)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
+        expect(await walletCoordinator.depositSweepMaxSize()).to.be.equal(104)
         expect(
           await walletCoordinator.depositSweepProposalSubmissionGasOffset()
-        ).to.be.equal(1000000)
+        ).to.be.equal(105)
       })
 
-      it("should emit the DepositSweepProposalSubmissionGasOffsetUpdated event", async () => {
+      it("should emit the DepositSweepProposalParametersUpdated event", async () => {
         await expect(tx)
-          .to.emit(
-            walletCoordinator,
-            "DepositSweepProposalSubmissionGasOffsetUpdated"
-          )
-          .withArgs(1000000)
+          .to.emit(walletCoordinator, "DepositSweepProposalParametersUpdated")
+          .withArgs(101, 102, 103, 104, 105)
       })
     })
   })

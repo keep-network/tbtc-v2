@@ -134,7 +134,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     /// @notice Gas that is meant to balance the heartbeat request overall cost.
     ///         Can be updated by the owner based on the current conditions.
-    uint32 public heartbeatRequestGasOffset; // TODO: allow to update it
+    uint32 public heartbeatRequestGasOffset;
 
     /// @notice Determines the deposit sweep proposal validity time. In other
     ///         words, this is the worst-case time for a deposit sweep during
@@ -198,17 +198,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event HeartbeatRequestSubmitted(bytes20 walletPubKeyHash, bytes message);
 
-    event DepositSweepProposalValidityUpdated(
-        uint32 depositSweepProposalValidity
-    );
-
-    event DepositMinAgeUpdated(uint32 depositMinAge);
-
-    event DepositRefundSafetyMarginUpdated(uint32 depositRefundSafetyMargin);
-
-    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
-
-    event DepositSweepProposalSubmissionGasOffsetUpdated(
+    event DepositSweepProposalParametersUpdated(
+        uint32 depositSweepProposalValidity,
+        uint32 depositMinAge,
+        uint32 depositRefundSafetyMargin,
+        uint16 depositSweepMaxSize,
         uint32 depositSweepProposalSubmissionGasOffset
     );
 
@@ -219,7 +213,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     modifier onlyCoordinator() {
         require(isCoordinator[msg.sender], "Caller is not a coordinator");
-
         _;
     }
 
@@ -294,9 +287,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         emit WalletManuallyUnlocked(walletPubKeyHash);
     }
 
-    /// @notice Updates values related to heartbeat request.
-    /// @param _heartbeatRequestValidity The new value of heartbeatRequestValidity.
-    /// @param _heartbeatRequestGasOffset The new value of heartbeatRequestGasOffset.
+    /// @notice Updates parameters related to heartbeat request.
+    /// @param _heartbeatRequestValidity The new value of `heartbeatRequestValidity`.
+    /// @param _heartbeatRequestGasOffset The new value of `heartbeatRequestGasOffset`.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
     function updateHeartbeatRequestParameters(
         uint32 _heartbeatRequestValidity,
         uint32 _heartbeatRequestGasOffset
@@ -309,62 +304,32 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         );
     }
 
-    // TODO: Introduce updateDepositSweepParameters to save on contract size (?)
+    /// @notice Updates parameters related to deposit sweep proposal.
+    /// @param _depositSweepProposalValidity The new value of `depositSweepProposalValidity`.
+    /// @param _depositMinAge The new value of `depositMinAge`.
+    /// @param _depositRefundSafetyMargin The new value of `depositRefundSafetyMargin`.
+    /// @param _depositSweepMaxSize The new value of `depositSweepMaxSize`.
 
-    /// @notice Updates the value of the depositSweepProposalValidity parameter.
-    /// @param _depositSweepProposalValidity New value.
     /// @dev Requirements:
     ///      - The caller must be the owner.
-    function updateDepositSweepProposalValidity(
-        uint32 _depositSweepProposalValidity
-    ) external onlyOwner {
-        depositSweepProposalValidity = _depositSweepProposalValidity;
-        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
-    }
-
-    /// @notice Updates the value of the depositMinAge parameter.
-    /// @param _depositMinAge New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
-        depositMinAge = _depositMinAge;
-        emit DepositMinAgeUpdated(_depositMinAge);
-    }
-
-    /// @notice Updates the value of the depositRefundSafetyMargin parameter.
-    /// @param _depositRefundSafetyMargin New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositRefundSafetyMargin(uint32 _depositRefundSafetyMargin)
-        external
-        onlyOwner
-    {
-        depositRefundSafetyMargin = _depositRefundSafetyMargin;
-        emit DepositRefundSafetyMarginUpdated(_depositRefundSafetyMargin);
-    }
-
-    /// @notice Updates the value of the depositSweepMaxSize parameter.
-    /// @param _depositSweepMaxSize New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
-        external
-        onlyOwner
-    {
-        depositSweepMaxSize = _depositSweepMaxSize;
-        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
-    }
-
-    /// @notice Updates the value of the depositSweepProposalSubmissionGasOffset
-    ///         parameter.
-    /// @param _depositSweepProposalSubmissionGasOffset New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepProposalSubmissionGasOffset(
+    function updateDepositSweepProposalParameters(
+        uint32 _depositSweepProposalValidity,
+        uint32 _depositMinAge,
+        uint32 _depositRefundSafetyMargin,
+        uint16 _depositSweepMaxSize,
         uint32 _depositSweepProposalSubmissionGasOffset
     ) external onlyOwner {
+        depositSweepProposalValidity = _depositSweepProposalValidity;
+        depositMinAge = _depositMinAge;
+        depositRefundSafetyMargin = _depositRefundSafetyMargin;
+        depositSweepMaxSize = _depositSweepMaxSize;
         depositSweepProposalSubmissionGasOffset = _depositSweepProposalSubmissionGasOffset;
-        emit DepositSweepProposalSubmissionGasOffsetUpdated(
+
+        emit DepositSweepProposalParametersUpdated(
+            _depositSweepProposalValidity,
+            _depositMinAge,
+            _depositRefundSafetyMargin,
+            _depositSweepMaxSize,
             _depositSweepProposalSubmissionGasOffset
         );
     }
