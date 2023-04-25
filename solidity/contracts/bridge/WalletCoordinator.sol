@@ -70,13 +70,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         WalletAction cause;
     }
 
-    /// @notice Helper structure carrying data necessary to validate the wallet
-    ///         membership of the caller.
-    struct WalletMemberContext {
-        uint32[] walletMembersIDs;
-        uint256 walletMemberIndex;
-    }
-
     /// @notice Helper structure representing a deposit sweep proposal.
     struct DepositSweepProposal {
         // 20-byte public key hash of the target wallet.
@@ -204,32 +197,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         address indexed coordinator
     );
 
-    // TODO: Enhance this modifier by adding the coordinator role check. See:
-    //       https://github.com/keep-network/tbtc-v2/pull/575#discussion_r1151564813
-    modifier onlyCoordinator(
-        bytes20 walletPubKeyHash,
-        WalletMemberContext calldata walletMemberContext
-    ) {
-        bool _isCoordinator = isCoordinator[msg.sender];
-        bool walletMember = false;
-
-        if (!_isCoordinator) {
-            bytes32 ecdsaWalletID = bridge
-                .wallets(walletPubKeyHash)
-                .ecdsaWalletID;
-
-            walletMember = walletRegistry.isWalletMember(
-                ecdsaWalletID,
-                walletMemberContext.walletMembersIDs,
-                msg.sender,
-                walletMemberContext.walletMemberIndex
-            );
-        }
-
-        require(
-            _isCoordinator || walletMember,
-            "Caller is neither a coordinator nor a wallet member"
-        );
+    modifier onlyCoordinator() {
+        require(isCoordinator[msg.sender], "Caller is not a coordinator");
 
         _;
     }
@@ -368,20 +337,12 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         off-chain members. Wallet members are supposed to validate
     ///         the proposal on their own, before taking any action.
     /// @param proposal The deposit sweep proposal
-    /// @param walletMemberContext Optional parameter holding some data allowing
-    ///        to confirm the wallet membership of the caller. This parameter is
-    ///        relevant only when the caller is not a registered coordinator but
-    ///        claims to be a member of the target wallet.
     /// @dev Requirements:
-    ///      - The caller is either a coordinator or a member of the target
-    ///        wallet,
+    ///      - The caller is a coordinator,
     ///      - The wallet is not time-locked.
-    function submitDepositSweepProposal(
-        DepositSweepProposal calldata proposal,
-        WalletMemberContext calldata walletMemberContext
-    )
+    function submitDepositSweepProposal(DepositSweepProposal calldata proposal)
         public
-        onlyCoordinator(proposal.walletPubKeyHash, walletMemberContext)
+        onlyCoordinator
         onlyAfterWalletLock(proposal.walletPubKeyHash)
     {
         walletLock[proposal.walletPubKeyHash] = WalletLock(
@@ -397,12 +358,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         caller's transaction cost.
     /// @dev See `submitDepositSweepProposal` function documentation.
     function submitDepositSweepProposalWithReimbursement(
-        DepositSweepProposal calldata proposal,
-        WalletMemberContext calldata walletMemberContext
+        DepositSweepProposal calldata proposal
     ) external {
         uint256 gasStart = gasleft();
 
-        submitDepositSweepProposal(proposal, walletMemberContext);
+        submitDepositSweepProposal(proposal);
 
         reimbursementPool.refund(
             (gasStart - gasleft()) + depositSweepProposalSubmissionGasOffset,
