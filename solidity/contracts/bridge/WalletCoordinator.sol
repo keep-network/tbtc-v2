@@ -237,7 +237,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         // Pre-fetch addresses to save gas later.
         (, , , reimbursementPool) = _bridge.contractReferences();
 
-        heartbeatRequestValidity = 1 hours; // TODO: Check this value!
+        heartbeatRequestValidity = 1 hours;
         heartbeatRequestGasOffset = 5_000;
 
         depositSweepProposalValidity = 4 hours;
