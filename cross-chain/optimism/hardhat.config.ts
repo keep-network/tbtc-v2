@@ -117,7 +117,7 @@ const config: HardhatUserConfig = {
       goerli: 0,
       optimismGoerli: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
-      optimism: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+      optimism: "0x7fB50BBabeDEE52b8760Ba15c0c199aF33Fc2EfA",
     },
   },
   mocha: {
