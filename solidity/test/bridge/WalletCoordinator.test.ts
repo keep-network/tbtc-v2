@@ -586,7 +586,11 @@ describe("WalletCoordinator", () => {
           it("should emit the HeartbeatRequestSubmitted event", async () => {
             await expect(tx)
               .to.emit(walletCoordinator, "HeartbeatRequestSubmitted")
-              .withArgs(walletPubKeyHash, "0xffffffffffffffff1111111111111111")
+              .withArgs(
+                walletPubKeyHash,
+                "0xffffffffffffffff1111111111111111",
+                thirdParty.address
+              )
           })
         })
       })

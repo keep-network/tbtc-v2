@@ -196,7 +196,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         uint32 heartbeatRequestGasOffset
     );
 
-    event HeartbeatRequestSubmitted(bytes20 walletPubKeyHash, bytes message);
+    event HeartbeatRequestSubmitted(
+        bytes20 walletPubKeyHash,
+        bytes message,
+        address indexed coordinator
+    );
 
     event DepositSweepProposalParametersUpdated(
         uint32 depositSweepProposalValidity,
@@ -361,7 +365,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
             WalletAction.Heartbeat
         );
 
-        emit HeartbeatRequestSubmitted(walletPubKeyHash, message);
+        emit HeartbeatRequestSubmitted(walletPubKeyHash, message, msg.sender);
     }
 
     /// @notice Wraps `requestHeartbeat` call and reimburses the caller's
