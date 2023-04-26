@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { ethers, helpers } from "hardhat"
+import { ethers, helpers, waffle } from "hardhat"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -14,6 +14,7 @@ import { walletAction, walletState } from "../fixtures"
 
 chai.use(smock.matchers)
 
+const { provider } = waffle
 const { lastBlockTime, increaseTime } = helpers.time
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { AddressZero, HashZero } = ethers.constants
@@ -40,18 +41,31 @@ describe("WalletCoordinator", () => {
 
   let walletRegistry: FakeContract<IWalletRegistry>
   let bridge: FakeContract<Bridge>
-  let reimbursementPool: FakeContract<ReimbursementPool>
+  let reimbursementPool: ReimbursementPool
 
   let walletCoordinator: WalletCoordinator
 
   before(async () => {
+    const { deployer } = await helpers.signers.getNamedSigners()
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
     ;[owner, thirdParty] = await helpers.signers.getUnnamedSigners()
 
     walletRegistry = await smock.fake<IWalletRegistry>("IWalletRegistry")
-    reimbursementPool = await smock.fake<ReimbursementPool>("ReimbursementPool")
-
     bridge = await smock.fake<Bridge>("Bridge")
+
+    const ReimbursementPool = await ethers.getContractFactory(
+      "ReimbursementPool"
+    )
+    // Using the same parameter values as currently on mainnet
+    reimbursementPool = await ReimbursementPool.connect(deployer).deploy(
+      40_800,
+      500_000_000_000
+    )
+
+    const WalletCoordinator = await ethers.getContractFactory(
+      "WalletCoordinator"
+    )
+    walletCoordinator = await WalletCoordinator.connect(deployer).deploy()
 
     bridge.contractReferences.returns([
       AddressZero,
@@ -59,14 +73,18 @@ describe("WalletCoordinator", () => {
       walletRegistry.address,
       reimbursementPool.address,
     ])
+    await walletCoordinator.connect(deployer).initialize(bridge.address)
 
-    const WalletCoordinator = await ethers.getContractFactory(
-      "WalletCoordinator"
-    )
+    await reimbursementPool
+      .connect(deployer)
+      .authorize(walletCoordinator.address)
+    await walletCoordinator.connect(deployer).transferOwnership(owner.address)
 
-    walletCoordinator = await WalletCoordinator.deploy()
-
-    await walletCoordinator.initialize(bridge.address)
+    // Fund the ReimbursementPool
+    await deployer.sendTransaction({
+      to: reimbursementPool.address,
+      value: ethers.utils.parseEther("10"),
+    })
   })
 
   describe("addCoordinator", () => {
@@ -269,7 +287,7 @@ describe("WalletCoordinator", () => {
     })
   })
 
-  describe("updateDepositSweepProposalValidity", () => {
+  describe("updateHeartbeatRequestParameters", () => {
     before(async () => {
       await createSnapshot()
     })
@@ -283,7 +301,7 @@ describe("WalletCoordinator", () => {
         await expect(
           walletCoordinator
             .connect(thirdParty)
-            .updateDepositSweepProposalValidity(120)
+            .updateHeartbeatRequestParameters(3600, 1000)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -296,162 +314,31 @@ describe("WalletCoordinator", () => {
 
         tx = await walletCoordinator
           .connect(owner)
-          .updateDepositSweepProposalValidity(120)
+          .updateHeartbeatRequestParameters(125, 126)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should update the parameter", async () => {
-        expect(
-          await walletCoordinator.depositSweepProposalValidity()
-        ).to.be.equal(120)
-      })
-
-      it("should emit the DepositSweepProposalValidityUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositSweepProposalValidityUpdated")
-          .withArgs(120)
-      })
-    })
-  })
-
-  describe("updateDepositMinAge", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator.connect(thirdParty).updateDepositMinAge(140)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator.connect(owner).updateDepositMinAge(140)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
-        expect(await walletCoordinator.depositMinAge()).to.be.equal(140)
-      })
-
-      it("should emit the DepositMinAgeUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositMinAgeUpdated")
-          .withArgs(140)
-      })
-    })
-  })
-
-  describe("updateDepositRefundSafetyMargin", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator
-            .connect(thirdParty)
-            .updateDepositRefundSafetyMargin(160)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator
-          .connect(owner)
-          .updateDepositRefundSafetyMargin(160)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
-        expect(await walletCoordinator.depositRefundSafetyMargin()).to.be.equal(
-          160
+      it("should update heartbeat parameters", async () => {
+        expect(await walletCoordinator.heartbeatRequestValidity()).to.be.equal(
+          125
+        )
+        expect(await walletCoordinator.heartbeatRequestGasOffset()).to.be.equal(
+          126
         )
       })
 
-      it("should emit the DepositRefundSafetyMarginUpdated event", async () => {
+      it("should emit the HeartbeatRequestParametersUpdated event", async () => {
         await expect(tx)
-          .to.emit(walletCoordinator, "DepositRefundSafetyMarginUpdated")
-          .withArgs(160)
+          .to.emit(walletCoordinator, "HeartbeatRequestParametersUpdated")
+          .withArgs(125, 126)
       })
     })
   })
 
-  describe("updateDepositSweepMaxSize", () => {
-    before(async () => {
-      await createSnapshot()
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called by a third party", () => {
-      it("should revert", async () => {
-        await expect(
-          walletCoordinator.connect(thirdParty).updateDepositSweepMaxSize(15)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
-    context("when called by the owner", () => {
-      let tx: ContractTransaction
-
-      before(async () => {
-        await createSnapshot()
-
-        tx = await walletCoordinator
-          .connect(owner)
-          .updateDepositSweepMaxSize(15)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
-      it("should update the parameter", async () => {
-        expect(await walletCoordinator.depositSweepMaxSize()).to.be.equal(15)
-      })
-
-      it("should emit the DepositSweepMaxSizeUpdated event", async () => {
-        await expect(tx)
-          .to.emit(walletCoordinator, "DepositSweepMaxSizeUpdated")
-          .withArgs(15)
-      })
-    })
-  })
-
-  describe("updateDepositSweepProposalSubmissionGasOffset", () => {
+  describe("updateDepositSweepProposalParameters", () => {
     before(async () => {
       await createSnapshot()
     })
@@ -465,7 +352,7 @@ describe("WalletCoordinator", () => {
         await expect(
           walletCoordinator
             .connect(thirdParty)
-            .updateDepositSweepProposalSubmissionGasOffset(1000000)
+            .updateDepositSweepProposalParameters(101, 102, 103, 104, 105)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -478,26 +365,31 @@ describe("WalletCoordinator", () => {
 
         tx = await walletCoordinator
           .connect(owner)
-          .updateDepositSweepProposalSubmissionGasOffset(1000000)
+          .updateDepositSweepProposalParameters(101, 102, 103, 104, 105)
       })
 
       after(async () => {
         await restoreSnapshot()
       })
 
-      it("should update the parameter", async () => {
+      it("should update deposit sweep proposal parameters", async () => {
+        expect(
+          await walletCoordinator.depositSweepProposalValidity()
+        ).to.be.equal(101)
+        expect(await walletCoordinator.depositMinAge()).to.be.equal(102)
+        expect(await walletCoordinator.depositRefundSafetyMargin()).to.be.equal(
+          103
+        )
+        expect(await walletCoordinator.depositSweepMaxSize()).to.be.equal(104)
         expect(
           await walletCoordinator.depositSweepProposalSubmissionGasOffset()
-        ).to.be.equal(1000000)
+        ).to.be.equal(105)
       })
 
-      it("should emit the DepositSweepProposalSubmissionGasOffsetUpdated event", async () => {
+      it("should emit the DepositSweepProposalParametersUpdated event", async () => {
         await expect(tx)
-          .to.emit(
-            walletCoordinator,
-            "DepositSweepProposalSubmissionGasOffsetUpdated"
-          )
-          .withArgs(1000000)
+          .to.emit(walletCoordinator, "DepositSweepProposalParametersUpdated")
+          .withArgs(101, 102, 103, 104, 105)
       })
     })
   })
@@ -545,6 +437,242 @@ describe("WalletCoordinator", () => {
         await expect(tx)
           .to.emit(walletCoordinator, "ReimbursementPoolUpdated")
           .withArgs(thirdParty.address)
+      })
+    })
+  })
+
+  describe("requestHeartbeat", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is not a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        const tx = walletCoordinator
+          .connect(thirdParty)
+          .requestHeartbeat(
+            walletPubKeyHash,
+            "0xffffffffffffffff1111111111111111"
+          )
+
+        await expect(tx).to.be.revertedWith("Caller is not a coordinator")
+      })
+    })
+
+    context("when the caller is a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await walletCoordinator
+          .connect(owner)
+          .addCoordinator(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the wallet is time-locked", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Submit a request to set a wallet time lock.
+          await walletCoordinator
+            .connect(thirdParty)
+            .requestHeartbeat(
+              walletPubKeyHash,
+              "0xffffffffffffffff1111111111111111"
+            )
+
+          // Jump to the end of the lock period but not beyond it.
+          await increaseTime(
+            (await walletCoordinator.heartbeatRequestValidity()) - 1
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            walletCoordinator
+              .connect(thirdParty)
+              .requestHeartbeat(
+                walletPubKeyHash,
+                "0xffffffffffffffff1111111111111111"
+              )
+          ).to.be.revertedWith("Wallet locked")
+        })
+      })
+
+      context("when the wallet is not time-locked", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await walletCoordinator
+            .connect(thirdParty)
+            .requestHeartbeat(
+              walletPubKeyHash,
+              "0xffffffffffffffff1111111111111111"
+            )
+
+          // Jump beyond the lock period.
+          await increaseTime(await walletCoordinator.heartbeatRequestValidity())
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when the message is not a valid heartbeat", () => {
+          it("should revert", async () => {
+            await expect(
+              walletCoordinator
+                .connect(thirdParty)
+                .requestHeartbeat(
+                  walletPubKeyHash,
+                  "0xff000000000000000000000000000000"
+                )
+            ).to.be.revertedWith("Not a valid heartbeat message")
+          })
+        })
+
+        context("when the message is a valid heartbeat", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            tx = await walletCoordinator
+              .connect(thirdParty)
+              .requestHeartbeat(
+                walletPubKeyHash,
+                "0xffffffffffffffff1111111111111111"
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should time lock the wallet", async () => {
+            const lockedUntil =
+              (await lastBlockTime()) +
+              (await walletCoordinator.heartbeatRequestValidity())
+
+            const walletLock = await walletCoordinator.walletLock(
+              walletPubKeyHash
+            )
+
+            expect(walletLock.expiresAt).to.be.equal(lockedUntil)
+            expect(walletLock.cause).to.be.equal(walletAction.Heartbeat)
+          })
+
+          it("should emit the HeartbeatRequestSubmitted event", async () => {
+            await expect(tx)
+              .to.emit(walletCoordinator, "HeartbeatRequestSubmitted")
+              .withArgs(walletPubKeyHash, "0xffffffffffffffff1111111111111111")
+          })
+        })
+      })
+    })
+  })
+
+  describe("requestHeartbeatWithReimbursement", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    // Just double check that `requestHeartbeatWithReimbursement` has
+    // the same ACL as `requestHeartbeat`.
+    context("when the caller is not a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        const tx = walletCoordinator
+          .connect(thirdParty)
+          .requestHeartbeatWithReimbursement(
+            walletPubKeyHash,
+            "0xffffffffffffffff1111111111111111"
+          )
+
+        await expect(tx).to.be.revertedWith("Caller is not a coordinator")
+      })
+    })
+
+    // Here we just check that the reimbursement works. Detailed
+    // assertions are already done within the scenario stressing the
+    // `requestHeartbeat` function.
+    context("when the caller is a coordinator", () => {
+      let coordinatorBalanceBefore: BigNumber
+      let coordinatorBalanceAfter: BigNumber
+
+      before(async () => {
+        await createSnapshot()
+
+        await walletCoordinator
+          .connect(owner)
+          .addCoordinator(thirdParty.address)
+
+        // The first-ever heartbeat request will be more expensive given it has
+        // to set fields to non-zero values. We shouldn't adjust gas offset
+        // based on it.
+        await walletCoordinator
+          .connect(thirdParty)
+          .requestHeartbeatWithReimbursement(
+            walletPubKeyHash,
+            "0xffffffffffffffff1111111111111111"
+          )
+        // Jump beyond the lock period.
+        await increaseTime(await walletCoordinator.heartbeatRequestValidity())
+
+        coordinatorBalanceBefore = await provider.getBalance(thirdParty.address)
+
+        await walletCoordinator
+          .connect(thirdParty)
+          .requestHeartbeatWithReimbursement(
+            walletPubKeyHash,
+            "0xffffffffffffffff1111111111111111"
+          )
+
+        coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do the refund", async () => {
+        const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
       })
     })
   })
@@ -783,14 +911,38 @@ describe("WalletCoordinator", () => {
     // assertions are already done within the scenario stressing the
     // `submitDepositSweepProposal` function.
     context("when the caller is a coordinator", () => {
+      let coordinatorBalanceBefore: BigNumber
+      let coordinatorBalanceAfter: BigNumber
+
       before(async () => {
         await createSnapshot()
-
-        reimbursementPool.refund.returns()
 
         await walletCoordinator
           .connect(owner)
           .addCoordinator(thirdParty.address)
+
+        // The first-ever proposal will be more expensive given it has to set
+        // fields to non-zero values. We shouldn't adjust gas offset based on it.
+        await walletCoordinator
+          .connect(thirdParty)
+          .submitDepositSweepProposalWithReimbursement({
+            walletPubKeyHash,
+            depositsKeys: [
+              {
+                fundingTxHash:
+                  "0x51f373dcbb6122bcb1c62964b5f3be923092dc64bc9e31257931d58c4eadb9f5",
+                fundingOutputIndex: 0,
+              },
+            ],
+            sweepTxFee: 5000,
+          })
+
+        // Jump beyond the lock period.
+        await increaseTime(
+          await walletCoordinator.depositSweepProposalValidity()
+        )
+
+        coordinatorBalanceBefore = await provider.getBalance(thirdParty.address)
 
         await walletCoordinator
           .connect(thirdParty)
@@ -805,26 +957,18 @@ describe("WalletCoordinator", () => {
             ],
             sweepTxFee: 5000,
           })
+
+        coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
       })
 
       after(async () => {
-        reimbursementPool.refund.reset()
-
         await restoreSnapshot()
       })
 
       it("should do the refund", async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(reimbursementPool.refund).to.have.been.calledOnce
-
-        expect(reimbursementPool.refund.getCall(0).args[0]).to.be.closeTo(
-          BigNumber.from(60000),
-          1000
-        )
-
-        expect(reimbursementPool.refund.getCall(0).args[1]).to.be.equal(
-          thirdParty.address
-        )
+        const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
       })
     })
   })

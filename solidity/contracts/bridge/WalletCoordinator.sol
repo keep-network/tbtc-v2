@@ -48,6 +48,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     enum WalletAction {
         /// @dev The wallet does not perform any action.
         Idle,
+        /// @dev The wallet is executing heartbeat.
+        Heartbeat,
         /// @dev The wallet is handling a deposit sweep action.
         DepositSweep,
         /// @dev The wallet is handling a redemption action.
@@ -119,6 +121,21 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @notice Handle to the Bridge contract.
     Bridge public bridge;
 
+    /// @notice Determines the wallet heartbeat request validity time. In other
+    ///         words, this is  the worst-case time for a wallet heartbeat
+    ///         during which the wallet is busy and canot take other actions.
+    ///         This is also the duration of the time lock applied to the wallet
+    ///         once a new heartbeat request is submitted.
+    ///
+    ///         For example, if a deposit sweep proposal was submitted at
+    ///         2 pm and heartbeatRequestValidity is 1 hour, the next request or
+    ///         proposal (of any type) can be submitted after 3 pm.
+    uint32 public heartbeatRequestValidity;
+
+    /// @notice Gas that is meant to balance the heartbeat request overall cost.
+    ///         Can be updated by the owner based on the current conditions.
+    uint32 public heartbeatRequestGasOffset;
+
     /// @notice Determines the deposit sweep proposal validity time. In other
     ///         words, this is the worst-case time for a deposit sweep during
     ///         which the wallet is busy and cannot take another actions. This
@@ -165,7 +182,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     /// @notice Gas that is meant to balance the deposit sweep proposal
     ///         submission overall cost. Can be updated by the owner based on
-    ///         the current market conditions.
+    ///         the current conditions.
     uint32 public depositSweepProposalSubmissionGasOffset;
 
     event CoordinatorAdded(address indexed coordinator);
@@ -174,17 +191,18 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event WalletManuallyUnlocked(bytes20 indexed walletPubKeyHash);
 
-    event DepositSweepProposalValidityUpdated(
-        uint32 depositSweepProposalValidity
+    event HeartbeatRequestParametersUpdated(
+        uint32 heartbeatRequestValidity,
+        uint32 heartbeatRequestGasOffset
     );
 
-    event DepositMinAgeUpdated(uint32 depositMinAge);
+    event HeartbeatRequestSubmitted(bytes20 walletPubKeyHash, bytes message);
 
-    event DepositRefundSafetyMarginUpdated(uint32 depositRefundSafetyMargin);
-
-    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
-
-    event DepositSweepProposalSubmissionGasOffsetUpdated(
+    event DepositSweepProposalParametersUpdated(
+        uint32 depositSweepProposalValidity,
+        uint32 depositMinAge,
+        uint32 depositRefundSafetyMargin,
+        uint16 depositSweepMaxSize,
         uint32 depositSweepProposalSubmissionGasOffset
     );
 
@@ -195,7 +213,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     modifier onlyCoordinator() {
         require(isCoordinator[msg.sender], "Caller is not a coordinator");
-
         _;
     }
 
@@ -220,11 +237,14 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         // Pre-fetch addresses to save gas later.
         (, , , reimbursementPool) = _bridge.contractReferences();
 
+        heartbeatRequestValidity = 1 hours;
+        heartbeatRequestGasOffset = 5_000;
+
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
-        depositSweepProposalSubmissionGasOffset = 25000;
+        depositSweepProposalSubmissionGasOffset = 5_000;
     }
 
     /// @notice Adds the given address to the set of coordinator addresses.
@@ -268,61 +288,96 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         emit WalletManuallyUnlocked(walletPubKeyHash);
     }
 
-    /// @notice Updates the value of the depositSweepProposalValidity parameter.
-    /// @param _depositSweepProposalValidity New value.
+    /// @notice Updates parameters related to heartbeat request.
+    /// @param _heartbeatRequestValidity The new value of `heartbeatRequestValidity`.
+    /// @param _heartbeatRequestGasOffset The new value of `heartbeatRequestGasOffset`.
     /// @dev Requirements:
     ///      - The caller must be the owner.
-    function updateDepositSweepProposalValidity(
-        uint32 _depositSweepProposalValidity
+    function updateHeartbeatRequestParameters(
+        uint32 _heartbeatRequestValidity,
+        uint32 _heartbeatRequestGasOffset
     ) external onlyOwner {
-        depositSweepProposalValidity = _depositSweepProposalValidity;
-        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
+        heartbeatRequestValidity = _heartbeatRequestValidity;
+        heartbeatRequestGasOffset = _heartbeatRequestGasOffset;
+        emit HeartbeatRequestParametersUpdated(
+            _heartbeatRequestValidity,
+            _heartbeatRequestGasOffset
+        );
     }
 
-    /// @notice Updates the value of the depositMinAge parameter.
-    /// @param _depositMinAge New value.
+    /// @notice Updates parameters related to deposit sweep proposal.
+    /// @param _depositSweepProposalValidity The new value of `depositSweepProposalValidity`.
+    /// @param _depositMinAge The new value of `depositMinAge`.
+    /// @param _depositRefundSafetyMargin The new value of `depositRefundSafetyMargin`.
+    /// @param _depositSweepMaxSize The new value of `depositSweepMaxSize`.
     /// @dev Requirements:
     ///      - The caller must be the owner.
-    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
-        depositMinAge = _depositMinAge;
-        emit DepositMinAgeUpdated(_depositMinAge);
-    }
-
-    /// @notice Updates the value of the depositRefundSafetyMargin parameter.
-    /// @param _depositRefundSafetyMargin New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositRefundSafetyMargin(uint32 _depositRefundSafetyMargin)
-        external
-        onlyOwner
-    {
-        depositRefundSafetyMargin = _depositRefundSafetyMargin;
-        emit DepositRefundSafetyMarginUpdated(_depositRefundSafetyMargin);
-    }
-
-    /// @notice Updates the value of the depositSweepMaxSize parameter.
-    /// @param _depositSweepMaxSize New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
-        external
-        onlyOwner
-    {
-        depositSweepMaxSize = _depositSweepMaxSize;
-        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
-    }
-
-    /// @notice Updates the value of the depositSweepProposalSubmissionGasOffset
-    ///         parameter.
-    /// @param _depositSweepProposalSubmissionGasOffset New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepProposalSubmissionGasOffset(
+    function updateDepositSweepProposalParameters(
+        uint32 _depositSweepProposalValidity,
+        uint32 _depositMinAge,
+        uint32 _depositRefundSafetyMargin,
+        uint16 _depositSweepMaxSize,
         uint32 _depositSweepProposalSubmissionGasOffset
     ) external onlyOwner {
+        depositSweepProposalValidity = _depositSweepProposalValidity;
+        depositMinAge = _depositMinAge;
+        depositRefundSafetyMargin = _depositRefundSafetyMargin;
+        depositSweepMaxSize = _depositSweepMaxSize;
         depositSweepProposalSubmissionGasOffset = _depositSweepProposalSubmissionGasOffset;
-        emit DepositSweepProposalSubmissionGasOffsetUpdated(
+
+        emit DepositSweepProposalParametersUpdated(
+            _depositSweepProposalValidity,
+            _depositMinAge,
+            _depositRefundSafetyMargin,
+            _depositSweepMaxSize,
             _depositSweepProposalSubmissionGasOffset
+        );
+    }
+
+    /// @notice Submits a heartbeat request from the wallet. Locks the wallet
+    ///         for a specific time, equal to the request validity period.
+    ///         This function validates the proposed heartbeat messge to see
+    ///         if it matches the heartbeat format expected by the Bridge.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet that is
+    ///        supposed to execute the heartbeat.
+    /// @param message The proposed heartbeat message for the wallet to sign.
+    /// @dev Requirements:
+    ///      - The caller is a coordinator,
+    ///      - The wallet is not time-locked,
+    ///      - The message to sign is a valid heartbeat message.
+    function requestHeartbeat(bytes20 walletPubKeyHash, bytes calldata message)
+        public
+        onlyCoordinator
+        onlyAfterWalletLock(walletPubKeyHash)
+    {
+        require(
+            Heartbeat.isValidHeartbeatMessage(message),
+            "Not a valid heartbeat message"
+        );
+
+        walletLock[walletPubKeyHash] = WalletLock(
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp) + heartbeatRequestValidity,
+            WalletAction.Heartbeat
+        );
+
+        emit HeartbeatRequestSubmitted(walletPubKeyHash, message);
+    }
+
+    /// @notice Wraps `requestHeartbeat` call and reimburses the caller's
+    ///         transaction cost.
+    /// @dev See `requestHeartbeat` function documentation.
+    function requestHeartbeatWithReimbursement(
+        bytes20 walletPubKeyHash,
+        bytes calldata message
+    ) external {
+        uint256 gasStart = gasleft();
+
+        requestHeartbeat(walletPubKeyHash, message);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + heartbeatRequestGasOffset,
+            msg.sender
         );
     }
 
