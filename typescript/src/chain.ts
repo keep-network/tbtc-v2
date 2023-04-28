@@ -24,6 +24,7 @@ import {
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
 } from "./wallet"
+import type { ExecutionLoggerFn } from "./backoff"
 
 /**
  * Represents a generic chain identifier.
@@ -78,6 +79,14 @@ export namespace GetEvents {
      * Number of retries in case of an error getting the events.
      */
     retries?: number
+    /**
+     * Number of blocks for interval length in partial events pulls.
+     */
+    batchedQueryBlockInterval?: number
+    /**
+     * A logger function to pass execution messages.
+     */
+    logger?: ExecutionLoggerFn
   }
 
   /**
