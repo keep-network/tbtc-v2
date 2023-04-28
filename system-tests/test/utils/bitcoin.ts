@@ -80,6 +80,9 @@ export async function waitTransactionConfirmed(
   sleep = 60000
 ): Promise<void> {
   for (;;) {
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setTimeout(r, sleep))
+
     console.log(`
       Checking confirmations count for transaction ${transactionHash}
     `)
@@ -99,9 +102,6 @@ export async function waitTransactionConfirmed(
     console.log(`
       Transaction ${transactionHash} has only ${confirmations}/${requiredConfirmations} confirmations. Waiting for more...
     `)
-
-    // eslint-disable-next-line no-await-in-loop
-    await new Promise((r) => setTimeout(r, sleep))
   }
 }
 
