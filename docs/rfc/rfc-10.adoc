@@ -30,7 +30,8 @@ which has attributable misbehaviour at the cost of significant implementation co
 
 Replace ECDSA with Schnorr signatures,
 enabling the use of ROAST with FROST threshold signatures instead of CGGMP21.
-Use GJKR for distributed key generation of signature shares for FROST.
+Use link:https://link.springer.com/article/10.1007/s00145-006-0347-3[GJKR]
+for distributed key generation of signature shares for FROST.
 
 This reduces the complexity of key generation,
 and makes signature production significantly simpler and faster
@@ -44,6 +45,10 @@ and our implementation must conform to it.
 
 Schnorr signatures are incompatible with existing Bitcoin scripts,
 requiring the use of taproot scripts instead.
+
+This would introduce one user-facing change:
+refund addresses would have to be bech32m P2TR addresses
+rather than legacy address types.
 
 === BIP-340
 
@@ -72,14 +77,14 @@ Input:
 
 The algorithm `Verify(pk, m, sig)` is defined as:
 
-* Let P = lift_x(int(pk)); fail if that fails.
-* Let r = int(sig[0:32]); fail if r ≥ p.
-* Let s = int(sig[32:64]); fail if s ≥ n.
-* Let e = int(hash(BIP0340/challenge, bytes(r) || bytes(P) || m)) mod n.
-* Let R = s⋅G - e⋅P.
-* Fail if is_infinite(R).
-* Fail if not has_even_y(R).
-* Fail if x(R) ≠ r.
+* Let `P = lift_x(int(pk))`; fail if that fails.
+* Let `r = int(sig[0:32])`; fail if `r ≥ p`.
+* Let `s = int(sig[32:64])`; fail if `s ≥ n`.
+* Let `e = int(hash(BIP0340/challenge, bytes(r) || bytes(P) || m)) mod n`.
+* Let `R = s⋅G - e⋅P`.
+* Fail if `is_infinite(R)`.
+* Fail if not `has_even_y(R)`.
+* Fail if `x(R) ≠ r`.
 * Return success iff no failure occurred before reaching this point.
 
 For every valid secret key `sk` and message `m`, `Verify(PubKey(sk),m,Sign(sk,m))` will succeed.
@@ -89,18 +94,105 @@ a 32-byte x-coordinate or a curve point R,
 and a 32-byte scalar s.
 The hash function uses the tag `BIP0340/challenge`.
 
+=== BIP-341 & BIP-342
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki[BIP-341]
+and link:https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki[BIP-342]
+define the Taproot outputs and scripting, respectively.
+
+----
+A Taproot output is a native SegWit output with version number 1,
+and a 32-byte witness program.
+----
+
+The witness program `q` represents a BIP-340 public key,
+and the output is constructed like a link:https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wsh[P2WSH] output
+except the version byte is `0x01` instead of `0x00`.
+
+Taproot outputs can be spent with either a signature for the key `q`,
+or a script `s` and an associated control block `c`
+matching link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#script-validation-rules[the following rules]:
+
+----
+* Let `q` be the 32-byte array containing the witness program
+(the second push in the scriptPubKey)
+which represents a public key according to BIP340.
+
+* Fail if the witness stack has 0 elements.
+
+* If there are at least two witness elements,
+and the first byte of the last element is `0x50`,
+this last element is called annex `a` and is removed from the witness stack.
+The annex (or the lack of thereof) is always covered by the signature
+and contributes to transaction weight,
+but is otherwise ignored during taproot validation.
+
+* If there is exactly one element left in the witness stack, key path spending is used:
+
+** The single witness stack element is interpreted as the signature
+and must be valid (see the next section) for the public key `q` (see the next subsection).
+
+* If there are at least two witness elements left, script path spending is used:
+
+** Call the second-to-last stack element `s`, the script.
+
+** The last stack element is called the control block `c`, and must have length `33 + 32m`,
+for a value of `m` that is an integer between 0 and 128, inclusive.
+Fail if it does not have such a length.
+
+** Let `p = c[1:33]` and let `P = lift_x(int(p))` where `lift_x` and `[:]` are defined as in BIP340.
+Fail if this point is not on the curve.
+
+** Let `v = c[0] & 0xfe` and call it the leaf version[7].
+
+** Let `k0 = hashTapLeaf(v || compact_size(size of s) || s)`; also call it the tapleaf hash.
+
+** For `j in [0,1,...,m-1]`:
+
+*** Let `ej = c[33+32j:65+32j]`.
+
+*** Let `kj+1` depend on whether `kj < ej` (lexicographically):
+
+**** If `kj < ej`: `kj+1 = hashTapBranch(kj || ej)`.
+
+**** If `kj ≥ ej`: `kj+1 = hashTapBranch(ej || kj)`.
+
+** Let `t = hashTapTweak(p || km)`.
+
+** If `t ≥ 0xFFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE BAAEDCE6 AF48A03B BFD25E8C D0364141` (order of secp256k1), fail.
+
+** Let `Q = P + int(t)G`.
+
+** If `q ≠ x(Q)` or `c[0] & 1 ≠ y(Q) mod 2`, fail.
+
+** Execute the script, according to the applicable script rules,
+using the witness stack elements excluding the script s, the control block c,
+and the annex a if present, as initial stack.
+This implies that for the future leaf versions (non-0xC0) the execution must succeed.
+
+q is referred to as taproot output key and p as taproot internal key.
+----
+
+The way key `q` is constructed
+means that every Taproot spend has essentially a "backdoor"
+for the holder of the secret key corresponding to `p`.
+This allows the simplification of scripts
+where one of the spending conditions is a simple signature.
+
 === FROST
 
 link:https://www.ietf.org/id/draft-irtf-cfrg-frost-12.html[FROST (Flexible Round-Optimized Schnorr Threshold)] signing protocol
 is a protocol for generating valid Schnorr signatures for a public key PK
 which corresponds to a secret key sk shared among n participants using Shamir's method.
 
-==== Compatibility with BIP-340
+==== Compatibility with BIP-340, 341 & 342
+
+===== BIP-340
 
 These signatures are of the form (R, z) where R is a curve point and z a scalar,
 and are verified against a public key PK and message msg as follows:
 
-----
+....
   prime_order_verify(msg, sig, PK):
 
   Inputs:
@@ -120,7 +212,7 @@ and are verified against a public key PK and message msg as follows:
     l = G.ScalarBaseMult(z)
     r = R + G.ScalarMult(PK, c)
     return l == r
-----
+....
 
 Compared to BIP340,
 we see that the point R matches in both,
@@ -132,6 +224,38 @@ must match the hash of BIP340 used to compute the scalar e.
 This is the only required deviation from FROST as specified.
 Otherwise an examination of the protocols
 will show that a FROST-generated signature would pass BIP340 verification.
+
+===== BIP-341
+
+The Taproot output key `q` is produced by `q = Q.x; Q = P + tG`
+for a constant `t` determined by `P` and the script used.
+
+For a public key `P = skG`, the secret key `sk'` matching `Q = sk'G`
+is calculated by `sk' = sk + t`.
+
+Because FROST uses Shamir's polynomial secret sharing,
+individual participants' secret key shares are points on a polynomial
+whose constant term equals `sk`.
+Thus adding `t` to each secret key share yields a new polynomial
+whose constant term equals `sk'`.
+Similarly, each secret key share's corresponding public key share
+can simply have `tG` added to it for the purpose of verification.
+
+This makes adaptation of FROST to produce signatures for Taproot output keys simple.
+
+BIP-341 link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#common-signature-message[also defines]
+how the message to be signed is computed.
+This determines the `msg` but has no direct bearing on FROST.
+
+===== BIP-342
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki#signature-validation[BIP-342]
+defines signature verification rules
+that only apply when using a script path spend.
+
+These rules affect the refund path of tBTC deposits
+but aren't directly relevant for FROST
+which simply produces signatures for the BIP-341 Taproot output key.
 
 ==== Protocol
 
@@ -195,14 +319,369 @@ at least one Alice must also be honest and the protocol must succeed.
 
 === Compatibility with tBTC
 
-==== Script
+The only way to use BIP-340 Schnorr signatures is with Taproot,
+which breaks compatibility with existing addresses and scripts.
+Only bech32m P2TR addresses using Schnorr signatures are accepted in Taproot outputs,
+but Taproot outputs can be spent into legacy addresses.
 
-BIP-340 Schnorr signatures are not compatible with existing P2(W)SH deposits,
-and require the use of Tapscript as specified in
-link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki[BIP-341] and
-link:https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki[BIP-342].
+Most importantly, this means that the refund address provided when depositing BTC
+must be a bech32m P2TR address, as it would be used from a Taproot script.
 
-==== Fraud proofs
+Redemptions can still be paid to legacy addresses;
+only the change output remaining in the wallet has to be Taproot.
+
+==== Script changes
+
+===== Deposit
+
+Tapscript allows the definition of separate script paths,
+but most importantly we can use the wallet's public key
+as the script's internal public key,
+simplifying deposit scripts to only cover the refund path.
+
+Current deposit script:
+....
+<depositorAddress> DROP
+<blindingFactor> DROP
+DUP HASH160 <walletPubKeyHash> EQUAL
+IF
+  CHECKSIG
+ELSE
+  DUP HASH160 <refundPubkeyHash> EQUALVERIFY
+  <refundLocktime> CHECKLOCKTIMEVERIFY DROP
+  CHECKSIG
+ENDIF
+....
+
+Taproot refund path:
+....
+<depositorAddress> DROP
+<blindingFactor> DROP
+<refundLockTime> CHECKLOCKTIMEVERIFY DROP
+<refundPubkey> CHECKSIG
+....
+
+Corresponding opcodes (73 bytes total):
+....
+- 0x14: Byte length of depositor ethereum address
+- <depositor address>
+- 0x75: OP_DROP
+- 0x08: Byte length of blinding factor
+- <blinding factor>
+- 0x75: OP_DROP
+- 0x04: Byte length of refund locktime value
+- <refund lock time>
+- 0xb1: OP_CHECKLOCKTIMEVERIFY
+- 0x75: OP_DROP
+- 0x20: Byte length of refund public key
+- <refund pubkey>
+- 0xac: OP_CHECKSIG
+....
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#constructing-and-spending-taproot-outputs[When spending a Taproot output with the key path],
+wallet's public key is tweaked with a hash of the script.
+This creates an effective commitment to the matching script
+while saving on transaction fees due to the smaller witness of a key path spend.
+
+===== Otherwise
+
+Taproot P2TR scripts always consist of a push of the version byte `0x01`,
+and the 32-byte plaintext public key `q`.
+
+These can be constructed as follows:
+....
+bytes4 constant P2TR_PREFIX = bytes4(0x23010120) // script length 35, push 1 byte (version), 0x01, push 32 bytes (public key)
+
+function makeP2TRScript(bytes32 q)
+    internal
+    pure
+    returns (bytes memory)
+{
+    return (abi.encodePacked(P2TR_PREFIX, q); // prefix followed by public key q
+}
+....
+
+==== Solidity changes
+
+===== Wallet pubkeys
+
+Wallets need to be identified by their 32-byte plaintext BIP-340 pubkeys,
+rather than 20-byte pubkey hashes as they currently are.
+
+===== BTCUtils
+
+`BTCUtils.extractHash()` is incompatible with P2TR.
+Due to the simplification of only needing to consider the P2TR case,
+we can implement a unified `extractP2TRKey()` function instead:
+
+....
+function extractP2TRKey(bytes memory output) internal pure returns (bytes32 q) {
+    uint256 scriptLen = output.length - 8;
+    require(scriptLen == 36, "Invalid length for P2TR output");
+    bytes4 prefix = output.slice4(8);
+    require(prefix == P2TR_PREFIX, "Invalid prefix for P2TR output"); // "0x23010120"
+    q = output.slice32(12);
+    return q;
+}
+....
+
+This function would take the role of `BitcoinTx.extractPubKeyHash()`
+in P2TR contexts.
+
+===== Deposit
+
+When a user reveals a deposit,
+the expected script needs to conform to the Taproot script,
+and the refund pubkey must be an unhashed Schnorr pubkey.
+
+The funding output's script is produced by taking the wallet's public key `p`
+and applying a tweak corresponding to the correct refund script `s`.
+The tweak is defined in link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#script-validation-rules[BIP-341],
+and the presence of only one script path allows it to be slightly simplified:
+
+....
+P = lift_x(p)
+k0 = hash("TapLeaf", v || compact_size(size of s) || s)
+t = hash("TapTweak", p || k0)
+(require t < order of secp256k1)
+Q = P + int(t)G
+q = Q.x
+....
+
+The size of `s` is always `73 = 0x49`, and the leaf version `v` must be `0xc0`.
+
+To verify that the `q` of the output is correct for the claimed deposit,
+we need to check that `P + tG == Q` which would be prohibitively expensive
+in a naive implementation using on-chain scalar multiplication.
+
+However, there exists a method to
+link:https://ethresear.ch/t/you-can-kinda-abuse-ecrecover-to-do-ecmul-in-secp256k1-today/2384[use ECRECOVER to verify the result of a scalar multiplication].
+Thus we can require that the depositor also provides the values
+`P` and `Q` in the reveal transaction.
+By calculating `t = hash("TapTweak", p || hash("TapLeaf", 0xc049 || s))`
+we can simply verify the correctness of the scalar multiplication
+and of the provided curve points,
+at a dramatically lower gas cost:
+
+....
+require(Q.x == q && P.x == p) // check provided points match x-coordinates
+require(P.y % 2 == 0) // check P evenness
+require(isOnCurve(P) && isOnCurve(Q))
+require(verifyEcBaseMul(ecSub(Q, P), t)) // verify that tG == Q - P
+....
+
+All in all, we get this:
+....
+struct DepositRevealInfo {
+    // Index of the funding output belonging to the funding transaction.
+    uint32 fundingOutputIndex;
+    // The blinding factor as 8 bytes. Byte endianness doesn't matter
+    // as this factor is not interpreted as uint. The blinding factor allows
+    // to distinguish deposits from the same depositor.
+    bytes8 blindingFactor;
+    // The BIP-340 public key p of the deposit's wallet.
+    bytes32 walletPubKey;
+    // The wallet's public key in point form.
+    Point P;
+    // The deposit output key q in point form.
+    Point Q;
+    // The BIP-340 public key that can be used to make the deposit refund
+    // after the refund locktime passes.
+    bytes20 refundPubKey;
+    // The refund locktime (4-byte LE). Interpreted according to locktime
+    // parsing rules described in:
+    // https://developer.bitcoin.org/devguide/transactions.html#locktime-and-sequence-number
+    // and used with OP_CHECKLOCKTIMEVERIFY opcode as described in:
+    // https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
+    bytes4 refundLocktime;
+    // Address of the Bank vault to which the deposit is routed to.
+    // Optional, can be 0x0. The vault must be trusted by the Bridge.
+    address vault;
+    // This struct doesn't contain `__gap` property as the structure is not
+    // stored, it is used as a function's calldata argument.
+}
+
+(...)
+
+function revealDeposit(
+    BridgeState.Storage storage self,
+    BitcoinTx.Info calldata fundingTx,
+    DepositRevealInfo calldata reveal
+) external {
+    bytes32 p = reveal.walletPubKey;
+
+    require(
+        self.registeredWallets[p].state ==
+            Wallets.WalletState.Live,
+        "Wallet must be in Live state"
+    );
+
+    require(
+        reveal.vault == address(0) || self.isVaultTrusted[reveal.vault],
+        "Vault is not trusted"
+    );
+
+    if (self.depositRevealAheadPeriod > 0) {
+        validateDepositRefundLocktime(self, reveal.refundLocktime);
+    }
+
+    bytes memory expectedLeaf = abi.encodePacked(
+        hex"c0", // Leaf version c0
+        hex"49", // Byte length of the script
+        hex"14", // Byte length of depositor Ethereum address.
+        msg.sender,
+        hex"75", // OP_DROP
+        hex"08", // Byte length of blinding factor value.
+        reveal.blindingFactor,
+        hex"75", // OP_DROP
+        hex"04", // Byte length of refund locktime value.
+        reveal.refundLocktime,
+        hex"b1", // OP_CHECKLOCKTIMEVERIFY
+        hex"75", // OP_DROP
+        hex"20", // Byte length of BIP-340 public key
+        reveal.refundPubKey,
+        hex"ac", // OP_CHECKSIG
+    );
+
+    bytes memory fundingOutput = fundingTx
+        .outputVector
+        .extractOutputAtIndex(reveal.fundingOutputIndex);
+    bytes32 q = fundingOutput.extractP2TRKey();
+
+    require(
+        reveal.Q.x == uint256(q) && reveal.P.x == uint256(p),
+        "Mismatched reveal points"
+    );
+    require(
+        isOnCurve(reveal.P) && isOnCurve(reveal.Q),
+        "Reveal points not on curve"
+    );
+    require(reveal.P.y % 2 == 0, "Revealed P has odd y");
+
+    bytes32 t = tagHash(
+        "TapTweak",
+        abi.encodePacked(p, tagHash("TapLeaf", expectedLeaf))
+    );
+
+    require(
+        verifyEcBaseMul(ecSub(Q, P), t),
+        "Output does not match expected script"
+    );
+
+    // Resulting TX hash is in native Bitcoin little-endian format.
+    bytes32 fundingTxHash = abi
+        .encodePacked(
+            fundingTx.version,
+            fundingTx.inputVector,
+            fundingTx.outputVector,
+            fundingTx.locktime
+        )
+        .hash256View();
+
+    DepositRequest storage deposit = self.deposits[
+        uint256(
+            keccak256(
+                abi.encodePacked(fundingTxHash, reveal.fundingOutputIndex)
+            )
+        )
+    ];
+    require(deposit.revealedAt == 0, "Deposit already revealed");
+
+    uint64 fundingOutputAmount = fundingOutput.extractValue();
+
+    require(
+        fundingOutputAmount >= self.depositDustThreshold,
+        "Deposit amount too small"
+    );
+
+    deposit.amount = fundingOutputAmount;
+    deposit.depositor = msg.sender;
+    /* solhint-disable-next-line not-rely-on-time */
+    deposit.revealedAt = uint32(block.timestamp);
+    deposit.vault = reveal.vault;
+    deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
+        ? fundingOutputAmount / self.depositTreasuryFeeDivisor
+        : 0;
+    // slither-disable-next-line reentrancy-events
+    emit DepositRevealed(
+        fundingTxHash,
+        reveal.fundingOutputIndex,
+        msg.sender,
+        fundingOutputAmount,
+        reveal.blindingFactor,
+        reveal.walletPubKey,
+        reveal.refundPubKeyHash,
+        reveal.refundLocktime,
+        reveal.vault
+    );
+}
+....
+
+===== Sweeping
+
+Taproot uses plaintext Schnorr pubkeys,
+not pubkey hashes.
+
+In link:https://github.com/keep-network/tbtc-v2/blob/main/solidity/contracts/bridge/DepositSweep.sol#L349[DepositSweep.processDepositSweepTxOutput()]
+tweak as follows:
+
+....
+function processDepositSweepTxOutput(
+    BridgeState.Storage storage self,
+    bytes memory sweepTxOutputVector
+) internal view returns (bytes32 walletPubKey, uint64 value) {
+    // ...
+    // ...
+    (, uint256 outputsCount) = sweepTxOutputVector.parseVarInt();
+    require(
+        outputsCount == 1,
+        "Sweep transaction must have a single output"
+    );
+
+    bytes memory output = sweepTxOutputVector.extractOutputAtIndex(0);
+    walletPubKey = output.extractP2TRKey();
+    value = output.extractValue();
+
+    return (walletPubKey, value);
+}
+....
+
+Propagate changes as required.
+
+===== Redemption
+
+We can use the output of `makeP2TRScript()` directly on the wallet's public key.
+link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#cite_note-23[BIP-341 recommends a taproot commitment]
+even if there is no script path,
+but the public key being used here is not an aggregate of keys,
+but rather a threshold protocol public key,
+so the consideration of attacks against key aggregation don't apply.
+
+Tweak link:https://github.com/keep-network/tbtc-v2/blob/main/solidity/contracts/bridge/Redemption.sol#L824[Redemption.processRedemptionTxOutputs()]:
+
+....
+if (
+    resultInfo.changeValue == 0 &&
+    (outputScriptHash == processInfo.walletP2TRScriptKeccak) &&
+    outputValue > 0
+) {
+    // If we entered here, that means the change output with a
+    // proper non-zero value was found.
+    resultInfo.changeIndex = uint32(i);
+    resultInfo.changeValue = outputValue;
+} else {
+....
+
+The wallet can mix Taproot and legacy outputs,
+so we shouldn't have issues with compatibility.
+
+===== Moving funds
+
+All outputs of moving funds need to use Taproot scripts
+matching the destination wallets' 32-byte public keys,
+rather than legacy scripts referring to 20-byte hashes.
+
+===== Fraud proofs
 
 A fraudulent BIP-340 transaction would use a Schnorr signature.
 An on-chain implementation of BIP-340 signature validation is needed.
@@ -211,7 +690,16 @@ so proving fraud by the existence of a Schnorr signature
 for a wallet's public key and an unauthorised message
 would be sufficient to detect (attempted) theft of funds by the wallet.
 
-==== Misbehaviour
+==== DApp changes
+
+The DApp needs to produce P2TR deposits,
+and require a bech32m refund address.
+This is also a user-facing change.
+The `q` of the output is calculated the same way as in Solidity.
+
+For redemptions, legacy outputs can be specified.
+
+==== Misbehaviour handling
 
 ROAST and FROST are extremely robust against misbehaviour by participants.
 Invalid messages can be simply ignored and their sender blocklisted by the recipient.
@@ -270,11 +758,12 @@ or until block B+99 when all members have become coordinators.
 
 ==== Execution
 
-1. `P_c` sends everyone in the group a `coordinator(P_c, msg)` message.
+1. `P_c` sends everyone in the group a `coordinator(P_c, msg, t)` message.
 
-2. When a member `P_i` receives a `coordinator(P_c, m)` message,
+2. When a member `P_i` receives a `coordinator(P_c, m, t)` message,
 they check if they have privately listed `P_c` as being unreliable/malicious,
 whether `m` is a valid message to sign,
+whether `t` is the correct TapTweak hash for it,
 and whether `P_c` has been selected as a coordinator yet.
 If both checks are good, `P_i` sends `P_c` a message `commit(P_i, cc_i, m)`
 where `cc_i` is commit data for the Frost protocol.
@@ -291,15 +780,19 @@ the commit message is added to the list of commitments `cs`.
 based on which commitments were received first.
 `P_c` then assembles the list `ks` consisting of the pairs
 `[(P_k1, cc_k1), ..., (P_k51, cc_k51)]` from those members
-and sends them to all in Pks as message `signRequest(P_c, ks, msg)`.
+and sends them to all in Pks as message `signRequest(P_c, ks, msg, t)`.
 `P_c` also records the sent request as `requests[hash(ks)] = Pks`.
 
 5. When a member `P_i` who has previously sent a commit message to `P_c`
-receives a message `signRequest(P_c, ks, m)` from `P_c`
-and `m` matches the message `P_i` intended to sign,
+receives a message `signRequest(P_c, ks, m, t)` from `P_c`
+and `m` and `t` match the message `P_i` intended to sign and its TapTweak,
 and `cc_i` in `ks` matches the commitment `P_i` made earlier,
 `P_i` calculates  the signature share `s_i` and new commit data `cc'_i`,
 and sends `P_c` the messages `sign(P_i, s_i, m, hash(ks))` and `commit(P_i, cc_i', m)`.
+For this purpose, `P_i` adds `t` to their secret key share `sk_i' == sk_i + t`.
+If every member performs this correctly,
+the effect is the same as if `t` was added to the wallet's secret key
+as adding a constant to a polynomial adds that same constant to all of its points.
 The member `P_i` then erases `cc_i` and goes on standby,
 waiting to execute phase 5 again if another signing request comes from the same coordinator,
 or phase 2 with a new coordinator.
@@ -307,6 +800,7 @@ or phase 2 with a new coordinator.
 6. When member `P_c` receives `sign(P_j, s_j, m, h)` from `P_j`,
 they check if `P_j` was in list `Pks = requests[h]`.
 If yes, they validate `s_j` and add it to the list of signature shares `sks = shares[h]`.
+The validation is performed with a tweaked public key share `pk_j' == pk_j + tG`.
 The coordinator simultaneously executes step 3 again with the `commit(P_j, cc_j', m)` message,
 possibly following up with step 4 as well.
 If `s_j` fails the validation,
@@ -334,7 +828,7 @@ The below details have been replicated from the FROST paper for convenience:
 
 ===== Nonce generation
 
-----
+....
   nonce_generate(secret):
 
   Inputs:
@@ -347,11 +841,11 @@ The below details have been replicated from the FROST paper for convenience:
     random_bytes = random_bytes(32)
     secret_enc = G.SerializeScalar(secret)
     return H3(random_bytes || secret_enc)
-----
+....
 
 ===== Polynomial interpolation
 
-----
+....
   derive_interpolating_value(x_i, L):
 
   Inputs:
@@ -381,11 +875,11 @@ The below details have been replicated from the FROST paper for convenience:
 
     value = numerator / denominator
     return value
-----
+....
 
 ===== Encode commitments to a byte string
 
-----
+....
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -404,11 +898,11 @@ The below details have been replicated from the FROST paper for convenience:
                            G.SerializeElement(binding_nonce_commitment)
       encoded_group_commitment = encoded_group_commitment || encoded_commitment
     return encoded_group_commitment
-----
+....
 
 ===== Extract identifiers from a commitment list
 
-----
+....
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -424,11 +918,11 @@ The below details have been replicated from the FROST paper for convenience:
     for (identifier, _, _) in commitment_list:
       identifiers.append(identifier)
     return identifiers
-----
+....
 
 ===== Extract a blinding factor from a list of blinding factors
 
-----
+....
   Inputs:
   - binding_factor_list = [(i, binding_factor), ...],
     a list of binding factors for each participant, where each element in the list
@@ -446,11 +940,11 @@ The below details have been replicated from the FROST paper for convenience:
       if identifier == i:
         return binding_factor
     raise "invalid participant"
-----
+....
 
 ===== Blinding factors computation
 
-----
+....
   Inputs:
   - commitment_list = [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...],
     a list of commitments issued by each participant, where each element in the list
@@ -473,11 +967,11 @@ The below details have been replicated from the FROST paper for convenience:
       binding_factor = H1(rho_input)
       binding_factor_list.append((identifier, binding_factor))
     return binding_factor_list
-----
+....
 
 ===== Group commitment computation
 
-----
+....
   Inputs:
   - commitment_list =
      [(i, hiding_nonce_commitment_i, binding_nonce_commitment_i), ...], a list
@@ -499,11 +993,11 @@ The below details have been replicated from the FROST paper for convenience:
       group_commitment = group_commitment +
         hiding_nonce_commitment + G.ScalarMult(binding_nonce_commitment, binding_factor)
     return group_commitment
-----
+....
 
 ===== Signature challenge computation
 
-----
+....
   Inputs:
   - group_commitment, the group commitment, an Element.
   - group_public_key, the public key corresponding to the group signing key, an
@@ -519,11 +1013,11 @@ The below details have been replicated from the FROST paper for convenience:
     challenge_input = group_comm_enc || group_public_key_enc || msg
     challenge = H2(challenge_input)
     return challenge
-----
+....
 
 ===== Round one: commitment
 
-----
+....
   Inputs:
   - sk_i, the secret key share, a Scalar.
 
@@ -540,11 +1034,11 @@ The below details have been replicated from the FROST paper for convenience:
     nonce = (hiding_nonce, binding_nonce)
     comm = (hiding_nonce_commitment, binding_nonce_commitment)
     return (nonce, comm)
-----
+....
 
 ===== Round two: signature share generation
 
-----
+....
   Inputs:
   - identifier, identifier i of the participant, a NonZeroScalar.
   - sk_i, Signer secret key share, a Scalar.
@@ -583,11 +1077,11 @@ The below details have been replicated from the FROST paper for convenience:
     sig_share = hiding_nonce + (binding_nonce * binding_factor) + (lambda_i * sk_i * challenge)
 
     return sig_share
-----
+....
 
 ===== Signature share aggregation
 
-----
+....
   Inputs:
   - commitment_list =
       [(j, hiding_nonce_commitment_j, binding_nonce_commitment_j), ...], a
@@ -614,11 +1108,11 @@ The below details have been replicated from the FROST paper for convenience:
     for z_i in sig_shares:
       z = z + z_i
     return (group_commitment, z)
-----
+....
 
 ===== Signature share verification
 
-----
+....
   Inputs:
   - identifier, identifier i of the participant, a NonZeroScalar.
   - PK_i, the public key for the i-th participant, where PK_i = G.ScalarBaseMult(sk_i),
@@ -665,4 +1159,4 @@ The below details have been replicated from the FROST paper for convenience:
     r = comm_share + G.ScalarMult(PK_i, challenge * lambda_i)
 
     return l == r
-----
+....
