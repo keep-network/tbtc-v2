@@ -767,6 +767,8 @@ whether `t` is the correct TapTweak hash for it,
 and whether `P_c` has been selected as a coordinator yet.
 If both checks are good, `P_i` sends `P_c` a message `commit(P_i, cc_i, m)`
 where `cc_i` is commit data for the Frost protocol.
+The commitments, alongside the matching private nonces `nc_i` are stored in
+`commitments[hash(P_c || m)] = (nc_i, cc_i)`.
 `P_i` does this to all coordinators `P_c` passing these checks.
 
 3. When coordinator `P_c` receives a `commit(P_j, cc_j, m)` message,
@@ -786,14 +788,15 @@ and sends them to all in Pks as message `signRequest(P_c, ks, msg, t)`.
 5. When a member `P_i` who has previously sent a commit message to `P_c`
 receives a message `signRequest(P_c, ks, m, t)` from `P_c`
 and `m` and `t` match the message `P_i` intended to sign and its TapTweak,
-and `cc_i` in `ks` matches the commitment `P_i` made earlier,
+and `cc_i` in `ks` matches the commitment `P_i` made earlier
+(check that `commitments[hash(P_c || m) == (_, cc_i)`),
 `P_i` calculates  the signature share `s_i` and new commit data `cc'_i`,
 and sends `P_c` the messages `sign(P_i, s_i, m, hash(ks))` and `commit(P_i, cc_i', m)`.
 For this purpose, `P_i` adds `t` to their secret key share `sk_i' == sk_i + t`.
 If every member performs this correctly,
 the effect is the same as if `t` was added to the wallet's secret key
 as adding a constant to a polynomial adds that same constant to all of its points.
-The member `P_i` then erases `cc_i` and goes on standby,
+The member `P_i` then erases `(nc_i, cc_i)` from `commitments` and goes on standby,
 waiting to execute phase 5 again if another signing request comes from the same coordinator,
 or phase 2 with a new coordinator.
 
@@ -1160,3 +1163,30 @@ The below details have been replicated from the FROST paper for convenience:
 
     return l == r
 ....
+
+== Resources
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki[BIP-141: Segregated Witness (Consensus layer)]
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki[BIP-143: Transaction Signature Verification for Version 0 Witness Program]
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki[BIP-340: Schnorr Signatures for secp256k1]
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki[BIP-341: Taproot: SegWit version 1 spending rules]
+
+link:https://github.com/bitcoin/bips/blob/master/bip-0342.mediawiki[BIP-342: Validation of Taproot Scripts]
+
+=== Taproot
+
+link:https://bitcoinops.org/en/schorr-taproot-workshop/[Bitcoin Optech Schnorr Taproot workshop]
+
+=== FROST
+
+link:https://www.youtube.com/watch?v=ReN0kMzDFro[Seminar presentation on FROST]
+
+=== ROAST
+
+link:https://github.com/robot-dreams/roast[robot-dreams/roast];
+an example implementation of non-TapTweaked ROAST in Python.
+
+link:https://www.youtube.com/watch?v=FVW6Hgt_meg[Seminar presentation on ROAST]
