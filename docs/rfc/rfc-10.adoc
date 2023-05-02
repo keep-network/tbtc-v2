@@ -82,9 +82,9 @@ The algorithm `Verify(pk, m, sig)` is defined as:
 * Let `s = int(sig[32:64])`; fail if `s ≥ n`.
 * Let `e = int(hash(BIP0340/challenge, bytes(r) || bytes(P) || m)) mod n`.
 * Let `R = s⋅G - e⋅P`.
-* Fail if `is_infinite(R)`.
-* Fail if not `has_even_y(R)`.
-* Fail if `x(R) ≠ r`.
+* Fail if `is_infinite\(R)`.
+* Fail if not `has_even_y\(R)`.
+* Fail if `x\(R) ≠ r`.
 * Return success iff no failure occurred before reaching this point.
 
 For every valid secret key `sk` and message `m`, `Verify(PubKey(sk),m,Sign(sk,m))` will succeed.
