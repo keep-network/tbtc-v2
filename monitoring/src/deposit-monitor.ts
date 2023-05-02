@@ -7,7 +7,9 @@ import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 
-const SATS_PER_BTC = 1e8
+function satsToRoundedBTC(sats: BigNumber): string {
+  return (sats.div(BigNumber.from(1e6)).toNumber() / 100).toFixed(2)
+}
 
 const DepositRevealed = (
   chainEvent: DepositRevealedChainEvent
@@ -17,7 +19,7 @@ const DepositRevealed = (
   data: {
     btcFundingTxHash: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amountBTC: (chainEvent.amount / SATS_PER_BTC).toFixed(2),
+    amountBTC: satsToRoundedBTC(chainEvent.amount),
     ethRevealTxHash: `https://etherscan.io/tx/${chainEvent.transactionHash.toPrefixedString()}`,
   },
   block: chainEvent.blockNumber,
@@ -31,9 +33,8 @@ const LargeDepositRevealed = (
   data: {
     btcFundingTx: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
     btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amountBTC: (chainEvent.amount / SATS_PER_BTC).toFixed(2),
+    amountBTC: satsToRoundedBTC(chainEvent.amount),
     ethRevealTxHash: `https://etherscan.io/tx/${chainEvent.transactionHash.toPrefixedString()}`,
-    ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
   },
   block: chainEvent.blockNumber,
 })
