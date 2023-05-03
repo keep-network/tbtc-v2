@@ -44,9 +44,11 @@ const DepositRevealed = (
     title: "Deposit revealed",
     type: SystemEventType.Informational,
     data: {
+      btcFundingTxHash: chainEvent.fundingTxHash.toString(),
       btcFundingTxHashURL,
       btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
       amountBTC: satsToRoundedBTC(chainEvent.amount),
+      ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
       ethRevealTxHashURL,
     },
     block: chainEvent.blockNumber,
@@ -62,9 +64,11 @@ const LargeDepositRevealed = (
     title: "Large deposit revealed",
     type: SystemEventType.Warning,
     data: {
+      btcFundingTxHash: chainEvent.fundingTxHash.toString(),
       btcFundingTxHashURL,
       btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
       amountBTC: satsToRoundedBTC(chainEvent.amount),
+      ethRevealTxHash: chainEvent.transactionHash.toPrefixedString(),
       ethRevealTxHashURL,
     },
     block: chainEvent.blockNumber,
