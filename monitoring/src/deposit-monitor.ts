@@ -1,43 +1,75 @@
 import { BigNumber } from "ethers"
 
 import { SystemEventType } from "./system-event"
-import { context } from "./context"
+import { context, Environment } from "./context"
 
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 
-function satsToRoundedBTC(sats: BigNumber): string {
-  return (sats.div(BigNumber.from(1e6)).toNumber() / 100).toFixed(2)
+const satsToRoundedBTC = (sats: BigNumber): string =>
+  (sats.div(BigNumber.from(1e6)).toNumber() / 100).toFixed(2)
+
+const hashUrls = (chainEvent: DepositRevealedChainEvent) => {
+  let fundingHashUrlPrefix = ""
+  if (context.environment === Environment.Mainnet) {
+    fundingHashUrlPrefix = "https://mempool.space/tx/"
+  }
+  if (context.environment === Environment.Testnet) {
+    fundingHashUrlPrefix = "https://mempool.space/testnet/tx/"
+  }
+
+  let revealHashUrlPrefix = ""
+  if (context.environment === Environment.Mainnet) {
+    revealHashUrlPrefix = "https://etherscan.io/tx/"
+  }
+  if (context.environment === Environment.Testnet) {
+    revealHashUrlPrefix = "https://goerli.etherscan.io/tx/"
+  }
+
+  const fundingHash = chainEvent.fundingTxHash.toString()
+  const transactionHash = chainEvent.transactionHash.toPrefixedString()
+  return {
+    btcFundingTxHashURL: fundingHashUrlPrefix + fundingHash,
+    ethRevealTxHashURL: revealHashUrlPrefix + transactionHash,
+  }
 }
 
 const DepositRevealed = (
   chainEvent: DepositRevealedChainEvent
-): SystemEvent => ({
-  title: "Deposit revealed",
-  type: SystemEventType.Informational,
-  data: {
-    btcFundingTxHash: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
-    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amountBTC: satsToRoundedBTC(chainEvent.amount),
-    ethRevealTxHash: `https://etherscan.io/tx/${chainEvent.transactionHash.toPrefixedString()}`,
-  },
-  block: chainEvent.blockNumber,
-})
+): SystemEvent => {
+  const { btcFundingTxHashURL, ethRevealTxHashURL } = hashUrls(chainEvent)
+
+  return {
+    title: "Deposit revealed",
+    type: SystemEventType.Informational,
+    data: {
+      btcFundingTxHashURL,
+      btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+      amountBTC: satsToRoundedBTC(chainEvent.amount),
+      ethRevealTxHashURL,
+    },
+    block: chainEvent.blockNumber,
+  }
+}
 
 const LargeDepositRevealed = (
   chainEvent: DepositRevealedChainEvent
-): SystemEvent => ({
-  title: "Large deposit revealed",
-  type: SystemEventType.Warning,
-  data: {
-    btcFundingTx: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
-    btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
-    amountBTC: satsToRoundedBTC(chainEvent.amount),
-    ethRevealTxHash: `https://etherscan.io/tx/${chainEvent.transactionHash.toPrefixedString()}`,
-  },
-  block: chainEvent.blockNumber,
-})
+): SystemEvent => {
+  const { btcFundingTxHashURL, ethRevealTxHashURL } = hashUrls(chainEvent)
+
+  return {
+    title: "Large deposit revealed",
+    type: SystemEventType.Warning,
+    data: {
+      btcFundingTxHashURL,
+      btcFundingOutputIndex: chainEvent.fundingOutputIndex.toString(),
+      amountBTC: satsToRoundedBTC(chainEvent.amount),
+      ethRevealTxHashURL,
+    },
+    block: chainEvent.blockNumber,
+  }
+}
 
 export class DepositMonitor implements SystemEventMonitor {
   private bridge: Bridge
