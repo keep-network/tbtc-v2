@@ -14,7 +14,7 @@ function satsToRoundedBTC(sats: BigNumber): string {
 const DepositRevealed = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => ({
-  title: "Deposit Revealed",
+  title: "Deposit revealed",
   type: SystemEventType.Informational,
   data: {
     btcFundingTxHash: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
@@ -28,7 +28,7 @@ const DepositRevealed = (
 const LargeDepositRevealed = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => ({
-  title: "Large Deposit Revealed",
+  title: "Large deposit revealed",
   type: SystemEventType.Warning,
   data: {
     btcFundingTx: `https://mempool.space/tx/${chainEvent.fundingTxHash.toString()}`,
