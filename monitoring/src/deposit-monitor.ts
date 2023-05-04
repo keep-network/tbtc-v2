@@ -12,19 +12,18 @@ const satsToRoundedBTC = (sats: BigNumber): string =>
 
 const hashUrls = (chainEvent: DepositRevealedChainEvent) => {
   let fundingHashUrlPrefix = ""
-  if (context.environment === Environment.Mainnet) {
-    fundingHashUrlPrefix = "https://mempool.space/tx/"
-  }
-  if (context.environment === Environment.Testnet) {
-    fundingHashUrlPrefix = "https://mempool.space/testnet/tx/"
-  }
-
   let revealHashUrlPrefix = ""
-  if (context.environment === Environment.Mainnet) {
-    revealHashUrlPrefix = "https://etherscan.io/tx/"
-  }
-  if (context.environment === Environment.Testnet) {
-    revealHashUrlPrefix = "https://goerli.etherscan.io/tx/"
+  switch (context.environment) {
+    case Environment.Mainnet: {
+      fundingHashUrlPrefix = "https://mempool.space/tx/"
+      revealHashUrlPrefix = "https://etherscan.io/tx/"
+      break
+    }
+    case Environment.Testnet: {
+      fundingHashUrlPrefix = "https://mempool.space/testnet/tx/"
+      revealHashUrlPrefix = "https://goerli.etherscan.io/tx/"
+      break
+    }
   }
 
   const fundingHash = chainEvent.fundingTxHash.toString()
