@@ -261,6 +261,7 @@ describe("WalletCoordinator", () => {
             },
           ],
           sweepTxFee: 5000,
+          depositsRevealBlocks: [1000],
         })
 
         tx = await walletCoordinator
@@ -714,6 +715,7 @@ describe("WalletCoordinator", () => {
               },
             ],
             sweepTxFee: 5000,
+            depositsRevealBlocks: [1000],
           })
 
         await expect(tx).to.be.revertedWith("Caller is not a coordinator")
@@ -750,6 +752,7 @@ describe("WalletCoordinator", () => {
                 },
               ],
               sweepTxFee: 5000,
+              depositsRevealBlocks: [1000],
             })
 
           // Jump to the end of the lock period but not beyond it.
@@ -774,6 +777,7 @@ describe("WalletCoordinator", () => {
                 },
               ],
               sweepTxFee: 5000,
+              depositsRevealBlocks: [1000],
             })
           ).to.be.revertedWith("Wallet locked")
         })
@@ -798,6 +802,7 @@ describe("WalletCoordinator", () => {
                 },
               ],
               sweepTxFee: 5000,
+              depositsRevealBlocks: [1000],
             })
 
           // Jump beyond the lock period.
@@ -817,6 +822,7 @@ describe("WalletCoordinator", () => {
                 },
               ],
               sweepTxFee: 5000,
+              depositsRevealBlocks: [1000],
             })
         })
 
@@ -862,6 +868,7 @@ describe("WalletCoordinator", () => {
                 ],
               ],
               BigNumber.from(5000),
+              [BigNumber.from(1000)],
             ],
             thirdParty.address,
           ])
@@ -905,6 +912,7 @@ describe("WalletCoordinator", () => {
               },
             ],
             sweepTxFee: 5000,
+            depositsRevealBlocks: [1000],
           })
 
         await expect(tx).to.be.revertedWith("Caller is not a coordinator")
@@ -939,6 +947,7 @@ describe("WalletCoordinator", () => {
               },
             ],
             sweepTxFee: 5000,
+            depositsRevealBlocks: [1000],
           })
 
         // Jump beyond the lock period.
@@ -960,6 +969,7 @@ describe("WalletCoordinator", () => {
               },
             ],
             sweepTxFee: 5000,
+            depositsRevealBlocks: [1000],
           })
 
         coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
@@ -1052,6 +1062,7 @@ describe("WalletCoordinator", () => {
                   walletPubKeyHash,
                   depositsKeys: [],
                   sweepTxFee: 0,
+                  depositsRevealBlocks: [],
                 },
                 []
               )
@@ -1092,6 +1103,7 @@ describe("WalletCoordinator", () => {
                 walletPubKeyHash,
                 depositsKeys: [], // Set size to 0.
                 sweepTxFee: 0, // Not relevant in this scenario.
+                depositsRevealBlocks: [], // Not relevant in this scenario.
               },
               [] // Not relevant in this scenario.
             )
@@ -1115,6 +1127,7 @@ describe("WalletCoordinator", () => {
                   walletPubKeyHash,
                   depositsKeys,
                   sweepTxFee: 0, // Not relevant in this scenario.
+                  depositsRevealBlocks: [], // Not relevant in this scenario.
                 },
                 [] // Not relevant in this scenario.
               )
@@ -1130,6 +1143,7 @@ describe("WalletCoordinator", () => {
                 walletPubKeyHash,
                 depositsKeys: [createTestDeposit(walletPubKeyHash, vault).key],
                 sweepTxFee: 0, // Not relevant in this scenario.
+                depositsRevealBlocks: [], // Not relevant in this scenario.
               }
 
               // The extra data array contains two items.
@@ -1191,6 +1205,7 @@ describe("WalletCoordinator", () => {
                     walletPubKeyHash,
                     depositsKeys: [depositOne.key, depositTwo.key],
                     sweepTxFee: 0,
+                    depositsRevealBlocks: [], // Not relevant in this scenario.
                   }
 
                   const depositsExtraInfo = [
@@ -1260,6 +1275,7 @@ describe("WalletCoordinator", () => {
                       depositsKeys: [depositOne.key, depositTwo.key],
                       // Exceed the max per-deposit fee by one.
                       sweepTxFee: bridgeDepositTxMaxFee * 2 + 1,
+                      depositsRevealBlocks: [], // Not relevant in this scenario.
                     }
 
                     const depositsExtraInfo = [
@@ -1326,6 +1342,7 @@ describe("WalletCoordinator", () => {
                     walletPubKeyHash,
                     depositsKeys: [depositOne.key, depositTwo.key],
                     sweepTxFee,
+                    depositsRevealBlocks: [], // Not relevant in this scenario.
                   }
 
                   const depositsExtraInfo = [
@@ -1397,6 +1414,7 @@ describe("WalletCoordinator", () => {
                       walletPubKeyHash,
                       depositsKeys: [depositOne.key, depositTwo.key],
                       sweepTxFee,
+                      depositsRevealBlocks: [], // Not relevant in this scenario.
                     }
 
                     const depositsExtraInfo = [
@@ -1467,6 +1485,7 @@ describe("WalletCoordinator", () => {
                         walletPubKeyHash,
                         depositsKeys: [depositOne.key, depositTwo.key],
                         sweepTxFee,
+                        depositsRevealBlocks: [], // Not relevant in this scenario.
                       }
 
                       const depositsExtraInfo = [
@@ -1520,6 +1539,7 @@ describe("WalletCoordinator", () => {
                               walletPubKeyHash,
                               depositsKeys: [deposit.key],
                               sweepTxFee,
+                              depositsRevealBlocks: [], // Not relevant in this scenario.
                             }
 
                             // Corrupt the extra data by setting a different
@@ -1580,6 +1600,7 @@ describe("WalletCoordinator", () => {
                                 walletPubKeyHash,
                                 depositsKeys: [deposit.key],
                                 sweepTxFee,
+                                depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
                               // Corrupt the extra data by reversing the proper
@@ -1645,6 +1666,7 @@ describe("WalletCoordinator", () => {
                                 walletPubKeyHash,
                                 depositsKeys: [deposit.key],
                                 sweepTxFee,
+                                depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
                               // Corrupt the extra data by reversing the proper
@@ -1743,6 +1765,7 @@ describe("WalletCoordinator", () => {
                               walletPubKeyHash,
                               depositsKeys: [depositOne.key, depositTwo.key],
                               sweepTxFee,
+                              depositsRevealBlocks: [], // Not relevant in this scenario.
                             }
 
                             const depositsExtraInfo = [
@@ -1826,6 +1849,7 @@ describe("WalletCoordinator", () => {
                                     depositTwo.key,
                                   ],
                                   sweepTxFee,
+                                  depositsRevealBlocks: [], // Not relevant in this scenario.
                                 }
 
                                 const depositsExtraInfo = [
@@ -1909,6 +1933,7 @@ describe("WalletCoordinator", () => {
                                         depositTwo.key,
                                       ],
                                       sweepTxFee,
+                                      depositsRevealBlocks: [], // Not relevant in this scenario.
                                     }
 
                                     const depositsExtraInfo = [
@@ -1982,6 +2007,7 @@ describe("WalletCoordinator", () => {
                                         depositTwo.key,
                                       ],
                                       sweepTxFee,
+                                      depositsRevealBlocks: [], // Not relevant in this scenario.
                                     }
 
                                     const depositsExtraInfo = [
