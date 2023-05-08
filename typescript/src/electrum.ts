@@ -374,25 +374,13 @@ export class Client implements BitcoinClient {
           height: number
         }
 
-        let scriptHashHistory: HistoryEntry[] = []
-        for (let attempt = 0; attempt < this.totalRetryAttempts; attempt++) {
-          try {
-            scriptHashHistory = await electrum.blockchain_scripthash_getHistory(
-              scriptHash.reverse().toString("hex")
-            )
-            if (scriptHashHistory.length != 0) {
-              break
-            }
-          } catch {
-            // Handle the case when a bitcoin client throws an error and should retry
-            const waitMillis = this.waitBackoff(attempt)
-            await new Promise((r) => setTimeout(r, waitMillis))
-            continue
-          }
-          // Handle the case when a bitcoin client returns nothing and should retry
-          const waitMillis = this.waitBackoff(attempt)
-          await new Promise((r) => setTimeout(r, waitMillis))
-        }
+        const scriptHashHistory: HistoryEntry[] = await this.withBackoffRetrier<
+          HistoryEntry[]
+        >()(async () => {
+          return await electrum.blockchain_scripthash_getHistory(
+            scriptHash.reverse().toString("hex")
+          )
+        })
 
         const tx = scriptHashHistory.find(
           (t) => t.tx_hash === transactionHash.toString()
@@ -442,12 +430,6 @@ export class Client implements BitcoinClient {
 
       return height
     })
-  }
-
-  waitBackoff(attempt: number): number {
-    const backoffMillis = Math.pow(2, attempt) * 1000
-    const jitterMillis = Math.floor(Math.random() * 100)
-    return backoffMillis + jitterMillis
   }
 
   // eslint-disable-next-line valid-jsdoc
