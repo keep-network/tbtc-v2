@@ -77,7 +77,7 @@ export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
   transactionHash: BitcoinTransactionHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
-  sleep = 60000
+  sleep = 30000
 ): Promise<void> {
   for (;;) {
     // eslint-disable-next-line no-await-in-loop
