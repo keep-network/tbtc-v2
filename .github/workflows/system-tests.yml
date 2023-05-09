@@ -2,7 +2,7 @@ name: System tests
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * 0" #weekly, at 00:00 on Sunday
   workflow_dispatch:
 
 jobs:
