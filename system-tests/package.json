@@ -3,6 +3,7 @@
   "version": "1.0.0-dev",
   "license": "MIT",
   "scripts": {
+    "clean": "hardhat clean && rm -rf cache/",
     "format": "npm run lint",
     "format:fix": "npm run lint:fix",
     "lint": "npm run lint:eslint && npm run lint:config",
