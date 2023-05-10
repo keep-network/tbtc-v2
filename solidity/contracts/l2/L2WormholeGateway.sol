@@ -399,6 +399,7 @@ contract L2WormholeGateway is
     ///      due to the decimal shift in the Wormhole Bridge contract.
     ///      See https://github.com/wormhole-foundation/wormhole/blob/96682bdbeb7c87bfa110eade0554b3d8cbf788d2/ethereum/contracts/bridge/Bridge.sol#L276-L288
     function normalize(uint256 amount) internal pure returns (uint256) {
+        // slither-disable-next-line divide-before-multiply
         amount /= 10**10;
         amount *= 10**10;
         return amount;
