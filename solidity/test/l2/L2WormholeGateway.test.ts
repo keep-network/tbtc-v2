@@ -4,6 +4,7 @@ import { randomBytes } from "crypto"
 import { expect } from "chai"
 import { ethers, getUnnamedAccounts, helpers, waffle } from "hardhat"
 import { ContractTransaction } from "ethers"
+import { to1e18 } from "../helpers/contract-test-helpers"
 
 import type {
   L2TBTC,
@@ -308,7 +309,7 @@ describe("L2WormholeGateway", () => {
     const arbiterFee = 3
     const nonce = 4
 
-    const liquidity = 1100
+    const liquidity = to1e18(1100)
 
     before(async () => {
       await createSnapshot()
@@ -331,7 +332,7 @@ describe("L2WormholeGateway", () => {
           gateway
             .connect(depositor1)
             .sendTbtc(
-              liquidity + 1,
+              liquidity.add(to1e18(1)),
               recipientChain,
               padTo32Bytes(recipient),
               arbiterFee,
@@ -376,9 +377,27 @@ describe("L2WormholeGateway", () => {
         })
       })
 
+      context("when the amount is below dust", async () => {
+        const amount = ethers.BigNumber.from(10000000000).sub(1) // 10^10 - 1
+
+        it("should revert", async () => {
+          await expect(
+            gateway
+              .connect(depositor1)
+              .sendTbtc(
+                amount,
+                recipientChain,
+                padTo32Bytes(recipient),
+                arbiterFee,
+                nonce
+              )
+          ).to.be.revertedWith("Amount too low to bridge")
+        })
+      })
+
       context("when the receiver address and amount are non-zero", () => {
         context("when the target chain has no tBTC gateway", () => {
-          const amount = 997
+          const amount = ethers.BigNumber.from(10000000000) // 10^10
 
           let tx: ContractTransaction
 
@@ -437,7 +456,7 @@ describe("L2WormholeGateway", () => {
         })
 
         context("when the target chain has a tBTC gateway", () => {
-          const amount = 998
+          const amount = to1e18(998)
           const targetGateway = "0x4c810fe802d68c6ef0e1291b52fca5812bbc97c9"
 
           let tx: ContractTransaction
@@ -507,7 +526,7 @@ describe("L2WormholeGateway", () => {
   })
 
   describe("depositWormholeTbtc", () => {
-    const amount = 129
+    const amount = to1e18(129)
 
     context("when the minting limit is not exceeded", () => {
       let tx: ContractTransaction
@@ -556,11 +575,11 @@ describe("L2WormholeGateway", () => {
 
         await wormholeBridgeStub.mintWormholeToken(
           depositor1.address,
-          2 * amount
+          amount.mul(2)
         )
         await wormholeTbtc
           .connect(depositor1)
-          .approve(gateway.address, 2 * amount)
+          .approve(gateway.address, amount.mul(2))
 
         await gateway.connect(depositor1).depositWormholeTbtc(amount)
       })
