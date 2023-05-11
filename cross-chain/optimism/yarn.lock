@@ -696,12 +696,12 @@
   resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.4.0-solc-0.8.tgz#8b44c246ffab8ea993efe196f6bf385b1a3b84dc"
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
-"@keep-network/ecdsa@2.1.0-dev.6":
-  version "2.1.0-dev.6"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.1.0-dev.6.tgz#ccc690f784b6e802a5b80b2dfb7127d96e548a25"
-  integrity sha512-1D74OPVzzxxVcG8za/niuxmwEdDc5R6KNuHsUvsFkcHNJE1UgQNw+QdrI+k3M2so6YrO4L5lP7vTvIvBDbEMNQ==
+"@keep-network/ecdsa@2.1.0-dev.10":
+  version "2.1.0-dev.10"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.1.0-dev.10.tgz#aa9075416a960a640298e4095f3fb94de83866fb"
+  integrity sha512-axUrpyoGvIVKqNVohdzuqlwHGb9QoCdmfdHGy6mONncMkEJsc/BZqUMOSlJtW42QVddMfG672kvgNZF5zsTjNQ==
   dependencies:
-    "@keep-network/random-beacon" "2.1.0-dev.5"
+    "@keep-network/random-beacon" "2.1.0-dev.8"
     "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
     "@openzeppelin/contracts-upgradeable" "^4.6.0"
@@ -738,10 +738,20 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
-"@keep-network/random-beacon@2.1.0-dev.5":
-  version "2.1.0-dev.5"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.5.tgz#5ea1a76f57c8171fe3b12ecf4cfcefee38f954ac"
-  integrity sha512-v3Mqzwx69WqG5bi8qEO4b72PpDMbwl69f5PYHZ0vO3g2pzU1PpVq2nq/vzgdqW2xgztvnHFwOq+lOyN8hx0K3A==
+"@keep-network/random-beacon@2.1.0-dev.8":
+  version "2.1.0-dev.8"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.8.tgz#d21466250448175d2c9a21b876386196a4fe47f6"
+  integrity sha512-mnQ7eh49A8NiQ+9Y83kF0Rdr9Do/s2CcXaL4L+NdLPzVJW5SvXmOMfaJ9mghvHr9pqmqcSgpVzLyHL0EnrR51Q==
+  dependencies:
+    "@keep-network/sortition-pools" "^2.0.0-pre.16"
+    "@openzeppelin/contracts" "^4.6.0"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+    "@threshold-network/solidity-contracts" "1.3.0-dev.3"
+
+"@keep-network/random-beacon@2.1.0-dev.9":
+  version "2.1.0-dev.9"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.9.tgz#1058f1eff13e12d2831ec13fa61ecca399d92247"
+  integrity sha512-W4/AgMRWbYU4NO7YB0URbicjH89DMYHlOCT+GbyL/znZ7DLhLXzZCMJW4EvxM1lm8/wA6NsZev/2E25mHeqDIA==
   dependencies:
     "@keep-network/sortition-pools" "^2.0.0-pre.16"
     "@openzeppelin/contracts" "^4.6.0"
