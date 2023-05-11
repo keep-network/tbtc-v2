@@ -15,33 +15,34 @@
 
 pragma solidity 0.8.17;
 
+import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
+
 import "../relay/LightRelay.sol";
 
 /// @title Goerli Light Relay
 /// @notice GoerliLightRelay is a stub version of LightRelay intended to be
-///         used on the Goerli test network. It always returns `1` as the current
-///         and previous difficulties making it possible to bypass validation of
-///         difficulties of Bitcoin testnet blocks. Since difficulty in Bitcoin
-///         testnet often falls to `1` it would not be possible to validate
-///         blocks with the real LightRelay.
-/// @dev Since the returned difficulties are fixed and impossible to be modified
-///      with any setters, it is safe to use GoerliLightRelay without risking
-///      somebody may change the difficulties and block the test network.
-///      Notice that GoerliLightRelay is derived from LightRelay so that the two
+///         used on the Goerli test network. It allows to set the relay's
+///         difficulty based on arbitrary Bitcoin headers thus effectively
+///         bypass the validation of difficulties of Bitcoin testnet blocks.
+///         Since difficulty in Bitcoin testnet often falls to `1` it would not
+///         be possible to validate blocks with the real LightRelay.
+/// @dev Notice that GoerliLightRelay is derived from LightRelay so that the two
 ///      contracts have the same API and correct bindings can be generated.
 contract GoerliLightRelay is LightRelay {
-    /// @notice Returns `1` as the difficulty of the previous epoch.
-    function getPrevEpochDifficulty() external view override returns (uint256) {
-        return 1;
-    }
+    using BTCUtils for bytes;
+    using BTCUtils for uint256;
 
-    /// @notice Returns `1` as the difficulty of the current epoch.
-    function getCurrentEpochDifficulty()
+    /// @notice Sets the current and previous difficulty based on the difficulty
+    ///         inferred from the provided Bitcoin headers.
+    function setDifficultyFromHeaders(bytes memory bitcoinHeaders)
         external
-        view
-        override
-        returns (uint256)
+        onlyOwner
     {
-        return 1;
+        uint256 firstHeaderDiff = bitcoinHeaders
+            .extractTarget()
+            .calculateDifficulty();
+
+        currentEpochDifficulty = firstHeaderDiff;
+        prevEpochDifficulty = firstHeaderDiff;
     }
 }
