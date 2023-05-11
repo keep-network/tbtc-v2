@@ -27,9 +27,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
-  // Contracts can be verified on L2 Arbiscan in a similar way as we do it on
+  // Contracts can be verified on L2 Polygonscan in a similar way as we do it on
   // L1 Etherscan
-  if (hre.network.tags.arbiscan) {
+  if (hre.network.tags.polygonscan) {
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
     // in "@openzeppelin/hardhat-upgrades" to verify the proxy’s implementation
     // contract, the proxy itself and any proxy-related contracts, as well as

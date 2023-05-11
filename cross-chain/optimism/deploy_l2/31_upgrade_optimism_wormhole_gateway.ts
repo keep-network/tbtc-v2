@@ -27,9 +27,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
-  // Contracts can be verified on L2 Arbiscan in a similar way as we do it on
-  // L1 Etherscan
-  if (hre.network.tags.arbiscan) {
+  // Contracts can be verified on L2 Optimism Etherscan in a similar way as we do
+  // it on L1 Etherscan
+  if (hre.network.tags.optimism_etherscan) {
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
     // in "@openzeppelin/hardhat-upgrades" to verify the proxy’s implementation
     // contract, the proxy itself and any proxy-related contracts, as well as
@@ -47,4 +47,4 @@ func.tags = ["UpgradeOptimismWormholeGateway"]
 
 // Comment this line when running an upgrade.
 // yarn deploy --tags UpgradeOptimismWormholeGateway --network <network>
-// func.skip = async () => true
+func.skip = async () => true
