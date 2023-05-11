@@ -522,7 +522,7 @@ describe("L2WormholeGateway", () => {
           })
         })
 
-        context("when the amount just above the dust", () => {
+        context("when the amount is just above the dust", () => {
           const amount = ethers.BigNumber.from(10000000000) // 10^10
 
           let tx: ContractTransaction
