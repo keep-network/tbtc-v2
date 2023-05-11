@@ -764,13 +764,13 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc-v2@development":
-  version "1.2.0-dev.1"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.2.0-dev.1.tgz#4a1879e4979afbc06f0f9d9356c789ecc0ffea0e"
-  integrity sha512-cS4kta9XnPPtj5PW64Uso8c19VgEIukpPyCyJ8iXMyHKRmbfZsEw8I0aHmvkyZ2szdbcNJ2qcLL203uHAmyYAA==
+  version "1.4.0-dev.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.4.0-dev.0.tgz#3c3b40d36917ad3e35a4f64d4b45f64e6ce46b8a"
+  integrity sha512-aOoo+WxgV8eR03z0vjstG7lX0q9B5K4VAi7GYT8lVO0uLErXpHawveNZKNnt+DBh4Sp1c3IZuF21EYJKKCLEyw==
   dependencies:
     "@keep-network/bitcoin-spv-sol" "3.4.0-solc-0.8"
-    "@keep-network/ecdsa" "2.1.0-dev.6"
-    "@keep-network/random-beacon" "2.1.0-dev.5"
+    "@keep-network/ecdsa" "2.1.0-dev.10"
+    "@keep-network/random-beacon" "2.1.0-dev.9"
     "@keep-network/tbtc" "1.1.2-dev.1"
     "@openzeppelin/contracts" "^4.8.1"
     "@openzeppelin/contracts-upgradeable" "^4.8.1"
