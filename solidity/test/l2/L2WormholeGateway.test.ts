@@ -377,27 +377,9 @@ describe("L2WormholeGateway", () => {
         })
       })
 
-      context("when the amount is below dust", async () => {
-        const amount = ethers.BigNumber.from(10000000000).sub(1) // 10^10 - 1
-
-        it("should revert", async () => {
-          await expect(
-            gateway
-              .connect(depositor1)
-              .sendTbtc(
-                amount,
-                recipientChain,
-                padTo32Bytes(recipient),
-                arbiterFee,
-                nonce
-              )
-          ).to.be.revertedWith("Amount too low to bridge")
-        })
-      })
-
       context("when the receiver address and amount are non-zero", () => {
         context("when the target chain has no tBTC gateway", () => {
-          const amount = ethers.BigNumber.from(10000000000) // 10^10
+          const amount = to1e18(11)
 
           let tx: ContractTransaction
 
@@ -515,6 +497,164 @@ describe("L2WormholeGateway", () => {
                 amount,
                 recipientChain,
                 padTo32Bytes(targetGateway),
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
+        })
+
+        context("when the amount is below dust", async () => {
+          const amount = ethers.BigNumber.from(10000000000).sub(1) // 10^10 - 1
+
+          it("should revert", async () => {
+            await expect(
+              gateway
+                .connect(depositor1)
+                .sendTbtc(
+                  amount,
+                  recipientChain,
+                  padTo32Bytes(recipient),
+                  arbiterFee,
+                  nonce
+                )
+            ).to.be.revertedWith("Amount too low to bridge")
+          })
+        })
+
+        context("when the amount just above the dust", () => {
+          const amount = ethers.BigNumber.from(10000000000) // 10^10
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await canonicalTbtc
+              .connect(depositor1)
+              .approve(gateway.address, amount)
+            tx = await gateway
+              .connect(depositor1)
+              .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should burn canonical tBTC from the caller", async () => {
+            expect(tx)
+              .to.emit(canonicalTbtc, "Transfer")
+              .withArgs(depositor1.address, ZERO_ADDRESS, amount)
+          })
+
+          it("should approve burned amount of wormhole tBTC to the bridge", async () => {
+            expect(tx)
+              .to.emit(wormholeTbtc, "Approved")
+              .withArgs(wormholeBridgeStub.address, amount)
+          })
+
+          it("should sent the entire amount through the bridge", async () => {
+            await expect(tx)
+              .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
+              .withArgs(
+                wormholeTbtc.address,
+                amount,
+                recipientChain,
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
+        })
+
+        context("when the amount has a small dust", () => {
+          const amount = ethers.BigNumber.from(10000000001) // 10^10 + 1
+          const amountToTake = ethers.BigNumber.from(10000000000)
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await canonicalTbtc
+              .connect(depositor1)
+              .approve(gateway.address, amount)
+            tx = await gateway
+              .connect(depositor1)
+              .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should burn canonical tBTC from the caller after dropping dust", async () => {
+            expect(tx)
+              .to.emit(canonicalTbtc, "Transfer")
+              .withArgs(depositor1.address, ZERO_ADDRESS, amountToTake)
+          })
+
+          it("should approve burned amount of wormhole tBTC to the bridge after dropping dust", async () => {
+            expect(tx)
+              .to.emit(wormholeTbtc, "Approved")
+              .withArgs(wormholeBridgeStub.address, amountToTake)
+          })
+
+          it("should drop the dust before sending over the bridge", async () => {
+            await expect(tx)
+              .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
+              .withArgs(
+                wormholeTbtc.address,
+                amountToTake,
+                recipientChain,
+                recipient,
+                arbiterFee,
+                nonce
+              )
+          })
+        })
+
+        context("when the amount has a lot of dust", () => {
+          const amount = ethers.BigNumber.from(19999999999) // 2* 10^10 - 1
+          const amountToTake = ethers.BigNumber.from(10000000000)
+
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            await canonicalTbtc
+              .connect(depositor1)
+              .approve(gateway.address, amount)
+            tx = await gateway
+              .connect(depositor1)
+              .sendTbtc(amount, recipientChain, recipient, arbiterFee, nonce)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should burn canonical tBTC from the caller after dropping dust", async () => {
+            expect(tx)
+              .to.emit(canonicalTbtc, "Transfer")
+              .withArgs(depositor1.address, ZERO_ADDRESS, amountToTake)
+          })
+
+          it("should approve burned amount of wormhole tBTC to the bridge after dropping dust", async () => {
+            expect(tx)
+              .to.emit(wormholeTbtc, "Approved")
+              .withArgs(wormholeBridgeStub.address, amountToTake)
+          })
+
+          it("should drop the dust before sending over the bridge", async () => {
+            await expect(tx)
+              .to.emit(wormholeBridgeStub, "WormholeBridgeStub_transferTokens")
+              .withArgs(
+                wormholeTbtc.address,
+                amountToTake,
+                recipientChain,
                 recipient,
                 arbiterFee,
                 nonce
