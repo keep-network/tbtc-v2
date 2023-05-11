@@ -79,6 +79,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         DepositKey[] depositsKeys;
         // Proposed BTC fee for the entire transaction.
         uint256 sweepTxFee;
+        // Array containing the reveal blocks of each deposit. This information
+        // strongly facilitates the off-chain processing. Using those blocks,
+        // wallet operators can quickly fetch corresponding Bridge.DepositRevealed
+        // events carrying deposit data necessary to perform proposal validation.
+        // This field is not explicitly validated within the validateDepositSweepProposal
+        // function because if something is wrong here the off-chain wallet
+        // operators will fail anyway as they won't be able to gather deposit
+        // data necessary to perform the on-chain validation using the
+        // validateDepositSweepProposal function.
+        uint256[] depositsRevealBlocks;
     }
 
     /// @notice Helper structure representing a plain-text deposit key.

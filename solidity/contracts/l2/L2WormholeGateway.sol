@@ -192,7 +192,8 @@ contract L2WormholeGateway is
     ///      - The L2WormholeGateway must have at least `amount` of the wormhole
     ///        tBTC.
     ///      - The recipient must not be 0x0.
-    ///      - The amount to transfer must not be 0.
+    ///      - The amount to transfer must not be 0,
+    ///      - The amount to transfer must be >= 10^10 (1e18 precision).
     ///      Depending if Wormhole tBTC gateway is registered on the target
     ///      chain, this function uses transfer or transfer with payload over
     ///      the Wormhole bridge.
@@ -210,13 +211,20 @@ contract L2WormholeGateway is
         uint256 arbiterFee,
         uint32 nonce
     ) external payable nonReentrant returns (uint64) {
+        require(recipient != bytes32(0), "0x0 recipient not allowed");
+        require(amount != 0, "Amount must not be 0");
+
+        // Normalize the amount to bridge. The dust can not be bridged due to
+        // the decimal shift in the Wormhole Bridge contract.
+        amount = normalize(amount);
+
+        // Check again after dropping the dust.
+        require(amount != 0, "Amount too low to bridge");
+
         require(
             bridgeToken.balanceOf(address(this)) >= amount,
             "Not enough wormhole tBTC in the gateway to bridge"
         );
-
-        require(recipient != bytes32(0), "0x0 recipient not allowed");
-        require(amount != 0, "Amount must not be 0");
 
         bytes32 gateway = gateways[recipientChain];
 
@@ -385,5 +393,15 @@ contract L2WormholeGateway is
         returns (address)
     {
         return address(uint160(uint256(_address)));
+    }
+
+    /// @dev Eliminates the dust that cannot be bridged with Wormhole
+    ///      due to the decimal shift in the Wormhole Bridge contract.
+    ///      See https://github.com/wormhole-foundation/wormhole/blob/96682bdbeb7c87bfa110eade0554b3d8cbf788d2/ethereum/contracts/bridge/Bridge.sol#L276-L288
+    function normalize(uint256 amount) internal pure returns (uint256) {
+        // slither-disable-next-line divide-before-multiply
+        amount /= 10**10;
+        amount *= 10**10;
+        return amount;
     }
 }
