@@ -9,7 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const PolygonWormholeTBTC = await deployments.get("PolygonWormholeTBTC")
   const PolygonTBTC = await deployments.get("PolygonTBTC")
 
-  const [, proxyDeployment] = await helpers.upgrades.upgradeProxy(
+  await helpers.upgrades.upgradeProxy(
     "PolygonWormholeGateway",
     "PolygonWormholeGateway",
     {
@@ -26,19 +26,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     }
   )
-
-  // Contracts can be verified on L2 Polygonscan in a similar way as we do it on
-  // L1 Etherscan
-  if (hre.network.tags.polygonscan) {
-    // We use `verify` instead of `verify:verify` as the `verify` task is defined
-    // in "@openzeppelin/hardhat-upgrades" to verify the proxy’s implementation
-    // contract, the proxy itself and any proxy-related contracts, as well as
-    // link the proxy to the implementation contract’s ABI on (Ether)scan.
-    await hre.run("verify", {
-      address: proxyDeployment.address,
-      constructorArgsParams: proxyDeployment.args,
-    })
-  }
 }
 
 export default func
