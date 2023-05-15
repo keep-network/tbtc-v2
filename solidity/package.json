@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "1.0.3-dev",
+  "version": "1.4.0-dev",
   "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
@@ -35,8 +35,8 @@
     "@keep-network/ecdsa": "development",
     "@keep-network/random-beacon": "development",
     "@keep-network/tbtc": "development",
-    "@openzeppelin/contracts": "^4.6.0",
-    "@openzeppelin/contracts-upgradeable": "^4.6.0",
+    "@openzeppelin/contracts": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.1",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf"
   },
   "devDependencies": {

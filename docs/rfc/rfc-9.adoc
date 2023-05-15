@@ -1,0 +1,174 @@
+:toc: macro
+
+= RFC 9: Bitcoin Ordinals
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+As of 2023-02-23, Bitcoin Ordinals are 🔥 HOT 🔥. Here is a
+https://insights.glassnode.com/ordinal-theory-and-the-rise-of-inscriptions/[decent
+explainer].
+
+image:assets/inscriptions-over-time.png[]
+
+There is not a good way to get those Ordinals over to Ethereum currently, where
+Ordinal owners can use the more mature NFT platforms. We could be that way!
+
+Here is an https://ordinals.com/inscription/cfa453dbf693641b8f0c6b83cb733e71832606fc26415c36c70744953d6f6161i0[example ordinal].
+
+=== Current Functionality
+
+Ordinals are a numbering scheme for satoshis that allows tracking and
+transferring individual sats. Satoshis are numbered in the order in which
+they're mined, and transferred from transaction inputs to transaction outputs
+first-in-first-out.
+
+Inscriptions are single satoshis with metadata stuck into their
+witness field (called Inscribing). Each satoshi has an immutable age, which
+effectively gives them serial numbers.
+
+These Ordinals (some of which are Inscriptions) can be transferred like normal
+BTC. The sender's wallet software needs to be careful to not merge the
+Inscriptions with "normal" UTXOs, and needs to be careful to not accidentally
+send the Inscription as part of a payment. The
+https://github.com/casey/ord[casey/ord] repo provides the primatives for the
+handling of Ordinals on BTC.
+
+A good mental model here is thinking about Ordinals like
+https://www.apmex.com/product/117942/1932-s-washington-quarter-choice-au[special
+edition quarters]. The linked quarter trades for ~$350, but is also legal tender
+worth $0.25. An owner of such a quarter probably does not want to use it to pay
+for parking. Ordinals work the same way.
+
+Since Ordinals are still BTC, we can use many of the same tBTCv2 ideas for
+custodying Ordianls: rotating wallets (and the wallet lifecycle), threshold
+signatures, Minters, and Guardians. Since Ordinals use special P2SH scripts to
+transfer and track them (via the `ord` program), this affects our depositing and
+redemption process. The differences are detailed below.
+
+== Proposal
+
+=== Overview
+
+We build a BTC <> Ethereum Ordinal bridge!
+
+We add functionality to the current tBTCv2 client to add additional signing
+groups specifically for Ordinals. To deposit to these signing groups, a user
+sends their Ordinal to the wallet using an `ord`-compatible wallet, which uses
+ord's own P2SH scheme. The depositor then makes a minting request. The Guardian
+set has a governable amount of time to reject the request. If no guardian
+rejects, the NFT is minted.
+
+To redeem, a NFT holder returns their NFT and submits and redemption request.
+The Guardian set has a governable amount of time to reject the request. If no
+guardian rejects the request, the signing group is instructed to send the
+Ordinal to the redeemer.
+
+For both deposits and redemptions, the user pays a <<Fees,fee>>.
+
+=== Depositing Details
+
+There are a two main technical hurdles to using the same depositing mechanism
+that we do for tBTCv2.
+
+* `ord` uses a special transfer P2SH script to send Ordinals to addresses. This
+  interferes with our ability to create P2SH scripts that associate ethereum
+  addresses and provide refunds.
+* Bitcoin headers do not have sufficient information to prove that a UTXO
+  contains an Ordinal. This interferes with our ability to prove that an Ordinal
+  has been deposited.
+
+We can associate each deposit to an ethereum address for minting by leveraging
+https://www.ledger.com/academy/crypto/what-are-hierarchical-deterministic-hd-wallets[HD
+Wallets]. Rather than giving the user a different P2SH address for each wallet,
+we instead derive a different child address for each wallet. For example, a
+depositor with eth address `0xDBC0 5B1E CB4F DAEF 9438 19C0 B04E 9EF6 DF4B ABD6`
+could use
+`m/0xDBC0/0x5B1E/0xCB4F/0xDAEF/0x9438/0x19C0/0xB04E/0x9EF6/0xDF4B/0xABD6` which
+is `m/56256/23326/52047/56047/37944/6592/45134/40694/57163/43990`.
+
+We would add more paths for a blinding factor (and whatever else data we need).
+
+Deposits to this address look meaningless from the outside but are verifiable
+to a guardian (or from ethereum). We do lose the ability to offer refunds,
+unfortunately.
+
+The lack of provability is more problematic. Here's an excerpt from the
+https://github.com/casey/ord/blob/master/bip.mediawiki[BIP]:
+
+> A proof can be constructed that demonstrates that a particular sat is
+contained in a particular output, however the proofs are large. Such a proof
+consists of:
+> 
+> * Block headers 
+> * A Merkle path to the coinbase transaction that created the sat 
+> * The coinbase transaction that created the sat 
+> * And for every spend of that sat:
+>   * The spend transaction
+>   * The transactions that created the inputs before the input that was spent,
+>     to determine the values of the preceding inputs, to determine the position
+>     of the sat
+>   * And, if the sat was used as fees, all prior transaction in the block in
+>     which it was spent, and the coinbase transaction, to determine the location
+>     of the sat in the outputs.
+
+This looks infeasible for use on ethereum. Under the assumption that we are not
+able to prove on-chain that a deposit has a particular Ordinal, we can pivot to
+leaning fully on a permissioned Guardian model. In this model, a user sends the
+wallet their Ordinal using `ord`, and then requests a mint on ethereum by
+revealing their blinding factor, Ordinal id, and ethereum address. The Guardians
+have a governable amount of time to inspect the deposit and reject it if
+anything looks wrong. In addition, the depositor supplies a <<Fees,fee>>.
+
+After the timeout period, anyone (a bot) can confirm a non-rejected mint to
+create an Ordinal NFT on ethereum. We encode the
+https://docs.ordinals.com/guides/explorer.html[Ordinal ID] into the NFT's
+metadata field, and then store a mapping from Ordinal -> UTXO on-chain. A dApp
+can read the Ordinal ID from the metadata and then use that to look up the
+Ordinal (and any associated Inscription) on Bitcoin.
+
+=== Redemption Details
+
+To redeem an Ordinal NFT on ethereum, the redeemer sends back the NFT,
+supplies a Bitcoin address, and supplies a <<Fees,fee>>. The off-chain clients
+listen for this transaction, and the associated signing group keeps track of
+which Ordinals they are custodying off-chain. When one of the Ordinals that they
+are in charge of is redeemed, they use `ord` to send it to the associated
+Bitcoin address.
+
+In cleanup, we remove the Ordinal from the Ordinal -> UTXO mapping.
+
+=== Fraud Detection
+
+After we accept the deposit and add the Oridinal ID to our Ordinal -> UTXO
+mapping, we can perform fraud proofs leveraging this information. If a UTXO for
+an Ordinal is spent in a way other than by transferring the Ordinal to the
+redemption address, or to the appropriate wallet during wallet closure, that is
+punishable with slashing and wallet closure.
+
+If a wallet fails to redeem an Ordinal that it has custody of within a
+governable time-out, that is punishable with slashing and wallet closure.
+
+=== Fees
+
+Taking a percentage cut of an Ordinal does not make sense, so we need to use a
+different fee structure.
+
+The simplest structure is to charge flat, governable fees on minting and
+redemption. For example, we could charge 0.01 BTC on mint (which we turn into
+tBTC and keep as protocol controlled value), and then 0.01 tBTC on redemption
+(which we keep as protocol controlled value).
+
+Another option is to charge dynamic redemption fees based on the amount of time
+the Ordinal was custodied. Redeeming an Ordinal that has been here for 1 week
+might be free, 6 months might cost 0.01 tBTC and 2 years might cost 0.02 tBTC,
+for example. This incentivizes folks to redeem earlier, and makes the bridge
+attractive for someone who wants to mint -> sell/buy -> exit.
+
+We could also charge more for exiting *quickly*, like how selling stocks in
+traditional finance incurs higher tax rates if you do not hold on to them for
+long enough. This incentivizes folks to stick around rather than using it for
+quick sales.

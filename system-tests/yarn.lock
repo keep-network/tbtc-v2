@@ -1492,7 +1492,7 @@
   resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.4.0-solc-0.8.tgz#8b44c246ffab8ea993efe196f6bf385b1a3b84dc"
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
-"@keep-network/ecdsa@2.1.0-dev.6", "@keep-network/ecdsa@development":
+"@keep-network/ecdsa@2.1.0-dev.6":
   version "2.1.0-dev.6"
   resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.1.0-dev.6.tgz#ccc690f784b6e802a5b80b2dfb7127d96e548a25"
   integrity sha512-1D74OPVzzxxVcG8za/niuxmwEdDc5R6KNuHsUvsFkcHNJE1UgQNw+QdrI+k3M2so6YrO4L5lP7vTvIvBDbEMNQ==
@@ -1564,11 +1564,11 @@
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@keep-network/tbtc-v2.ts@development":
-  version "1.0.0-dev.29"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.0.0-dev.29.tgz#bb9d80edaf0bb15527196015ff604996ea87567d"
-  integrity sha512-Qf0ms4ASW80ejaougMPSEY1yt+IXqqzDtsAX38e6fTvTBcVg7XJTptmo6rp+FAjrZd3WXQLzYjObYLJMAO2YMA==
+  version "1.1.0-dev.8"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-1.1.0-dev.8.tgz#9a3e0cc962681fe14c8b198d2b21e84d27ebdb4b"
+  integrity sha512-F5PEd+oaZuueQsFVBJ4MJcs8nVBOJJaXqVJJzWnLWw1/lARqT0H5m1dvMofuFTF76y9ShxbHNT1BYQOEX7dlJQ==
   dependencies:
-    "@keep-network/ecdsa" development
+    "@keep-network/ecdsa" "2.1.0-dev.6"
     "@keep-network/tbtc-v2" "1.0.3-dev.0"
     bcoin "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8"
     bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
