@@ -677,7 +677,7 @@ describe("WalletCoordinator", () => {
       it("should do the refund", async () => {
         const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
         expect(diff).to.be.gt(0)
-        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
+        expect(diff).to.be.lt(ethers.utils.parseUnits("2000000", "gwei")) // 0,002 ETH
       })
     })
   })
@@ -982,7 +982,7 @@ describe("WalletCoordinator", () => {
       it("should do the refund", async () => {
         const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
         expect(diff).to.be.gt(0)
-        expect(diff).to.be.lt(ethers.utils.parseUnits("1000000", "gwei")) // 0,001 ETH
+        expect(diff).to.be.lt(ethers.utils.parseUnits("4000000", "gwei")) // 0,004 ETH
       })
     })
   })

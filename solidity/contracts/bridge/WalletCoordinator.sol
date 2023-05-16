@@ -252,13 +252,13 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         (, , , reimbursementPool) = _bridge.contractReferences();
 
         heartbeatRequestValidity = 1 hours;
-        heartbeatRequestGasOffset = 5_000;
+        heartbeatRequestGasOffset = 10_000;
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
-        depositSweepProposalSubmissionGasOffset = 5_000;
+        depositSweepProposalSubmissionGasOffset = 20_000; // optimized for 10 inputs
     }
 
     /// @notice Adds the given address to the set of coordinator addresses.
