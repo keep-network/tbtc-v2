@@ -15,5 +15,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["TransferWalletCoordinatorOwnership"]
-func.dependencies = ["WalletCoordinator"]
+func.dependencies = ["AddCoordinatorAddress"]
 func.runAtTheEnd = true
