@@ -15,7 +15,7 @@ import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/ethereum"
 import { Hex } from "../../src/hex"
-import { NewWalletRegisteredEvent } from "../../src/wallet"
+import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -313,5 +313,22 @@ export class MockBridge implements Bridge {
 
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
+  }
+
+  wallets(walletPublicKeyHash: string): Promise<Wallet> {
+    throw new Error("not implemented")
+  }
+
+  buildUTXOHash(utxo: UnspentTransactionOutput): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
   }
 }

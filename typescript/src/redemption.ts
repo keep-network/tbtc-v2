@@ -7,9 +7,12 @@ import {
   UnspentTransactionOutput,
   Client as BitcoinClient,
   TransactionHash,
+  encodeToBitcoinAddress,
 } from "./bitcoin"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
+import { WalletState } from "./wallet"
+import { BitcoinNetwork } from "./bitcoin-network"
 
 /**
  * Represents a redemption request.
@@ -405,4 +408,70 @@ export async function getRedemptionRequest(
   }
 
   return redemptionRequests[0]
+}
+
+/**
+ * Finds the oldest active wallet that has enough BTC to handle a redemption request.
+ * @param amount The amount to be redeemed.
+ * @param bridge The handle to the Bridge on-chain contract.
+ * @param bitcoinClient Bitcoin client used to interact with the network.
+ * @param bitcoinNetwork Bitcoin network.
+ * @returns Promise with the wallet details needed to request a redemption.
+ */
+export async function findWalletForRedemption(
+  amount: BigNumber,
+  bridge: Bridge,
+  bitcoinClient: BitcoinClient,
+  bitcoinNetwork: BitcoinNetwork
+): Promise<{
+  walletPublicKeyHash: string
+  mainUTXO: UnspentTransactionOutput
+}> {
+  const wallets = await bridge.getNewWalletRegisteredEvents()
+
+  let walletPublicKeyHash
+  let mainUTXO
+  let maxAmount = BigNumber.from(0)
+  for (const wallet of wallets) {
+    const _walletPublicKeyHash = wallet.walletPublicKeyHash.toPrefixedString()
+    const { state, mainUtxoHash } = await bridge.wallets(_walletPublicKeyHash)
+
+    // Wallet must be in Live state.
+    if (state !== WalletState.Live) continue
+
+    const walletBitcoinAddress = encodeToBitcoinAddress(
+      wallet.walletPublicKeyHash.toString(),
+      true,
+      bitcoinNetwork
+    )
+
+    const utxos = await bitcoinClient.findAllUnspentTransactionOutputs(
+      walletBitcoinAddress
+    )
+
+    // We need to find correct utxo- utxo components must point to the recent
+    // main UTXO of the given wallet, as currently known on the chain.
+    const utxo = utxos.find((utxo) =>
+      mainUtxoHash.equals(bridge.buildUTXOHash(utxo))
+    )
+
+    if (!utxo) continue
+
+    // Save the max possible redemption amount.
+    maxAmount = utxo.value.gt(maxAmount) ? utxo.value : maxAmount
+
+    if (utxo.value.gte(amount)) {
+      walletPublicKeyHash = _walletPublicKeyHash
+      mainUTXO = utxo
+
+      break
+    }
+  }
+
+  if (!walletPublicKeyHash || !mainUTXO)
+    throw new Error(
+      `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi.`
+    )
+
+  return { walletPublicKeyHash, mainUTXO }
 }

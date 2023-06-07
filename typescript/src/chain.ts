@@ -23,6 +23,7 @@ import {
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
+  Wallet,
 } from "./wallet"
 import type { ExecutionLoggerFn } from "./backoff"
 
@@ -244,6 +245,21 @@ export interface Bridge {
    * Returns the attached WalletRegistry instance.
    */
   walletRegistry(): Promise<WalletRegistry>
+
+  /**
+   * Gets details about a registered wallet.
+   * @param walletPublicKeyHash The 20-byte wallet public key hash (computed
+   * using Bitcoin HASH160 over the compressed ECDSA public key).
+   * @returns Promise with the wallet details.
+   */
+  wallets(walletPublicKeyHash: string): Promise<Wallet>
+
+  /**
+   * Builds the UTXO hash based on the UTXO components.
+   * @param utxo UTXO components.
+   * @returns The hash of the UTXO.
+   */
+  buildUTXOHash(utxo: UnspentTransactionOutput): Hex
 }
 
 /**
