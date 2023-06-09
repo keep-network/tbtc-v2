@@ -396,4 +396,20 @@ export interface TBTCToken {
   // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
   //       precision to Bitcoin in 1e8 precision (satoshi).
   totalSupply(blockNumber?: number): Promise<BigNumber>
+
+  /**
+   * Calls `receiveApproval` function on spender previously approving the spender
+   * to withdraw from the caller multiple times, up to the `amount` amount. If
+   * this function is called again, it overwrites the current allowance with
+   * `amount`.
+   * @param spender Address of contract authorized to spend.
+   * @param amount The max amount they can spend.
+   * @param extraData Extra information to send to the approved contract.
+   * @returns Transaction hash of the approve and call transaction.
+   */
+  approveAndCall(
+    spender: Identifier,
+    amount: BigNumber,
+    extraData: Hex
+  ): Promise<Hex>
 }

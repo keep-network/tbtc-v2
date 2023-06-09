@@ -1099,4 +1099,20 @@ export class TBTCToken
       blockTag: blockNumber ?? "latest",
     })
   }
+
+  async approveAndCall(
+    spender: ChainIdentifier,
+    amount: BigNumber,
+    extraData: Hex
+  ): Promise<Hex> {
+    const tx = await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.approveAndCall(
+        spender.identifierHex,
+        amount,
+        extraData.toPrefixedString()
+      )
+    }, this._totalRetryAttempts)
+
+    return Hex.from(tx.hash)
+  }
 }
