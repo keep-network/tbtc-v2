@@ -488,6 +488,39 @@ export class Bridge
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<void> {
+    const redemptionData = this.parseRequestRedemptionTransactionData(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
+
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.requestRedemption(
+        redemptionData.walletPublicKeyHash,
+        redemptionData.mainUtxo,
+        redemptionData.prefixedRawRedeemerOutputScript,
+        amount
+      )
+    }, this._totalRetryAttempts)
+  }
+
+  /**
+   * Parses the request redemption data to the proper form.
+   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in
+   *        the compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain contract.
+   * @param redeemerOutputScript - The output script that the redeemed funds
+   *        will be locked to. Must be un-prefixed and not prepended with
+   *        length.
+   * @returns Parsed data that can be passed to the contract to request
+   * redemption.
+   */
+  private parseRequestRedemptionTransactionData = (
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
+  ) => {
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
     const mainUtxoParam = {
@@ -506,14 +539,11 @@ export class Bridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.requestRedemption(
-        walletPublicKeyHash,
-        mainUtxoParam,
-        prefixedRawRedeemerOutputScript,
-        amount
-      )
-    }, this._totalRetryAttempts)
+    return {
+      walletPublicKeyHash,
+      mainUtxo: mainUtxoParam,
+      prefixedRawRedeemerOutputScript,
+    }
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -693,6 +723,37 @@ export class Bridge
       address: ecdsaWalletRegistry,
       signerOrProvider: this._instance.signer || this._instance.provider,
     })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#buildRedemptionData}
+   */
+  buildRedemptionData(
+    redeemer: ChainIdentifier,
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
+  ): Hex {
+    const redemptionData = this.parseRequestRedemptionTransactionData(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
+
+    return Hex.from(
+      utils.defaultAbiCoder.encode(
+        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
+        [
+          redeemer.identifierHex,
+          redemptionData.walletPublicKeyHash,
+          redemptionData.mainUtxo.txHash,
+          redemptionData.mainUtxo.txOutputIndex,
+          redemptionData.mainUtxo.txOutputValue,
+          redemptionData.prefixedRawRedeemerOutputScript,
+        ]
+      )
+    )
   }
 }
 

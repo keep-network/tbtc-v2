@@ -244,6 +244,26 @@ export interface Bridge {
    * Returns the attached WalletRegistry instance.
    */
   walletRegistry(): Promise<WalletRegistry>
+
+  /**
+   * Builds the redemption data required to request a redemption via
+   * @see TBTCToken#approveAndCall - the built data should be passed as
+   * `extraData` the @see TBTCToken#approveAndCall function.
+   * @param redeemer On-chain identifier of the redeemer.
+   * @param walletPublicKey The Bitcoin public key of the wallet. Must be in the
+   *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerOutputScript The output script that the redeemed funds will
+   *        be locked to. Must be un-prefixed and not prepended with length.
+   * @returns The
+   */
+  buildRedemptionData(
+    redeemer: Identifier,
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
+  ): Hex
 }
 
 /**
