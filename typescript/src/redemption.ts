@@ -424,17 +424,25 @@ export async function findWalletForRedemption(
   bitcoinClient: BitcoinClient,
   bitcoinNetwork: BitcoinNetwork
 ): Promise<{
-  walletPublicKeyHash: string
+  walletPublicKey: string
   mainUTXO: UnspentTransactionOutput
 }> {
   const wallets = await bridge.getNewWalletRegisteredEvents()
 
-  let walletPublicKeyHash
-  let mainUTXO
+  let walletData:
+    | {
+        walletPublicKey: string
+        mainUTXO: UnspentTransactionOutput
+      }
+    | undefined = undefined
   let maxAmount = BigNumber.from(0)
+
   for (const wallet of wallets) {
-    const _walletPublicKeyHash = wallet.walletPublicKeyHash.toPrefixedString()
-    const { state, mainUtxoHash } = await bridge.wallets(_walletPublicKeyHash)
+    const prefixedWalletPublicKeyHash =
+      wallet.walletPublicKeyHash.toPrefixedString()
+    const { state, mainUtxoHash, walletPublicKey } = await bridge.wallets(
+      prefixedWalletPublicKeyHash
+    )
 
     // Wallet must be in Live state.
     if (state !== WalletState.Live) continue
@@ -461,17 +469,19 @@ export async function findWalletForRedemption(
     maxAmount = utxo.value.gt(maxAmount) ? utxo.value : maxAmount
 
     if (utxo.value.gte(amount)) {
-      walletPublicKeyHash = _walletPublicKeyHash
-      mainUTXO = utxo
+      walletData = {
+        walletPublicKey: walletPublicKey.toString(),
+        mainUTXO: utxo,
+      }
 
       break
     }
   }
 
-  if (!walletPublicKeyHash || !mainUTXO)
+  if (!walletData)
     throw new Error(
       `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi.`
     )
 
-  return { walletPublicKeyHash, mainUTXO }
+  return walletData
 }
