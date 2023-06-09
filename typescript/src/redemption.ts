@@ -8,8 +8,9 @@ import {
   Client as BitcoinClient,
   TransactionHash,
 } from "./bitcoin"
-import { Bridge, Identifier } from "./chain"
+import { Bridge, Identifier, TBTCToken } from "./chain"
 import { assembleTransactionProof } from "./proof"
+import { Hex } from "./hex"
 
 /**
  * Represents a redemption request.
@@ -55,29 +56,39 @@ export interface RedemptionRequest {
 
 /**
  * Requests a redemption from the on-chain Bridge contract.
+ * @param redeemer - On-chain identifier of the redeemer.
  * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
  *        compressed form (33 bytes long with 02 or 03 prefix).
- * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
- *        held by the on-chain Bridge contract.
+ * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
+ *        by the on-chain Bridge contract.
  * @param redeemerOutputScript - The output script that the redeemed funds will
  *        be locked to. Must be un-prefixed and not prepended with length.
- * @param amount - The amount to be redeemed in satoshis.
+ * @param amount - The amount to be redeemed with the precision of the tBTC
+ *        on-chain token contract.
+ * @param vault - The vault address.
  * @param bridge - Handle to the Bridge on-chain contract.
- * @returns Empty promise.
+ * @param tBTCToken - Handle to the TBTCToken on-chain contract.
+ * @returns Transaction hash of the request redemption transaction.
  */
 export async function requestRedemption(
+  redeemer: Identifier,
   walletPublicKey: string,
   mainUtxo: UnspentTransactionOutput,
   redeemerOutputScript: string,
   amount: BigNumber,
-  bridge: Bridge
-): Promise<void> {
-  await bridge.requestRedemption(
+  vault: Identifier,
+  bridge: Bridge,
+  tBTCToken: TBTCToken
+): Promise<Hex> {
+  const redemptionData = bridge.buildRedemptionData(
+    redeemer,
     walletPublicKey,
     mainUtxo,
-    redeemerOutputScript,
-    amount
+    // TODO: We should pass `redeemerOutputScript` in that form.
+    bcoin.Script.fromAddress(redeemerOutputScript).toRaw().toString("hex")
   )
+
+  return await tBTCToken.approveAndCall(vault, amount, redemptionData)
 }
 
 /**
