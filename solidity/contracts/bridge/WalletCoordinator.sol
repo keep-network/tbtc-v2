@@ -120,6 +120,19 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         bytes4 refundLocktime;
     }
 
+    /// @notice Helper structure representing a redemption proposal.
+    struct RedemptionProposal {
+        // 20-byte public key hash of the target wallet.
+        bytes20 walletPubKeyHash;
+        // Array of the redeemers' output scripts that should be part of
+        // the redemption. Each output script MUST BE prefixed by its byte
+        // length, i.e. passed in the exactly same format as during the
+        // `Bridge.requestRedemption` transaction.
+        bytes[] redeemersOutputScripts;
+        // Proposed BTC fee for the entire transaction.
+        uint256 redemptionTxFee;
+    }
+
     /// @notice Mapping that holds addresses allowed to submit proposals and
     ///         request heartbeats.
     mapping(address => bool) public isCoordinator;
@@ -195,6 +208,22 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         the current conditions.
     uint32 public depositSweepProposalSubmissionGasOffset;
 
+    /// @notice Determines the redemption proposal validity time. In other
+    ///         words, this is the worst-case time for a redemption during
+    ///         which the wallet is busy and cannot take another actions. This
+    ///         is also the duration of the time lock applied to the wallet
+    ///         once a new redemption proposal is submitted.
+    ///
+    ///         For example, if a redemption proposal was submitted at
+    ///         2 pm and redemptionProposalValidity is 2 hours, the next
+    ///         proposal (of any type) can be submitted after 4 pm.
+    uint32 public redemptionProposalValidity;
+
+    /// @notice Gas that is meant to balance the redemption proposal
+    ///         submission overall cost. Can be updated by the owner based on
+    ///         the current conditions.
+    uint32 public redemptionProposalSubmissionGasOffset;
+
     event CoordinatorAdded(address indexed coordinator);
 
     event CoordinatorRemoved(address indexed coordinator);
@@ -222,6 +251,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
+        address indexed coordinator
+    );
+
+    event RedemptionProposalParametersUpdated(
+        uint32 redemptionProposalValidity,
+        uint32 redemptionProposalSubmissionGasOffset
+    );
+
+    event RedemptionProposalSubmitted(
+        RedemptionProposal proposal,
         address indexed coordinator
     );
 
@@ -259,6 +298,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
         depositSweepProposalSubmissionGasOffset = 20_000; // optimized for 10 inputs
+
+        redemptionProposalValidity = 1 hours;
+        redemptionProposalSubmissionGasOffset = 20_000;
     }
 
     /// @notice Adds the given address to the set of coordinator addresses.
@@ -686,5 +728,83 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         }
 
         revert("Extra info funding output script does not match");
+    }
+
+    /// @notice Updates parameters related to redemption proposal.
+    /// @param _redemptionProposalValidity The new value of `redemptionProposalValidity`.
+    /// @param _redemptionProposalSubmissionGasOffset The new value of `redemptionProposalSubmissionGasOffset`.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
+    function updateRedemptionProposalParameters(
+        uint32 _redemptionProposalValidity,
+        uint32 _redemptionProposalSubmissionGasOffset
+    ) external onlyOwner {
+        redemptionProposalValidity = _redemptionProposalValidity;
+        redemptionProposalSubmissionGasOffset = _redemptionProposalSubmissionGasOffset;
+
+        emit RedemptionProposalParametersUpdated(
+            _redemptionProposalValidity,
+            _redemptionProposalSubmissionGasOffset
+        );
+    }
+
+    /// @notice Submits a redemption proposal. Locks the target wallet
+    ///         for a specific time, equal to the proposal validity period.
+    ///         This function does not store the proposal in the state but
+    ///         just emits an event that serves as a guiding light for wallet
+    ///         off-chain members. Wallet members are supposed to validate
+    ///         the proposal on their own, before taking any action.
+    /// @param proposal The redemption proposal
+    /// @dev Requirements:
+    ///      - The caller is a coordinator,
+    ///      - The wallet is not time-locked.
+    function submitRedemptionProposal(RedemptionProposal calldata proposal)
+        public
+        onlyCoordinator
+        onlyAfterWalletLock(proposal.walletPubKeyHash)
+    {
+        walletLock[proposal.walletPubKeyHash] = WalletLock(
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp) + redemptionProposalValidity,
+            WalletAction.Redemption
+        );
+
+        emit RedemptionProposalSubmitted(proposal, msg.sender);
+    }
+
+    /// @notice Wraps `submitRedemptionProposal` call and reimburses the
+    ///         caller's transaction cost.
+    /// @dev See `submitRedemptionProposal` function documentation.
+    function submitRedemptionProposalWithReimbursement(
+        RedemptionProposal calldata proposal
+    ) external {
+        uint256 gasStart = gasleft();
+
+        submitRedemptionProposal(proposal);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + redemptionProposalSubmissionGasOffset,
+            msg.sender
+        );
+    }
+
+    /// @notice View function encapsulating the main rules of a valid redemption
+    ///         proposal. This function is meant to facilitate the off-chain
+    ///         validation of the incoming proposals. Thanks to it, most
+    ///         of the work can be done using a single readonly contract call.
+    /// @param proposal The redemption proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - To be determined
+    function validateRedemptionProposal()
+        external
+        view
+        returns (
+            // RedemptionProposal calldata proposal
+            bool
+        )
+    {
+        // TODO: Implementation.
+        revert("not implemented yet");
     }
 }
