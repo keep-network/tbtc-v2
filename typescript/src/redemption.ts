@@ -84,8 +84,7 @@ export async function requestRedemption(
     redeemer,
     walletPublicKey,
     mainUtxo,
-    // TODO: We should pass `redeemerOutputScript` in that form.
-    bcoin.Script.fromAddress(redeemerOutputScript).toRaw().toString("hex")
+    redeemerOutputScript
   )
 
   return await tBTCToken.approveAndCall(vault, amount, redemptionData)
