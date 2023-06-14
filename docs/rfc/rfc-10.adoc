@@ -67,3 +67,107 @@ ELSE
   CHECKSIG
 ENDIF
 ```
+
+==== Foreign reveal function
+
+`DepositRevealInfo` struct will gain an additional optional field. Since this
+structure is not persisted in the storage, the new field is not a concern for
+the contract upgrade:
+
+```
+/// @notice Represents data which must be revealed by the depositor during
+///         deposit reveal.
+struct DepositRevealInfo {
+    // (...)
+
+    // Address of the foreign depositor in a format allowing for
+    // a cross-chain bridging from Ethereum. Set only when the deposit is
+    // revealed to a vault performing cross-chain bridging. 
+    // Optional, used only in `revealForeignDeposit` when the depositor is
+    // not necessarily the msg.sender.
+    bytes32 foreignDepositor;        
+    // This struct doesn't contain `__gap` property as the structure is not
+    // stored, it is used as a function's calldata argument.
+}
+```
+
+`DepositRequest` struct will gain an additional optional field. This field will
+be used to identify depositors on other chains where the address may not be
+compatible with the Ethereum address format. Since mapping values are stored in
+different slots we only need to make sure the new field comes after the existing
+ones to address upgradeability concerns.
+
+```
+/// @notice Represents tBTC deposit request data.
+struct DepositRequest {
+    // Ethereum depositor address. Optional. 
+    // Set to 0x0 if the depositor is a foreign chain depositor set in
+    // `foreignDepositor` field and the deposit is revealed with
+    // `revealForeignDeposit`.
+    // Set to non-0x0 value if the depositor is a native Ethereum depositor
+    // and the deposit is revealed with `revealDeposit`.
+    address depositor;
+    
+    // (...)
+
+    // Address of the foreign depositor in a format allowing for
+    // a cross-chain bridging from Ethereum. Optional.
+    // Set to 0x0 if the depositor is a native Ethereum depositor set in
+    // the `depositor` field and the deposit is revealed with `revealDeposit`.
+    // Set to non-0x0 value if the depositor is a foreign chain depositor
+    // and the deposit is revealed with `revealForeignDeposit`.
+    bytes32 foreignDepositor;    
+}
+```
+
+To maintain backward compatibility with the existing deposit flow, we will
+implement another reveal function in the `Bridge` contract. The function will be
+mostly identical to the existing `revealDeposit` except that instead of
+assigning `deposit.depositor = msg.sender` it will take the depositor address
+from `DepositRevealInfo` and assign it into a new field in the `DepositRequest`
+structure.
+
+```
+function revealForeignDeposit(
+    BridgeState.Storage storage self,
+    BitcoinTx.Info calldata fundingTx,
+    DepositRevealInfo calldata reveal
+) external {
+    // (...)
+
+    bytes memory expectedScript = abi.encodePacked(
+        hex"14", // Byte length of depositor Ethereum address.
+        reveal.foreignDepositor,
+        hex"75", // OP_DROP
+        hex"08", // Byte length of blinding factor value.
+        reveal.blindingFactor,
+        hex"75", // OP_DROP
+        hex"76", // OP_DUP
+        hex"a9", // OP_HASH160
+        hex"14", // Byte length of a compressed Bitcoin public key hash.
+        reveal.walletPubKeyHash,
+        hex"87", // OP_EQUAL
+        hex"63", // OP_IF
+        hex"ac", // OP_CHECKSIG
+        hex"67", // OP_ELSE
+        hex"76", // OP_DUP
+        hex"a9", // OP_HASH160
+        hex"14", // Byte length of a compressed Bitcoin public key hash.
+        reveal.refundPubKeyHash,
+        hex"88", // OP_EQUALVERIFY
+        hex"04", // Byte length of refund locktime value.
+        reveal.refundLocktime,
+        hex"b1", // OP_CHECKLOCKTIMEVERIFY
+        hex"75", // OP_DROP
+        hex"ac", // OP_CHECKSIG
+        hex"68" // OP_ENDIF
+    );
+
+    // (...)
+    
+    deposit.depositor = address(0);
+    deposit.foreignDepositor = reveal.foreignDepositor;
+    
+    // (...)
+}
+```
