@@ -923,6 +923,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
                 )
             );
 
+            // slither-disable-next-line calls-loop
             Redemption.RedemptionRequest memory redemptionRequest = bridge
                 .pendingRedemptions(redemptionKey);
 
