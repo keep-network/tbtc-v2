@@ -219,6 +219,39 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         proposal (of any type) can be submitted after 4 pm.
     uint32 public redemptionProposalValidity;
 
+    /// @notice The minimum time that must elapse since the redemption request
+    ///         creation before a request becomes eligible for a processing.
+    ///
+    ///         For example, if a request was created at 9 am and
+    ///         redemptionRequestMinAge is 2 hours, the request is eligible for
+    ///         processing after 11 am.
+    ///
+    /// @dev Forcing request minimum age ensures block finality for Ethereum.
+    uint32 public redemptionRequestMinAge;
+
+    /// @notice Each redemption request can be technically handled until it
+    ///         reaches its timeout timestamp after which it can be reported
+    ///         as timed out. However, allowing the wallet to handle requests
+    ///         that are close to their timeout timestamp may cause a race
+    ///         between the wallet and the redeemer. In result, the wallet may
+    ///         redeem the requested funds even though the redeemer already
+    ///         received back their tBTC (locked during redemption request) upon
+    ///         reporting the request timeout. In effect, the redeemer may end
+    ///         out with both tBTC and redeemed BTC in their hands which has
+    ///         a negative impact on the tBTC <-> BTC peg. In order to mitigate
+    ///         that problem, this parameter determines a safety margin that
+    ///         puts the latest moment a request can be handled far before the
+    ///         point after which the request can be reported as timed out.
+    ///
+    ///         For example, if a request times out after 8 pm and
+    ///         redemptionRequestTimeoutSafetyMargin is 2 hours, the request is
+    ///         valid for processing only before 6 pm.
+    uint32 public redemptionRequestTimeoutSafetyMargin;
+
+    /// @notice The maximum count of redemption requests that can be processed
+    ///         within a single redemption.
+    uint16 public redemptionMaxSize;
+
     /// @notice Gas that is meant to balance the redemption proposal
     ///         submission overall cost. Can be updated by the owner based on
     ///         the current conditions.
@@ -256,6 +289,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     event RedemptionProposalParametersUpdated(
         uint32 redemptionProposalValidity,
+        uint32 redemptionRequestMinAge,
+        uint32 redemptionRequestTimeoutSafetyMargin,
+        uint16 redemptionMaxSize,
         uint32 redemptionProposalSubmissionGasOffset
     );
 
@@ -300,6 +336,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositSweepProposalSubmissionGasOffset = 20_000; // optimized for 10 inputs
 
         redemptionProposalValidity = 1 hours;
+        redemptionRequestMinAge = 600; // 10 minutes or ~50 blocks.
+        redemptionRequestTimeoutSafetyMargin = 2 hours;
+        redemptionMaxSize = 20;
         redemptionProposalSubmissionGasOffset = 20_000;
     }
 
@@ -737,13 +776,22 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - The caller must be the owner.
     function updateRedemptionProposalParameters(
         uint32 _redemptionProposalValidity,
+        uint32 _redemptionRequestMinAge,
+        uint32 _redemptionRequestTimeoutSafetyMargin,
+        uint16 _redemptionMaxSize,
         uint32 _redemptionProposalSubmissionGasOffset
     ) external onlyOwner {
         redemptionProposalValidity = _redemptionProposalValidity;
+        redemptionRequestMinAge = _redemptionRequestMinAge;
+        redemptionRequestTimeoutSafetyMargin = _redemptionRequestTimeoutSafetyMargin;
+        redemptionMaxSize = _redemptionMaxSize;
         redemptionProposalSubmissionGasOffset = _redemptionProposalSubmissionGasOffset;
 
         emit RedemptionProposalParametersUpdated(
             _redemptionProposalValidity,
+            _redemptionRequestMinAge,
+            _redemptionRequestTimeoutSafetyMargin,
+            _redemptionMaxSize,
             _redemptionProposalSubmissionGasOffset
         );
     }
