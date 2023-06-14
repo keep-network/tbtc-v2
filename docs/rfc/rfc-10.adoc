@@ -38,3 +38,32 @@ transactions: one transaction on BTC and one transaction on Solana.
 The redemption process should require just one Solana transaction from the user
 executed in the Threshold Dashboard.
 
+=== Implementation
+
+The implementation is based on the Wormhole token bridge and does not require
+the off-chain client to work with Solana. Ethereum L1 `Bank` contract remains
+the center of the gravity of tBTC bridge and tBTC token is still minted
+"centrally" on Ethereum L1.
+
+==== P2SH deposit script
+
+The P2SH deposit script has to be enhanced to include the vault address. As of
+today, we expect the BTC transaction to be revealed to the Bridge by the same
+Ethereum address as included in the P2SH deposit script. This prevents
+front-running attacks but is not flexible enough. Allowing anyone to reveal the
+Bitcoin deposit allows delegating this responsibility to the Wormhole relayer
+bot.
+
+```
+<depositor-address> DROP
+<vault-address> DROP
+<blinding-factor> DROP
+DUP HASH160 <signingGroupPubkeyHash> EQUAL
+IF
+  CHECKSIG
+ELSE
+  DUP HASH160 <refundPubkeyHash> EQUALVERIFY
+  <locktime> CHECKLOCKTIMEVERIFY DROP
+  CHECKSIG
+ENDIF
+```
