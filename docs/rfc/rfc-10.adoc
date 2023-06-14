@@ -127,7 +127,7 @@ alternative P2SH deposit script version allowing to pass 32 bytes of extra data.
 The extra data will not be stored in the Bridge. It is the depositor's
 responsibility to make the use of them.
 
-==== Solana Gateway
+==== Solana gateway
 
 `SolanaGateway` contract will be deployed on Solana and should be placed in
 `tbtc-v2/cross-chain/solana` project. The contract will communicate with
@@ -137,7 +137,9 @@ use Wormhole Token Bridge to request Bitcoin redemption on Ethereum L1.
 For the implementation, we should consider using the
 link:https://solang.readthedocs.io/en/latest/index.html[Solang compiler]. 
 
-==== Solana Depositor
+The contract needs to be upgradeable.
+
+==== Solana depositor
 
 `SolanaDepositor` contract will act as tBTC depositor on L1 Ethereum and should
 be placed in `tbtc-v2/solidity` project. The contract will receive Wormhole VAAs
@@ -151,13 +153,17 @@ This contract needs to have a reference to the `TBTCVault` to inspect the
 `deposits` mapping to confirm the state when it is notified tBTC has been minted
 for the given deposit. 
 
-==== Solana Redeemer
+The contract needs to be upgradeable.
+
+==== Solana redeemer
 
 `SolanaRedeemer` contract will act as tBTC redeemer on L1 Ethereum and should be
 placed in `tbtc-v2/solidity` project. The contract will receive tBTC from Solana
 via Wormhole Token Bridge and request redemption in the tBTC `Bridge` contract. 
 
-==== Relayer Bot
+The contract needs to be upgradeable.
+
+==== Relayer bot
 
 To optimize the user experience, a relayer bot needs to be implemented. The
 relayer's responsibility will be:
@@ -172,7 +178,7 @@ relayer's responsibility will be:
   redemption was requested on Solana and tBTC was bridged back via the Wormhole
   Token Bridge.
 
-==== Optimistic Minting Changes
+==== Optimistic minting changes
 
 Currently, the optimistic minting fee is evaluated at the moment of finalizing
 the mint. The `SolanaDepositor` needs to know how much tBTC should be bridged to
@@ -181,3 +187,62 @@ Solana to the given depositor address. To evaluate the amount, the
 minted and what was the fee during the mint. The `OptimisticMintingRequest`
 struct has to be enhanced with fee information captured at the moment of
 requesting or finalizing the mint.
+
+==== Deposit flow
+
+From the user's perspective:
+
+1. The user generates a Bitcoin deposit address in the Threshold Dashboard.
+2. The user makes a Bitcoin deposit.
+3. The user reveals their deposit with transaction on Solana in the Threshold
+   Dashboard.
+4. After some time, the user receives their tBTC under the Solana address.
+
+With smart contract interactions:
+
+1. The user generates a Bitcoin deposit address in the Threshold Dashboard.
+2. The user makes a Bitcoin deposit.
+3. The user reveals their deposit with transaction on Solana in the Threshold
+   Dashboard.
+4. `SolanaGateway` contract sends Wormhole VAA from Solana to Ethereum informing
+   about the revealed deposit.
+5. Relayer bot submits the Wormhole VAA on Ethereum to the `SolanaDepositor`
+   contract.
+6. `SolanaDepositor` contract evaluates `depositID = keccak256(fundingTxHash | fundingOutputIndex)` 
+   and associates it with Solana depositor address.
+7. `SolanaDepositor` contract reveals the deposit to the `Bridge`
+8. tBTC is optimistically minted to `SolanaDepositor` contract address.
+9. Relayer bot notifies `SolanaDepositor` contract the deposit was
+   optimistically minted. `SolanaDepositor` inspects `TBTCVault.optimisticMintingRequests`
+   to confirm the amount and requests bridging tBTC from its own balance to the
+   Solana depositor address associated with the given deposit using Wormhole
+   Token Bridge. The same happens when the deposit was not optimistically minted
+   but swept.
+10. Relayer bot redeems the tBTC bridged to Solana to the depositor's Solana
+    address.
+11. The user reveals their tBTC under the Solana address.
+
+==== Redemption flow
+
+From the user's perspective:
+
+1. The user requests redemption on Solana sending their tBTC to a smart contract.
+2. After some time, the user receives their BTC to the address they provided.
+
+With smart contract interactions:
+
+1. The user requests redemption on Solana sending their tBTC to a smart contract.
+2. `SolanaGateway` takes the tBTC from the user and bridges tBTC back to L1
+   Ethereum using Wormhole Token Bridge and `transferTokensWithPayload` passing
+   the BTC redemption address as a payload.
+3. The relayer bot redeems tBTC on L1 Ethereum to the `SolanaRedeemer` contract.
+4. `SolanaRedeemer` contract uses the received tBTC to request redemption in the
+   tBTC `Bridge` contract using the BTC address obtained from the payload.
+5. After some time, the user receives their BTC to the address they provided.
+
+=== Future work
+
+This RFC does not explore:
+- UX of the Threshold Dashboard and how to integrate Solana wallet.
+- How the relayer bot is being paid for transactions.
+- The recovery path in `SolanaRedeemer` when the redemption request timed out.
