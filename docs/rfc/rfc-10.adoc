@@ -27,3 +27,14 @@ to use two applications and execute transactions on three networks: Bitcoin,
 Ethereum, and Solana between them. Moreover, there is a period of time between
 the time BTC was deposited and the time tBTC is minted on Ethereum that requires
 the user to wait idly before they can bridge their Ethereum tBTC to Solana.
+
+== Proposal
+
+=== Goal
+
+Users should mint tBTC on Solana in the Threshold Dashboard with two
+transactions: one transaction on BTC and one transaction on Solana.
+
+The redemption process should require just one Solana transaction from the user
+executed in the Threshold Dashboard.
+
