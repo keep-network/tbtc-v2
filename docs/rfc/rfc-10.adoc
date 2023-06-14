@@ -1,0 +1,29 @@
+:toc: macro
+
+= RFC 9: Solana tBTC
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+There is a clear massive demand funnel present in Solana ecosystem for tBTC.
+This RFC aims at providing a bespoke user experience for minting tBTC on Solana.
+
+=== Current functionality
+
+Even today it is possible to bridge tBTC to Solana with Wormhole. The whole user
+experience is far from perfect, though. 
+
+First, the user has to deposit their BTC using Threshold Dashboard on Ethereum.
+This requires executing one Ethereum transaction. Next, once tBTC is minted on
+Ethereum, the user has to go to the Wormhole Token Bridge portal and bridge
+their Ethereum tBTC to Solana. This requires several transactions - one
+transaction on Ethereum and several transactions on Solana. 
+
+There is a significant cognitive effort on the user's side. Users are required
+to use two applications and execute transactions on three networks: Bitcoin,
+Ethereum, and Solana between them. Moreover, there is a period of time between
+the time BTC was deposited and the time tBTC is minted on Ethereum that requires
+the user to wait idly before they can bridge their Ethereum tBTC to Solana.
