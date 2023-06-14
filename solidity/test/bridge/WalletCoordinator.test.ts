@@ -2266,6 +2266,102 @@ describe("WalletCoordinator", () => {
       })
     })
   })
+
+  describe("submitRedemptionProposalWithReimbursement", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    // Just double check that `submitRedemptionProposalWithReimbursement` has
+    // the same ACL as `submitRedemptionProposal`.
+    context("when the caller is not a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        const tx = walletCoordinator
+          .connect(thirdParty)
+          .submitRedemptionProposalWithReimbursement({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+        await expect(tx).to.be.revertedWith("Caller is not a coordinator")
+      })
+    })
+
+    // Here we just check that the reimbursement works. Detailed
+    // assertions are already done within the scenario stressing the
+    // `submitRedemptionProposal` function.
+    context("when the caller is a coordinator", () => {
+      let coordinatorBalanceBefore: BigNumber
+      let coordinatorBalanceAfter: BigNumber
+
+      before(async () => {
+        await createSnapshot()
+
+        await walletCoordinator
+          .connect(owner)
+          .addCoordinator(thirdParty.address)
+
+        // The first-ever proposal will be more expensive given it has to set
+        // fields to non-zero values. We shouldn't adjust gas offset based on it.
+        await walletCoordinator
+          .connect(thirdParty)
+          .submitRedemptionProposalWithReimbursement({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+        // Jump beyond the lock period.
+        await increaseTime(await walletCoordinator.redemptionProposalValidity())
+
+        coordinatorBalanceBefore = await provider.getBalance(thirdParty.address)
+
+        await walletCoordinator
+          .connect(thirdParty)
+          .submitRedemptionProposalWithReimbursement({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+        coordinatorBalanceAfter = await provider.getBalance(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should do the refund", async () => {
+        const diff = coordinatorBalanceAfter.sub(coordinatorBalanceBefore)
+        expect(diff).to.be.gt(0)
+        expect(diff).to.be.lt(ethers.utils.parseUnits("4000000", "gwei")) // 0,004 ETH
+      })
+    })
+  })
 })
 
 const depositKey = (
