@@ -1,4 +1,4 @@
-import bcoin, { TX } from "bcoin"
+import bcoin, { TX, Script } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
@@ -602,4 +602,13 @@ export function isPublicKeyHashLength(publicKeyHash: string): boolean {
 export function locktimeToNumber(locktimeLE: Buffer | string): number {
   const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
   return BigNumber.from(locktimeBE).toNumber()
+}
+
+/**
+ * Creates the output script from the BTC address.
+ * @param address BTC address.
+ * @returns The un-prefixed and not prepended with length otput script.
+ */
+export function createOutputScriptFromAddress(address: string): string {
+  return Script.fromAddress(address).toRaw().toString("hex")
 }
