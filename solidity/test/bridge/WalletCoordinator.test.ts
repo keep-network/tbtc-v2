@@ -2040,6 +2040,64 @@ describe("WalletCoordinator", () => {
       })
     })
   })
+
+  describe("updateRedemptionProposalParameters", () => {
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called by a third party", () => {
+      it("should revert", async () => {
+        await expect(
+          walletCoordinator
+            .connect(thirdParty)
+            .updateRedemptionProposalParameters(101, 102, 103, 104, 105)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called by the owner", () => {
+      let tx: ContractTransaction
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = await walletCoordinator
+          .connect(owner)
+          .updateRedemptionProposalParameters(101, 102, 103, 104, 105)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should update redemption proposal parameters", async () => {
+        expect(
+          await walletCoordinator.redemptionProposalValidity()
+        ).to.be.equal(101)
+        expect(await walletCoordinator.redemptionRequestMinAge()).to.be.equal(
+          102
+        )
+        expect(
+          await walletCoordinator.redemptionRequestTimeoutSafetyMargin()
+        ).to.be.equal(103)
+        expect(await walletCoordinator.redemptionMaxSize()).to.be.equal(104)
+        expect(
+          await walletCoordinator.redemptionProposalSubmissionGasOffset()
+        ).to.be.equal(105)
+      })
+
+      it("should emit the RedemptionProposalParametersUpdated event", async () => {
+        await expect(tx)
+          .to.emit(walletCoordinator, "RedemptionProposalParametersUpdated")
+          .withArgs(101, 102, 103, 104, 105)
+      })
+    })
+  })
 })
 
 const depositKey = (
