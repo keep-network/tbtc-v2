@@ -2098,6 +2098,174 @@ describe("WalletCoordinator", () => {
       })
     })
   })
+
+  describe("submitRedemptionProposal", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+
+    before(async () => {
+      await createSnapshot()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is not a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should revert", async () => {
+        const tx = walletCoordinator
+          .connect(thirdParty)
+          .submitRedemptionProposal({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+        await expect(tx).to.be.revertedWith("Caller is not a coordinator")
+      })
+    })
+
+    context("when the caller is a coordinator", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await walletCoordinator
+          .connect(owner)
+          .addCoordinator(thirdParty.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when wallet is time-locked", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Submit a proposal to set a wallet time lock.
+          await walletCoordinator.connect(thirdParty).submitRedemptionProposal({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+          // Jump to the end of the lock period but not beyond it.
+          await increaseTime(
+            (await walletCoordinator.redemptionProposalValidity()) - 1
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            walletCoordinator.connect(thirdParty).submitRedemptionProposal({
+              walletPubKeyHash,
+              redeemersOutputScripts: [
+                "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+                "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+              ],
+              redemptionTxFee: 5000,
+            })
+          ).to.be.revertedWith("Wallet locked")
+        })
+      })
+
+      context("when wallet is not time-locked", () => {
+        let tx: ContractTransaction
+
+        before(async () => {
+          await createSnapshot()
+
+          // Submit a proposal to set a wallet time lock.
+          await walletCoordinator.connect(thirdParty).submitRedemptionProposal({
+            walletPubKeyHash,
+            redeemersOutputScripts: [
+              "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+              "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+            ],
+            redemptionTxFee: 5000,
+          })
+
+          // Jump beyond the lock period.
+          await increaseTime(
+            await walletCoordinator.redemptionProposalValidity()
+          )
+
+          tx = await walletCoordinator
+            .connect(thirdParty)
+            .submitRedemptionProposal({
+              walletPubKeyHash,
+              redeemersOutputScripts: [
+                "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+                "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+              ],
+              redemptionTxFee: 6000,
+            })
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should time lock the wallet", async () => {
+          const lockedUntil =
+            (await lastBlockTime()) +
+            (await walletCoordinator.redemptionProposalValidity())
+
+          const walletLock = await walletCoordinator.walletLock(
+            walletPubKeyHash
+          )
+
+          expect(walletLock.expiresAt).to.be.equal(lockedUntil)
+          expect(walletLock.cause).to.be.equal(walletAction.Redemption)
+        })
+
+        it("should emit the RedemptionProposalSubmitted event", async () => {
+          await expect(tx).to.emit(
+            walletCoordinator,
+            "RedemptionProposalSubmitted"
+          )
+
+          // The `expect.to.emit.withArgs` assertion has troubles with
+          // matching complex event arguments as it uses strict equality
+          // underneath. To overcome that problem, we manually get event's
+          // arguments and check it against the expected ones using deep
+          // equality assertion (eql).
+          const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
+          expect(receipt.logs.length).to.be.equal(1)
+          expect(
+            walletCoordinator.interface.parseLog(receipt.logs[0]).args
+          ).to.be.eql([
+            [
+              walletPubKeyHash,
+              [
+                "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+                "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+              ],
+              BigNumber.from(6000),
+            ],
+            thirdParty.address,
+          ])
+        })
+      })
+    })
+  })
 })
 
 const depositKey = (
