@@ -45,18 +45,31 @@ the off-chain client to work with Solana. Ethereum L1 `Bank` contract remains
 the center of the gravity of tBTC bridge and tBTC token is still minted
 "centrally" on Ethereum L1.
 
+There are two main design challenges. The first challenge is how to represent
+32-byte Solana addresses in the process of depositing and redeeming. The entire
+design of the Bridge is oriented around 20-byte Ethereum addresses. Bridge
+expects a 20-byte depositor address in the reveal function and passes 20-byte
+depositor addresses to the Bank when providing the sweep proof. The second
+challenge is optimistic minting. Only `TBTCVault` can mint tBTC and the
+optimistic minting has to happen in `TBTCVault`. Having another vault be
+responsible for Solana minting and bridging would mean we have to tightly couple
+vaults together, complicate optimistic minting code, or not allow for optimistic
+minting on Solana at all.
+
+The proposed design is oriented around a depositor contract that will reveal
+deposits to the bridge, map Solana addresses with revealed deposits, receive
+tBTC (optimistically minted or not), and perform bridging to Solana.
+
 ==== P2SH deposit script
 
-The P2SH deposit script has to be enhanced to include the vault address. As of
-today, we expect the BTC transaction to be revealed to the Bridge by the same
-Ethereum address as included in the P2SH deposit script. This prevents
-front-running attacks but is not flexible enough. Allowing anyone to reveal the
-Bitcoin deposit allows delegating this responsibility to the Wormhole relayer
-bot.
+The P2SH deposit script has to be enhanced to include optional extra data. The
+extra data will be used by depositors who are smart contracts. In the context of
+this proposal, we will use the extra data to associate the Bitcoin deposit with
+an address on a foreign (non-Ethereum) chain.
 
 ```
 <depositor-address> DROP
-<vault-address> DROP
+<depositor-extra-data> DROP
 <blinding-factor> DROP
 DUP HASH160 <signingGroupPubkeyHash> EQUAL
 IF
@@ -68,7 +81,7 @@ ELSE
 ENDIF
 ```
 
-==== Foreign reveal function
+==== Reveal with depositor extra data
 
 `DepositRevealInfo` struct will gain an additional optional field. Since this
 structure is not persisted in the storage, the new field is not a concern for
@@ -80,94 +93,91 @@ the contract upgrade:
 struct DepositRevealInfo {
     // (...)
 
-    // Address of the foreign depositor in a format allowing for
-    // a cross-chain bridging from Ethereum. Set only when the deposit is
-    // revealed to a vault performing cross-chain bridging. 
-    // Optional, used only in `revealForeignDeposit` when the depositor is
-    // not necessarily the msg.sender.
-    bytes32 foreignDepositor;        
+    // Optional extra data used by depositors who are smart contracts. The smart
+    // contract depositor can use the extra data to represent additional
+    // information, such as the depositor's address on a foreign (non-Ethereum)
+    // chain.
+    bytes32 depositorExtraData;        
     // This struct doesn't contain `__gap` property as the structure is not
     // stored, it is used as a function's calldata argument.
 }
 ```
 
-`DepositRequest` struct will gain an additional optional field. This field will
-be used to identify depositors on other chains where the address may not be
-compatible with the Ethereum address format. Since mapping values are stored in
-different slots we only need to make sure the new field comes after the existing
-ones to address upgradeability concerns.
+The `DepositRequest` function will gain the same field. Since mapping values are
+stored in different slots we only need to make sure the new field comes after
+the existing ones to address upgradeability concerns.
 
 ```
 /// @notice Represents tBTC deposit request data.
 struct DepositRequest {
-    // Ethereum depositor address. Optional. 
-    // Set to 0x0 if the depositor is a foreign chain depositor set in
-    // `foreignDepositor` field and the deposit is revealed with
-    // `revealForeignDeposit`.
-    // Set to non-0x0 value if the depositor is a native Ethereum depositor
-    // and the deposit is revealed with `revealDeposit`.
-    address depositor;
-    
     // (...)
 
-    // Address of the foreign depositor in a format allowing for
-    // a cross-chain bridging from Ethereum. Optional.
-    // Set to 0x0 if the depositor is a native Ethereum depositor set in
-    // the `depositor` field and the deposit is revealed with `revealDeposit`.
-    // Set to non-0x0 value if the depositor is a foreign chain depositor
-    // and the deposit is revealed with `revealForeignDeposit`.
-    bytes32 foreignDepositor;    
+    // Optional extra data used by depositors who are smart contracts. The smart
+    // contract depositor can use the extra data to represent additional
+    // information, such as the depositor's address on a foreign (non-Ethereum)
+    // chain.
+    bytes32 depositorExtraData;
 }
 ```
 
 To maintain backward compatibility with the existing deposit flow, we will
 implement another reveal function in the `Bridge` contract. The function will be
-mostly identical to the existing `revealDeposit` except that instead of
-assigning `deposit.depositor = msg.sender` it will take the depositor address
-from `DepositRevealInfo` and assign it into a new field in the `DepositRequest`
-structure.
+mostly identical to the existing `revealDeposit` except that it will respect the
+alternative P2SH deposit script version allowing to pass 32 bytes of extra data.
+The extra data will not be stored in the Bridge. It is the depositor's
+responsibility to make the use of them.
 
-```
-function revealForeignDeposit(
-    BridgeState.Storage storage self,
-    BitcoinTx.Info calldata fundingTx,
-    DepositRevealInfo calldata reveal
-) external {
-    // (...)
+==== Solana Gateway
 
-    bytes memory expectedScript = abi.encodePacked(
-        hex"14", // Byte length of depositor Ethereum address.
-        reveal.foreignDepositor,
-        hex"75", // OP_DROP
-        hex"08", // Byte length of blinding factor value.
-        reveal.blindingFactor,
-        hex"75", // OP_DROP
-        hex"76", // OP_DUP
-        hex"a9", // OP_HASH160
-        hex"14", // Byte length of a compressed Bitcoin public key hash.
-        reveal.walletPubKeyHash,
-        hex"87", // OP_EQUAL
-        hex"63", // OP_IF
-        hex"ac", // OP_CHECKSIG
-        hex"67", // OP_ELSE
-        hex"76", // OP_DUP
-        hex"a9", // OP_HASH160
-        hex"14", // Byte length of a compressed Bitcoin public key hash.
-        reveal.refundPubKeyHash,
-        hex"88", // OP_EQUALVERIFY
-        hex"04", // Byte length of refund locktime value.
-        reveal.refundLocktime,
-        hex"b1", // OP_CHECKLOCKTIMEVERIFY
-        hex"75", // OP_DROP
-        hex"ac", // OP_CHECKSIG
-        hex"68" // OP_ENDIF
-    );
+`SolanaGateway` contract will be deployed on Solana and should be placed in
+`tbtc-v2/cross-chain/solana` project. The contract will communicate with
+Ethereum L1 using Wormhole VAAs to reveal Bitcoin deposits. The contract will
+use Wormhole Token Bridge to request Bitcoin redemption on Ethereum L1.
 
-    // (...)
-    
-    deposit.depositor = address(0);
-    deposit.foreignDepositor = reveal.foreignDepositor;
-    
-    // (...)
-}
-```
+For the implementation, we should consider using the
+link:https://solang.readthedocs.io/en/latest/index.html[Solang compiler]. 
+
+==== Solana Depositor
+
+`SolanaDepositor` contract will act as tBTC depositor on L1 Ethereum and should
+be placed in `tbtc-v2/solidity` project. The contract will receive Wormhole VAAs
+from Solana and reveal Bitcoin deposits to the tBTC `Bridge` contract. The
+contract will map the revealed deposit to the Solana address. It will also
+bridge the received tBTC once the deposit is swept or tBTC is optimistically
+minted.
+
+This contract needs to have a reference to the `TBTCVault` to inspect the
+`optimisticMintingRequests` mapping and to the `Bridge` to inspect the
+`deposits` mapping to confirm the state when it is notified tBTC has been minted
+for the given deposit. 
+
+==== Solana Redeemer
+
+`SolanaRedeemer` contract will act as tBTC redeemer on L1 Ethereum and should be
+placed in `tbtc-v2/solidity` project. The contract will receive tBTC from Solana
+via Wormhole Token Bridge and request redemption in the tBTC `Bridge` contract. 
+
+==== Relayer Bot
+
+To optimize the user experience, a relayer bot needs to be implemented. The
+relayer's responsibility will be:
+
+- Deliver Wormhole VAA to `SolanaDepositor` contract once the deposit was
+  revealed on Solana.
+- Request bridging tBTC from Ethereum to Solana once the tBTC for the deposit
+  has been optimistically minted or the deposit was swept.
+- Redeem bridged tBTC on Solana to the depositor address once the tBTC minted on
+  L1 has been successfully bridged to Solana.
+- Redeem bridged tBTC on Ethereum to `SolanaRedeemer` contract once the
+  redemption was requested on Solana and tBTC was bridged back via the Wormhole
+  Token Bridge.
+
+==== Optimistic Minting Changes
+
+Currently, the optimistic minting fee is evaluated at the moment of finalizing
+the mint. The `SolanaDepositor` needs to know how much tBTC should be bridged to
+Solana to the given depositor address. To evaluate the amount, the
+`SolanaDepositor` contract needs to know if the deposit was optimistically
+minted and what was the fee during the mint. The `OptimisticMintingRequest`
+struct has to be enhanced with fee information captured at the moment of
+requesting or finalizing the mint.
