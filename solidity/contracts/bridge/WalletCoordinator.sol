@@ -25,6 +25,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./BitcoinTx.sol";
 import "./Bridge.sol";
 import "./Deposit.sol";
+import "./Redemption.sol";
 import "./Wallets.sol";
 
 /// @title Wallet coordinator.
@@ -843,16 +844,124 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @param proposal The redemption proposal to validate.
     /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
-    ///      - To be determined
-    function validateRedemptionProposal()
+    ///      - The target wallet must be in the Live state,
+    ///      - The number of redemption requests included in the redemption
+    ///        proposal must be in the range [1, `redemptionMaxSize`],
+    ///      - The proposed redemption tx fee must be grater than zero,
+    ///      - The proposed redemption tx fee must be lesser than or equal to
+    ///        the maximum total fee allowed by the Bridge
+    ///        (`Bridge.redemptionTxMaxTotalFee`),
+    ///      - The proposed maximum per-request redemption tx fee share must be
+    ///        lesser than or equal to the maximum fee share allowed by the
+    ///        given request (`RedemptionRequest.txMaxFee`),
+    ///      - Each request must be a pending request registered in the Bridge,
+    ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
+    ///        elapsed since their creation time,
+    ///      - Each request must have the timeout safety margin preserved.
+    function validateRedemptionProposal(RedemptionProposal calldata proposal)
         external
         view
-        returns (
-            // RedemptionProposal calldata proposal
-            bool
-        )
+        returns (bool)
     {
-        // TODO: Implementation.
-        revert("not implemented yet");
+        require(
+            bridge.wallets(proposal.walletPubKeyHash).state ==
+                Wallets.WalletState.Live,
+            "Wallet is not in Live state"
+        );
+
+        uint256 requestsCount = proposal.redeemersOutputScripts.length;
+
+        require(requestsCount > 0, "Redemption below the min size");
+
+        require(
+            requestsCount <= redemptionMaxSize,
+            "Redemption exceeds the max size"
+        );
+
+        (
+            ,
+            ,
+            ,
+            uint64 redemptionTxMaxTotalFee,
+            uint32 redemptionTimeout,
+            ,
+
+        ) = bridge.redemptionParameters();
+
+        require(
+            proposal.redemptionTxFee > 0,
+            "Proposed transaction fee cannot be zero"
+        );
+
+        // Make sure the proposed fee does not exceed the total fee limit.
+        require(
+            proposal.redemptionTxFee <= redemptionTxMaxTotalFee,
+            "Proposed transaction fee is too high"
+        );
+
+        // Compute the indivisible remainder that remains after dividing the
+        // redemption transaction fee over all requests evenly.
+        uint256 redemptionTxFeeRemainder = proposal.redemptionTxFee %
+            requestsCount;
+        // Compute the transaction fee per request by dividing the redemption
+        // transaction fee (reduced by the remainder) by the number of requests.
+        uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
+            redemptionTxFeeRemainder) / requestsCount;
+
+        for (uint256 i = 0; i < requestsCount; i++) {
+            bytes memory script = proposal.redeemersOutputScripts[i];
+
+            // As the wallet public key hash is part of the redemption key,
+            // we have an implicit guarantee that all requests being part
+            // of the proposal target the same wallet.
+            uint256 redemptionKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        keccak256(script),
+                        proposal.walletPubKeyHash
+                    )
+                )
+            );
+
+            Redemption.RedemptionRequest memory redemptionRequest = bridge
+                .pendingRedemptions(redemptionKey);
+
+            require(
+                redemptionRequest.requestedAt != 0,
+                "Not a pending redemption request"
+            );
+
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp >
+                    redemptionRequest.requestedAt + redemptionRequestMinAge,
+                "Redemption request min age not achieved yet"
+            );
+
+            // Calculate the timeout the given request times out at.
+            uint32 requestTimeout = redemptionRequest.requestedAt +
+                redemptionTimeout;
+            // Make sure we are far enough from the moment the request times out.
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp <
+                    requestTimeout - redemptionRequestTimeoutSafetyMargin,
+                "Redemption request timeout safety margin is not preserved"
+            );
+
+            uint256 feePerRequest = redemptionTxFeePerRequest;
+            // The last request incurs the fee remainder.
+            if (i == requestsCount - 1) {
+                feePerRequest += redemptionTxFeeRemainder;
+            }
+            // Make sure the redemption transaction fee share incurred by
+            // the given request fits in the limit for that request.
+            require(
+                feePerRequest <= redemptionRequest.txMaxFee,
+                "Proposed transaction per-request fee share is too high"
+            );
+        }
+
+        return true;
     }
 }
