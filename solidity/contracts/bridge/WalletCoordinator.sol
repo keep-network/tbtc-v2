@@ -581,7 +581,9 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         address proposalVault = address(0);
 
-        uint256[] memory processedDepositKeys = new uint256[](proposal.depositsKeys.length);
+        uint256[] memory processedDepositKeys = new uint256[](
+            proposal.depositsKeys.length
+        );
 
         for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
             DepositKey memory depositKey = proposal.depositsKeys[i];
