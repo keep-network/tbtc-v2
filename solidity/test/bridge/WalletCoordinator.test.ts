@@ -1956,74 +1956,174 @@ describe("WalletCoordinator", () => {
                               context(
                                 "when all deposits targets the same vault",
                                 () => {
-                                  let depositOne
-                                  let depositTwo
+                                  context(
+                                    "when there are duplicated deposits",
+                                    () => {
+                                      let depositOne
+                                      let depositTwo
+                                      let depositThree
 
-                                  before(async () => {
-                                    await createSnapshot()
+                                      before(async () => {
+                                        await createSnapshot()
 
-                                    depositOne = createTestDeposit(
-                                      walletPubKeyHash,
-                                      vault,
-                                      true
-                                    )
-
-                                    depositTwo = createTestDeposit(
-                                      walletPubKeyHash,
-                                      vault,
-                                      false
-                                    )
-
-                                    bridge.deposits
-                                      .whenCalledWith(
-                                        depositKey(
-                                          depositOne.key.fundingTxHash,
-                                          depositOne.key.fundingOutputIndex
+                                        depositOne = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          true
                                         )
-                                      )
-                                      .returns(depositOne.request)
 
-                                    bridge.deposits
-                                      .whenCalledWith(
-                                        depositKey(
-                                          depositTwo.key.fundingTxHash,
-                                          depositTwo.key.fundingOutputIndex
+                                        depositTwo = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          false
                                         )
-                                      )
-                                      .returns(depositTwo.request)
-                                  })
 
-                                  after(async () => {
-                                    bridge.deposits.reset()
+                                        depositThree = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          false
+                                        )
 
-                                    await restoreSnapshot()
-                                  })
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositOne.key.fundingTxHash,
+                                              depositOne.key.fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositOne.request)
 
-                                  it("should succeed", async () => {
-                                    const proposal = {
-                                      walletPubKeyHash,
-                                      depositsKeys: [
-                                        depositOne.key,
-                                        depositTwo.key,
-                                      ],
-                                      sweepTxFee,
-                                      depositsRevealBlocks: [], // Not relevant in this scenario.
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositTwo.key.fundingTxHash,
+                                              depositTwo.key.fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositTwo.request)
+
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositThree.key.fundingTxHash,
+                                              depositThree.key
+                                                .fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositThree.request)
+                                      })
+
+                                      after(async () => {
+                                        bridge.deposits.reset()
+
+                                        await restoreSnapshot()
+                                      })
+
+                                      it("should succeed", async () => {
+                                        const proposal = {
+                                          walletPubKeyHash,
+                                          depositsKeys: [
+                                            depositOne.key,
+                                            depositTwo.key,
+                                            depositThree.key,
+                                            depositTwo.key, // duplicate
+                                          ],
+                                          sweepTxFee,
+                                          depositsRevealBlocks: [], // Not relevant in this scenario.
+                                        }
+
+                                        const depositsExtraInfo = [
+                                          depositOne.extraInfo,
+                                          depositTwo.extraInfo,
+                                          depositThree.extraInfo,
+                                          depositTwo.extraInfo, // duplicate
+                                        ]
+
+                                        await expect(
+                                          walletCoordinator.validateDepositSweepProposal(
+                                            proposal,
+                                            depositsExtraInfo
+                                          )
+                                        ).to.be.revertedWith(
+                                          "Duplicated deposit"
+                                        )
+                                      })
                                     }
+                                  )
 
-                                    const depositsExtraInfo = [
-                                      depositOne.extraInfo,
-                                      depositTwo.extraInfo,
-                                    ]
+                                  context(
+                                    "when all deposits are unique",
+                                    () => {
+                                      let depositOne
+                                      let depositTwo
 
-                                    const result =
-                                      await walletCoordinator.validateDepositSweepProposal(
-                                        proposal,
-                                        depositsExtraInfo
-                                      )
+                                      before(async () => {
+                                        await createSnapshot()
 
-                                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                                    expect(result).to.be.true
-                                  })
+                                        depositOne = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          true
+                                        )
+
+                                        depositTwo = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          false
+                                        )
+
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositOne.key.fundingTxHash,
+                                              depositOne.key.fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositOne.request)
+
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositTwo.key.fundingTxHash,
+                                              depositTwo.key.fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositTwo.request)
+                                      })
+
+                                      after(async () => {
+                                        bridge.deposits.reset()
+
+                                        await restoreSnapshot()
+                                      })
+
+                                      it("should succeed", async () => {
+                                        const proposal = {
+                                          walletPubKeyHash,
+                                          depositsKeys: [
+                                            depositOne.key,
+                                            depositTwo.key,
+                                          ],
+                                          sweepTxFee,
+                                          depositsRevealBlocks: [], // Not relevant in this scenario.
+                                        }
+
+                                        const depositsExtraInfo = [
+                                          depositOne.extraInfo,
+                                          depositTwo.extraInfo,
+                                        ]
+
+                                        const result =
+                                          await walletCoordinator.validateDepositSweepProposal(
+                                            proposal,
+                                            depositsExtraInfo
+                                          )
+
+                                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                        expect(result).to.be.true
+                                      })
+                                    }
+                                  )
                                 }
                               )
                             }

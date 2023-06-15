@@ -549,7 +549,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - Each deposit must have valid extra data (see `validateDepositExtraInfo`),
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
-    ///      - Each deposit must target the same vault.
+    ///      - Each deposit must target the same vault,
+    ///      - Each deposit must be unique.
     ///
     ///      The following off-chain validation must be performed as a bare minimum:
     ///      - Inputs used for the sweep transaction have enough Bitcoin confirmations,
@@ -580,20 +581,24 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         address proposalVault = address(0);
 
+        uint256[] memory processedDepositKeys = new uint256[](proposal.depositsKeys.length);
+
         for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
             DepositKey memory depositKey = proposal.depositsKeys[i];
             DepositExtraInfo memory depositExtraInfo = depositsExtraInfo[i];
 
-            // slither-disable-next-line calls-loop
-            Deposit.DepositRequest memory depositRequest = bridge.deposits(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            depositKey.fundingTxHash,
-                            depositKey.fundingOutputIndex
-                        )
+            uint256 depositKeyUint = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        depositKey.fundingTxHash,
+                        depositKey.fundingOutputIndex
                     )
                 )
+            );
+
+            // slither-disable-next-line calls-loop
+            Deposit.DepositRequest memory depositRequest = bridge.deposits(
+                depositKeyUint
             );
 
             require(depositRequest.revealedAt != 0, "Deposit not revealed");
@@ -636,6 +641,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
                 depositRequest.vault == proposalVault,
                 "Deposit targets different vault"
             );
+
+            // Make sure there are no duplicates in the deposits list.
+            for (uint256 j = 0; j < i; j++) {
+                require(
+                    processedDepositKeys[j] != depositKeyUint,
+                    "Duplicated deposit"
+                );
+            }
+
+            processedDepositKeys[i] = depositKeyUint;
         }
 
         return true;
