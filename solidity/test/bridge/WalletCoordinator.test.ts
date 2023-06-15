@@ -2899,64 +2899,143 @@ describe("WalletCoordinator", () => {
                     context(
                       "when all requests incur an acceptable tx fee share",
                       () => {
-                        let requestOne
-                        let requestTwo
+                        context("when there are duplicated requests", () => {
+                          let requestOne
+                          let requestTwo
+                          let requestThree
 
-                        before(async () => {
-                          await createSnapshot()
+                          before(async () => {
+                            await createSnapshot()
 
-                          requestOne = createTestRedemptionRequest(
-                            walletPubKeyHash,
-                            5000 // necessary to pass the fee share validation
-                          )
-
-                          requestTwo = createTestRedemptionRequest(
-                            walletPubKeyHash,
-                            5000 // necessary to pass the fee share validation
-                          )
-
-                          bridge.pendingRedemptions
-                            .whenCalledWith(
-                              redemptionKey(
-                                requestOne.key.walletPubKeyHash,
-                                requestOne.key.redeemerOutputScript
-                              )
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
                             )
-                            .returns(requestOne.content)
 
-                          bridge.pendingRedemptions
-                            .whenCalledWith(
-                              redemptionKey(
-                                requestTwo.key.walletPubKeyHash,
-                                requestTwo.key.redeemerOutputScript
-                              )
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
                             )
-                            .returns(requestTwo.content)
+
+                            requestThree = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestThree.key.walletPubKeyHash,
+                                  requestThree.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestThree.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                                requestThree.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript, // duplicate
+                              ],
+                              redemptionTxFee,
+                            }
+
+                            await expect(
+                              walletCoordinator.validateRedemptionProposal(
+                                proposal
+                              )
+                            ).to.be.revertedWith("Duplicated request")
+                          })
                         })
 
-                        after(async () => {
-                          bridge.pendingRedemptions.reset()
+                        context("when all requests are unique", () => {
+                          let requestOne
+                          let requestTwo
 
-                          await restoreSnapshot()
-                        })
+                          before(async () => {
+                            await createSnapshot()
 
-                        it("should succeed", async () => {
-                          const proposal = {
-                            walletPubKeyHash,
-                            redeemersOutputScripts: [
-                              requestOne.key.redeemerOutputScript,
-                              requestTwo.key.redeemerOutputScript,
-                            ],
-                            redemptionTxFee,
-                          }
-
-                          const result =
-                            await walletCoordinator.validateRedemptionProposal(
-                              proposal
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              5000 // necessary to pass the fee share validation
                             )
 
-                          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                          expect(result).to.be.true
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              5000 // necessary to pass the fee share validation
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should succeed", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                              ],
+                              redemptionTxFee,
+                            }
+
+                            const result =
+                              await walletCoordinator.validateRedemptionProposal(
+                                proposal
+                              )
+
+                            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                            expect(result).to.be.true
+                          })
                         })
                       }
                     )

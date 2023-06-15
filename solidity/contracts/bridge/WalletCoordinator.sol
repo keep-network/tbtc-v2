@@ -857,7 +857,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - Each request must be a pending request registered in the Bridge,
     ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
     ///        elapsed since their creation time,
-    ///      - Each request must have the timeout safety margin preserved.
+    ///      - Each request must have the timeout safety margin preserved,
+    ///      - Each request must be unique.
     function validateRedemptionProposal(RedemptionProposal calldata proposal)
         external
         view
@@ -907,6 +908,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         // transaction fee (reduced by the remainder) by the number of requests.
         uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
             redemptionTxFeeRemainder) / requestsCount;
+
+        uint256[] memory processedRedemptionKeys = new uint256[](requestsCount);
 
         for (uint256 i = 0; i < requestsCount; i++) {
             bytes memory script = proposal.redeemersOutputScripts[i];
@@ -961,6 +964,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
                 feePerRequest <= redemptionRequest.txMaxFee,
                 "Proposed transaction per-request fee share is too high"
             );
+
+            // Make sure there are no duplicates in the requests list.
+            for (uint256 j = 0; j < i; j++) {
+                require(
+                    processedRedemptionKeys[j] != redemptionKey,
+                    "Duplicated request"
+                );
+            }
+
+            processedRedemptionKeys[i] = redemptionKey;
         }
 
         return true;
