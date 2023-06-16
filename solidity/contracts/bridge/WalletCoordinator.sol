@@ -789,7 +789,12 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     /// @notice Updates parameters related to redemption proposal.
     /// @param _redemptionProposalValidity The new value of `redemptionProposalValidity`.
-    /// @param _redemptionProposalSubmissionGasOffset The new value of `redemptionProposalSubmissionGasOffset`.
+    /// @param _redemptionRequestMinAge The new value of `redemptionRequestMinAge`.
+    /// @param _redemptionRequestTimeoutSafetyMargin The new value of
+    ///        `redemptionRequestTimeoutSafetyMargin`.
+    /// @param _redemptionMaxSize The new value of `redemptionMaxSize`.
+    /// @param _redemptionProposalSubmissionGasOffset The new value of
+    ///        `redemptionProposalSubmissionGasOffset`.
     /// @dev Requirements:
     ///      - The caller must be the owner.
     function updateRedemptionProposalParameters(
