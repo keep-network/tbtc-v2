@@ -336,7 +336,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         depositSweepMaxSize = 5;
         depositSweepProposalSubmissionGasOffset = 20_000; // optimized for 10 inputs
 
-        redemptionProposalValidity = 1 hours;
+        redemptionProposalValidity = 2 hours;
         redemptionRequestMinAge = 600; // 10 minutes or ~50 blocks.
         redemptionRequestTimeoutSafetyMargin = 2 hours;
         redemptionMaxSize = 20;
