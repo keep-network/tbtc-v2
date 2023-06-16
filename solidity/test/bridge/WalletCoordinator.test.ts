@@ -2019,7 +2019,7 @@ describe("WalletCoordinator", () => {
                                         await restoreSnapshot()
                                       })
 
-                                      it("should succeed", async () => {
+                                      it("should revert", async () => {
                                         const proposal = {
                                           walletPubKeyHash,
                                           depositsKeys: [
@@ -2323,7 +2323,7 @@ describe("WalletCoordinator", () => {
           await restoreSnapshot()
         })
 
-        it("should time lock the wallet", async () => {
+        it("should time-lock the wallet", async () => {
           const lockedUntil =
             (await lastBlockTime()) +
             (await walletCoordinator.redemptionProposalValidity())
