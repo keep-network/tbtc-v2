@@ -2644,6 +2644,11 @@ describe("WalletCoordinator", () => {
                 })
               }
             )
+
+            // The context block covering the per-redemption fee checks is
+            // declared at the end of the `validateRedemptionProposal` test suite
+            // due to the actual order of checks performed by this function.
+            // See: "when there is a request that incurs an unacceptable tx fee share"
           })
 
           context("when proposed redemption tx fee is valid", () => {
