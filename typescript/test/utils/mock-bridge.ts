@@ -43,6 +43,15 @@ interface RedemptionProofLogEntry {
   walletPublicKey: string
 }
 
+interface NewWalletRegisteredEventsLog {
+  options?: GetEvents.Options
+  filterArgs: unknown[]
+}
+
+interface WalletLog {
+  walletPublicKeyHash: string
+}
+
 /**
  * Mock Bridge used for test purposes.
  */
@@ -56,6 +65,10 @@ export class MockBridge implements Bridge {
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
   private _deposits = new Map<BigNumberish, RevealedDeposit>()
   private _activeWalletPublicKey: string | undefined
+  private _newWalletRegisteredEvents: NewWalletRegisteredEvent[] = []
+  private _newWalletRegisteredEventsLog: NewWalletRegisteredEventsLog[] = []
+  private _wallets = new Map<string, Wallet>()
+  private _walletsLog: WalletLog[] = []
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -63,6 +76,14 @@ export class MockBridge implements Bridge {
 
   setTimedOutRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._timedOutRedemptions = value
+  }
+
+  setWallet(key: string, value: Wallet) {
+    this._wallets.set(key, value)
+  }
+
+  set newWalletRegisteredEvents(value: NewWalletRegisteredEvent[]) {
+    this._newWalletRegisteredEvents = value
   }
 
   get depositSweepProofLog(): DepositSweepProofLogEntry[] {
@@ -79,6 +100,14 @@ export class MockBridge implements Bridge {
 
   get redemptionProofLog(): RedemptionProofLogEntry[] {
     return this._redemptionProofLog
+  }
+
+  get newWalletRegisteredEventsLog(): NewWalletRegisteredEventsLog[] {
+    return this._newWalletRegisteredEventsLog
+  }
+
+  get walletsLog(): WalletLog[] {
+    return this._walletsLog
   }
 
   setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
@@ -308,15 +337,18 @@ export class MockBridge implements Bridge {
     options?: GetEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
-    throw new Error("not implemented")
+    this._newWalletRegisteredEventsLog.push({ options, filterArgs })
+    return this._newWalletRegisteredEvents
   }
 
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
   }
 
-  wallets(walletPublicKeyHash: string): Promise<Wallet> {
-    throw new Error("not implemented")
+  async wallets(walletPublicKeyHash: string): Promise<Wallet> {
+    this._walletsLog.push({ walletPublicKeyHash })
+    const wallet = this._wallets.get(walletPublicKeyHash)
+    return wallet!
   }
 
   buildUTXOHash(utxo: UnspentTransactionOutput): Hex {

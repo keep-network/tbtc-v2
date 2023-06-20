@@ -20,9 +20,11 @@ import {
   p2pkhWalletAddress,
   p2wpkhWalletAddress,
   RedemptionTestData,
+  findWalletForRedemptionData,
 } from "./data/redemption"
 import {
   assembleRedemptionTransaction,
+  findWalletForRedemption,
   getRedemptionRequest,
   RedemptionRequest,
   requestRedemption,
@@ -34,6 +36,8 @@ import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
+import { BitcoinNetwork } from "../src/bitcoin-network"
+import { Wallet } from "../src/wallet"
 
 chai.use(chaiAsPromised)
 
@@ -1430,6 +1434,140 @@ describe("Redemption", () => {
 
         expect(actualRedemptionRequest).to.be.eql(redemptionRequest)
       })
+    })
+  })
+
+  describe("findWalletForRedemption", () => {
+    let bridge: MockBridge
+    let bitcoinClient: MockBitcoinClient
+
+    context(
+      "when there are no wallets in the network that can hanlde redemption",
+      () => {
+        const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
+        beforeEach(() => {
+          bitcoinClient = new MockBitcoinClient()
+          bridge = new MockBridge()
+          bridge.newWalletRegisteredEvents = []
+        })
+
+        it("should throw an error", async () => {
+          await expect(
+            findWalletForRedemption(
+              amount,
+              bridge,
+              bitcoinClient,
+              BitcoinNetwork.Testnet
+            )
+          ).to.be.rejectedWith(
+            "Could not find a wallet with enough funds. Maximum redemption amount is 0 Satoshi."
+          )
+        })
+      }
+    )
+
+    context("when there are registered wallets in the network", () => {
+      let result: Awaited<ReturnType<typeof findWalletForRedemption> | never>
+
+      beforeEach(async () => {
+        bitcoinClient = new MockBitcoinClient()
+        bridge = new MockBridge()
+        bridge.newWalletRegisteredEvents =
+          findWalletForRedemptionData.newWalletRegisteredEvents
+        const walletsUnspentTransacionOutputs = new Map<
+          string,
+          UnspentTransactionOutput[]
+        >()
+        for (const [
+          key,
+          { state, mainUtxoHash, walletPublicKey, btcAddress, utxos },
+        ] of Object.entries(findWalletForRedemptionData.wallets)) {
+          bridge.setWallet(key, {
+            state,
+            mainUtxoHash,
+            walletPublicKey,
+          } as Wallet)
+          walletsUnspentTransacionOutputs.set(btcAddress, utxos)
+        }
+
+        bitcoinClient.unspentTransactionOutputs =
+          walletsUnspentTransacionOutputs
+      })
+
+      context(
+        "when there is a wallet that can handle the redemption request",
+        () => {
+          const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
+          beforeEach(async () => {
+            result = await findWalletForRedemption(
+              amount,
+              bridge,
+              bitcoinClient,
+              BitcoinNetwork.Testnet
+            )
+          })
+
+          it("should get all registered wallets", () => {
+            const bridgeQueryEventsLog = bridge.newWalletRegisteredEventsLog
+
+            expect(bridgeQueryEventsLog.length).to.equal(1)
+            expect(bridgeQueryEventsLog[0]).to.deep.equal({
+              options: undefined,
+              filterArgs: [],
+            })
+          })
+
+          it("should get wallet data details", () => {
+            const bridgeWalletDetailsLogs = bridge.walletsLog
+
+            expect(bridgeWalletDetailsLogs.length).to.eql(1)
+            expect(bridgeWalletDetailsLogs[0].walletPublicKeyHash).to.eql(
+              findWalletForRedemptionData.newWalletRegisteredEvents[0].walletPublicKeyHash.toPrefixedString()
+            )
+          })
+
+          it("should return the wallet data that can handle redemption request", () => {
+            const expectedWalletPublicKeyHash =
+              findWalletForRedemptionData.newWalletRegisteredEvents[0]
+                .walletPublicKeyHash
+            const expectedWalletData =
+              findWalletForRedemptionData.wallets[
+                expectedWalletPublicKeyHash.toPrefixedString()
+              ]
+            expect(result).to.deep.eq({
+              walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+              mainUTXO: expectedWalletData.utxos[0],
+            })
+          })
+        }
+      )
+
+      context(
+        "when the redemption request amount is too large and no wallet can handle the request",
+        () => {
+          const amount = BigNumber.from("10000000000") // 1 000 BTC
+          const expectedMaxAmount = Object.values(
+            findWalletForRedemptionData.wallets
+          )
+            .map((wallet) => wallet.utxos)
+            .flat()
+            .map((utxo) => utxo.value)
+            .sort((a, b) => (b.gt(a) ? 0 : -1))[0]
+
+          it("should throw an error", async () => {
+            await expect(
+              findWalletForRedemption(
+                amount,
+                bridge,
+                bitcoinClient,
+                BitcoinNetwork.Testnet
+              )
+            ).to.be.rejectedWith(
+              `Could not find a wallet with enough funds. Maximum redemption amount is ${expectedMaxAmount.toString()} Satoshi.`
+            )
+          })
+        }
+      )
     })
   })
 })
