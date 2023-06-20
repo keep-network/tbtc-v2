@@ -698,6 +698,10 @@ export class Bridge
     })
   }
 
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#wallets}
+   */
   async wallets(walletPublicKeyHash: string): Promise<Wallet> {
     const wallet = await backoffRetrier<Wallets.WalletStructOutput>(
       this._totalRetryAttempts
@@ -708,6 +712,11 @@ export class Bridge
     return this.parseWalletDetails(wallet)
   }
 
+  /**
+   * Parses a wallet data using data fetched from the on-chain contract.
+   * @param wallet Data of the wallet.
+   * @returns Parsed wallet data.
+   */
   private async parseWalletDetails(
     wallet: Wallets.WalletStructOutput
   ): Promise<Wallet> {
@@ -730,11 +739,12 @@ export class Bridge
     }
   }
 
+  // eslint-disable-next-line valid-jsdoc
   /**
    * Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
    * `keccak256(txHash | txOutputIndex | txOutputValue)`.
-   * @param utxo UTXO components.
-   * @returns The hash of the UTXO.
+   *
+   * @see {ChainBridge#buildUTXOHash}
    */
   buildUTXOHash(utxo: UnspentTransactionOutput): Hex {
     return Hex.from(
