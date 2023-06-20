@@ -79,7 +79,7 @@ jobs:
       destinationRepo: threshold-network/threshold
       destinationFolder: ./docs/app-development/tbtc-v2/tbtc-v2-api
       destinationBaseBranch: main
-      userEmail: 8324465+thesis-valkyrie@users.noreply.github.com
+      userEmail: 38324465+thesis-valkyrie@users.noreply.github.com
       userName: Valkyrie
     secrets:
       githubToken: ${{ secrets.THRESHOLD_DOCS_GITHUB_TOKEN }}
