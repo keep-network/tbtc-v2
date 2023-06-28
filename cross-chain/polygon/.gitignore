@@ -9,6 +9,7 @@
 /deployments/*
 !/deployments/mainnet/
 !/deployments/polygon/
+!/deployments/mumbai/
 
 # OZ
 /.openzeppelin/unknown-*.json
