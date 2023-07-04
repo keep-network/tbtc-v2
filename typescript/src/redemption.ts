@@ -457,19 +457,19 @@ export async function findWalletForRedemption(
 
     // We need to find correct utxo- utxo components must point to the recent
     // main UTXO of the given wallet, as currently known on the chain.
-    const utxo = utxos.find((utxo) =>
+    const mainUtxo = utxos.find((utxo) =>
       mainUtxoHash.equals(bridge.buildUtxoHash(utxo))
     )
 
-    if (!utxo) continue
+    if (!mainUtxo) continue
 
     // Save the max possible redemption amount.
-    maxAmount = utxo.value.gt(maxAmount) ? utxo.value : maxAmount
+    maxAmount = mainUtxo.value.gt(maxAmount) ? mainUtxo.value : maxAmount
 
-    if (utxo.value.gte(amount)) {
+    if (mainUtxo.value.gte(amount)) {
       walletData = {
         walletPublicKey: walletPublicKey.toString(),
-        mainUtxo: utxo,
+        mainUtxo,
       }
 
       break
