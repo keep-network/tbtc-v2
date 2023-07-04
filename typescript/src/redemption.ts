@@ -412,7 +412,7 @@ export async function getRedemptionRequest(
 
 /**
  * Finds the oldest active wallet that has enough BTC to handle a redemption request.
- * @param amount The amount to be redeemed.
+ * @param amount The amount to be redeemed in satoshis.
  * @param bridge The handle to the Bridge on-chain contract.
  * @param bitcoinClient Bitcoin client used to interact with the network.
  * @param bitcoinNetwork Bitcoin network.
