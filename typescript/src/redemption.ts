@@ -425,14 +425,14 @@ export async function findWalletForRedemption(
   bitcoinNetwork: BitcoinNetwork
 ): Promise<{
   walletPublicKey: string
-  mainUTXO: UnspentTransactionOutput
+  mainUtxo: UnspentTransactionOutput
 }> {
   const wallets = await bridge.getNewWalletRegisteredEvents()
 
   let walletData:
     | {
         walletPublicKey: string
-        mainUTXO: UnspentTransactionOutput
+        mainUtxo: UnspentTransactionOutput
       }
     | undefined = undefined
   let maxAmount = BigNumber.from(0)
@@ -471,7 +471,7 @@ export async function findWalletForRedemption(
     if (utxo.value.gte(amount)) {
       walletData = {
         walletPublicKey: walletPublicKey.toString(),
-        mainUTXO: utxo,
+        mainUtxo: utxo,
       }
 
       break

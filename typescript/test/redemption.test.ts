@@ -1536,7 +1536,7 @@ describe("Redemption", () => {
               ]
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
-              mainUTXO: expectedWalletData.utxos[0],
+              mainUtxo: expectedWalletData.utxos[0],
             })
           })
         }
