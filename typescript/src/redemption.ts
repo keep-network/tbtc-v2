@@ -438,10 +438,8 @@ export async function findWalletForRedemption(
   let maxAmount = BigNumber.from(0)
 
   for (const wallet of wallets) {
-    const prefixedWalletPublicKeyHash =
-      wallet.walletPublicKeyHash.toPrefixedString()
     const { state, mainUtxoHash, walletPublicKey } = await bridge.wallets(
-      prefixedWalletPublicKeyHash
+      wallet.walletPublicKeyHash
     )
 
     // Wallet must be in Live state.

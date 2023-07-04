@@ -252,7 +252,7 @@ export interface Bridge {
    * using Bitcoin HASH160 over the compressed ECDSA public key).
    * @returns Promise with the wallet details.
    */
-  wallets(walletPublicKeyHash: string): Promise<Wallet>
+  wallets(walletPublicKeyHash: Hex): Promise<Wallet>
 
   /**
    * Builds the UTXO hash based on the UTXO components.

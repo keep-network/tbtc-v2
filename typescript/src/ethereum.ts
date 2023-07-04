@@ -642,7 +642,9 @@ export class Bridge
       return undefined
     }
 
-    const { ecdsaWalletID } = await this.wallets(activeWalletPublicKeyHash)
+    const { ecdsaWalletID } = await this.wallets(
+      Hex.from(activeWalletPublicKeyHash)
+    )
 
     return (await this.getWalletCompressedPublicKey(ecdsaWalletID)).toString()
   }
@@ -702,11 +704,13 @@ export class Bridge
   /**
    * @see {ChainBridge#wallets}
    */
-  async wallets(walletPublicKeyHash: string): Promise<Wallet> {
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
     const wallet = await backoffRetrier<Wallets.WalletStructOutput>(
       this._totalRetryAttempts
     )(async () => {
-      return await this._instance.wallets(walletPublicKeyHash)
+      return await this._instance.wallets(
+        walletPublicKeyHash.toPrefixedString()
+      )
     })
 
     return this.parseWalletDetails(wallet)

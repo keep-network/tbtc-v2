@@ -345,9 +345,11 @@ export class MockBridge implements Bridge {
     throw new Error("not implemented")
   }
 
-  async wallets(walletPublicKeyHash: string): Promise<Wallet> {
-    this._walletsLog.push({ walletPublicKeyHash })
-    const wallet = this._wallets.get(walletPublicKeyHash)
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    this._walletsLog.push({
+      walletPublicKeyHash: walletPublicKeyHash.toPrefixedString(),
+    })
+    const wallet = this._wallets.get(walletPublicKeyHash.toPrefixedString())
     return wallet!
   }
 
