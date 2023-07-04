@@ -11,6 +11,7 @@ import {
   hashLEToBigNumber,
   bitsToTarget,
   targetToDifficulty,
+  createOutputScriptFromAddress,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
@@ -463,5 +464,56 @@ describe("Bitcoin", () => {
       const expectedDifficulty = BigNumber.from("1")
       expect(targetToDifficulty(target)).to.equal(expectedDifficulty)
     })
+  })
+
+  describe("createOutputScriptFromAddress", () => {
+    const btcAddresses = {
+      P2PKH: {
+        address: "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc",
+        redeemerOutputScript:
+          "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+      },
+      P2WPKH: {
+        address: "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
+        redeemerOutputScript:
+          "0x160014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
+      },
+      P2SH: {
+        address: "2MsM67NLa71fHvTUBqNENW15P68nHB2vVXb",
+        redeemerOutputScript:
+          "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487",
+      },
+      P2WSH: {
+        address:
+          "tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv",
+        redeemerOutputScript:
+          "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c",
+      },
+    }
+
+    Object.entries(btcAddresses).forEach(
+      ([
+        addressType,
+        { address, redeemerOutputScript: expectedRedeemerOutputScript },
+      ]) => {
+        it(`should create correct output script for ${addressType} address type`, () => {
+          const result = createOutputScriptFromAddress(address)
+
+          // Check if we can build the prefixed raw redeemer output script based
+          // on the result.
+          // Convert the output script to raw bytes buffer.
+          const rawRedeemerOutputScript = Buffer.from(result, "hex")
+          // Prefix the output script bytes buffer with 0x and its own length.
+          const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
+            Buffer.from([rawRedeemerOutputScript.length]),
+            rawRedeemerOutputScript,
+          ]).toString("hex")}`
+
+          expect(prefixedRawRedeemerOutputScript).to.eq(
+            expectedRedeemerOutputScript
+          )
+        })
+      }
+    )
   })
 })
