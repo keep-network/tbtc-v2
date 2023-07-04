@@ -351,7 +351,7 @@ export class MockBridge implements Bridge {
     return wallet!
   }
 
-  buildUTXOHash(utxo: UnspentTransactionOutput): Hex {
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
     return Hex.from(
       utils.solidityKeccak256(
         ["bytes32", "uint32", "uint64"],

@@ -744,9 +744,9 @@ export class Bridge
    * Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
    * `keccak256(txHash | txOutputIndex | txOutputValue)`.
    *
-   * @see {ChainBridge#buildUTXOHash}
+   * @see {ChainBridge#buildUtxoHash}
    */
-  buildUTXOHash(utxo: UnspentTransactionOutput): Hex {
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
     return Hex.from(
       utils.solidityKeccak256(
         ["bytes32", "uint32", "uint64"],

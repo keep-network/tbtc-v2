@@ -259,7 +259,7 @@ export interface Bridge {
    * @param utxo UTXO components.
    * @returns The hash of the UTXO.
    */
-  buildUTXOHash(utxo: UnspentTransactionOutput): Hex
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex
 }
 
 /**

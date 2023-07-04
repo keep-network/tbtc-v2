@@ -460,7 +460,7 @@ export async function findWalletForRedemption(
     // We need to find correct utxo- utxo components must point to the recent
     // main UTXO of the given wallet, as currently known on the chain.
     const utxo = utxos.find((utxo) =>
-      mainUtxoHash.equals(bridge.buildUTXOHash(utxo))
+      mainUtxoHash.equals(bridge.buildUtxoHash(utxo))
     )
 
     if (!utxo) continue
