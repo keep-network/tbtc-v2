@@ -66,7 +66,6 @@ export interface RedemptionRequest {
  * @param amount - The amount to be redeemed with the precision of the tBTC
  *        on-chain token contract.
  * @param vault - The vault address.
- * @param bridge - Handle to the Bridge on-chain contract.
  * @param tBTCToken - Handle to the TBTCToken on-chain contract.
  * @returns Transaction hash of the request redemption transaction.
  */
@@ -77,17 +76,16 @@ export async function requestRedemption(
   redeemerOutputScript: string,
   amount: BigNumber,
   vault: Identifier,
-  bridge: Bridge,
   tBTCToken: TBTCToken
 ): Promise<Hex> {
-  const redemptionData = bridge.buildRedemptionData(
+  return await tBTCToken.requestRedemption({
     redeemer,
     walletPublicKey,
     mainUtxo,
-    redeemerOutputScript
-  )
-
-  return await tBTCToken.approveAndCall(vault, amount, redemptionData)
+    redeemerOutputScript,
+    amount,
+    vault,
+  })
 }
 
 /**

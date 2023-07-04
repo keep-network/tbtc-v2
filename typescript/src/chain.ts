@@ -244,26 +244,6 @@ export interface Bridge {
    * Returns the attached WalletRegistry instance.
    */
   walletRegistry(): Promise<WalletRegistry>
-
-  /**
-   * Builds the redemption data required to request a redemption via
-   * @see TBTCToken#approveAndCall - the built data should be passed as
-   * `extraData` the @see TBTCToken#approveAndCall function.
-   * @param redeemer On-chain identifier of the redeemer.
-   * @param walletPublicKey The Bitcoin public key of the wallet. Must be in the
-   *        compressed form (33 bytes long with 02 or 03 prefix).
-   * @param mainUtxo The main UTXO of the wallet. Must match the main UTXO
-   *        held by the on-chain Bridge contract.
-   * @param redeemerOutputScript The output script that the redeemed funds will
-   *        be locked to. Must be un-prefixed and not prepended with length.
-   * @returns The
-   */
-  buildRedemptionData(
-    redeemer: Identifier,
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string
-  ): Hex
 }
 
 /**
@@ -402,6 +382,40 @@ export interface TBTCVault {
 }
 
 /**
+ * Represnts data required to request redemption.
+ */
+export interface RequestRedemptionData {
+  /**
+   * On-chain identifier of the redeemer.
+   */
+  redeemer: Identifier
+  /**
+   * The Bitcoin public key of the wallet. Must be in the compressed form (33
+   * bytes long with 02 or 03 prefix).
+   */
+  walletPublicKey: string
+  /**
+   * The main UTXO of the wallet. Must match the main UTXO held by the on-chain
+   * Bridge contract.
+   */
+  mainUtxo: UnspentTransactionOutput
+  /**
+   * The output script that the redeemed funds will be locked to. Must be
+   * un-prefixed and not prepended with length.
+   */
+  redeemerOutputScript: string
+  /**
+   * The amount to be redeemed with the precision of the tBTC on-chain token
+   * contract.
+   */
+  amount: BigNumber
+  /**
+   * The vault address.
+   */
+  vault: Identifier
+}
+
+/**
  * Interface for communication with the TBTC v2 token on-chain contract.
  */
 export interface TBTCToken {
@@ -418,18 +432,13 @@ export interface TBTCToken {
   totalSupply(blockNumber?: number): Promise<BigNumber>
 
   /**
-   * Calls `receiveApproval` function on spender previously approving the spender
-   * to withdraw from the caller multiple times, up to the `amount` amount. If
-   * this function is called again, it overwrites the current allowance with
-   * `amount`.
-   * @param spender Address of contract authorized to spend.
-   * @param amount The max amount they can spend.
-   * @param extraData Extra information to send to the approved contract.
+   * Requests redemption in one transacion using the `approveAndCall` function
+   * from the tBTC on-chain token contract. Then the tBTC token contract calls
+   * the `receiveApproval` function from the `TBTCVault` contract which burns
+   * tBTC tokens and requests redemption.
+   * @param requestRedemptionData Data required to request redemption @see
+   *        {@link RequestRedemptionData}.
    * @returns Transaction hash of the approve and call transaction.
    */
-  approveAndCall(
-    spender: Identifier,
-    amount: BigNumber,
-    extraData: Hex
-  ): Promise<Hex>
+  requestRedemption(requestRedemptionData: RequestRedemptionData): Promise<Hex>
 }

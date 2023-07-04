@@ -5,6 +5,7 @@ import {
   TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
   GetEvents,
+  RequestRedemptionData,
 } from "./chain"
 import {
   BigNumber,
@@ -488,39 +489,6 @@ export class Bridge
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<void> {
-    const redemptionData = this.parseRequestRedemptionTransactionData(
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript
-    )
-
-    await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.requestRedemption(
-        redemptionData.walletPublicKeyHash,
-        redemptionData.mainUtxo,
-        redemptionData.prefixedRawRedeemerOutputScript,
-        amount
-      )
-    }, this._totalRetryAttempts)
-  }
-
-  /**
-   * Parses the request redemption data to the proper form.
-   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in
-   *        the compressed form (33 bytes long with 02 or 03 prefix).
-   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
-   *        held by the on-chain contract.
-   * @param redeemerOutputScript - The output script that the redeemed funds
-   *        will be locked to. Must be un-prefixed and not prepended with
-   *        length.
-   * @returns Parsed data that can be passed to the contract to request
-   * redemption.
-   */
-  private parseRequestRedemptionTransactionData = (
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string
-  ) => {
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
     const mainUtxoParam = {
@@ -539,11 +507,14 @@ export class Bridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    return {
-      walletPublicKeyHash,
-      mainUtxo: mainUtxoParam,
-      prefixedRawRedeemerOutputScript,
-    }
+    await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.requestRedemption(
+        walletPublicKeyHash,
+        mainUtxoParam,
+        prefixedRawRedeemerOutputScript,
+        amount
+      )
+    }, this._totalRetryAttempts)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -723,37 +694,6 @@ export class Bridge
       address: ecdsaWalletRegistry,
       signerOrProvider: this._instance.signer || this._instance.provider,
     })
-  }
-
-  // eslint-disable-next-line valid-jsdoc
-  /**
-   * @see {ChainBridge#buildRedemptionData}
-   */
-  buildRedemptionData(
-    redeemer: ChainIdentifier,
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string
-  ): Hex {
-    const redemptionData = this.parseRequestRedemptionTransactionData(
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript
-    )
-
-    return Hex.from(
-      utils.defaultAbiCoder.encode(
-        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
-        [
-          redeemer.identifierHex,
-          redemptionData.walletPublicKeyHash,
-          redemptionData.mainUtxo.txHash,
-          redemptionData.mainUtxo.txOutputIndex,
-          redemptionData.mainUtxo.txOutputValue,
-          redemptionData.prefixedRawRedeemerOutputScript,
-        ]
-      )
-    )
   }
 }
 
@@ -1161,19 +1101,79 @@ export class TBTCToken
     })
   }
 
-  async approveAndCall(
-    spender: ChainIdentifier,
-    amount: BigNumber,
-    extraData: Hex
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCToken#requestRedemption}
+   */
+  async requestRedemption(
+    requestRedemptionData: RequestRedemptionData
   ): Promise<Hex> {
+    const { vault, amount, ...restData } = requestRedemptionData
+
+    const extraData = this.buildRequestRedemptionData(restData)
+
     const tx = await sendWithRetry<ContractTransaction>(async () => {
       return await this._instance.approveAndCall(
-        spender.identifierHex,
+        vault.identifierHex,
         amount,
         extraData.toPrefixedString()
       )
     }, this._totalRetryAttempts)
 
     return Hex.from(tx.hash)
+  }
+
+  private buildRequestRedemptionData(
+    requestRedemptionData: Omit<RequestRedemptionData, "amount" | "vault">
+  ): Hex {
+    const { redeemer, ...restData } = requestRedemptionData
+    const { walletPublicKeyHash, mainUtxo, prefixedRawRedeemerOutputScript } =
+      this.buildBridgeRequestRedemptionData(restData)
+
+    return Hex.from(
+      utils.defaultAbiCoder.encode(
+        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
+        [
+          redeemer.identifierHex,
+          walletPublicKeyHash,
+          mainUtxo.txHash,
+          mainUtxo.txOutputIndex,
+          mainUtxo.txOutputValue,
+          prefixedRawRedeemerOutputScript,
+        ]
+      )
+    )
+  }
+
+  private buildBridgeRequestRedemptionData(
+    data: Pick<
+      RequestRedemptionData,
+      "mainUtxo" | "walletPublicKey" | "redeemerOutputScript"
+    >
+  ) {
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } = data
+    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+
+    const mainUtxoParam = {
+      // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+      // byte order.
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
+      txOutputIndex: mainUtxo.outputIndex,
+      txOutputValue: mainUtxo.value,
+    }
+
+    // Convert the output script to raw bytes buffer.
+    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    // Prefix the output script bytes buffer with 0x and its own length.
+    const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
+      Buffer.from([rawRedeemerOutputScript.length]),
+      rawRedeemerOutputScript,
+    ]).toString("hex")}`
+
+    return {
+      walletPublicKeyHash,
+      mainUtxo: mainUtxoParam,
+      prefixedRawRedeemerOutputScript,
+    }
   }
 }
