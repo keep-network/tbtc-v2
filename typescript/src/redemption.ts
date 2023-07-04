@@ -451,8 +451,13 @@ export async function findWalletForRedemption(
           "0x0000000000000000000000000000000000000000000000000000000000000000"
         )
       )
-    )
+    ) {
+      console.debug(
+        `Wallet is not in Live state or main utxo is not set. \
+        Continue the loop execution to the next wallet...`
+      )
       continue
+    }
 
     const walletBitcoinAddress = encodeToBitcoinAddress(
       wallet.walletPublicKeyHash.toString(),
@@ -470,7 +475,14 @@ export async function findWalletForRedemption(
       mainUtxoHash.equals(bridge.buildUtxoHash(utxo))
     )
 
-    if (!mainUtxo) continue
+    if (!mainUtxo) {
+      console.debug(
+        `Could not find matching UTXO on chains for wallet public key hash \
+        (${wallet.walletPublicKeyHash.toPrefixedString()}). Continue the loop \
+        execution to the next wallet...`
+      )
+      continue
+    }
 
     // Save the max possible redemption amount.
     maxAmount = mainUtxo.value.gt(maxAmount) ? mainUtxo.value : maxAmount
@@ -483,6 +495,12 @@ export async function findWalletForRedemption(
 
       break
     }
+
+    console.debug(
+      `The wallet (${wallet.walletPublicKeyHash.toPrefixedString()}) \
+      cannot handle the redemption request. Continue the loop execution to the \
+      next wallet...`
+    )
   }
 
   if (!walletData)
