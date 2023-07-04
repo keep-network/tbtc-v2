@@ -502,7 +502,7 @@ describe("Bitcoin", () => {
           // Check if we can build the prefixed raw redeemer output script based
           // on the result.
           // Convert the output script to raw bytes buffer.
-          const rawRedeemerOutputScript = Buffer.from(result, "hex")
+          const rawRedeemerOutputScript = Buffer.from(result.toString(), "hex")
           // Prefix the output script bytes buffer with 0x and its own length.
           const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
             Buffer.from([rawRedeemerOutputScript.length]),
