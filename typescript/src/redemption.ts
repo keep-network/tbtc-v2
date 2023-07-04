@@ -13,6 +13,7 @@ import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
 import { WalletState } from "./wallet"
 import { BitcoinNetwork } from "./bitcoin-network"
+import { Hex } from "./hex"
 
 /**
  * Represents a redemption request.
@@ -443,7 +444,15 @@ export async function findWalletForRedemption(
     )
 
     // Wallet must be in Live state.
-    if (state !== WalletState.Live) continue
+    if (
+      state !== WalletState.Live ||
+      mainUtxoHash.equals(
+        Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        )
+      )
+    )
+      continue
 
     const walletBitcoinAddress = encodeToBitcoinAddress(
       wallet.walletPublicKeyHash.toString(),
