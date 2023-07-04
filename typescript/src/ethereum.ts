@@ -644,10 +644,10 @@ export class Bridge
 
     const { ecdsaWalletID } = await this.wallets(activeWalletPublicKeyHash)
 
-    return (await this.toCompressedWalletPublicKey(ecdsaWalletID)).toString()
+    return (await this.getWalletCompressedPublicKey(ecdsaWalletID)).toString()
   }
 
-  private async toCompressedWalletPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
+  private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
     const walletRegistry = await this.walletRegistry()
     const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
       ecdsaWalletID
@@ -724,7 +724,7 @@ export class Bridge
 
     return {
       ecdsaWalletID,
-      walletPublicKey: await this.toCompressedWalletPublicKey(ecdsaWalletID),
+      walletPublicKey: await this.getWalletCompressedPublicKey(ecdsaWalletID),
       mainUtxoHash: Hex.from(wallet.mainUtxoHash),
       pendingRedemptionsValue: wallet.pendingRedemptionsValue,
       createdAt: wallet.createdAt,
