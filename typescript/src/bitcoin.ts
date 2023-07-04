@@ -607,7 +607,7 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
 /**
  * Creates the output script from the BTC address.
  * @param address BTC address.
- * @returns The un-prefixed and not prepended with length otput script.
+ * @returns The un-prefixed and not prepended with length output script.
  */
 export function createOutputScriptFromAddress(address: string): string {
   return Script.fromAddress(address).toRaw().toString("hex")
