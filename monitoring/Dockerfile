@@ -24,6 +24,8 @@ COPY package.json yarn.lock ./
 COPY tsconfig.json ./
 COPY src ./src
 
+# Run install and postinstall separatelly to avoid problems with `bcrypto` and
+# `install-dependencies.sh`.
 RUN yarn install --frozen-lockfile --ignore-scripts
 RUN yarn run postinstall
 
