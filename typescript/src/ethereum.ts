@@ -5,7 +5,6 @@ import {
   TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
   GetEvents,
-  RequestRedemptionData,
 } from "./chain"
 import {
   BigNumber,
@@ -1106,15 +1105,27 @@ export class TBTCToken
    * @see {ChainTBTCToken#requestRedemption}
    */
   async requestRedemption(
-    requestRedemptionData: RequestRedemptionData
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
   ): Promise<Hex> {
-    const { vault, amount, ...restData } = requestRedemptionData
+    const redeemer = await this._instance?.signer?.getAddress()
+    if (!redeemer) {
+      throw new Error("Signer not provided.")
+    }
 
-    const extraData = this.buildRequestRedemptionData(restData)
+    const vault = await this._instance.owner()
+    const extraData = this.buildRequestRedemptionData(
+      Address.from(redeemer),
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
 
     const tx = await sendWithRetry<ContractTransaction>(async () => {
       return await this._instance.approveAndCall(
-        vault.identifierHex,
+        vault,
         amount,
         extraData.toPrefixedString()
       )
@@ -1124,11 +1135,20 @@ export class TBTCToken
   }
 
   private buildRequestRedemptionData(
-    requestRedemptionData: Omit<RequestRedemptionData, "amount" | "vault">
+    redeemer: Address,
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
   ): Hex {
-    const { redeemer, ...restData } = requestRedemptionData
-    const { walletPublicKeyHash, mainUtxo, prefixedRawRedeemerOutputScript } =
-      this.buildBridgeRequestRedemptionData(restData)
+    const {
+      walletPublicKeyHash,
+      prefixedRawRedeemerOutputScript,
+      mainUtxo: _mainUtxo,
+    } = this.buildBridgeRequestRedemptionData(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
 
     return Hex.from(
       utils.defaultAbiCoder.encode(
@@ -1136,9 +1156,9 @@ export class TBTCToken
         [
           redeemer.identifierHex,
           walletPublicKeyHash,
-          mainUtxo.txHash,
-          mainUtxo.txOutputIndex,
-          mainUtxo.txOutputValue,
+          _mainUtxo.txHash,
+          _mainUtxo.txOutputIndex,
+          _mainUtxo.txOutputValue,
           prefixedRawRedeemerOutputScript,
         ]
       )
@@ -1146,12 +1166,10 @@ export class TBTCToken
   }
 
   private buildBridgeRequestRedemptionData(
-    data: Pick<
-      RequestRedemptionData,
-      "mainUtxo" | "walletPublicKey" | "redeemerOutputScript"
-    >
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
   ) {
-    const { walletPublicKey, mainUtxo, redeemerOutputScript } = data
     const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
 
     const mainUtxoParam = {

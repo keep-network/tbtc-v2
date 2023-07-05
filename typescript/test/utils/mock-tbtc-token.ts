@@ -1,8 +1,14 @@
-import { RequestRedemptionData, TBTCToken } from "../../src/chain"
+import { TBTCToken } from "../../src/chain"
 import { Hex } from "../../src/hex"
 import { BigNumber } from "ethers"
+import { UnspentTransactionOutput } from "../../src/bitcoin"
 
-interface RequestRedemptionLog extends RequestRedemptionData {}
+interface RequestRedemptionLog {
+  walletPublicKey: string
+  mainUtxo: UnspentTransactionOutput
+  redeemerOutputScript: string
+  amount: BigNumber
+}
 
 export class MockTBTCToken implements TBTCToken {
   private _requestRedemptionLog: RequestRedemptionLog[] = []
@@ -16,9 +22,17 @@ export class MockTBTCToken implements TBTCToken {
   }
 
   async requestRedemption(
-    requestRedemptionData: RequestRedemptionData
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
   ): Promise<Hex> {
-    this._requestRedemptionLog.push(requestRedemptionData)
+    this._requestRedemptionLog.push({
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript,
+      amount,
+    })
 
     return Hex.from(
       "0xf7d0c92c8de4d117d915c2a8a54ee550047f926bc00b91b651c40628751cfe29"

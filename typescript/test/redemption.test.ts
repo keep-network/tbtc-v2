@@ -34,7 +34,6 @@ import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
-import { Address } from "../src/ethereum"
 import { MockTBTCToken } from "./utils/mock-tbtc-token"
 
 chai.use(chaiAsPromised)
@@ -46,20 +45,16 @@ describe("Redemption", () => {
     const redeemerOutputScript =
       data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
     const amount = data.pendingRedemptions[0].pendingRedemption.requestedAmount
-    const vault = Address.from("0xb622eA9D678ddF15135a20d59Ff26D28eC246bfB")
     const token: MockTBTCToken = new MockTBTCToken()
-    const redeemer = Address.from("0x117284D8C50f334a1E2b7712649cB23C7a04Ae74")
 
     beforeEach(async () => {
       bcoin.set("testnet")
 
       await requestRedemption(
-        redeemer,
         walletPublicKey,
         mainUtxo,
         redeemerOutputScript,
         amount,
-        vault,
         token
       )
     })
@@ -69,12 +64,10 @@ describe("Redemption", () => {
 
       expect(tokenLog.length).to.equal(1)
       expect(tokenLog[0]).to.deep.equal({
-        redeemer,
         walletPublicKey,
         mainUtxo,
         redeemerOutputScript,
         amount,
-        vault,
       })
     })
   })

@@ -55,8 +55,7 @@ export interface RedemptionRequest {
 }
 
 /**
- * Requests a redemption from the on-chain Bridge contract.
- * @param redeemer - On-chain identifier of the redeemer.
+ * Requests a redemption of tBTC into BTC.
  * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
  *        compressed form (33 bytes long with 02 or 03 prefix).
  * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
@@ -65,27 +64,22 @@ export interface RedemptionRequest {
  *        be locked to. Must be un-prefixed and not prepended with length.
  * @param amount - The amount to be redeemed with the precision of the tBTC
  *        on-chain token contract.
- * @param vault - The vault address.
  * @param tBTCToken - Handle to the TBTCToken on-chain contract.
  * @returns Transaction hash of the request redemption transaction.
  */
 export async function requestRedemption(
-  redeemer: Identifier,
   walletPublicKey: string,
   mainUtxo: UnspentTransactionOutput,
   redeemerOutputScript: string,
   amount: BigNumber,
-  vault: Identifier,
   tBTCToken: TBTCToken
 ): Promise<Hex> {
-  return await tBTCToken.requestRedemption({
-    redeemer,
+  return await tBTCToken.requestRedemption(
     walletPublicKey,
     mainUtxo,
     redeemerOutputScript,
-    amount,
-    vault,
-  })
+    amount
+  )
 }
 
 /**

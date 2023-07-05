@@ -382,40 +382,6 @@ export interface TBTCVault {
 }
 
 /**
- * Represnts data required to request redemption.
- */
-export interface RequestRedemptionData {
-  /**
-   * On-chain identifier of the redeemer.
-   */
-  redeemer: Identifier
-  /**
-   * The Bitcoin public key of the wallet. Must be in the compressed form (33
-   * bytes long with 02 or 03 prefix).
-   */
-  walletPublicKey: string
-  /**
-   * The main UTXO of the wallet. Must match the main UTXO held by the on-chain
-   * Bridge contract.
-   */
-  mainUtxo: UnspentTransactionOutput
-  /**
-   * The output script that the redeemed funds will be locked to. Must be
-   * un-prefixed and not prepended with length.
-   */
-  redeemerOutputScript: string
-  /**
-   * The amount to be redeemed with the precision of the tBTC on-chain token
-   * contract.
-   */
-  amount: BigNumber
-  /**
-   * The vault address.
-   */
-  vault: Identifier
-}
-
-/**
  * Interface for communication with the TBTC v2 token on-chain contract.
  */
 export interface TBTCToken {
@@ -436,9 +402,21 @@ export interface TBTCToken {
    * from the tBTC on-chain token contract. Then the tBTC token contract calls
    * the `receiveApproval` function from the `TBTCVault` contract which burns
    * tBTC tokens and requests redemption.
-   * @param requestRedemptionData Data required to request redemption @see
-   *        {@link RequestRedemptionData}.
+   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in
+   *        the compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerOutputScript - The output script that the redeemed funds
+   *        will be locked to. Must be un-prefixed and not prepended with
+   *        length.
+   * @param amount - The amount to be redeemed with the precision of the tBTC
+   *        on-chain token contract.
    * @returns Transaction hash of the approve and call transaction.
    */
-  requestRedemption(requestRedemptionData: RequestRedemptionData): Promise<Hex>
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ): Promise<Hex>
 }
