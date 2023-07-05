@@ -1646,6 +1646,276 @@
           }
         }
       }
+    },
+    "ce16848058a776a80d070af74d85fb4d1e632b07a9857bddcd0276c13aaf20c6": {
+      "address": "0x10Fb5943E2F4F67Ee6a533DaE49B6d4cC443ffE5",
+      "txHash": "0xe13747dba11729d2fd7aa9eca5ebba44073591c774122760008a3dd6e2dced76",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "reimbursementPool",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_contract(ReimbursementPool)8816",
+            "contract": "Reimbursable",
+            "src": "@keep-network/random-beacon/contracts/Reimbursable.sol:51"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "Reimbursable",
+            "src": "@keep-network/random-beacon/contracts/Reimbursable.sol:51"
+          },
+          {
+            "label": "isCoordinator",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:150"
+          },
+          {
+            "label": "walletLock",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_mapping(t_bytes20,t_struct(WalletLock)34672_storage)",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:152"
+          },
+          {
+            "label": "bridge",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_contract(Bridge)25740",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:154"
+          },
+          {
+            "label": "heartbeatRequestValidity",
+            "offset": 20,
+            "slot": "153",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:165"
+          },
+          {
+            "label": "heartbeatRequestGasOffset",
+            "offset": 24,
+            "slot": "153",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:169"
+          },
+          {
+            "label": "depositSweepProposalValidity",
+            "offset": 28,
+            "slot": "153",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:181"
+          },
+          {
+            "label": "depositMinAge",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:191"
+          },
+          {
+            "label": "depositRefundSafetyMargin",
+            "offset": 4,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:212"
+          },
+          {
+            "label": "depositSweepMaxSize",
+            "offset": 8,
+            "slot": "154",
+            "type": "t_uint16",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:214"
+          },
+          {
+            "label": "depositSweepProposalSubmissionGasOffset",
+            "offset": 10,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:218"
+          },
+          {
+            "label": "redemptionProposalValidity",
+            "offset": 14,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:230"
+          },
+          {
+            "label": "redemptionRequestMinAge",
+            "offset": 18,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:238"
+          },
+          {
+            "label": "redemptionRequestTimeoutSafetyMargin",
+            "offset": 22,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:261"
+          },
+          {
+            "label": "redemptionMaxSize",
+            "offset": 26,
+            "slot": "154",
+            "type": "t_uint16",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:265"
+          },
+          {
+            "label": "redemptionProposalSubmissionGasOffset",
+            "offset": 28,
+            "slot": "154",
+            "type": "t_uint32",
+            "contract": "WalletCoordinator",
+            "src": "contracts/bridge/WalletCoordinator.sol:274"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes20": {
+            "label": "bytes20",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Bridge)25740": {
+            "label": "contract Bridge",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ReimbursementPool)8816": {
+            "label": "contract ReimbursementPool",
+            "numberOfBytes": "20"
+          },
+          "t_enum(WalletAction)34664": {
+            "label": "enum WalletCoordinator.WalletAction",
+            "members": [
+              "Idle",
+              "Heartbeat",
+              "DepositSweep",
+              "Redemption",
+              "MovingFunds",
+              "MovedFundsSweep"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes20,t_struct(WalletLock)34672_storage)": {
+            "label": "mapping(bytes20 => struct WalletCoordinator.WalletLock)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(WalletLock)34672_storage": {
+            "label": "struct WalletCoordinator.WalletLock",
+            "members": [
+              {
+                "label": "expiresAt",
+                "type": "t_uint32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "cause",
+                "type": "t_enum(WalletAction)34664",
+                "offset": 4,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
     }
   }
 }
