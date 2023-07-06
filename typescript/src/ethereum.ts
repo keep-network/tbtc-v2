@@ -1112,7 +1112,7 @@ export class TBTCToken
   ): Promise<Hex> {
     const redeemer = await this._instance?.signer?.getAddress()
     if (!redeemer) {
-      throw new Error("Signer not provided.")
+      throw new Error("Signer not provided")
     }
 
     const vault = await this._instance.owner()
