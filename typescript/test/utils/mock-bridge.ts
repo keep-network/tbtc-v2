@@ -326,40 +326,4 @@ export class MockBridge implements Bridge {
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
   }
-
-  buildRedemptionData(
-    redeemer: Identifier,
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string
-  ): Hex {
-    this._buildRedemptionDataLog.push({
-      redeemer,
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript,
-    })
-
-    // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
-    // Prefix the output script bytes buffer with 0x and its own length.
-    const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
-      Buffer.from([rawRedeemerOutputScript.length]),
-      rawRedeemerOutputScript,
-    ]).toString("hex")}`
-
-    return Hex.from(
-      utils.defaultAbiCoder.encode(
-        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
-        [
-          redeemer.identifierHex,
-          `0x${computeHash160(walletPublicKey)}`,
-          mainUtxo.transactionHash.reverse().toPrefixedString(),
-          mainUtxo.outputIndex,
-          mainUtxo.value,
-          prefixedRawRedeemerOutputScript,
-        ]
-      )
-    )
-  }
 }
