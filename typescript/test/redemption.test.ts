@@ -34,6 +34,7 @@ import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
+import { MockTBTCToken } from "./utils/mock-tbtc-token"
 
 chai.use(chaiAsPromised)
 
@@ -44,7 +45,7 @@ describe("Redemption", () => {
     const redeemerOutputScript =
       data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
     const amount = data.pendingRedemptions[0].pendingRedemption.requestedAmount
-    const bridge: MockBridge = new MockBridge()
+    const token: MockTBTCToken = new MockTBTCToken()
 
     beforeEach(async () => {
       bcoin.set("testnet")
@@ -54,19 +55,20 @@ describe("Redemption", () => {
         mainUtxo,
         redeemerOutputScript,
         amount,
-        bridge
+        token
       )
     })
 
     it("should submit redemption proof with correct arguments", () => {
-      const bridgeLog = bridge.requestRedemptionLog
-      expect(bridgeLog.length).to.equal(1)
-      expect(bridgeLog[0].walletPublicKey).to.equal(
-        redemptionProof.expectedRedemptionProof.walletPublicKey
-      )
-      expect(bridgeLog[0].mainUtxo).to.equal(mainUtxo)
-      expect(bridgeLog[0].redeemerOutputScript).to.equal(redeemerOutputScript)
-      expect(bridgeLog[0].amount).to.equal(amount)
+      const tokenLog = token.requestRedemptionLog
+
+      expect(tokenLog.length).to.equal(1)
+      expect(tokenLog[0]).to.deep.equal({
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript,
+        amount,
+      })
     })
   })
 
