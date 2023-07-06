@@ -11,6 +11,7 @@ import "hardhat-deploy"
 import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
+import "solidity-docgen"
 
 const ecdsaSolidityCompilerConfig = {
   version: "0.8.17",
@@ -256,6 +257,12 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     outDir: "typechain",
+  },
+  docgen: {
+    outputDir: "generated-docs",
+    templates: "docgen-templates",
+    pages: "files", // `single`, `items` or `files`
+    exclude: ["./test"],
   },
 }
 
