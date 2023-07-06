@@ -1,4 +1,4 @@
-import bcoin, { TX, Script } from "bcoin"
+import bcoin, { TX, Script, Address } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
@@ -611,4 +611,21 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
  */
 export function createOutputScriptFromAddress(address: string): Hex {
   return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
+}
+
+/**
+ * Returns the Bitcoin address based on the script pub key placed on the output
+ * of a Bitcoin transaction.
+ * @param scriptPubKey Scirpt pub key placed on the output of a Bitcoin
+ *        transaction.
+ * @param network Bitcoin network.
+ * @returns The Bitcoin address.
+ */
+export function getAddressFromScriptPubKey(
+  scriptPubKey: string,
+  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+): string {
+  return Script.fromRaw(scriptPubKey.toString(), "hex")
+    .getAddress()
+    ?.toString(toBcoinNetwork(network))
 }
