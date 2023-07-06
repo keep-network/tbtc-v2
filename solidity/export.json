@@ -11390,6 +11390,79 @@
           "inputs": [
             {
               "indexed": false,
+              "internalType": "uint32",
+              "name": "redemptionProposalValidity",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "redemptionRequestMinAge",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "redemptionRequestTimeoutSafetyMargin",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint16",
+              "name": "redemptionMaxSize",
+              "type": "uint16"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "redemptionProposalSubmissionGasOffset",
+              "type": "uint32"
+            }
+          ],
+          "name": "RedemptionProposalParametersUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "indexed": false,
+              "internalType": "struct WalletCoordinator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "coordinator",
+              "type": "address"
+            }
+          ],
+          "name": "RedemptionProposalSubmitted",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
               "internalType": "address",
               "name": "newReimbursementPool",
               "type": "address"
@@ -11575,6 +11648,71 @@
         },
         {
           "inputs": [],
+          "name": "redemptionMaxSize",
+          "outputs": [
+            {
+              "internalType": "uint16",
+              "name": "",
+              "type": "uint16"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "redemptionProposalSubmissionGasOffset",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "redemptionProposalValidity",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "redemptionRequestMinAge",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "redemptionRequestTimeoutSafetyMargin",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "reimbursementPool",
           "outputs": [
             {
@@ -11739,6 +11877,66 @@
         {
           "inputs": [
             {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletCoordinator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "submitRedemptionProposal",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletCoordinator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "submitRedemptionProposalWithReimbursement",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "address",
               "name": "newOwner",
               "type": "address"
@@ -11809,6 +12007,39 @@
             }
           ],
           "name": "updateHeartbeatRequestParameters",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint32",
+              "name": "_redemptionProposalValidity",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_redemptionRequestMinAge",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_redemptionRequestTimeoutSafetyMargin",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint16",
+              "name": "_redemptionMaxSize",
+              "type": "uint16"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_redemptionProposalSubmissionGasOffset",
+              "type": "uint32"
+            }
+          ],
+          "name": "updateRedemptionProposalParameters",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -11923,6 +12154,42 @@
             }
           ],
           "name": "validateDepositSweepProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletCoordinator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "validateRedemptionProposal",
           "outputs": [
             {
               "internalType": "bool",

@@ -28,7 +28,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
 
   // Assemble proxy upgrade transaction.
-  const proxyAdmin: ProxyAdmin = await hre.upgrades.admin.getInstance()
+  const proxyAdmin: ProxyAdmin =
+    (await hre.upgrades.admin.getInstance()) as ProxyAdmin
   const proxyAdminOwner = await proxyAdmin.owner()
 
   const upgradeTxData = await proxyAdmin.interface.encodeFunctionData(
@@ -42,6 +43,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       `\t\tto: ${proxyAdmin.address}\n` +
       `\t\tdata: ${upgradeTxData}`
   )
+
+  // Update Deployment Artifact
+  const walletCoordinatorArtifact: Artifact =
+    hre.artifacts.readArtifactSync("WalletCoordinator")
+
+  await deployments.save("WalletCoordinator", {
+    ...proxyDeployment,
+    abi: walletCoordinatorArtifact.abi,
+    implementation: newImplementationAddress,
+  })
 
   // Assemble parameters upgrade transaction.
   const walletCoordinator: WalletCoordinator =
@@ -62,22 +73,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       `\t\tdata: ${updateRedemptionProposalParametersTxData}`
   )
 
-  // Update Deployment Artifact
-  const walletCoordinatorArtifact: Artifact =
-    hre.artifacts.readArtifactSync("WalletCoordinator")
-
-  await deployments.save("WalletCoordinator", {
-    ...proxyDeployment,
-    abi: walletCoordinatorArtifact.abi,
-    implementation: newImplementationAddress,
-  })
-
   if (hre.network.tags.etherscan) {
     // We use `verify` instead of `verify:verify` as the `verify` task is defined
     // in "@openzeppelin/hardhat-upgrades" to perform Etherscan verification
     // of Proxy and Implementation contracts.
     await hre.run("verify", {
-      address: proxyDeployment.address,
+      address: newImplementationAddress,
       constructorArgsParams: proxyDeployment.args,
     })
   }
