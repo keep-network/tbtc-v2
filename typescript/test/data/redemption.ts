@@ -668,68 +668,32 @@ export const redemptionProof: RedemptionProofTestData = {
   },
 }
 
-export const findWalletForRedemptionData: {
-  newWalletRegisteredEvents: NewWalletRegisteredEvent[]
-  wallets: {
-    [walletPublicKeyHash: string]: {
-      state: WalletState
-      mainUtxoHash: Hex
-      walletPublicKey: Hex
-      btcAddress: string
-      utxos: UnspentTransactionOutput[]
-    }
+interface FindWalletForRedemptionWaleltData {
+  data: {
+    state: WalletState
+    mainUtxoHash: Hex
+    walletPublicKey: Hex
+    btcAddress: string
+    utxos: UnspentTransactionOutput[]
   }
+  event: {
+    blockNumber: number
+    blockHash: Hex
+    transactionHash: Hex
+    ecdsaWalletID: Hex
+    walletPublicKeyHash: Hex
+  }
+}
+
+export const findWalletForRedemptionData: {
+  liveWallet: FindWalletForRedemptionWaleltData
+  walletWithoutUtxo: FindWalletForRedemptionWaleltData
+  nonLiveWallet: FindWalletForRedemptionWaleltData
+  walletWithPendingRedemption: FindWalletForRedemptionWaleltData
   pendingRedemption: RedemptionRequest
 } = {
-  newWalletRegisteredEvents: [
-    {
-      blockNumber: 8367602,
-      blockHash: Hex.from(
-        "0x908ea9c82b388a760e6dd070522e5421d88b8931fbac6702119f9e9a483dd022"
-      ),
-      transactionHash: Hex.from(
-        "0xc1e995d0ac451cc9ffc9d43f105eddbaf2eb45ea57a61074a84fc022ecf5bda9"
-      ),
-      ecdsaWalletID: Hex.from(
-        "0x5314e0e5a62b173f52ea424958e5bc04bd77e2159478934a89d4fa193c7b3b72"
-      ),
-      walletPublicKeyHash: Hex.from(
-        "0x03b74d6893ad46dfdd01b9e0e3b3385f4fce2d1e"
-      ),
-    },
-    {
-      blockNumber: 8502240,
-      blockHash: Hex.from(
-        "0x4baab7520cf79a05f22723688bcd1f2805778829aa4362250b8ee702f34f4daf"
-      ),
-      transactionHash: Hex.from(
-        "0xe88761c7203335e237366ec2ffca1e7cf2690eab343ad700e6a6e6dc236638b1"
-      ),
-      ecdsaWalletID: Hex.from(
-        "0x0c70f262eaff2cdaaddb5a5e4ecfdda6edad7f1789954ad287bfa7e594173c64"
-      ),
-      walletPublicKeyHash: Hex.from(
-        "0x7670343fc00ccc2d0cd65360e6ad400697ea0fed"
-      ),
-    },
-    {
-      blockNumber: 8981644,
-      blockHash: Hex.from(
-        "0x6681b1bb168fb86755c2a796169cb0e06949caac9fc7145d527d94d5209a64ad"
-      ),
-      transactionHash: Hex.from(
-        "0xea3a8853c658145c95165d7847152aeedc3ff29406ec263abfc9b1436402b7b7"
-      ),
-      ecdsaWalletID: Hex.from(
-        "0x7a1437d67f49adfd44e03ddc85be0f6988715d7c39dfb0ca9780f1a88bcdca25"
-      ),
-      walletPublicKeyHash: Hex.from(
-        "0x328d992e5f5b71de51a1b40fcc4056b99a88a647"
-      ),
-    },
-  ],
-  wallets: {
-    "0x03b74d6893ad46dfdd01b9e0e3b3385f4fce2d1e": {
+  liveWallet: {
+    data: {
       state: WalletState.Live,
       mainUtxoHash: Hex.from(
         "0x3ded9dcfce0ffe479640013ebeeb69b6a82306004f9525b1346ca3b553efc6aa"
@@ -748,26 +712,99 @@ export const findWalletForRedemptionData: {
         },
       ],
     },
-    "0x7670343fc00ccc2d0cd65360e6ad400697ea0fed": {
+    event: {
+      blockNumber: 8367602,
+      blockHash: Hex.from(
+        "0x908ea9c82b388a760e6dd070522e5421d88b8931fbac6702119f9e9a483dd022"
+      ),
+      transactionHash: Hex.from(
+        "0xc1e995d0ac451cc9ffc9d43f105eddbaf2eb45ea57a61074a84fc022ecf5bda9"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x5314e0e5a62b173f52ea424958e5bc04bd77e2159478934a89d4fa193c7b3b72"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x03b74d6893ad46dfdd01b9e0e3b3385f4fce2d1e"
+      ),
+    },
+  },
+
+  walletWithoutUtxo: {
+    data: {
       state: WalletState.Live,
       mainUtxoHash: Hex.from(
-        "0x3ea242dd8a7f7f7abd548ca6590de70a1e992cbd6e4ae18b7a91c9b899067626"
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
       ),
       walletPublicKey: Hex.from(
-        "0x025183c15164e1b2211eb359fce2ceeefc3abad3af6d760cc6355f9de99bf60229"
+        "0x030fbbae74e6d85342819e719575949a1349e975b69fb382e9fef671a3a74efc52"
       ),
-      btcAddress: "tb1qwecrg07qpnxz6rxk2dswdt2qq6t75rldweydm2",
+      btcAddress: "tb1qkct7r24k4wutnsun84rvp3qsyt8yfpvqz89d2y",
       utxos: [
         {
           transactionHash: Hex.from(
-            "0xda0e364abb3ed952bcc694e48bbcff19131ba9513fe981b303fa900cff0f9fbc"
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
           ),
           outputIndex: 0,
-          value: BigNumber.from("164380000"),
+          value: BigNumber.from("0"),
         },
       ],
     },
-    "0x328d992e5f5b71de51a1b40fcc4056b99a88a647": {
+    event: {
+      blockNumber: 9103428,
+      blockHash: Hex.from(
+        "0x92ad328db2cb1d2aad60ac809660e05e2b6763ddd376ca21630e304c98f23600"
+      ),
+      transactionHash: Hex.from(
+        "0x309085ebb92e10eb9e665c7d90c94e053f13b36f9bc8017e820bc879ba629b8e"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0xd27bfaaad9c3489e613eb3664c3b9958bd9a494377123689733267cb4a5767ba"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0xb617e1aab6abb8b9c3933d46c0c41022ce448580"
+      ),
+    },
+  },
+
+  nonLiveWallet: {
+    data: {
+      state: WalletState.Unknown,
+      mainUtxoHash: Hex.from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      walletPublicKey: Hex.from(
+        "0x02633b102417009ae55103798f4d366dfccb081dcf20025088b9bf10a8e15d8ded"
+      ),
+      btcAddress: "tb1qf6jvyd680ncf9dtr5znha9ql5jmw84lupwwuf6",
+      utxos: [
+        {
+          transactionHash: Hex.from(
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
+          ),
+          outputIndex: 0,
+          value: BigNumber.from("0"),
+        },
+      ],
+    },
+    event: {
+      blockNumber: 9171960,
+      blockHash: Hex.from(
+        "0xe9a404b724183cb8f77e45718b365051e8d5ccc4a72dfece30af7596eeee4748"
+      ),
+      transactionHash: Hex.from(
+        "0x867f2c985cbe44f92a7ca2c14268b9ae78275e1c339692e1847548725484e72d"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x96975ddd76bbb2e15ed4498de6d92187ec5282913b3af3891a4e2d60581a8787"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x4ea4c237477cf092b563a0a77e941fa4b6e3d7fc"
+      ),
+    },
+  },
+
+  walletWithPendingRedemption: {
+    data: {
       state: WalletState.Live,
       mainUtxoHash: Hex.from(
         "0xb3024ef698084cfdfba459338864a595d31081748b28aa5eb02312671a720531"
@@ -785,6 +822,21 @@ export const findWalletForRedemptionData: {
           value: BigNumber.from("3370000"),
         },
       ],
+    },
+    event: {
+      blockNumber: 8981644,
+      blockHash: Hex.from(
+        "0x6681b1bb168fb86755c2a796169cb0e06949caac9fc7145d527d94d5209a64ad"
+      ),
+      transactionHash: Hex.from(
+        "0xea3a8853c658145c95165d7847152aeedc3ff29406ec263abfc9b1436402b7b7"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x7a1437d67f49adfd44e03ddc85be0f6988715d7c39dfb0ca9780f1a88bcdca25"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x328d992e5f5b71de51a1b40fcc4056b99a88a647"
+      ),
     },
   },
   pendingRedemption: {

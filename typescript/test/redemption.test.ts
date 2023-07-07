@@ -1440,8 +1440,10 @@ describe("Redemption", () => {
   describe("findWalletForRedemption", () => {
     let bridge: MockBridge
     let bitcoinClient: MockBitcoinClient
+    // script for testnet P2WSH address
+    // tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
     const redeemerOutputScript =
-      findWalletForRedemptionData.pendingRedemption.redeemerOutputScript
+      "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c"
 
     context(
       "when there are no wallets in the network that can handle redemption",
@@ -1471,27 +1473,40 @@ describe("Redemption", () => {
 
     context("when there are registered wallets in the network", () => {
       let result: Awaited<ReturnType<typeof findWalletForRedemption> | never>
+      const walletsOrder = [
+        findWalletForRedemptionData.nonLiveWallet,
+        findWalletForRedemptionData.walletWithoutUtxo,
+        findWalletForRedemptionData.walletWithPendingRedemption,
+        findWalletForRedemptionData.liveWallet,
+      ]
 
       beforeEach(async () => {
         bitcoinClient = new MockBitcoinClient()
         bridge = new MockBridge()
-        bridge.newWalletRegisteredEvents =
-          findWalletForRedemptionData.newWalletRegisteredEvents
+
+        bridge.newWalletRegisteredEvents = walletsOrder.map(
+          (wallet) => wallet.event
+        )
+
         const walletsUnspentTransacionOutputs = new Map<
           string,
           UnspentTransactionOutput[]
         >()
-        for (const [
-          key,
-          { state, mainUtxoHash, walletPublicKey, btcAddress, utxos },
-        ] of Object.entries(findWalletForRedemptionData.wallets)) {
-          bridge.setWallet(key, {
-            state,
-            mainUtxoHash,
-            walletPublicKey,
-          } as Wallet)
+
+        walletsOrder.forEach((wallet) => {
+          const { state, mainUtxoHash, walletPublicKey, btcAddress, utxos } =
+            wallet.data
+
           walletsUnspentTransacionOutputs.set(btcAddress, utxos)
-        }
+          bridge.setWallet(
+            wallet.event.walletPublicKeyHash.toPrefixedString(),
+            {
+              state,
+              mainUtxoHash,
+              walletPublicKey,
+            } as Wallet
+          )
+        })
 
         bitcoinClient.unspentTransactionOutputs =
           walletsUnspentTransacionOutputs
@@ -1524,20 +1539,23 @@ describe("Redemption", () => {
           it("should get wallet data details", () => {
             const bridgeWalletDetailsLogs = bridge.walletsLog
 
-            expect(bridgeWalletDetailsLogs.length).to.eql(1)
-            expect(bridgeWalletDetailsLogs[0].walletPublicKeyHash).to.eql(
-              findWalletForRedemptionData.newWalletRegisteredEvents[0].walletPublicKeyHash.toPrefixedString()
-            )
+            const wallets = Array.from(walletsOrder)
+            // Remove last live wallet.
+            wallets.pop()
+
+            expect(bridgeWalletDetailsLogs.length).to.eql(wallets.length)
+
+            wallets.forEach((wallet, index) => {
+              expect(bridgeWalletDetailsLogs[index].walletPublicKeyHash).to.eql(
+                wallet.event.walletPublicKeyHash.toPrefixedString()
+              )
+            })
           })
 
           it("should return the wallet data that can handle redemption request", () => {
-            const expectedWalletPublicKeyHash =
-              findWalletForRedemptionData.newWalletRegisteredEvents[0]
-                .walletPublicKeyHash
             const expectedWalletData =
-              findWalletForRedemptionData.wallets[
-                expectedWalletPublicKeyHash.toPrefixedString()
-              ]
+              findWalletForRedemptionData.walletWithPendingRedemption.data
+
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
               mainUtxo: expectedWalletData.utxos[0],
@@ -1550,9 +1568,8 @@ describe("Redemption", () => {
         "when the redemption request amount is too large and no wallet can handle the request",
         () => {
           const amount = BigNumber.from("10000000000") // 1 000 BTC
-          const expectedMaxAmount = Object.values(
-            findWalletForRedemptionData.wallets
-          )
+          const expectedMaxAmount = walletsOrder
+            .map((wallet) => wallet.data)
             .map((wallet) => wallet.utxos)
             .flat()
             .map((utxo) => utxo.value)
@@ -1578,11 +1595,14 @@ describe("Redemption", () => {
         "when there is pending redemption request from a given wallet to the same address",
         () => {
           beforeEach(async () => {
+            const redeemerOutputScript =
+              findWalletForRedemptionData.pendingRedemption.redeemerOutputScript
             const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
 
             const walletPublicKeyHash =
-              findWalletForRedemptionData.newWalletRegisteredEvents[0]
+              findWalletForRedemptionData.walletWithPendingRedemption.event
                 .walletPublicKeyHash
+
             const pendingRedemptions = new Map<
               BigNumberish,
               RedemptionRequest
@@ -1621,23 +1641,17 @@ describe("Redemption", () => {
           it("should get wallet data details", () => {
             const bridgeWalletDetailsLogs = bridge.walletsLog
 
-            expect(bridgeWalletDetailsLogs.length).to.eql(2)
-            expect(bridgeWalletDetailsLogs[0].walletPublicKeyHash).to.eql(
-              findWalletForRedemptionData.newWalletRegisteredEvents[0].walletPublicKeyHash.toPrefixedString()
-            )
-            expect(bridgeWalletDetailsLogs[1].walletPublicKeyHash).to.eql(
-              findWalletForRedemptionData.newWalletRegisteredEvents[1].walletPublicKeyHash.toPrefixedString()
-            )
+            expect(bridgeWalletDetailsLogs.length).to.eql(walletsOrder.length)
+            walletsOrder.forEach((wallet, index) => {
+              expect(bridgeWalletDetailsLogs[index].walletPublicKeyHash).to.eql(
+                wallet.event.walletPublicKeyHash.toPrefixedString()
+              )
+            })
           })
 
           it("should skip the wallet for which there is a pending redemption request to the same redeemer output script and return the wallet data that can handle redemption request", () => {
-            const expectedWalletPublicKeyHash =
-              findWalletForRedemptionData.newWalletRegisteredEvents[1]
-                .walletPublicKeyHash
             const expectedWalletData =
-              findWalletForRedemptionData.wallets[
-                expectedWalletPublicKeyHash.toPrefixedString()
-              ]
+              findWalletForRedemptionData.liveWallet.data
 
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
