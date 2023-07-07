@@ -1444,7 +1444,7 @@ describe("Redemption", () => {
       findWalletForRedemptionData.pendingRedemption.redeemerOutputScript
 
     context(
-      "when there are no wallets in the network that can hanlde redemption",
+      "when there are no wallets in the network that can handle redemption",
       () => {
         const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
         beforeEach(() => {
