@@ -508,7 +508,7 @@ export async function findWalletForRedemption(
     if (!mainUtxo) {
       console.debug(
         `Could not find matching UTXO on chains ` +
-          `for wallet public key hash(${walletPublicKey.toString()}). ` +
+          `for wallet public key hash(${walletPublicKeyHash.toString()}). ` +
           `Continue the loop execution to the next wallet...`
       )
       continue
