@@ -1,0 +1,56 @@
+:toc: macro
+
+= Threshold cross-chain - Solana
+
+This package brings Bitcoin to Solana. For more details please
+see link:https://github.com/keep-network/tbtc-v2/blob/main/docs/rfc/rfc-8.adoc[RFC 8: Cross-chain Tokenized Threshold BTC]
+
+== How it works?
+
+```
++----------------------------+         +-----------------------------------------------------------------------+
+|          Ethereum          |         |                                 Solana                                |
+|                            |         |                                                                       |
+|  +----------------------+  |         |  +----------------------+  +-----------------------+  +------------+  |
+|  | Wormhole TokenBridge |--|---------|--| Wormhole TokenBridge |--| SolanaWormholeGateway |--| SolanaTBTC |  |
+|  +----------------------+  |         |  +----------------------+  +-----------------------+  +------------+  |
+|                            |         |                                                                       |
++----------------------------+         +-----------------------------------------------------------------------+
+```
+
+- `SolanaTBTC` canonical tBTC token on Solana with a minting authority
+delegated to `SolanaWormholeGateway`.
+- `SolanaWormholeGateway` is a smart contract wrapping and unwrapping 
+Wormhole-specific tBTC representation into the canonical `SolanaTBTC` token.
+
+=== Local development
+
+For testing and debugging purposes it is convinient to run Solana cluster locally.
+
+link:https://docs.solana.com/cli/install-solana-cli-tools#use-solanas-install-tool[Install] Solana Tool Suite
+
+In terminal run `solana-test-validator`. For more details see link:https://docs.solana.com/developing/test-validator[Solana Test Validator]
+
+==== Running tests
+
+Navigate to `/cross-chain/solana` and run `runTests.sh`. This script compiles Solidity contract(s) to produce Solana artifacts.
+
+=== Updating Wormhole Gateway mapping
+
+TODO: add
+
+=== Deploy contracts
+
+TODO: add
+
+=== Contract upgrades
+
+Supported out of the box. See https://docs.solana.com/cli/deploy-a-program#redeploy-a-program
+
+TODO: add examples
+
+=== Freezing and thawing token account
+
+Supported with a freezing authority passed as an argument during token creation.
+
+TODO: add examples
