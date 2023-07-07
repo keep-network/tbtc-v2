@@ -443,13 +443,22 @@ export async function findWalletForRedemption(
   let maxAmount = BigNumber.from(0)
 
   for (const wallet of wallets) {
+    const { walletPublicKeyHash } = wallet
     const { state, mainUtxoHash, walletPublicKey } = await bridge.wallets(
-      wallet.walletPublicKeyHash
+      walletPublicKeyHash
     )
 
     // Wallet must be in Live state.
+    if (state !== WalletState.Live) {
+      console.debug(
+        `Wallet is not in Live state ` +
+          `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
+          `Continue the loop execution to the next wallet...`
+      )
+      continue
+    }
+
     if (
-      state !== WalletState.Live ||
       mainUtxoHash.equals(
         Hex.from(
           "0x0000000000000000000000000000000000000000000000000000000000000000"
@@ -457,10 +466,10 @@ export async function findWalletForRedemption(
       )
     ) {
       console.debug(
-        `Wallet is not in Live state or main utxo is not set. \
-        Continue the loop execution to the next wallet...`
+        `Main utxo not set for wallet public ` +
+          `key hash(${walletPublicKeyHash.toString()}). ` +
+          `Continue the loop execution to the next wallet...`
       )
-      continue
     }
 
     const pendingRedemption = await bridge.pendingRedemptions(
@@ -470,11 +479,12 @@ export async function findWalletForRedemption(
 
     if (pendingRedemption.requestedAt != 0) {
       console.debug(
-        `There is a pending redemption request from this wallet to the
-        same address. Given wallet public key(${walletPublicKey}) and \ 
-        redeemer output script(${redeemerOutputScript}) pair can be \
-        used for only one pending request at the same time. \
-        Continue the loop execution to the next wallet...`
+        `There is a pending redemption request from this wallet to the ` +
+          `same Bitcoin address. Given wallet public key hash` +
+          `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
+          `(${redeemerOutputScript}) pair can be used for only one ` +
+          `pending request at the same time. ` +
+          `Continue the loop execution to the next wallet...`
       )
       continue
     }
@@ -497,9 +507,9 @@ export async function findWalletForRedemption(
 
     if (!mainUtxo) {
       console.debug(
-        `Could not find matching UTXO on chains for wallet public key hash \
-        (${wallet.walletPublicKeyHash.toPrefixedString()}). Continue the loop \
-        execution to the next wallet...`
+        `Could not find matching UTXO on chains ` +
+          `for wallet public key hash(${walletPublicKey.toString()}). ` +
+          `Continue the loop execution to the next wallet...`
       )
       continue
     }
@@ -517,9 +527,9 @@ export async function findWalletForRedemption(
     }
 
     console.debug(
-      `The wallet (${wallet.walletPublicKeyHash.toPrefixedString()}) \
-      cannot handle the redemption request. Continue the loop execution to the \
-      next wallet...`
+      `The wallet (${walletPublicKeyHash.toString()})` +
+        `cannot handle the redemption request. ` +
+        `Continue the loop execution to the next wallet...`
     )
   }
 
