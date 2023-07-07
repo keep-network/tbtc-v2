@@ -417,17 +417,17 @@ export async function getRedemptionRequest(
  * @param redeemerOutputScript The redeemer output script the redeemed funds
  *        are supposed to be locked on. Must be un-prefixed and not prepended
  *        with length.
+ * @param bitcoinNetwork Bitcoin network.
  * @param bridge The handle to the Bridge on-chain contract.
  * @param bitcoinClient Bitcoin client used to interact with the network.
- * @param bitcoinNetwork Bitcoin network.
  * @returns Promise with the wallet details needed to request a redemption.
  */
 export async function findWalletForRedemption(
   amount: BigNumber,
   redeemerOutputScript: string,
+  bitcoinNetwork: BitcoinNetwork,
   bridge: Bridge,
   bitcoinClient: BitcoinClient,
-  bitcoinNetwork: BitcoinNetwork
 ): Promise<{
   walletPublicKey: string
   mainUtxo: UnspentTransactionOutput

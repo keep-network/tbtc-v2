@@ -1460,9 +1460,9 @@ describe("Redemption", () => {
             findWalletForRedemption(
               amount,
               redeemerOutputScript,
+              BitcoinNetwork.Testnet,
               bridge,
-              bitcoinClient,
-              BitcoinNetwork.Testnet
+              bitcoinClient
             )
           ).to.be.rejectedWith(
             "Could not find a wallet with enough funds. Maximum redemption amount is 0 Satoshi."
@@ -1520,9 +1520,9 @@ describe("Redemption", () => {
             result = await findWalletForRedemption(
               amount,
               redeemerOutputScript,
+              BitcoinNetwork.Testnet,
               bridge,
               bitcoinClient,
-              BitcoinNetwork.Testnet
             )
           })
 
@@ -1580,9 +1580,9 @@ describe("Redemption", () => {
               findWalletForRedemption(
                 amount,
                 redeemerOutputScript,
+                BitcoinNetwork.Testnet,
                 bridge,
                 bitcoinClient,
-                BitcoinNetwork.Testnet
               )
             ).to.be.rejectedWith(
               `Could not find a wallet with enough funds. Maximum redemption amount is ${expectedMaxAmount.toString()} Satoshi.`
@@ -1622,9 +1622,9 @@ describe("Redemption", () => {
             result = await findWalletForRedemption(
               amount,
               redeemerOutputScript,
+              BitcoinNetwork.Testnet,
               bridge,
               bitcoinClient,
-              BitcoinNetwork.Testnet
             )
           })
 
