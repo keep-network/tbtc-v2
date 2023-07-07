@@ -679,6 +679,7 @@ export const findWalletForRedemptionData: {
       utxos: UnspentTransactionOutput[]
     }
   }
+  pendingRedemption: RedemptionRequest
 } = {
   newWalletRegisteredEvents: [
     {
@@ -785,5 +786,14 @@ export const findWalletForRedemptionData: {
         },
       ],
     },
+  },
+  pendingRedemption: {
+    redeemer: Address.from("0xeb9af8E66869902476347a4eFe59a527a57240ED"),
+    // script for testnet P2PKH address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+    redeemerOutputScript: "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+    requestedAmount: BigNumber.from(1000000),
+    treasuryFee: BigNumber.from(20000),
+    txMaxFee: BigNumber.from(20000),
+    requestedAt: 1688724606,
   },
 }

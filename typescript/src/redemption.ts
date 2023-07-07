@@ -414,6 +414,9 @@ export async function getRedemptionRequest(
 /**
  * Finds the oldest active wallet that has enough BTC to handle a redemption request.
  * @param amount The amount to be redeemed in satoshis.
+ * @param redeemerOutputScript The redeemer output script the redeemed funds
+ *        are supposed to be locked on. Must be un-prefixed and not prepended
+ *        with length.
  * @param bridge The handle to the Bridge on-chain contract.
  * @param bitcoinClient Bitcoin client used to interact with the network.
  * @param bitcoinNetwork Bitcoin network.
@@ -421,6 +424,7 @@ export async function getRedemptionRequest(
  */
 export async function findWalletForRedemption(
   amount: BigNumber,
+  redeemerOutputScript: string,
   bridge: Bridge,
   bitcoinClient: BitcoinClient,
   bitcoinNetwork: BitcoinNetwork
@@ -454,6 +458,22 @@ export async function findWalletForRedemption(
     ) {
       console.debug(
         `Wallet is not in Live state or main utxo is not set. \
+        Continue the loop execution to the next wallet...`
+      )
+      continue
+    }
+
+    const pendingRedemption = await bridge.pendingRedemptions(
+      walletPublicKey.toString(),
+      redeemerOutputScript
+    )
+
+    if (pendingRedemption.requestedAt != 0) {
+      console.debug(
+        `There is a pending redemption request from this wallet to the
+        same address. Given wallet public key(${walletPublicKey}) and \ 
+        redeemer output script(${redeemerOutputScript}) pair can be \
+        used for only one pending request at the same time. \
         Continue the loop execution to the next wallet...`
       )
       continue
