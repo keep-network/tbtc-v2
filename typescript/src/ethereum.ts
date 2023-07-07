@@ -642,11 +642,11 @@ export class Bridge
       return undefined
     }
 
-    const { ecdsaWalletID } = await this.wallets(
+    const { walletPublicKey } = await this.wallets(
       Hex.from(activeWalletPublicKeyHash)
     )
 
-    return (await this.getWalletCompressedPublicKey(ecdsaWalletID)).toString()
+    return walletPublicKey.toString()
   }
 
   private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
