@@ -43,13 +43,6 @@ interface RedemptionProofLogEntry {
   walletPublicKey: string
 }
 
-interface BuildRedemptionDataLogEntry {
-  redeemer: Identifier
-  walletPublicKey: string
-  mainUtxo: UnspentTransactionOutput
-  redeemerOutputScript: string
-}
-
 /**
  * Mock Bridge used for test purposes.
  */
@@ -63,7 +56,6 @@ export class MockBridge implements Bridge {
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
   private _deposits = new Map<BigNumberish, RevealedDeposit>()
   private _activeWalletPublicKey: string | undefined
-  private _buildRedemptionDataLog: BuildRedemptionDataLogEntry[] = []
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -87,10 +79,6 @@ export class MockBridge implements Bridge {
 
   get redemptionProofLog(): RedemptionProofLogEntry[] {
     return this._redemptionProofLog
-  }
-
-  get buildRedemptionDataLog(): BuildRedemptionDataLogEntry[] {
-    return this._buildRedemptionDataLog
   }
 
   setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
@@ -325,41 +313,5 @@ export class MockBridge implements Bridge {
 
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
-  }
-
-  buildRedemptionData(
-    redeemer: Identifier,
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string
-  ): Hex {
-    this._buildRedemptionDataLog.push({
-      redeemer,
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript,
-    })
-
-    // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
-    // Prefix the output script bytes buffer with 0x and its own length.
-    const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
-      Buffer.from([rawRedeemerOutputScript.length]),
-      rawRedeemerOutputScript,
-    ]).toString("hex")}`
-
-    return Hex.from(
-      utils.defaultAbiCoder.encode(
-        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
-        [
-          redeemer.identifierHex,
-          `0x${computeHash160(walletPublicKey)}`,
-          mainUtxo.transactionHash.reverse().toPrefixedString(),
-          mainUtxo.outputIndex,
-          mainUtxo.value,
-          prefixedRawRedeemerOutputScript,
-        ]
-      )
-    )
   }
 }

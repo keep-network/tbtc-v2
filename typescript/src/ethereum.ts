@@ -289,7 +289,7 @@ export class Bridge
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = this.buildRedemptionKey(
+    const redemptionKey = Bridge.buildRedemptionKey(
       computeHash160(walletPublicKey),
       redeemerOutputScript
     )
@@ -312,7 +312,7 @@ export class Bridge
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = this.buildRedemptionKey(
+    const redemptionKey = Bridge.buildRedemptionKey(
       computeHash160(walletPublicKey),
       redeemerOutputScript
     )
@@ -337,7 +337,7 @@ export class Bridge
    *        un-prefixed and not prepended with length.
    * @returns The redemption key.
    */
-  private buildRedemptionKey(
+  static buildRedemptionKey(
     walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
@@ -1112,7 +1112,7 @@ export class TBTCToken
   ): Promise<Hex> {
     const redeemer = await this._instance?.signer?.getAddress()
     if (!redeemer) {
-      throw new Error("Signer not provided.")
+      throw new Error("Signer not provided")
     }
 
     const vault = await this._instance.owner()

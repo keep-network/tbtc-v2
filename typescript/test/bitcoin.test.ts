@@ -474,23 +474,11 @@ describe("Bitcoin", () => {
         Object.entries(
           btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
         ).forEach(
-          ([
-            addressType,
-            {
-              address,
-              redeemerOutputScript: expectedRedeemerOutputScript,
-              scriptPubKey: expectedOutputScript,
-            },
-          ]) => {
+          ([addressType, { address, scriptPubKey: expectedOutputScript }]) => {
             it(`should create correct output script for ${addressType} address type`, () => {
               const result = createOutputScriptFromAddress(address)
 
               expect(result.toString()).to.eq(expectedOutputScript)
-              // Check if we can build the prefixed raw redeemer output script based
-              // on the result.
-              expect(buildRawPrefixedOutputScript(result.toString())).to.eq(
-                expectedRedeemerOutputScript
-              )
             })
           }
         )
@@ -519,13 +507,3 @@ describe("Bitcoin", () => {
     })
   })
 })
-
-const buildRawPrefixedOutputScript = (outputScript: string) => {
-  // Convert the output script to raw bytes buffer.
-  const rawRedeemerOutputScript = Buffer.from(outputScript.toString(), "hex")
-  // Prefix the output script bytes buffer with 0x and its own length.
-  return `0x${Buffer.concat([
-    Buffer.from([rawRedeemerOutputScript.length]),
-    rawRedeemerOutputScript,
-  ]).toString("hex")}`
-}
