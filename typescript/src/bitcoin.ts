@@ -1,4 +1,4 @@
-import bcoin, { TX, Script, Address } from "bcoin"
+import bcoin, { TX, Script } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
