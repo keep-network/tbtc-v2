@@ -1522,7 +1522,7 @@ describe("Redemption", () => {
               redeemerOutputScript,
               BitcoinNetwork.Testnet,
               bridge,
-              bitcoinClient,
+              bitcoinClient
             )
           })
 
@@ -1582,7 +1582,7 @@ describe("Redemption", () => {
                 redeemerOutputScript,
                 BitcoinNetwork.Testnet,
                 bridge,
-                bitcoinClient,
+                bitcoinClient
               )
             ).to.be.rejectedWith(
               `Could not find a wallet with enough funds. Maximum redemption amount is ${expectedMaxAmount.toString()} Satoshi.`
@@ -1624,7 +1624,7 @@ describe("Redemption", () => {
               redeemerOutputScript,
               BitcoinNetwork.Testnet,
               bridge,
-              bitcoinClient,
+              bitcoinClient
             )
           })
 

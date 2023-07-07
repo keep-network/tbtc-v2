@@ -427,7 +427,7 @@ export async function findWalletForRedemption(
   redeemerOutputScript: string,
   bitcoinNetwork: BitcoinNetwork,
   bridge: Bridge,
-  bitcoinClient: BitcoinClient,
+  bitcoinClient: BitcoinClient
 ): Promise<{
   walletPublicKey: string
   mainUtxo: UnspentTransactionOutput

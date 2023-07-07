@@ -11,7 +11,7 @@ import {
 import { RedemptionRequest } from "../../src/redemption"
 import { Address } from "../../src/ethereum"
 import { Hex } from "../../src"
-import { NewWalletRegisteredEvent, WalletState } from "../../src/wallet"
+import { WalletState } from "../../src/wallet"
 
 /**
  * Private key (testnet) of the wallet.
