@@ -495,6 +495,13 @@ export async function findWalletForRedemption(
       bitcoinNetwork
     )
 
+    // TODO: In case a wallet is working on something (e.g. redemption) and a
+    // Bitcoin transaction was already submitted by the wallet to the bitcoin
+    // chain (new utxo returned from bitcoin client), but proof hasn't been
+    // submitted yet to the Bridge (old main utxo returned from the Bridge) the
+    // `findWalletForRedemption` function will not find such a wallet. To cover
+    // this case, we should take, for example, the last 5 transactions made by
+    // the wallet into account. We will address this issue in a follow-up work.
     const utxos = await bitcoinClient.findAllUnspentTransactionOutputs(
       walletBitcoinAddress
     )
