@@ -1494,8 +1494,14 @@ describe("Redemption", () => {
         >()
 
         walletsOrder.forEach((wallet) => {
-          const { state, mainUtxoHash, walletPublicKey, btcAddress, utxos } =
-            wallet.data
+          const {
+            state,
+            mainUtxoHash,
+            walletPublicKey,
+            btcAddress,
+            utxos,
+            pendingRedemptionsValue,
+          } = wallet.data
 
           walletsUnspentTransacionOutputs.set(btcAddress, utxos)
           bridge.setWallet(
@@ -1504,6 +1510,7 @@ describe("Redemption", () => {
               state,
               mainUtxoHash,
               walletPublicKey,
+              pendingRedemptionsValue,
             } as Wallet
           )
         })
@@ -1650,6 +1657,41 @@ describe("Redemption", () => {
           })
 
           it("should skip the wallet for which there is a pending redemption request to the same redeemer output script and return the wallet data that can handle redemption request", () => {
+            const expectedWalletData =
+              findWalletForRedemptionData.liveWallet.data
+
+            expect(result).to.deep.eq({
+              walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+              mainUtxo: expectedWalletData.utxos[0],
+            })
+          })
+        }
+      )
+
+      context(
+        "when wallet has pending redemptions and the requested amount is greater than possible",
+        () => {
+          beforeEach(async () => {
+            const wallet =
+              findWalletForRedemptionData.walletWithPendingRedemption
+            const walletBTCBalance = wallet.data.utxos[0].value
+
+            const amount: BigNumber = walletBTCBalance
+              .sub(wallet.data.pendingRedemptionsValue)
+              .add(BigNumber.from(500000)) // 0.005 BTC
+
+            console.log("amount", amount.toString())
+
+            result = await findWalletForRedemption(
+              amount,
+              redeemerOutputScript,
+              BitcoinNetwork.Testnet,
+              bridge,
+              bitcoinClient
+            )
+          })
+
+          it("should skip the wallet wallet with pending redemptions and return the wallet data that can handle redemption request ", () => {
             const expectedWalletData =
               findWalletForRedemptionData.liveWallet.data
 

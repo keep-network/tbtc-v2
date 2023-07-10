@@ -444,9 +444,8 @@ export async function findWalletForRedemption(
 
   for (const wallet of wallets) {
     const { walletPublicKeyHash } = wallet
-    const { state, mainUtxoHash, walletPublicKey } = await bridge.wallets(
-      walletPublicKeyHash
-    )
+    const { state, mainUtxoHash, walletPublicKey, pendingRedemptionsValue } =
+      await bridge.wallets(walletPublicKeyHash)
 
     // Wallet must be in Live state.
     if (state !== WalletState.Live) {
@@ -514,10 +513,12 @@ export async function findWalletForRedemption(
       continue
     }
 
-    // Save the max possible redemption amount.
-    maxAmount = mainUtxo.value.gt(maxAmount) ? mainUtxo.value : maxAmount
+    const walletBTCBalance = mainUtxo.value.sub(pendingRedemptionsValue)
 
-    if (mainUtxo.value.gte(amount)) {
+    // Save the max possible redemption amount.
+    maxAmount = walletBTCBalance.gt(maxAmount) ? walletBTCBalance : maxAmount
+
+    if (walletBTCBalance.gte(amount)) {
       walletData = {
         walletPublicKey: walletPublicKey.toString(),
         mainUtxo,

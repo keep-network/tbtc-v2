@@ -675,6 +675,7 @@ interface FindWalletForRedemptionWaleltData {
     walletPublicKey: Hex
     btcAddress: string
     utxos: UnspentTransactionOutput[]
+    pendingRedemptionsValue: BigNumber
   }
   event: {
     blockNumber: number
@@ -711,6 +712,7 @@ export const findWalletForRedemptionData: {
           value: BigNumber.from("791613461"),
         },
       ],
+      pendingRedemptionsValue: BigNumber.from(0),
     },
     event: {
       blockNumber: 8367602,
@@ -728,7 +730,6 @@ export const findWalletForRedemptionData: {
       ),
     },
   },
-
   walletWithoutUtxo: {
     data: {
       state: WalletState.Live,
@@ -748,6 +749,7 @@ export const findWalletForRedemptionData: {
           value: BigNumber.from("0"),
         },
       ],
+      pendingRedemptionsValue: BigNumber.from(0),
     },
     event: {
       blockNumber: 9103428,
@@ -785,6 +787,7 @@ export const findWalletForRedemptionData: {
           value: BigNumber.from("0"),
         },
       ],
+      pendingRedemptionsValue: BigNumber.from(0),
     },
     event: {
       blockNumber: 9171960,
@@ -802,7 +805,6 @@ export const findWalletForRedemptionData: {
       ),
     },
   },
-
   walletWithPendingRedemption: {
     data: {
       state: WalletState.Live,
@@ -819,9 +821,10 @@ export const findWalletForRedemptionData: {
             "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
           ),
           outputIndex: 0,
-          value: BigNumber.from("3370000"),
+          value: BigNumber.from("3370000"), // 0.0337 BTC
         },
       ],
+      pendingRedemptionsValue: BigNumber.from(2370000), // 0.0237 BTC
     },
     event: {
       blockNumber: 8981644,
