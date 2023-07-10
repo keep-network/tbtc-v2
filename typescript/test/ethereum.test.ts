@@ -1,15 +1,17 @@
-import { Address, Bridge } from "../src/ethereum"
+import { Address, Bridge, TBTCToken } from "../src/ethereum"
 import {
   deployMockContract,
   MockContract,
 } from "@ethereum-waffle/mock-contract"
 import chai, { assert, expect } from "chai"
-import { BigNumber, constants } from "ethers"
+import { BigNumber, Wallet, constants, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
-import { TransactionHash } from "../src/bitcoin"
+import { TransactionHash, computeHash160 } from "../src/bitcoin"
+import { Hex } from "../src/hex"
 
 chai.use(waffleChai)
 
@@ -470,4 +472,85 @@ describe("Ethereum", () => {
       "Expected contract function was not called"
     )
   }
+
+  describe("TBTCToken", () => {
+    let tbtcToken: MockContract
+    let tokenHandle: TBTCToken
+    const signer: Wallet = new MockProvider().getWallets()[0]
+
+    beforeEach(async () => {
+      tbtcToken = await deployMockContract(
+        signer,
+        `${JSON.stringify(TBTCTokenABI)}`
+      )
+
+      tokenHandle = new TBTCToken({
+        address: tbtcToken.address,
+        signerOrProvider: signer,
+      })
+    })
+
+    describe("requestRedemption", () => {
+      const data = {
+        vault: Address.from("0x24BE35e7C04E2e0a628614Ce0Ed58805e1C894F7"),
+        walletPublicKey:
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+        mainUtxo: {
+          transactionHash: TransactionHash.from(
+            "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+          ),
+          outputIndex: 8,
+          value: BigNumber.from(9999),
+        },
+        redeemer: Address.from(signer.address),
+        amount: BigNumber.from(10000),
+        redeemerOutputScript: {
+          unprefixed:
+            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+          prefixed:
+            "0x220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+        },
+      }
+
+      beforeEach(async () => {
+        await tbtcToken.mock.owner.returns(data.vault.identifierHex)
+        await tbtcToken.mock.approveAndCall.returns(true)
+
+        await tokenHandle.requestRedemption(
+          data.walletPublicKey,
+          data.mainUtxo,
+          data.redeemerOutputScript.unprefixed,
+          data.amount
+        )
+      })
+
+      it("should request the redemption", async () => {
+        const {
+          walletPublicKey,
+          mainUtxo,
+          redeemerOutputScript,
+          redeemer,
+          vault,
+          amount,
+        } = data
+        const expectedExtraData = utils.defaultAbiCoder.encode(
+          ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
+          [
+            redeemer.identifierHex,
+            Hex.from(computeHash160(walletPublicKey)).toPrefixedString(),
+            mainUtxo.transactionHash.reverse().toPrefixedString(),
+            mainUtxo.outputIndex,
+            mainUtxo.value,
+            redeemerOutputScript.prefixed,
+          ]
+        )
+
+        assertContractCalledWith(tbtcToken, "approveAndCall", [
+          vault.identifierHex,
+          amount,
+          expectedExtraData,
+        ])
+      })
+    })
+  })
 })
