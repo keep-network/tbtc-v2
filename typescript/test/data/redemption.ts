@@ -7,10 +7,11 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
   TransactionHash,
+  createOutputScriptFromAddress,
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
 import { Address } from "../../src/ethereum"
-import { Hex } from "../../src"
+import { BitcoinTransaction, Hex } from "../../src"
 import { WalletState } from "../../src/wallet"
 
 /**
@@ -668,13 +669,14 @@ export const redemptionProof: RedemptionProofTestData = {
   },
 }
 
-interface FindWalletForRedemptionWaleltData {
+interface FindWalletForRedemptionWalletData {
   data: {
     state: WalletState
     mainUtxoHash: Hex
     walletPublicKey: Hex
     btcAddress: string
-    utxos: UnspentTransactionOutput[]
+    mainUtxo: UnspentTransactionOutput
+    transactions: BitcoinTransaction[]
     pendingRedemptionsValue: BigNumber
   }
   event: {
@@ -687,10 +689,10 @@ interface FindWalletForRedemptionWaleltData {
 }
 
 export const findWalletForRedemptionData: {
-  liveWallet: FindWalletForRedemptionWaleltData
-  walletWithoutUtxo: FindWalletForRedemptionWaleltData
-  nonLiveWallet: FindWalletForRedemptionWaleltData
-  walletWithPendingRedemption: FindWalletForRedemptionWaleltData
+  liveWallet: FindWalletForRedemptionWalletData
+  walletWithoutUtxo: FindWalletForRedemptionWalletData
+  nonLiveWallet: FindWalletForRedemptionWalletData
+  walletWithPendingRedemption: FindWalletForRedemptionWalletData
   pendingRedemption: RedemptionRequest
 } = {
   liveWallet: {
@@ -703,13 +705,28 @@ export const findWalletForRedemptionData: {
         "0x028ed84936be6a9f594a2dcc636d4bebf132713da3ce4dac5c61afbf8bbb47d6f7"
       ),
       btcAddress: "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
-      utxos: [
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("791613461"),
+      },
+      transactions: [
         {
           transactionHash: Hex.from(
             "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
           ),
-          outputIndex: 0,
-          value: BigNumber.from("791613461"),
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("791613461"),
+              scriptPubKey: createOutputScriptFromAddress(
+                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja"
+              ),
+            },
+          ],
         },
       ],
       pendingRedemptionsValue: BigNumber.from(0),
@@ -740,15 +757,14 @@ export const findWalletForRedemptionData: {
         "0x030fbbae74e6d85342819e719575949a1349e975b69fb382e9fef671a3a74efc52"
       ),
       btcAddress: "tb1qkct7r24k4wutnsun84rvp3qsyt8yfpvqz89d2y",
-      utxos: [
-        {
-          transactionHash: Hex.from(
-            "0x0000000000000000000000000000000000000000000000000000000000000000"
-          ),
-          outputIndex: 0,
-          value: BigNumber.from("0"),
-        },
-      ],
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
       pendingRedemptionsValue: BigNumber.from(0),
     },
     event: {
@@ -778,15 +794,14 @@ export const findWalletForRedemptionData: {
         "0x02633b102417009ae55103798f4d366dfccb081dcf20025088b9bf10a8e15d8ded"
       ),
       btcAddress: "tb1qf6jvyd680ncf9dtr5znha9ql5jmw84lupwwuf6",
-      utxos: [
-        {
-          transactionHash: Hex.from(
-            "0x0000000000000000000000000000000000000000000000000000000000000000"
-          ),
-          outputIndex: 0,
-          value: BigNumber.from("0"),
-        },
-      ],
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
       pendingRedemptionsValue: BigNumber.from(0),
     },
     event: {
@@ -815,13 +830,28 @@ export const findWalletForRedemptionData: {
         "0x02ab193a63b3523bfab77d3645d11da10722393687458c4213b350b7e08f50b7ee"
       ),
       btcAddress: "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
-      utxos: [
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("3370000"), // 0.0337 BTC
+      },
+      transactions: [
         {
           transactionHash: Hex.from(
             "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
           ),
-          outputIndex: 0,
-          value: BigNumber.from("3370000"), // 0.0337 BTC
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("3370000"), // 0.0337 BTC
+              scriptPubKey: createOutputScriptFromAddress(
+                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh"
+              ),
+            },
+          ],
         },
       ],
       pendingRedemptionsValue: BigNumber.from(2370000), // 0.0237 BTC
