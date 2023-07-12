@@ -108,6 +108,28 @@ describe("Electrum", () => {
         })
       })
 
+      describe("getTransactionHistory", () => {
+        it("should return proper transaction history for the given address", async () => {
+          // https://live.blockcypher.com/btc-testnet/address/tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx
+          const transactions = await electrumClient.getTransactionHistory(
+            "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
+            5
+          )
+
+          const transactionsHashes = transactions.map((t) =>
+            t.transactionHash.toString()
+          )
+
+          expect(transactionsHashes).to.be.eql([
+            "3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1",
+            "f65bc5029251f0042aedb37f90dbb2bfb63a2e81694beef9cae5ec62e954c22e",
+            "44863a79ce2b8fec9792403d5048506e50ffa7338191db0e6c30d3d3358ea2f6",
+            "4c6b33b7c0550e0e536a5d119ac7189d71e1296fcb0c258e0c115356895bc0e6",
+            "605edd75ae0b4fa7cfc7aae8f1399119e9d7ecc212e6253156b60d60f4925d44",
+          ])
+        })
+      })
+
       describe("getTransaction", () => {
         it("should return proper transaction for the given hash", async () => {
           const result = await electrumClient.getTransaction(

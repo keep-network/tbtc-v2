@@ -10,6 +10,8 @@ import {
 } from "./bitcoin"
 import { Bridge, Identifier, TBTCToken } from "./chain"
 import { assembleTransactionProof } from "./proof"
+import { determineWalletMainUtxo, WalletState } from "./wallet"
+import { BitcoinNetwork } from "./bitcoin-network"
 import { Hex } from "./hex"
 
 /**
@@ -407,4 +409,112 @@ export async function getRedemptionRequest(
   }
 
   return redemptionRequests[0]
+}
+
+/**
+ * Finds the oldest active wallet that has enough BTC to handle a redemption request.
+ * @param amount The amount to be redeemed in satoshis.
+ * @param redeemerOutputScript The redeemer output script the redeemed funds
+ *        are supposed to be locked on. Must be un-prefixed and not prepended
+ *        with length.
+ * @param bitcoinNetwork Bitcoin network.
+ * @param bridge The handle to the Bridge on-chain contract.
+ * @param bitcoinClient Bitcoin client used to interact with the network.
+ * @returns Promise with the wallet details needed to request a redemption.
+ */
+export async function findWalletForRedemption(
+  amount: BigNumber,
+  redeemerOutputScript: string,
+  bitcoinNetwork: BitcoinNetwork,
+  bridge: Bridge,
+  bitcoinClient: BitcoinClient
+): Promise<{
+  walletPublicKey: string
+  mainUtxo: UnspentTransactionOutput
+}> {
+  const wallets = await bridge.getNewWalletRegisteredEvents()
+
+  let walletData:
+    | {
+        walletPublicKey: string
+        mainUtxo: UnspentTransactionOutput
+      }
+    | undefined = undefined
+  let maxAmount = BigNumber.from(0)
+
+  for (const wallet of wallets) {
+    const { walletPublicKeyHash } = wallet
+    const { state, walletPublicKey, pendingRedemptionsValue } =
+      await bridge.wallets(walletPublicKeyHash)
+
+    // Wallet must be in Live state.
+    if (state !== WalletState.Live) {
+      console.debug(
+        `Wallet is not in Live state ` +
+          `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
+          `Continue the loop execution to the next wallet...`
+      )
+      continue
+    }
+
+    // Wallet must have a main UTXO that can be determined.
+    const mainUtxo = await determineWalletMainUtxo(
+      walletPublicKeyHash,
+      bridge,
+      bitcoinClient,
+      bitcoinNetwork
+    )
+    if (!mainUtxo) {
+      console.debug(
+        `Could not find matching UTXO on chains ` +
+          `for wallet public key hash (${walletPublicKeyHash.toString()}). ` +
+          `Continue the loop execution to the next wallet...`
+      )
+      continue
+    }
+
+    const pendingRedemption = await bridge.pendingRedemptions(
+      walletPublicKey.toString(),
+      redeemerOutputScript
+    )
+
+    if (pendingRedemption.requestedAt != 0) {
+      console.debug(
+        `There is a pending redemption request from this wallet to the ` +
+          `same Bitcoin address. Given wallet public key hash` +
+          `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
+          `(${redeemerOutputScript}) pair can be used for only one ` +
+          `pending request at the same time. ` +
+          `Continue the loop execution to the next wallet...`
+      )
+      continue
+    }
+
+    const walletBTCBalance = mainUtxo.value.sub(pendingRedemptionsValue)
+
+    // Save the max possible redemption amount.
+    maxAmount = walletBTCBalance.gt(maxAmount) ? walletBTCBalance : maxAmount
+
+    if (walletBTCBalance.gte(amount)) {
+      walletData = {
+        walletPublicKey: walletPublicKey.toString(),
+        mainUtxo,
+      }
+
+      break
+    }
+
+    console.debug(
+      `The wallet (${walletPublicKeyHash.toString()})` +
+        `cannot handle the redemption request. ` +
+        `Continue the loop execution to the next wallet...`
+    )
+  }
+
+  if (!walletData)
+    throw new Error(
+      `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi.`
+    )
+
+  return walletData
 }

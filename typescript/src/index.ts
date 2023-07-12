@@ -13,6 +13,7 @@ import {
   requestRedemption,
   submitRedemptionProof,
   getRedemptionRequest,
+  findWalletForRedemption,
 } from "./redemption"
 
 import {
@@ -31,6 +32,7 @@ export const TBTC = {
   getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
+  findWalletForRedemption,
 }
 
 export const SpvMaintainer = {
