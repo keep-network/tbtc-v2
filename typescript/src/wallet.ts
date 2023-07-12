@@ -299,6 +299,9 @@ export async function determineWalletMainUtxo(
       // Should never happen as all transactions come from wallet history. Just
       // in case check whether the wallet output was actually found.
       if (outputIndex < 0) {
+        console.error(
+          `wallet output for transaction ${walletTransaction.transactionHash.toString()} not found`
+        )
         continue
       }
 
