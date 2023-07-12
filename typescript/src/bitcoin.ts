@@ -626,18 +626,16 @@ export function createOutputScriptFromAddress(address: string): Hex {
 }
 
 /**
- * Returns the Bitcoin address based on the script pub key placed on the output
- * of a Bitcoin transaction.
- * @param scriptPubKey Scirpt pub key placed on the output of a Bitcoin
- *        transaction.
+ * Creates the Bitcoin address from the output script.
+ * @param script The unprefixed and not prepended with length output script.
  * @param network Bitcoin network.
  * @returns The Bitcoin address.
  */
 export function createAddressFromOutputScript(
-  scriptPubKey: string,
+  script: Hex,
   network: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {
-  return Script.fromRaw(scriptPubKey.toString(), "hex")
+  return Script.fromRaw(script.toString(), "hex")
     .getAddress()
     ?.toString(toBcoinNetwork(network))
 }

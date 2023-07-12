@@ -478,7 +478,7 @@ describe("Bitcoin", () => {
             it(`should create correct output script for ${addressType} address type`, () => {
               const result = createOutputScriptFromAddress(address)
 
-              expect(result.toString()).to.eq(expectedOutputScript)
+              expect(result.toString()).to.eq(expectedOutputScript.toString())
             })
           }
         )
