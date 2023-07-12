@@ -326,11 +326,8 @@ export async function determineWalletMainUtxo(
   // operations. Try to determine the main UTXO for that address first as the
   // chance for success is the highest here.
   const mainUtxo = await determine(true)
-  if (mainUtxo) {
-    return mainUtxo
-  }
 
   // In case the main UTXO was not found for witness address, there is still
   // a chance it exists for the legacy wallet address.
-  return determine(false)
+  return mainUtxo ?? (await determine(false))
 }
