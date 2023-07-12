@@ -624,3 +624,18 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
 export function createOutputScriptFromAddress(address: string): Hex {
   return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
 }
+
+/**
+ * Creates the Bitcoin address from the output script.
+ * @param script The unprefixed and not prepended with length output script.
+ * @param network Bitcoin network.
+ * @returns The Bitcoin address.
+ */
+export function createAddressFromOutputScript(
+  script: Hex,
+  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+): string {
+  return Script.fromRaw(script.toString(), "hex")
+    .getAddress()
+    ?.toString(toBcoinNetwork(network))
+}

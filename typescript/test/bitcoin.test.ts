@@ -12,11 +12,13 @@ import {
   bitsToTarget,
   targetToDifficulty,
   createOutputScriptFromAddress,
+  createAddressFromOutputScript,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
+import { btcAddresses } from "./data/bitcoin"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -467,70 +469,41 @@ describe("Bitcoin", () => {
   })
 
   describe("createOutputScriptFromAddress", () => {
-    context("with testnet addresses", () => {
-      const btcAddresses = {
-        P2PKH: {
-          address: "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc",
-          outputScript: "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
-        },
-        P2WPKH: {
-          address: "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
-          outputScript: "0014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0",
-        },
-        P2SH: {
-          address: "2MsM67NLa71fHvTUBqNENW15P68nHB2vVXb",
-          outputScript: "a914011beb6fb8499e075a57027fb0a58384f2d3f78487",
-        },
-        P2WSH: {
-          address:
-            "tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv",
-          outputScript:
-            "0020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c",
-        },
-      }
+    Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
+      context(`with ${bitcoinNetwork} addresses`, () => {
+        Object.entries(
+          btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
+        ).forEach(
+          ([addressType, { address, scriptPubKey: expectedOutputScript }]) => {
+            it(`should create correct output script for ${addressType} address type`, () => {
+              const result = createOutputScriptFromAddress(address)
 
-      Object.entries(btcAddresses).forEach(
-        ([addressType, { address, outputScript: expectedOutputScript }]) => {
-          it(`should create correct output script for ${addressType} address type`, () => {
-            const result = createOutputScriptFromAddress(address)
-
-            expect(result.toString()).to.eq(expectedOutputScript)
-          })
-        }
-      )
+              expect(result.toString()).to.eq(expectedOutputScript.toString())
+            })
+          }
+        )
+      })
     })
+  })
 
-    context("with mainnet addresses", () => {
-      const btcAddresses = {
-        P2PKH: {
-          address: "12higDjoCCNXSA95xZMWUdPvXNmkAduhWv",
-          outputScript: "76a91412ab8dc588ca9d5787dde7eb29569da63c3a238c88ac",
-        },
-        P2WPKH: {
-          address: "bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c",
-          outputScript: "00148d7a0a3461e3891723e5fdf8129caa0075060cff",
-        },
-        P2SH: {
-          address: "342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey",
-          outputScript: "a91419a7d869032368fd1f1e26e5e73a4ad0e474960e87",
-        },
-        P2WSH: {
-          address:
-            "bc1qeklep85ntjz4605drds6aww9u0qr46qzrv5xswd35uhjuj8ahfcqgf6hak",
-          outputScript:
-            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
-        },
-      }
+  describe("getAddressFromScriptPubKey", () => {
+    Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
+      context(`with ${bitcoinNetwork} addresses`, () => {
+        Object.entries(
+          btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
+        ).forEach(([addressType, { address, scriptPubKey }]) => {
+          it(`should return correct ${addressType} address`, () => {
+            const result = createAddressFromOutputScript(
+              scriptPubKey,
+              bitcoinNetwork === "mainnet"
+                ? BitcoinNetwork.Mainnet
+                : BitcoinNetwork.Testnet
+            )
 
-      Object.entries(btcAddresses).forEach(
-        ([addressType, { address, outputScript: expectedOutputScript }]) => {
-          it(`should create correct output script for ${addressType} address type`, () => {
-            const result = createOutputScriptFromAddress(address)
-
-            expect(result.toString()).to.eq(expectedOutputScript)
+            expect(result.toString()).to.eq(address)
           })
-        }
-      )
+        })
+      })
     })
   })
 })
