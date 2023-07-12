@@ -441,6 +441,7 @@ export async function findWalletForRedemption(
       }
     | undefined = undefined
   let maxAmount = BigNumber.from(0)
+  let activeWalletsCounter = 0
 
   for (const wallet of wallets) {
     const { walletPublicKeyHash } = wallet
@@ -456,6 +457,7 @@ export async function findWalletForRedemption(
       )
       continue
     }
+    activeWalletsCounter++
 
     // Wallet must have a main UTXO that can be determined.
     const mainUtxo = await determineWalletMainUtxo(
@@ -508,6 +510,18 @@ export async function findWalletForRedemption(
       `The wallet (${walletPublicKeyHash.toString()})` +
         `cannot handle the redemption request. ` +
         `Continue the loop execution to the next wallet...`
+    )
+  }
+
+  if (activeWalletsCounter === 0) {
+    throw new Error("Currently, there are no active wallets in the network.")
+  }
+
+  // Cover a corner case when the user requested redemption for all active
+  // wallets in the network using the same Bitcoin address.
+  if (!walletData && activeWalletsCounter > 0 && maxAmount.eq(0)) {
+    throw new Error(
+      "All active wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
     )
   }
 
