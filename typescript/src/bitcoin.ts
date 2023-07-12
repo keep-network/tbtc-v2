@@ -633,7 +633,7 @@ export function createOutputScriptFromAddress(address: string): Hex {
  * @param network Bitcoin network.
  * @returns The Bitcoin address.
  */
-export function getAddressFromScriptPubKey(
+export function createAddressFromOutputScript(
   scriptPubKey: string,
   network: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {

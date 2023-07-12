@@ -12,7 +12,7 @@ import {
   bitsToTarget,
   targetToDifficulty,
   createOutputScriptFromAddress,
-  getAddressFromScriptPubKey,
+  createAddressFromOutputScript,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
@@ -493,7 +493,7 @@ describe("Bitcoin", () => {
           btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
         ).forEach(([addressType, { address, scriptPubKey }]) => {
           it(`should return correct ${addressType} address`, () => {
-            const result = getAddressFromScriptPubKey(
+            const result = createAddressFromOutputScript(
               scriptPubKey,
               bitcoinNetwork === "mainnet"
                 ? BitcoinNetwork.Mainnet
