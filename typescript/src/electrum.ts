@@ -2,6 +2,7 @@ import bcoin from "bcoin"
 import pTimeout from "p-timeout"
 import {
   Client as BitcoinClient,
+  createOutputScriptFromAddress,
   RawTransaction,
   Transaction,
   TransactionHash,
@@ -232,7 +233,7 @@ export class Client implements BitcoinClient {
   ): Promise<UnspentTransactionOutput[]> {
     return this.withElectrum<UnspentTransactionOutput[]>(
       async (electrum: Electrum) => {
-        const script = bcoin.Script.fromAddress(address).toRaw().toString("hex")
+        const script = createOutputScriptFromAddress(address).toString()
 
         // eslint-disable-next-line camelcase
         type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -262,7 +263,7 @@ export class Client implements BitcoinClient {
     limit?: number
   ): Promise<Transaction[]> {
     return this.withElectrum<Transaction[]>(async (electrum: Electrum) => {
-      const script = bcoin.Script.fromAddress(address).toRaw().toString("hex")
+      const script = createOutputScriptFromAddress(address).toString()
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
