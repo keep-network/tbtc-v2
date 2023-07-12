@@ -1468,7 +1468,7 @@ describe("Redemption", () => {
               bitcoinClient
             )
           ).to.be.rejectedWith(
-            "Currently, there are no active wallets in the network."
+            "Currently, there are no live wallets in the network."
           )
         })
       }
@@ -1726,7 +1726,7 @@ describe("Redemption", () => {
                 bitcoinClient
               )
             ).to.be.rejectedWith(
-              "All active wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
+              "All live wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
             )
           })
         }

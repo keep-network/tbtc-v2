@@ -412,11 +412,12 @@ export async function getRedemptionRequest(
 }
 
 /**
- * Finds the oldest active wallet that has enough BTC to handle a redemption request.
+ * Finds the oldest live wallet that has enough BTC to handle a redemption
+ * request.
  * @param amount The amount to be redeemed in satoshis.
- * @param redeemerOutputScript The redeemer output script the redeemed funds
- *        are supposed to be locked on. Must be un-prefixed and not prepended
- *        with length.
+ * @param redeemerOutputScript The redeemer output script the redeemed funds are
+ *        supposed to be locked on. Must be un-prefixed and not prepended with
+ *        length.
  * @param bitcoinNetwork Bitcoin network.
  * @param bridge The handle to the Bridge on-chain contract.
  * @param bitcoinClient Bitcoin client used to interact with the network.
@@ -441,7 +442,7 @@ export async function findWalletForRedemption(
       }
     | undefined = undefined
   let maxAmount = BigNumber.from(0)
-  let activeWalletsCounter = 0
+  let liveWalletsCounter = 0
 
   for (const wallet of wallets) {
     const { walletPublicKeyHash } = wallet
@@ -457,7 +458,7 @@ export async function findWalletForRedemption(
       )
       continue
     }
-    activeWalletsCounter++
+    liveWalletsCounter++
 
     // Wallet must have a main UTXO that can be determined.
     const mainUtxo = await determineWalletMainUtxo(
@@ -513,15 +514,15 @@ export async function findWalletForRedemption(
     )
   }
 
-  if (activeWalletsCounter === 0) {
-    throw new Error("Currently, there are no active wallets in the network.")
+  if (liveWalletsCounter === 0) {
+    throw new Error("Currently, there are no live wallets in the network.")
   }
 
-  // Cover a corner case when the user requested redemption for all active
-  // wallets in the network using the same Bitcoin address.
-  if (!walletData && activeWalletsCounter > 0 && maxAmount.eq(0)) {
+  // Cover a corner case when the user requested redemption for all live wallets
+  // in the network using the same Bitcoin address.
+  if (!walletData && liveWalletsCounter > 0 && maxAmount.eq(0)) {
     throw new Error(
-      "All active wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
+      "All live wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
     )
   }
 
