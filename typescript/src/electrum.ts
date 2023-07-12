@@ -2,6 +2,7 @@ import bcoin from "bcoin"
 import pTimeout from "p-timeout"
 import {
   Client as BitcoinClient,
+  createOutputScriptFromAddress,
   RawTransaction,
   Transaction,
   TransactionHash,
@@ -232,7 +233,7 @@ export class Client implements BitcoinClient {
   ): Promise<UnspentTransactionOutput[]> {
     return this.withElectrum<UnspentTransactionOutput[]>(
       async (electrum: Electrum) => {
-        const script = bcoin.Script.fromAddress(address).toRaw().toString("hex")
+        const script = createOutputScriptFromAddress(address).toString()
 
         // eslint-disable-next-line camelcase
         type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -251,6 +252,58 @@ export class Client implements BitcoinClient {
         }))
       }
     )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {BitcoinClient#getTransactionHistory}
+   */
+  getTransactionHistory(
+    address: string,
+    limit?: number
+  ): Promise<Transaction[]> {
+    return this.withElectrum<Transaction[]>(async (electrum: Electrum) => {
+      const script = createOutputScriptFromAddress(address).toString()
+
+      // eslint-disable-next-line camelcase
+      type HistoryItem = { height: number; tx_hash: string }
+
+      let historyItems: HistoryItem[] = await this.withBackoffRetrier<
+        HistoryItem[]
+      >()(async () => {
+        return await electrum.blockchain_scripthash_getHistory(
+          computeScriptHash(script)
+        )
+      })
+
+      // According to https://electrumx.readthedocs.io/en/latest/protocol-methods.html#blockchain-scripthash-get-history
+      // unconfirmed items living in the mempool are appended at the end of the
+      // returned list and their height value is either -1 or 0. That means
+      // we need to take all items with height >0 to obtain a confirmed txs
+      // history.
+      historyItems = historyItems.filter((item) => item.height > 0)
+
+      // The list returned from blockchain.scripthash.get_history is sorted by
+      // the block height in the ascending order though we are sorting it
+      // again just in case (e.g. API contract changes).
+      historyItems = historyItems.sort(
+        (item1, item2) => item1.height - item2.height
+      )
+
+      if (
+        typeof limit !== "undefined" &&
+        limit > 0 &&
+        historyItems.length > limit
+      ) {
+        historyItems = historyItems.slice(-limit)
+      }
+
+      const transactions = historyItems.map((item) =>
+        this.getTransaction(TransactionHash.from(item.tx_hash))
+      )
+
+      return Promise.all(transactions)
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc

@@ -15,7 +15,7 @@ import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/ethereum"
 import { Hex } from "../../src/hex"
-import { NewWalletRegisteredEvent } from "../../src/wallet"
+import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -43,6 +43,15 @@ interface RedemptionProofLogEntry {
   walletPublicKey: string
 }
 
+interface NewWalletRegisteredEventsLog {
+  options?: GetEvents.Options
+  filterArgs: unknown[]
+}
+
+interface WalletLog {
+  walletPublicKeyHash: string
+}
+
 /**
  * Mock Bridge used for test purposes.
  */
@@ -56,6 +65,10 @@ export class MockBridge implements Bridge {
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
   private _deposits = new Map<BigNumberish, RevealedDeposit>()
   private _activeWalletPublicKey: string | undefined
+  private _newWalletRegisteredEvents: NewWalletRegisteredEvent[] = []
+  private _newWalletRegisteredEventsLog: NewWalletRegisteredEventsLog[] = []
+  private _wallets = new Map<string, Wallet>()
+  private _walletsLog: WalletLog[] = []
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -63,6 +76,14 @@ export class MockBridge implements Bridge {
 
   setTimedOutRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._timedOutRedemptions = value
+  }
+
+  setWallet(key: string, value: Wallet) {
+    this._wallets.set(key, value)
+  }
+
+  set newWalletRegisteredEvents(value: NewWalletRegisteredEvent[]) {
+    this._newWalletRegisteredEvents = value
   }
 
   get depositSweepProofLog(): DepositSweepProofLogEntry[] {
@@ -79,6 +100,14 @@ export class MockBridge implements Bridge {
 
   get redemptionProofLog(): RedemptionProofLogEntry[] {
     return this._redemptionProofLog
+  }
+
+  get newWalletRegisteredEventsLog(): NewWalletRegisteredEventsLog[] {
+    return this._newWalletRegisteredEventsLog
+  }
+
+  get walletsLog(): WalletLog[] {
+    return this._walletsLog
   }
 
   setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
@@ -308,10 +337,32 @@ export class MockBridge implements Bridge {
     options?: GetEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
-    throw new Error("not implemented")
+    this._newWalletRegisteredEventsLog.push({ options, filterArgs })
+    return this._newWalletRegisteredEvents
   }
 
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
+  }
+
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    this._walletsLog.push({
+      walletPublicKeyHash: walletPublicKeyHash.toPrefixedString(),
+    })
+    const wallet = this._wallets.get(walletPublicKeyHash.toPrefixedString())
+    return wallet!
+  }
+
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
   }
 }

@@ -334,6 +334,18 @@ export interface Client {
   ): Promise<UnspentTransactionOutput[]>
 
   /**
+   * Gets the history of confirmed transactions for given Bitcoin address.
+   * Returned transactions are sorted from oldest to newest. The returned
+   * result does not contain unconfirmed transactions living in the mempool
+   * at the moment of request.
+   * @param address - Bitcoin address transaction history should be determined for.
+   * @param limit - Optional parameter that can limit the resulting list to
+   *        a specific number of last transaction. For example, limit = 5 will
+   *        return only the last 5 transactions for the given address.
+   */
+  getTransactionHistory(address: string, limit?: number): Promise<Transaction[]>
+
+  /**
    * Gets the full transaction object for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Transaction object.

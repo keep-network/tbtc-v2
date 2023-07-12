@@ -47,6 +47,7 @@ import type {
   Bridge as ContractBridge,
   Deposit as ContractDeposit,
   Redemption as ContractRedemption,
+  Wallets,
 } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
@@ -57,6 +58,8 @@ import {
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
+  Wallet,
+  WalletState,
 } from "./wallet"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
@@ -639,18 +642,20 @@ export class Bridge
       return undefined
     }
 
-    const { ecdsaWalletID } = await backoffRetrier<{ ecdsaWalletID: string }>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.wallets(activeWalletPublicKeyHash)
-    })
-
-    const walletRegistry = await this.walletRegistry()
-    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
-      Hex.from(ecdsaWalletID)
+    const { walletPublicKey } = await this.wallets(
+      Hex.from(activeWalletPublicKeyHash)
     )
 
-    return compressPublicKey(uncompressedPublicKey)
+    return walletPublicKey.toString()
+  }
+
+  private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
+    const walletRegistry = await this.walletRegistry()
+    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
+      ecdsaWalletID
+    )
+
+    return Hex.from(compressPublicKey(uncompressedPublicKey))
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -693,6 +698,69 @@ export class Bridge
       address: ecdsaWalletRegistry,
       signerOrProvider: this._instance.signer || this._instance.provider,
     })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#wallets}
+   */
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    const wallet = await backoffRetrier<Wallets.WalletStructOutput>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.wallets(
+        walletPublicKeyHash.toPrefixedString()
+      )
+    })
+
+    return this.parseWalletDetails(wallet)
+  }
+
+  /**
+   * Parses a wallet data using data fetched from the on-chain contract.
+   * @param wallet Data of the wallet.
+   * @returns Parsed wallet data.
+   */
+  private async parseWalletDetails(
+    wallet: Wallets.WalletStructOutput
+  ): Promise<Wallet> {
+    const ecdsaWalletID = Hex.from(wallet.ecdsaWalletID)
+
+    return {
+      ecdsaWalletID,
+      walletPublicKey: await this.getWalletCompressedPublicKey(ecdsaWalletID),
+      mainUtxoHash: Hex.from(wallet.mainUtxoHash),
+      pendingRedemptionsValue: wallet.pendingRedemptionsValue,
+      createdAt: wallet.createdAt,
+      movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+      closingStartedAt: wallet.closingStartedAt,
+      pendingMovedFundsSweepRequestsCount:
+        wallet.pendingMovedFundsSweepRequestsCount,
+      state: WalletState.parse(wallet.state),
+      movingFundsTargetWalletsCommitmentHash: Hex.from(
+        wallet.movingFundsTargetWalletsCommitmentHash
+      ),
+    }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
+   * `keccak256(txHash | txOutputIndex | txOutputValue)`.
+   *
+   * @see {ChainBridge#buildUtxoHash}
+   */
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
   }
 }
 
