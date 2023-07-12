@@ -78,8 +78,37 @@ describe("Wallet", () => {
       ),
     ]
 
-    // Create a fake wallet legacy transaction history that consists of 2 transactions.
-    const walletLegacyTransactionsHistory: BitcoinTransaction[] = [
+    // Create a fake wallet legacy transaction history that consists of 6 transactions.
+    const walletLegacyTransactionHistory: BitcoinTransaction[] = [
+      mockTransaction(
+        "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267",
+        {
+          "00140000000000000000000000000000000000000001": 100000,
+          "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 200000, // wallet legacy output
+        }
+      ),
+      mockTransaction(
+        "b11bfc481b95769b8488bd661d5f61a35f7c3c757160494d63f6e04e532dfcb9",
+        {
+          "00140000000000000000000000000000000000000001": 100000,
+          "00140000000000000000000000000000000000000002": 200000,
+          "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 300000, // wallet legacy output
+        }
+      ),
+      mockTransaction(
+        "7e91580d989f8541489a37431381ff9babd596111232f1bc7a1a1ba503c27dee",
+        {
+          "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 100000, // wallet legacy output
+          "00140000000000000000000000000000000000000001": 200000,
+        }
+      ),
+      mockTransaction(
+        "5404e339ba82e6e52fcc24cb40029bed8425baa4c7f869626ef9de956186f910",
+        {
+          "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 100000, // wallet legacy output
+          "00140000000000000000000000000000000000000001": 200000,
+        }
+      ),
       mockTransaction(
         "05dabb0291c0a6aa522de5ded5cb6d14ee2159e7ff109d3ef0f21de128b56b94",
         {
@@ -176,6 +205,18 @@ describe("Wallet", () => {
           },
           expectedMainUtxo: undefined,
         },
+        {
+          testName: "old legacy transaction",
+          // Set the main UTXO hash based on the oldest transaction from walletLegacyTransactionHistory.
+          actualMainUtxo: {
+            transactionHash: Hex.from(
+              "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267"
+            ),
+            outputIndex: 1,
+            value: BigNumber.from(200000),
+          },
+          expectedMainUtxo: undefined,
+        },
       ]
 
       tests.forEach(({ testName, actualMainUtxo, expectedMainUtxo }) => {
@@ -218,7 +259,7 @@ describe("Wallet", () => {
                 )
                 transactionHistory.set(
                   walletLegacyAddress,
-                  walletLegacyTransactionsHistory
+                  walletLegacyTransactionHistory
                 )
                 bitcoinClient.transactionHistory = transactionHistory
 
