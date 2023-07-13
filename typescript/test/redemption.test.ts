@@ -1468,7 +1468,7 @@ describe("Redemption", () => {
               bitcoinClient
             )
           ).to.be.rejectedWith(
-            "Could not find a wallet with enough funds. Maximum redemption amount is 0 Satoshi."
+            "Currently, there are no live wallets in the network."
           )
         })
       }
@@ -1673,6 +1673,61 @@ describe("Redemption", () => {
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
               mainUtxo: expectedWalletData.mainUtxo,
             })
+          })
+        }
+      )
+
+      context(
+        "when all active wallets has pending redemption for a given Bitcoin address",
+        () => {
+          const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
+          const redeemerOutputScript =
+            findWalletForRedemptionData.pendingRedemption.redeemerOutputScript
+
+          beforeEach(async () => {
+            const walletPublicKeyHash =
+              findWalletForRedemptionData.walletWithPendingRedemption.event
+                .walletPublicKeyHash
+
+            const pendingRedemptions = new Map<
+              BigNumberish,
+              RedemptionRequest
+            >()
+
+            const pendingRedemption1 = MockBridge.buildRedemptionKey(
+              walletPublicKeyHash.toString(),
+              redeemerOutputScript
+            )
+
+            const pendingRedemption2 = MockBridge.buildRedemptionKey(
+              findWalletForRedemptionData.liveWallet.event.walletPublicKeyHash.toString(),
+              redeemerOutputScript
+            )
+
+            pendingRedemptions.set(
+              pendingRedemption1,
+              findWalletForRedemptionData.pendingRedemption
+            )
+
+            pendingRedemptions.set(
+              pendingRedemption2,
+              findWalletForRedemptionData.pendingRedemption
+            )
+            bridge.setPendingRedemptions(pendingRedemptions)
+          })
+
+          it("should throw an error", async () => {
+            await expect(
+              findWalletForRedemption(
+                amount,
+                redeemerOutputScript,
+                BitcoinNetwork.Testnet,
+                bridge,
+                bitcoinClient
+              )
+            ).to.be.rejectedWith(
+              "All live wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
+            )
           })
         }
       )
