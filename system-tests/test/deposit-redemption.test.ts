@@ -21,6 +21,7 @@ import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/src
 import type { SystemTestsContext } from "./utils/context"
 import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
 import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
+import { TBTCToken } from "@keep-network/tbtc-v2.ts/dist/src/ethereum"
 
 chai.use(chaiAsPromised)
 
@@ -46,8 +47,10 @@ chai.use(chaiAsPromised)
 describe("System Test - Deposit and redemption", () => {
   let systemTestsContext: SystemTestsContext
   let electrumClient: ElectrumClient
+  let tbtcTokenAddress: string
   let bridgeAddress: string
   let vaultAddress: string
+  let tbtcTokenHandle: TBTCToken
   let maintainerBridgeHandle: EthereumBridge
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
@@ -77,8 +80,14 @@ describe("System Test - Deposit and redemption", () => {
       ELECTRUM_RETRY_BACKOFF_STEP_MS
     )
 
+    tbtcTokenAddress = deployedContracts.TBTC.address
     bridgeAddress = deployedContracts.Bridge.address
     vaultAddress = deployedContracts.TBTCVault.address
+
+    tbtcTokenHandle = new TBTCToken({
+      address: tbtcTokenAddress,
+      signerOrProvider: depositor,
+    })
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
@@ -536,11 +545,12 @@ describe("System Test - Deposit and redemption", () => {
             systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
           )}`
 
-          await depositorBridgeHandle.requestRedemption(
+          await TBTC.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
             requestedAmount,
+            tbtcTokenHandle,
           )
 
           console.log(
