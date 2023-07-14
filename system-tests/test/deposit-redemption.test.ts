@@ -262,12 +262,11 @@ describe("System Test - Deposit and redemption", () => {
             systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
           )}`
 
-          await TBTC.requestRedemption(
+          await depositorBridgeHandle.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
             requestedAmount,
-            depositorBridgeHandle
           )
 
           console.log(

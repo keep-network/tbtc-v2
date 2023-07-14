@@ -26,7 +26,7 @@ import {
   RevealedDeposit,
   DepositRevealedEvent,
 } from "./deposit"
-import { sendWithRetry } from "./ethereum-helpers"
+import { getEvents, sendWithRetry } from "./ethereum-helpers"
 import { RedemptionRequest } from "./redemption"
 import {
   compressPublicKey,
@@ -47,6 +47,7 @@ import type {
   Bridge as ContractBridge,
   Deposit as ContractDeposit,
   Redemption as ContractRedemption,
+  Wallets,
 } from "../typechain/Bridge"
 import type { WalletRegistry as ContractWalletRegistry } from "../typechain/WalletRegistry"
 import type { TBTCVault as ContractTBTCVault } from "../typechain/TBTCVault"
@@ -57,6 +58,8 @@ import {
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   NewWalletRegisteredEvent,
+  Wallet,
+  WalletState,
 } from "./wallet"
 
 type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
@@ -197,6 +200,10 @@ class EthereumContract<T extends EthersContract> {
 
   /**
    * Get events emitted by the Ethereum contract.
+   * It starts searching from provided block number. If the {@link GetEvents.Options#fromBlock}
+   * option is missing it looks for a contract's defined property
+   * {@link _deployedAtBlockNumber}. If the property is missing starts searching
+   * from block `0`.
    * @param eventName Name of the event.
    * @param options Options for events fetching.
    * @param filterArgs Arguments for events filtering.
@@ -212,10 +219,13 @@ class EthereumContract<T extends EthersContract> {
     return backoffRetrier<EthersEvent[]>(
       options?.retries ?? this._totalRetryAttempts
     )(async () => {
-      return await this._instance.queryFilter(
+      return await getEvents(
+        this._instance,
         this._instance.filters[eventName](...filterArgs),
         options?.fromBlock ?? this._deployedAtBlockNumber,
-        options?.toBlock ?? "latest"
+        options?.toBlock,
+        options?.batchedQueryBlockInterval,
+        options?.logger
       )
     })
   }
@@ -282,7 +292,7 @@ export class Bridge
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = this.buildRedemptionKey(
+    const redemptionKey = Bridge.buildRedemptionKey(
       computeHash160(walletPublicKey),
       redeemerOutputScript
     )
@@ -305,7 +315,7 @@ export class Bridge
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = this.buildRedemptionKey(
+    const redemptionKey = Bridge.buildRedemptionKey(
       computeHash160(walletPublicKey),
       redeemerOutputScript
     )
@@ -330,7 +340,7 @@ export class Bridge
    *        un-prefixed and not prepended with length.
    * @returns The redemption key.
    */
-  private buildRedemptionKey(
+  static buildRedemptionKey(
     walletPublicKeyHash: string,
     redeemerOutputScript: string
   ): string {
@@ -632,18 +642,20 @@ export class Bridge
       return undefined
     }
 
-    const { ecdsaWalletID } = await backoffRetrier<{ ecdsaWalletID: string }>(
-      this._totalRetryAttempts
-    )(async () => {
-      return await this._instance.wallets(activeWalletPublicKeyHash)
-    })
-
-    const walletRegistry = await this.walletRegistry()
-    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
-      Hex.from(ecdsaWalletID)
+    const { walletPublicKey } = await this.wallets(
+      Hex.from(activeWalletPublicKeyHash)
     )
 
-    return compressPublicKey(uncompressedPublicKey)
+    return walletPublicKey.toString()
+  }
+
+  private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
+    const walletRegistry = await this.walletRegistry()
+    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
+      ecdsaWalletID
+    )
+
+    return Hex.from(compressPublicKey(uncompressedPublicKey))
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -686,6 +698,69 @@ export class Bridge
       address: ecdsaWalletRegistry,
       signerOrProvider: this._instance.signer || this._instance.provider,
     })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#wallets}
+   */
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    const wallet = await backoffRetrier<Wallets.WalletStructOutput>(
+      this._totalRetryAttempts
+    )(async () => {
+      return await this._instance.wallets(
+        walletPublicKeyHash.toPrefixedString()
+      )
+    })
+
+    return this.parseWalletDetails(wallet)
+  }
+
+  /**
+   * Parses a wallet data using data fetched from the on-chain contract.
+   * @param wallet Data of the wallet.
+   * @returns Parsed wallet data.
+   */
+  private async parseWalletDetails(
+    wallet: Wallets.WalletStructOutput
+  ): Promise<Wallet> {
+    const ecdsaWalletID = Hex.from(wallet.ecdsaWalletID)
+
+    return {
+      ecdsaWalletID,
+      walletPublicKey: await this.getWalletCompressedPublicKey(ecdsaWalletID),
+      mainUtxoHash: Hex.from(wallet.mainUtxoHash),
+      pendingRedemptionsValue: wallet.pendingRedemptionsValue,
+      createdAt: wallet.createdAt,
+      movingFundsRequestedAt: wallet.movingFundsRequestedAt,
+      closingStartedAt: wallet.closingStartedAt,
+      pendingMovedFundsSweepRequestsCount:
+        wallet.pendingMovedFundsSweepRequestsCount,
+      state: WalletState.parse(wallet.state),
+      movingFundsTargetWalletsCommitmentHash: Hex.from(
+        wallet.movingFundsTargetWalletsCommitmentHash
+      ),
+    }
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
+   * `keccak256(txHash | txOutputIndex | txOutputValue)`.
+   *
+   * @see {ChainBridge#buildUtxoHash}
+   */
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
   }
 }
 
@@ -1091,5 +1166,100 @@ export class TBTCToken
     return this._instance.totalSupply({
       blockTag: blockNumber ?? "latest",
     })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainTBTCToken#requestRedemption}
+   */
+  async requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ): Promise<Hex> {
+    const redeemer = await this._instance?.signer?.getAddress()
+    if (!redeemer) {
+      throw new Error("Signer not provided")
+    }
+
+    const vault = await this._instance.owner()
+    const extraData = this.buildRequestRedemptionData(
+      Address.from(redeemer),
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
+
+    const tx = await sendWithRetry<ContractTransaction>(async () => {
+      return await this._instance.approveAndCall(
+        vault,
+        amount,
+        extraData.toPrefixedString()
+      )
+    }, this._totalRetryAttempts)
+
+    return Hex.from(tx.hash)
+  }
+
+  private buildRequestRedemptionData(
+    redeemer: Address,
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
+  ): Hex {
+    const {
+      walletPublicKeyHash,
+      prefixedRawRedeemerOutputScript,
+      mainUtxo: _mainUtxo,
+    } = this.buildBridgeRequestRedemptionData(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
+
+    return Hex.from(
+      utils.defaultAbiCoder.encode(
+        ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
+        [
+          redeemer.identifierHex,
+          walletPublicKeyHash,
+          _mainUtxo.txHash,
+          _mainUtxo.txOutputIndex,
+          _mainUtxo.txOutputValue,
+          prefixedRawRedeemerOutputScript,
+        ]
+      )
+    )
+  }
+
+  private buildBridgeRequestRedemptionData(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string
+  ) {
+    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+
+    const mainUtxoParam = {
+      // The Ethereum Bridge expects this hash to be in the Bitcoin internal
+      // byte order.
+      txHash: mainUtxo.transactionHash.reverse().toPrefixedString(),
+      txOutputIndex: mainUtxo.outputIndex,
+      txOutputValue: mainUtxo.value,
+    }
+
+    // Convert the output script to raw bytes buffer.
+    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    // Prefix the output script bytes buffer with 0x and its own length.
+    const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
+      Buffer.from([rawRedeemerOutputScript.length]),
+      rawRedeemerOutputScript,
+    ]).toString("hex")}`
+
+    return {
+      walletPublicKeyHash,
+      mainUtxo: mainUtxoParam,
+      prefixedRawRedeemerOutputScript,
+    }
   }
 }

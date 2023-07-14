@@ -17,7 +17,6 @@ pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import {BytesLib} from "@keep-network/bitcoin-spv-sol/contracts/BytesLib.sol";
-import {IWalletRegistry as EcdsaWalletRegistry} from "@keep-network/ecdsa/contracts/api/IWalletRegistry.sol";
 import "@keep-network/random-beacon/contracts/Reimbursable.sol";
 import "@keep-network/random-beacon/contracts/ReimbursementPool.sol";
 
@@ -26,6 +25,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./BitcoinTx.sol";
 import "./Bridge.sol";
 import "./Deposit.sol";
+import "./Redemption.sol";
 import "./Wallets.sol";
 
 /// @title Wallet coordinator.
@@ -49,6 +49,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     enum WalletAction {
         /// @dev The wallet does not perform any action.
         Idle,
+        /// @dev The wallet is executing heartbeat.
+        Heartbeat,
         /// @dev The wallet is handling a deposit sweep action.
         DepositSweep,
         /// @dev The wallet is handling a redemption action.
@@ -70,13 +72,6 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         WalletAction cause;
     }
 
-    /// @notice Helper structure carrying data necessary to validate the wallet
-    ///         membership of the caller.
-    struct WalletMemberContext {
-        uint32[] walletMembersIDs;
-        uint256 walletMemberIndex;
-    }
-
     /// @notice Helper structure representing a deposit sweep proposal.
     struct DepositSweepProposal {
         // 20-byte public key hash of the target wallet.
@@ -85,6 +80,16 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         DepositKey[] depositsKeys;
         // Proposed BTC fee for the entire transaction.
         uint256 sweepTxFee;
+        // Array containing the reveal blocks of each deposit. This information
+        // strongly facilitates the off-chain processing. Using those blocks,
+        // wallet operators can quickly fetch corresponding Bridge.DepositRevealed
+        // events carrying deposit data necessary to perform proposal validation.
+        // This field is not explicitly validated within the validateDepositSweepProposal
+        // function because if something is wrong here the off-chain wallet
+        // operators will fail anyway as they won't be able to gather deposit
+        // data necessary to perform the on-chain validation using the
+        // validateDepositSweepProposal function.
+        uint256[] depositsRevealBlocks;
     }
 
     /// @notice Helper structure representing a plain-text deposit key.
@@ -116,8 +121,22 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         bytes4 refundLocktime;
     }
 
-    /// @notice Mapping that holds addresses allowed to submit proposals.
-    mapping(address => bool) public isProposalSubmitter;
+    /// @notice Helper structure representing a redemption proposal.
+    struct RedemptionProposal {
+        // 20-byte public key hash of the target wallet.
+        bytes20 walletPubKeyHash;
+        // Array of the redeemers' output scripts that should be part of
+        // the redemption. Each output script MUST BE prefixed by its byte
+        // length, i.e. passed in the exactly same format as during the
+        // `Bridge.requestRedemption` transaction.
+        bytes[] redeemersOutputScripts;
+        // Proposed BTC fee for the entire transaction.
+        uint256 redemptionTxFee;
+    }
+
+    /// @notice Mapping that holds addresses allowed to submit proposals and
+    ///         request heartbeats.
+    mapping(address => bool) public isCoordinator;
 
     /// @notice Mapping that holds wallet time locks. The key is a 20-byte
     ///         wallet public key hash.
@@ -126,8 +145,20 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     /// @notice Handle to the Bridge contract.
     Bridge public bridge;
 
-    /// @notice Handle to the WalletRegistry contract.
-    EcdsaWalletRegistry public walletRegistry;
+    /// @notice Determines the wallet heartbeat request validity time. In other
+    ///         words, this is  the worst-case time for a wallet heartbeat
+    ///         during which the wallet is busy and canot take other actions.
+    ///         This is also the duration of the time lock applied to the wallet
+    ///         once a new heartbeat request is submitted.
+    ///
+    ///         For example, if a deposit sweep proposal was submitted at
+    ///         2 pm and heartbeatRequestValidity is 1 hour, the next request or
+    ///         proposal (of any type) can be submitted after 3 pm.
+    uint32 public heartbeatRequestValidity;
+
+    /// @notice Gas that is meant to balance the heartbeat request overall cost.
+    ///         Can be updated by the owner based on the current conditions.
+    uint32 public heartbeatRequestGasOffset;
 
     /// @notice Determines the deposit sweep proposal validity time. In other
     ///         words, this is the worst-case time for a deposit sweep during
@@ -175,61 +206,103 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
     /// @notice Gas that is meant to balance the deposit sweep proposal
     ///         submission overall cost. Can be updated by the owner based on
-    ///         the current market conditions.
+    ///         the current conditions.
     uint32 public depositSweepProposalSubmissionGasOffset;
 
-    event ProposalSubmitterAdded(address indexed proposalSubmitter);
+    /// @notice Determines the redemption proposal validity time. In other
+    ///         words, this is the worst-case time for a redemption during
+    ///         which the wallet is busy and cannot take another actions. This
+    ///         is also the duration of the time lock applied to the wallet
+    ///         once a new redemption proposal is submitted.
+    ///
+    ///         For example, if a redemption proposal was submitted at
+    ///         2 pm and redemptionProposalValidity is 2 hours, the next
+    ///         proposal (of any type) can be submitted after 4 pm.
+    uint32 public redemptionProposalValidity;
 
-    event ProposalSubmitterRemoved(address indexed proposalSubmitter);
+    /// @notice The minimum time that must elapse since the redemption request
+    ///         creation before a request becomes eligible for a processing.
+    ///
+    ///         For example, if a request was created at 9 am and
+    ///         redemptionRequestMinAge is 2 hours, the request is eligible for
+    ///         processing after 11 am.
+    ///
+    /// @dev Forcing request minimum age ensures block finality for Ethereum.
+    uint32 public redemptionRequestMinAge;
+
+    /// @notice Each redemption request can be technically handled until it
+    ///         reaches its timeout timestamp after which it can be reported
+    ///         as timed out. However, allowing the wallet to handle requests
+    ///         that are close to their timeout timestamp may cause a race
+    ///         between the wallet and the redeemer. In result, the wallet may
+    ///         redeem the requested funds even though the redeemer already
+    ///         received back their tBTC (locked during redemption request) upon
+    ///         reporting the request timeout. In effect, the redeemer may end
+    ///         out with both tBTC and redeemed BTC in their hands which has
+    ///         a negative impact on the tBTC <-> BTC peg. In order to mitigate
+    ///         that problem, this parameter determines a safety margin that
+    ///         puts the latest moment a request can be handled far before the
+    ///         point after which the request can be reported as timed out.
+    ///
+    ///         For example, if a request times out after 8 pm and
+    ///         redemptionRequestTimeoutSafetyMargin is 2 hours, the request is
+    ///         valid for processing only before 6 pm.
+    uint32 public redemptionRequestTimeoutSafetyMargin;
+
+    /// @notice The maximum count of redemption requests that can be processed
+    ///         within a single redemption.
+    uint16 public redemptionMaxSize;
+
+    /// @notice Gas that is meant to balance the redemption proposal
+    ///         submission overall cost. Can be updated by the owner based on
+    ///         the current conditions.
+    uint32 public redemptionProposalSubmissionGasOffset;
+
+    event CoordinatorAdded(address indexed coordinator);
+
+    event CoordinatorRemoved(address indexed coordinator);
 
     event WalletManuallyUnlocked(bytes20 indexed walletPubKeyHash);
 
-    event DepositSweepProposalValidityUpdated(
-        uint32 depositSweepProposalValidity
+    event HeartbeatRequestParametersUpdated(
+        uint32 heartbeatRequestValidity,
+        uint32 heartbeatRequestGasOffset
     );
 
-    event DepositMinAgeUpdated(uint32 depositMinAge);
+    event HeartbeatRequestSubmitted(
+        bytes20 walletPubKeyHash,
+        bytes message,
+        address indexed coordinator
+    );
 
-    event DepositRefundSafetyMarginUpdated(uint32 depositRefundSafetyMargin);
-
-    event DepositSweepMaxSizeUpdated(uint16 depositSweepMaxSize);
-
-    event DepositSweepProposalSubmissionGasOffsetUpdated(
+    event DepositSweepProposalParametersUpdated(
+        uint32 depositSweepProposalValidity,
+        uint32 depositMinAge,
+        uint32 depositRefundSafetyMargin,
+        uint16 depositSweepMaxSize,
         uint32 depositSweepProposalSubmissionGasOffset
     );
 
     event DepositSweepProposalSubmitted(
         DepositSweepProposal proposal,
-        address indexed proposalSubmitter
+        address indexed coordinator
     );
 
-    // TODO: Enhance this modifier by adding the coordinator role check. See:
-    //       https://github.com/keep-network/tbtc-v2/pull/575#discussion_r1151564813
-    modifier onlyProposalSubmitterOrWalletMember(
-        bytes20 walletPubKeyHash,
-        WalletMemberContext calldata walletMemberContext
-    ) {
-        bool proposalSubmitter = isProposalSubmitter[msg.sender];
-        bool walletMember = false;
+    event RedemptionProposalParametersUpdated(
+        uint32 redemptionProposalValidity,
+        uint32 redemptionRequestMinAge,
+        uint32 redemptionRequestTimeoutSafetyMargin,
+        uint16 redemptionMaxSize,
+        uint32 redemptionProposalSubmissionGasOffset
+    );
 
-        if (!proposalSubmitter) {
-            bytes32 ecdsaWalletID = bridge
-                .wallets(walletPubKeyHash)
-                .ecdsaWalletID;
+    event RedemptionProposalSubmitted(
+        RedemptionProposal proposal,
+        address indexed coordinator
+    );
 
-            walletMember = walletRegistry.isWalletMember(
-                ecdsaWalletID,
-                walletMemberContext.walletMembersIDs,
-                msg.sender,
-                walletMemberContext.walletMemberIndex
-            );
-        }
-
-        require(
-            proposalSubmitter || walletMember,
-            "Caller is neither a proposal submitter nor a wallet member"
-        );
-
+    modifier onlyCoordinator() {
+        require(isCoordinator[msg.sender], "Caller is not a coordinator");
         _;
     }
 
@@ -251,49 +324,51 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         __Ownable_init();
 
         bridge = _bridge;
-        // Pre-fetch wallet registry address to save gas on calls protected
-        // by the onlyProposalSubmitterOrWalletMember modifier.
-        (, , walletRegistry, reimbursementPool) = _bridge.contractReferences();
+        // Pre-fetch addresses to save gas later.
+        (, , , reimbursementPool) = _bridge.contractReferences();
+
+        heartbeatRequestValidity = 1 hours;
+        heartbeatRequestGasOffset = 10_000;
 
         depositSweepProposalValidity = 4 hours;
         depositMinAge = 2 hours;
         depositRefundSafetyMargin = 24 hours;
         depositSweepMaxSize = 5;
-        depositSweepProposalSubmissionGasOffset = 25000;
+        depositSweepProposalSubmissionGasOffset = 20_000; // optimized for 10 inputs
+
+        redemptionProposalValidity = 2 hours;
+        redemptionRequestMinAge = 600; // 10 minutes or ~50 blocks.
+        redemptionRequestTimeoutSafetyMargin = 2 hours;
+        redemptionMaxSize = 20;
+        redemptionProposalSubmissionGasOffset = 20_000;
     }
 
-    /// @notice Adds the given address to the proposal submitters set.
-    /// @param proposalSubmitter Address of the new proposal submitter.
+    /// @notice Adds the given address to the set of coordinator addresses.
+    /// @param coordinator Address of the new coordinator.
     /// @dev Requirements:
     ///      - The caller must be the owner,
-    ///      - The `proposalSubmitter` must not be an existing proposal submitter.
-    function addProposalSubmitter(address proposalSubmitter)
-        external
-        onlyOwner
-    {
+    ///      - The `coordinator` must not be an existing coordinator.
+    function addCoordinator(address coordinator) external onlyOwner {
         require(
-            !isProposalSubmitter[proposalSubmitter],
-            "This address is already a proposal submitter"
+            !isCoordinator[coordinator],
+            "This address is already a coordinator"
         );
-        isProposalSubmitter[proposalSubmitter] = true;
-        emit ProposalSubmitterAdded(proposalSubmitter);
+        isCoordinator[coordinator] = true;
+        emit CoordinatorAdded(coordinator);
     }
 
-    /// @notice Removes the given address from the proposal submitters set.
-    /// @param proposalSubmitter Address of the existing proposal submitter.
+    /// @notice Removes the given address from the set of coordinator addresses.
+    /// @param coordinator Address of the existing coordinator.
     /// @dev Requirements:
     ///      - The caller must be the owner,
-    ///      - The `proposalSubmitter` must be an existing proposal submitter.
-    function removeProposalSubmitter(address proposalSubmitter)
-        external
-        onlyOwner
-    {
+    ///      - The `coordinator` must be an existing coordinator.
+    function removeCoordinator(address coordinator) external onlyOwner {
         require(
-            isProposalSubmitter[proposalSubmitter],
-            "This address is not a proposal submitter"
+            isCoordinator[coordinator],
+            "This address is not a coordinator"
         );
-        delete isProposalSubmitter[proposalSubmitter];
-        emit ProposalSubmitterRemoved(proposalSubmitter);
+        delete isCoordinator[coordinator];
+        emit CoordinatorRemoved(coordinator);
     }
 
     /// @notice Allows to unlock the given wallet before their time lock expires.
@@ -309,61 +384,96 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         emit WalletManuallyUnlocked(walletPubKeyHash);
     }
 
-    /// @notice Updates the value of the depositSweepProposalValidity parameter.
-    /// @param _depositSweepProposalValidity New value.
+    /// @notice Updates parameters related to heartbeat request.
+    /// @param _heartbeatRequestValidity The new value of `heartbeatRequestValidity`.
+    /// @param _heartbeatRequestGasOffset The new value of `heartbeatRequestGasOffset`.
     /// @dev Requirements:
     ///      - The caller must be the owner.
-    function updateDepositSweepProposalValidity(
-        uint32 _depositSweepProposalValidity
+    function updateHeartbeatRequestParameters(
+        uint32 _heartbeatRequestValidity,
+        uint32 _heartbeatRequestGasOffset
     ) external onlyOwner {
-        depositSweepProposalValidity = _depositSweepProposalValidity;
-        emit DepositSweepProposalValidityUpdated(_depositSweepProposalValidity);
+        heartbeatRequestValidity = _heartbeatRequestValidity;
+        heartbeatRequestGasOffset = _heartbeatRequestGasOffset;
+        emit HeartbeatRequestParametersUpdated(
+            _heartbeatRequestValidity,
+            _heartbeatRequestGasOffset
+        );
     }
 
-    /// @notice Updates the value of the depositMinAge parameter.
-    /// @param _depositMinAge New value.
+    /// @notice Updates parameters related to deposit sweep proposal.
+    /// @param _depositSweepProposalValidity The new value of `depositSweepProposalValidity`.
+    /// @param _depositMinAge The new value of `depositMinAge`.
+    /// @param _depositRefundSafetyMargin The new value of `depositRefundSafetyMargin`.
+    /// @param _depositSweepMaxSize The new value of `depositSweepMaxSize`.
     /// @dev Requirements:
     ///      - The caller must be the owner.
-    function updateDepositMinAge(uint32 _depositMinAge) external onlyOwner {
-        depositMinAge = _depositMinAge;
-        emit DepositMinAgeUpdated(_depositMinAge);
-    }
-
-    /// @notice Updates the value of the depositRefundSafetyMargin parameter.
-    /// @param _depositRefundSafetyMargin New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositRefundSafetyMargin(uint32 _depositRefundSafetyMargin)
-        external
-        onlyOwner
-    {
-        depositRefundSafetyMargin = _depositRefundSafetyMargin;
-        emit DepositRefundSafetyMarginUpdated(_depositRefundSafetyMargin);
-    }
-
-    /// @notice Updates the value of the depositSweepMaxSize parameter.
-    /// @param _depositSweepMaxSize New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepMaxSize(uint16 _depositSweepMaxSize)
-        external
-        onlyOwner
-    {
-        depositSweepMaxSize = _depositSweepMaxSize;
-        emit DepositSweepMaxSizeUpdated(_depositSweepMaxSize);
-    }
-
-    /// @notice Updates the value of the depositSweepProposalSubmissionGasOffset
-    ///         parameter.
-    /// @param _depositSweepProposalSubmissionGasOffset New value.
-    /// @dev Requirements:
-    ///      - The caller must be the owner.
-    function updateDepositSweepProposalSubmissionGasOffset(
+    function updateDepositSweepProposalParameters(
+        uint32 _depositSweepProposalValidity,
+        uint32 _depositMinAge,
+        uint32 _depositRefundSafetyMargin,
+        uint16 _depositSweepMaxSize,
         uint32 _depositSweepProposalSubmissionGasOffset
     ) external onlyOwner {
+        depositSweepProposalValidity = _depositSweepProposalValidity;
+        depositMinAge = _depositMinAge;
+        depositRefundSafetyMargin = _depositRefundSafetyMargin;
+        depositSweepMaxSize = _depositSweepMaxSize;
         depositSweepProposalSubmissionGasOffset = _depositSweepProposalSubmissionGasOffset;
-        emit DepositSweepProposalSubmissionGasOffsetUpdated(
+
+        emit DepositSweepProposalParametersUpdated(
+            _depositSweepProposalValidity,
+            _depositMinAge,
+            _depositRefundSafetyMargin,
+            _depositSweepMaxSize,
             _depositSweepProposalSubmissionGasOffset
+        );
+    }
+
+    /// @notice Submits a heartbeat request from the wallet. Locks the wallet
+    ///         for a specific time, equal to the request validity period.
+    ///         This function validates the proposed heartbeat messge to see
+    ///         if it matches the heartbeat format expected by the Bridge.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet that is
+    ///        supposed to execute the heartbeat.
+    /// @param message The proposed heartbeat message for the wallet to sign.
+    /// @dev Requirements:
+    ///      - The caller is a coordinator,
+    ///      - The wallet is not time-locked,
+    ///      - The message to sign is a valid heartbeat message.
+    function requestHeartbeat(bytes20 walletPubKeyHash, bytes calldata message)
+        public
+        onlyCoordinator
+        onlyAfterWalletLock(walletPubKeyHash)
+    {
+        require(
+            Heartbeat.isValidHeartbeatMessage(message),
+            "Not a valid heartbeat message"
+        );
+
+        walletLock[walletPubKeyHash] = WalletLock(
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp) + heartbeatRequestValidity,
+            WalletAction.Heartbeat
+        );
+
+        emit HeartbeatRequestSubmitted(walletPubKeyHash, message, msg.sender);
+    }
+
+    /// @notice Wraps `requestHeartbeat` call and reimburses the caller's
+    ///         transaction cost.
+    /// @dev See `requestHeartbeat` function documentation.
+    function requestHeartbeatWithReimbursement(
+        bytes20 walletPubKeyHash,
+        bytes calldata message
+    ) external {
+        uint256 gasStart = gasleft();
+
+        requestHeartbeat(walletPubKeyHash, message);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + heartbeatRequestGasOffset,
+            msg.sender
         );
     }
 
@@ -374,23 +484,12 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         off-chain members. Wallet members are supposed to validate
     ///         the proposal on their own, before taking any action.
     /// @param proposal The deposit sweep proposal
-    /// @param walletMemberContext Optional parameter holding some data allowing
-    ///        to confirm the wallet membership of the caller. This parameter is
-    ///        relevant only when the caller is not a registered proposal
-    ///        submitter but claims to be a member of the target wallet.
     /// @dev Requirements:
-    ///      - The caller is either a proposal submitter or a member of the
-    ///        target wallet,
+    ///      - The caller is a coordinator,
     ///      - The wallet is not time-locked.
-    function submitDepositSweepProposal(
-        DepositSweepProposal calldata proposal,
-        WalletMemberContext calldata walletMemberContext
-    )
+    function submitDepositSweepProposal(DepositSweepProposal calldata proposal)
         public
-        onlyProposalSubmitterOrWalletMember(
-            proposal.walletPubKeyHash,
-            walletMemberContext
-        )
+        onlyCoordinator
         onlyAfterWalletLock(proposal.walletPubKeyHash)
     {
         walletLock[proposal.walletPubKeyHash] = WalletLock(
@@ -406,12 +505,11 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         caller's transaction cost.
     /// @dev See `submitDepositSweepProposal` function documentation.
     function submitDepositSweepProposalWithReimbursement(
-        DepositSweepProposal calldata proposal,
-        WalletMemberContext calldata walletMemberContext
+        DepositSweepProposal calldata proposal
     ) external {
         uint256 gasStart = gasleft();
 
-        submitDepositSweepProposal(proposal, walletMemberContext);
+        submitDepositSweepProposal(proposal);
 
         reimbursementPool.refund(
             (gasStart - gasleft()) + depositSweepProposalSubmissionGasOffset,
@@ -433,6 +531,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///         supposed to do that check on their own.
     /// @param proposal The sweeping proposal to validate.
     /// @param depositsExtraInfo Deposits extra data required to perform the validation.
+    /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
     ///      - The target wallet must be in the Live state,
     ///      - The number of deposits included in the sweep must be in
@@ -450,7 +549,8 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     ///      - Each deposit must have valid extra data (see `validateDepositExtraInfo`),
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
-    ///      - Each deposit must target the same vault.
+    ///      - Each deposit must target the same vault,
+    ///      - Each deposit must be unique.
     ///
     ///      The following off-chain validation must be performed as a bare minimum:
     ///      - Inputs used for the sweep transaction have enough Bitcoin confirmations,
@@ -458,7 +558,7 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
     function validateDepositSweepProposal(
         DepositSweepProposal calldata proposal,
         DepositExtraInfo[] calldata depositsExtraInfo
-    ) external view {
+    ) external view returns (bool) {
         require(
             bridge.wallets(proposal.walletPubKeyHash).state ==
                 Wallets.WalletState.Live,
@@ -481,20 +581,26 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
 
         address proposalVault = address(0);
 
+        uint256[] memory processedDepositKeys = new uint256[](
+            proposal.depositsKeys.length
+        );
+
         for (uint256 i = 0; i < proposal.depositsKeys.length; i++) {
             DepositKey memory depositKey = proposal.depositsKeys[i];
             DepositExtraInfo memory depositExtraInfo = depositsExtraInfo[i];
 
-            // slither-disable-next-line calls-loop
-            Deposit.DepositRequest memory depositRequest = bridge.deposits(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            depositKey.fundingTxHash,
-                            depositKey.fundingOutputIndex
-                        )
+            uint256 depositKeyUint = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        depositKey.fundingTxHash,
+                        depositKey.fundingOutputIndex
                     )
                 )
+            );
+
+            // slither-disable-next-line calls-loop
+            Deposit.DepositRequest memory depositRequest = bridge.deposits(
+                depositKeyUint
             );
 
             require(depositRequest.revealedAt != 0, "Deposit not revealed");
@@ -537,7 +643,19 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
                 depositRequest.vault == proposalVault,
                 "Deposit targets different vault"
             );
+
+            // Make sure there are no duplicates in the deposits list.
+            for (uint256 j = 0; j < i; j++) {
+                require(
+                    processedDepositKeys[j] != depositKeyUint,
+                    "Duplicated deposit"
+                );
+            }
+
+            processedDepositKeys[i] = depositKeyUint;
         }
+
+        return true;
     }
 
     /// @notice Validates the sweep tx fee by checking if the part of the fee
@@ -667,5 +785,219 @@ contract WalletCoordinator is OwnableUpgradeable, Reimbursable {
         }
 
         revert("Extra info funding output script does not match");
+    }
+
+    /// @notice Updates parameters related to redemption proposal.
+    /// @param _redemptionProposalValidity The new value of `redemptionProposalValidity`.
+    /// @param _redemptionRequestMinAge The new value of `redemptionRequestMinAge`.
+    /// @param _redemptionRequestTimeoutSafetyMargin The new value of
+    ///        `redemptionRequestTimeoutSafetyMargin`.
+    /// @param _redemptionMaxSize The new value of `redemptionMaxSize`.
+    /// @param _redemptionProposalSubmissionGasOffset The new value of
+    ///        `redemptionProposalSubmissionGasOffset`.
+    /// @dev Requirements:
+    ///      - The caller must be the owner.
+    function updateRedemptionProposalParameters(
+        uint32 _redemptionProposalValidity,
+        uint32 _redemptionRequestMinAge,
+        uint32 _redemptionRequestTimeoutSafetyMargin,
+        uint16 _redemptionMaxSize,
+        uint32 _redemptionProposalSubmissionGasOffset
+    ) external onlyOwner {
+        redemptionProposalValidity = _redemptionProposalValidity;
+        redemptionRequestMinAge = _redemptionRequestMinAge;
+        redemptionRequestTimeoutSafetyMargin = _redemptionRequestTimeoutSafetyMargin;
+        redemptionMaxSize = _redemptionMaxSize;
+        redemptionProposalSubmissionGasOffset = _redemptionProposalSubmissionGasOffset;
+
+        emit RedemptionProposalParametersUpdated(
+            _redemptionProposalValidity,
+            _redemptionRequestMinAge,
+            _redemptionRequestTimeoutSafetyMargin,
+            _redemptionMaxSize,
+            _redemptionProposalSubmissionGasOffset
+        );
+    }
+
+    /// @notice Submits a redemption proposal. Locks the target wallet
+    ///         for a specific time, equal to the proposal validity period.
+    ///         This function does not store the proposal in the state but
+    ///         just emits an event that serves as a guiding light for wallet
+    ///         off-chain members. Wallet members are supposed to validate
+    ///         the proposal on their own, before taking any action.
+    /// @param proposal The redemption proposal
+    /// @dev Requirements:
+    ///      - The caller is a coordinator,
+    ///      - The wallet is not time-locked.
+    function submitRedemptionProposal(RedemptionProposal calldata proposal)
+        public
+        onlyCoordinator
+        onlyAfterWalletLock(proposal.walletPubKeyHash)
+    {
+        walletLock[proposal.walletPubKeyHash] = WalletLock(
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp) + redemptionProposalValidity,
+            WalletAction.Redemption
+        );
+
+        emit RedemptionProposalSubmitted(proposal, msg.sender);
+    }
+
+    /// @notice Wraps `submitRedemptionProposal` call and reimburses the
+    ///         caller's transaction cost.
+    /// @dev See `submitRedemptionProposal` function documentation.
+    function submitRedemptionProposalWithReimbursement(
+        RedemptionProposal calldata proposal
+    ) external {
+        uint256 gasStart = gasleft();
+
+        submitRedemptionProposal(proposal);
+
+        reimbursementPool.refund(
+            (gasStart - gasleft()) + redemptionProposalSubmissionGasOffset,
+            msg.sender
+        );
+    }
+
+    /// @notice View function encapsulating the main rules of a valid redemption
+    ///         proposal. This function is meant to facilitate the off-chain
+    ///         validation of the incoming proposals. Thanks to it, most
+    ///         of the work can be done using a single readonly contract call.
+    /// @param proposal The redemption proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - The target wallet must be in the Live state,
+    ///      - The number of redemption requests included in the redemption
+    ///        proposal must be in the range [1, `redemptionMaxSize`],
+    ///      - The proposed redemption tx fee must be grater than zero,
+    ///      - The proposed redemption tx fee must be lesser than or equal to
+    ///        the maximum total fee allowed by the Bridge
+    ///        (`Bridge.redemptionTxMaxTotalFee`),
+    ///      - The proposed maximum per-request redemption tx fee share must be
+    ///        lesser than or equal to the maximum fee share allowed by the
+    ///        given request (`RedemptionRequest.txMaxFee`),
+    ///      - Each request must be a pending request registered in the Bridge,
+    ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
+    ///        elapsed since their creation time,
+    ///      - Each request must have the timeout safety margin preserved,
+    ///      - Each request must be unique.
+    function validateRedemptionProposal(RedemptionProposal calldata proposal)
+        external
+        view
+        returns (bool)
+    {
+        require(
+            bridge.wallets(proposal.walletPubKeyHash).state ==
+                Wallets.WalletState.Live,
+            "Wallet is not in Live state"
+        );
+
+        uint256 requestsCount = proposal.redeemersOutputScripts.length;
+
+        require(requestsCount > 0, "Redemption below the min size");
+
+        require(
+            requestsCount <= redemptionMaxSize,
+            "Redemption exceeds the max size"
+        );
+
+        (
+            ,
+            ,
+            ,
+            uint64 redemptionTxMaxTotalFee,
+            uint32 redemptionTimeout,
+            ,
+
+        ) = bridge.redemptionParameters();
+
+        require(
+            proposal.redemptionTxFee > 0,
+            "Proposed transaction fee cannot be zero"
+        );
+
+        // Make sure the proposed fee does not exceed the total fee limit.
+        require(
+            proposal.redemptionTxFee <= redemptionTxMaxTotalFee,
+            "Proposed transaction fee is too high"
+        );
+
+        // Compute the indivisible remainder that remains after dividing the
+        // redemption transaction fee over all requests evenly.
+        uint256 redemptionTxFeeRemainder = proposal.redemptionTxFee %
+            requestsCount;
+        // Compute the transaction fee per request by dividing the redemption
+        // transaction fee (reduced by the remainder) by the number of requests.
+        uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
+            redemptionTxFeeRemainder) / requestsCount;
+
+        uint256[] memory processedRedemptionKeys = new uint256[](requestsCount);
+
+        for (uint256 i = 0; i < requestsCount; i++) {
+            bytes memory script = proposal.redeemersOutputScripts[i];
+
+            // As the wallet public key hash is part of the redemption key,
+            // we have an implicit guarantee that all requests being part
+            // of the proposal target the same wallet.
+            uint256 redemptionKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        keccak256(script),
+                        proposal.walletPubKeyHash
+                    )
+                )
+            );
+
+            // slither-disable-next-line calls-loop
+            Redemption.RedemptionRequest memory redemptionRequest = bridge
+                .pendingRedemptions(redemptionKey);
+
+            require(
+                redemptionRequest.requestedAt != 0,
+                "Not a pending redemption request"
+            );
+
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp >
+                    redemptionRequest.requestedAt + redemptionRequestMinAge,
+                "Redemption request min age not achieved yet"
+            );
+
+            // Calculate the timeout the given request times out at.
+            uint32 requestTimeout = redemptionRequest.requestedAt +
+                redemptionTimeout;
+            // Make sure we are far enough from the moment the request times out.
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp <
+                    requestTimeout - redemptionRequestTimeoutSafetyMargin,
+                "Redemption request timeout safety margin is not preserved"
+            );
+
+            uint256 feePerRequest = redemptionTxFeePerRequest;
+            // The last request incurs the fee remainder.
+            if (i == requestsCount - 1) {
+                feePerRequest += redemptionTxFeeRemainder;
+            }
+            // Make sure the redemption transaction fee share incurred by
+            // the given request fits in the limit for that request.
+            require(
+                feePerRequest <= redemptionRequest.txMaxFee,
+                "Proposed transaction per-request fee share is too high"
+            );
+
+            // Make sure there are no duplicates in the requests list.
+            for (uint256 j = 0; j < i; j++) {
+                require(
+                    processedRedemptionKeys[j] != redemptionKey,
+                    "Duplicated request"
+                );
+            }
+
+            processedRedemptionKeys[i] = redemptionKey;
+        }
+
+        return true;
     }
 }

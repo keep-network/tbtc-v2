@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "1.3.0-dev",
+  "version": "1.6.0-dev",
   "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
@@ -69,6 +69,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.7",
     "solhint-config-keep": "github:keep-network/solhint-config-keep",
+    "solidity-docgen": "^0.6.0-beta.34",
     "ts-node": "^10.4.0",
     "typechain": "^6.1.0",
     "typescript": "^4.5.4"

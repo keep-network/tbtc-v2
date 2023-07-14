@@ -1,0 +1,19 @@
+{
+  "root": true,
+  "extends": ["@thesis-co"],
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
+  "env": {
+    "es6": true,
+    "mocha": true
+  },
+  "rules": {
+    "new-cap": "off",
+    "no-promise-executor-return": "off",
+    "import/no-extraneous-dependencies": "off",
+    "@typescript-eslint/no-use-before-define": "off",
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }]
+  }
+}

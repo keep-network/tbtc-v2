@@ -1,4 +1,4 @@
-import bcoin, { TX } from "bcoin"
+import bcoin, { TX, Script } from "bcoin"
 import wif from "wif"
 import bufio from "bufio"
 import hash160 from "bcrypto/lib/hash160"
@@ -334,6 +334,18 @@ export interface Client {
   ): Promise<UnspentTransactionOutput[]>
 
   /**
+   * Gets the history of confirmed transactions for given Bitcoin address.
+   * Returned transactions are sorted from oldest to newest. The returned
+   * result does not contain unconfirmed transactions living in the mempool
+   * at the moment of request.
+   * @param address - Bitcoin address transaction history should be determined for.
+   * @param limit - Optional parameter that can limit the resulting list to
+   *        a specific number of last transaction. For example, limit = 5 will
+   *        return only the last 5 transactions for the given address.
+   */
+  getTransactionHistory(address: string, limit?: number): Promise<Transaction[]>
+
+  /**
    * Gets the full transaction object for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Transaction object.
@@ -602,4 +614,28 @@ export function isPublicKeyHashLength(publicKeyHash: string): boolean {
 export function locktimeToNumber(locktimeLE: Buffer | string): number {
   const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
   return BigNumber.from(locktimeBE).toNumber()
+}
+
+/**
+ * Creates the output script from the BTC address.
+ * @param address BTC address.
+ * @returns The un-prefixed and not prepended with length output script.
+ */
+export function createOutputScriptFromAddress(address: string): Hex {
+  return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
+}
+
+/**
+ * Creates the Bitcoin address from the output script.
+ * @param script The unprefixed and not prepended with length output script.
+ * @param network Bitcoin network.
+ * @returns The Bitcoin address.
+ */
+export function createAddressFromOutputScript(
+  script: Hex,
+  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+): string {
+  return Script.fromRaw(script.toString(), "hex")
+    .getAddress()
+    ?.toString(toBcoinNetwork(network))
 }

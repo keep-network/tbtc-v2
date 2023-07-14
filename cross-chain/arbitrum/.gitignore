@@ -9,7 +9,9 @@
 /deployments/*
 !/deployments/mainnet/
 !/deployments/arbitrumOne/
+!/deployments/arbitrumGoerli/
 
 # OZ
 /.openzeppelin/unknown-*.json
 !/.openzeppelin/unknown-42161.json
+!/.openzeppelin/unknown-421613.json

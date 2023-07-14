@@ -11,11 +11,14 @@ import {
   hashLEToBigNumber,
   bitsToTarget,
   targetToDifficulty,
+  createOutputScriptFromAddress,
+  createAddressFromOutputScript,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
+import { btcAddresses } from "./data/bitcoin"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -462,6 +465,45 @@ describe("Bitcoin", () => {
       )
       const expectedDifficulty = BigNumber.from("1")
       expect(targetToDifficulty(target)).to.equal(expectedDifficulty)
+    })
+  })
+
+  describe("createOutputScriptFromAddress", () => {
+    Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
+      context(`with ${bitcoinNetwork} addresses`, () => {
+        Object.entries(
+          btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
+        ).forEach(
+          ([addressType, { address, scriptPubKey: expectedOutputScript }]) => {
+            it(`should create correct output script for ${addressType} address type`, () => {
+              const result = createOutputScriptFromAddress(address)
+
+              expect(result.toString()).to.eq(expectedOutputScript.toString())
+            })
+          }
+        )
+      })
+    })
+  })
+
+  describe("getAddressFromScriptPubKey", () => {
+    Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
+      context(`with ${bitcoinNetwork} addresses`, () => {
+        Object.entries(
+          btcAddresses[bitcoinNetwork as keyof typeof btcAddresses]
+        ).forEach(([addressType, { address, scriptPubKey }]) => {
+          it(`should return correct ${addressType} address`, () => {
+            const result = createAddressFromOutputScript(
+              scriptPubKey,
+              bitcoinNetwork === "mainnet"
+                ? BitcoinNetwork.Mainnet
+                : BitcoinNetwork.Testnet
+            )
+
+            expect(result.toString()).to.eq(address)
+          })
+        })
+      })
     })
   })
 })

@@ -50,10 +50,11 @@ export const walletState = {
 
 export const walletAction = {
   Idle: 0,
-  DepositSweep: 1,
-  Redemption: 2,
-  MovingFunds: 3,
-  MovedFundsSweep: 4,
+  Heartbeat: 1,
+  DepositSweep: 2,
+  Redemption: 3,
+  MovingFunds: 4,
+  MovedFundsSweep: 5,
 }
 
 export const ecdsaDkgState = {
