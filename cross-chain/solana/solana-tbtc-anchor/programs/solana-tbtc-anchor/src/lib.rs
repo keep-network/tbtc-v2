@@ -28,12 +28,14 @@ pub mod solana_tbtc_anchor {
         minter_info.bump = *ctx.bumps.get("minter_info").unwrap();
 
         ctx.accounts.tbtc.minters += 1;
+        emit!(MinterAdded { minter: ctx.accounts.minter.key() });
         Ok(())
     }
 
-    pub fn remove_minter(ctx: Context<RemoveMinter>, _minter: Pubkey) -> Result<()> {
+    pub fn remove_minter(ctx: Context<RemoveMinter>, minter: Pubkey) -> Result<()> {
         require!(ctx.accounts.tbtc.minters > 0, TbtcError::NoMinters);
         ctx.accounts.tbtc.minters -= 1;
+        emit!(MinterRemoved { minter: minter });
         Ok(())
     }
 
@@ -43,12 +45,14 @@ pub mod solana_tbtc_anchor {
         guardian_info.bump = *ctx.bumps.get("guardian_info").unwrap();
 
         ctx.accounts.tbtc.guardians += 1;
+        emit!(GuardianAdded { guardian: ctx.accounts.guardian.key() });
         Ok(())
     }
 
-    pub fn remove_guardian(ctx: Context<RemoveGuardian>, _minter: Pubkey) -> Result<()> {
+    pub fn remove_guardian(ctx: Context<RemoveGuardian>, guardian: Pubkey) -> Result<()> {
         require!(ctx.accounts.tbtc.guardians > 0, TbtcError::NoGuardians);
         ctx.accounts.tbtc.guardians -= 1;
+        emit!(GuardianRemoved { guardian: guardian });
         Ok(())
     }
 
@@ -123,7 +127,7 @@ pub struct Initialize<'info> {
         seeds = [b"tbtc-mint", tbtc.key().as_ref()],
         bump,
         payer = creator,
-        mint::decimals = 8,
+        mint::decimals = 9,
         mint::authority = tbtc_mint,
     )]
     pub tbtc_mint: Account<'info, SplMint>,
@@ -252,7 +256,7 @@ pub struct SetupMint<'info> {
         mut,
         seeds = [b"tbtc-mint", tbtc.key().as_ref()],
         bump = tbtc.token_bump,
-        mint::decimals = 8,
+        mint::decimals = 9,
         mint::authority = tbtc_mint,
     )]
     pub tbtc_mint: Account<'info, SplMint>,
@@ -285,7 +289,7 @@ pub struct Mint<'info> {
         mut,
         seeds = [b"tbtc-mint", tbtc.key().as_ref()],
         bump = tbtc.token_bump,
-        mint::decimals = 8,
+        mint::decimals = 9,
         mint::authority = tbtc_mint,
     )]
     pub tbtc_mint: Account<'info, SplMint>,
@@ -335,4 +339,24 @@ pub enum TbtcError {
     IsNotCreator,
     NoMinters,
     NoGuardians,
+}
+
+#[event]
+pub struct MinterAdded {
+    pub minter: Pubkey,
+}
+
+#[event]
+pub struct MinterRemoved {
+    pub minter: Pubkey,
+}
+
+#[event]
+pub struct GuardianAdded {
+    pub guardian: Pubkey,
+}
+
+#[event]
+pub struct GuardianRemoved {
+    pub guardian: Pubkey,
 }

@@ -351,6 +351,32 @@ describe("solana-tbtc-anchor", () => {
     }
   });
 
+  it('use two minters', async () => {
+    const tbtcKeys = anchor.web3.Keypair.generate();
+    await setup(program, tbtcKeys, creator);
+    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    const minter2InfoPDA = await addMinter(program, tbtcKeys, creator, minter2Keys, creator);
+    await checkMinter(program, tbtcKeys, minterKeys);
+    await checkMinter(program, tbtcKeys, minter2Keys);
+    await checkState(program, tbtcKeys, creator, 2, 0, 0);
+    await setupMint(program, tbtcKeys, creator, recipientKeys);
+
+    // cannot mint with wrong keys
+    try {
+      await mint(program, tbtcKeys, minter2Keys, minterInfoPDA, recipientKeys, 1000);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
+    await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 500);
+    await checkState(program, tbtcKeys, creator, 2, 0, 500);
+  });
+
   it('remove minter', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
     await setup(program, tbtcKeys, creator);
@@ -441,4 +467,31 @@ describe("solana-tbtc-anchor", () => {
       expect(err.program.equals(program.programId)).is.true;
     }
   })
+
+  it('use two guardians', async () => {
+    const tbtcKeys = anchor.web3.Keypair.generate();
+    await setup(program, tbtcKeys, creator);
+    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await addGuardian(program, tbtcKeys, creator, guardian2Keys, creator);
+    await checkGuardian(program, tbtcKeys, guardianKeys);
+    await checkGuardian(program, tbtcKeys, guardian2Keys);
+    await checkState(program, tbtcKeys, creator, 0, 2, 0);
+
+    await pause(program, tbtcKeys, guardianKeys);
+
+    try {
+      await pause(program, tbtcKeys, guardian2Keys);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsPaused');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
+    await unpause(program, tbtcKeys, creator);
+    await pause(program, tbtcKeys, guardian2Keys);
+    await checkPaused(program, tbtcKeys, true);
+  });
 });
