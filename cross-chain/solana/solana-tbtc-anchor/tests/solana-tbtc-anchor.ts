@@ -423,6 +423,16 @@ describe("solana-tbtc-anchor", () => {
     const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkState(program, tbtcKeys, creator, 1, 0, 0);
+
+    try {
+      await removeMinter(program, tbtcKeys, impostorKeys, minterKeys, minterInfoPDA);
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
     await removeMinter(program, tbtcKeys, creator, minterKeys, minterInfoPDA);
     await checkState(program, tbtcKeys, creator, 0, 0, 0);
 
@@ -443,6 +453,16 @@ describe("solana-tbtc-anchor", () => {
     await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
     await checkGuardian(program, tbtcKeys, guardianKeys);
     await checkState(program, tbtcKeys, creator, 0, 1, 0);
+
+    try {
+      await addGuardian(program, tbtcKeys, impostorKeys, guardian2Keys, creator);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.program.equals(program.programId)).is.true;
+    }
   });
 
   it('remove guardian', async () => {
@@ -452,11 +472,23 @@ describe("solana-tbtc-anchor", () => {
     const guardianInfoPDA = await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
     await checkGuardian(program, tbtcKeys, guardianKeys);
     await checkState(program, tbtcKeys, creator, 0, 1, 0);
+
+    try {
+      await removeGuardian(program, tbtcKeys, impostorKeys, guardianKeys, guardianInfoPDA);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
     await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
     await checkState(program, tbtcKeys, creator, 0, 0, 0);
 
     try {
       await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
+      chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
