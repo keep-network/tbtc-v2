@@ -33,7 +33,7 @@ pub mod solana_tbtc_anchor {
     }
 
     pub fn remove_minter(ctx: Context<RemoveMinter>, minter: Pubkey) -> Result<()> {
-        require!(ctx.accounts.tbtc.minters > 0, TbtcError::NoMinters);
+        // require!(ctx.accounts.tbtc.minters > 0, TbtcError::NoMinters);
         ctx.accounts.tbtc.minters -= 1;
         emit!(MinterRemoved { minter: minter });
         Ok(())
@@ -50,7 +50,7 @@ pub mod solana_tbtc_anchor {
     }
 
     pub fn remove_guardian(ctx: Context<RemoveGuardian>, guardian: Pubkey) -> Result<()> {
-        require!(ctx.accounts.tbtc.guardians > 0, TbtcError::NoGuardians);
+        // require!(ctx.accounts.tbtc.guardians > 0, TbtcError::NoGuardians);
         ctx.accounts.tbtc.guardians -= 1;
         emit!(GuardianRemoved { guardian: guardian });
         Ok(())
@@ -208,7 +208,7 @@ pub struct AddGuardian<'info> {
 pub struct RemoveGuardian<'info> {
     #[account(
         mut,
-        has_one = creator @ TbtcError::IsNotCreator
+        has_one = creator @ TbtcError::IsNotCreator,
     )]
     pub tbtc: Account<'info, Tbtc>,
     pub creator: Signer<'info>,
@@ -331,14 +331,14 @@ impl Tbtc {
 
 #[error_code]
 pub enum TbtcError {
-    AlreadyCreated,
+    // AlreadyCreated,
     IsPaused,
     IsNotPaused,
-    IsNotMinter,
-    IsNotGuardian,
+    // IsNotMinter,
+    // IsNotGuardian,
     IsNotCreator,
-    NoMinters,
-    NoGuardians,
+    // NoMinters,
+    // NoGuardians,
 }
 
 #[event]

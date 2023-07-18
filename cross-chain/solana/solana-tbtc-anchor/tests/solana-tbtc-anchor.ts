@@ -5,6 +5,13 @@ import * as web3 from '@solana/web3.js';
 import { SolanaTbtcAnchor } from "../target/types/solana_tbtc_anchor";
 import { expect } from 'chai';
 
+function maybeCreatorAnd(
+  signer,
+  signers
+) {
+  return signers.concat(signer instanceof (anchor.Wallet as any) ? [] : [signer]);
+}
+
 async function setup(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
@@ -29,7 +36,7 @@ async function checkState(
   expectedCreator,
   expectedMinters,
   expectedGuardians,
-  expectedTokens
+  expectedTokensSupply
 ) {
   let tbtcState = await program.account.tbtc.fetch(tbtc.publicKey);
 
@@ -41,7 +48,7 @@ async function checkState(
 
   let mintState = await spl.getMint(program.provider.connection, tbtcMint);
 
-  expect(mintState.supply == expectedTokens).to.be.true;
+  expect(mintState.supply == expectedTokensSupply).to.be.true;
 }
 
 async function checkPaused(
@@ -98,7 +105,7 @@ async function addMinter(
       payer: payer.publicKey,
       minterInfo: minterInfoPDA,
     })
-    .signers([minter])
+    .signers(maybeCreatorAnd(creator, [minter]))
     .rpc();
   return minterInfoPDA;
 }
@@ -129,7 +136,7 @@ async function removeMinter(
       creator: creator.publicKey,
       minterInfo: minterInfo,
     })
-    .signers([])
+    .signers(maybeCreatorAnd(creator, []))
     .rpc();
 }
 
@@ -165,7 +172,7 @@ async function addGuardian(
       payer: payer.publicKey,
       guardianInfo: guardianInfoPDA,
     })
-    .signers([guardian])
+    .signers(maybeCreatorAnd(creator, [guardian]))
     .rpc();
   return guardianInfoPDA;
 }
@@ -196,7 +203,7 @@ async function removeGuardian(
       creator: creator.publicKey,
       guardianInfo: guardianInfo,
     })
-    .signers([])
+    .signers(maybeCreatorAnd(creator, []))
     .rpc();
 }
 
@@ -228,7 +235,7 @@ async function unpause(
       tbtc: tbtc.publicKey,
       creator: creator.publicKey
     })
-    .signers([])
+    .signers(maybeCreatorAnd(creator, []))
     .rpc();
 }
 
@@ -314,6 +321,16 @@ describe("solana-tbtc-anchor", () => {
     await addMinter(program, tbtcKeys, creator, minterKeys, creator);
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkState(program, tbtcKeys, creator, 1, 0, 0);
+
+    try {
+      await addMinter(program, tbtcKeys, impostorKeys, minter2Keys, creator);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.program.equals(program.programId)).is.true;
+    }
   });
 
   it('mint', async () => {
@@ -365,6 +382,17 @@ describe("solana-tbtc-anchor", () => {
     // cannot mint with wrong keys
     try {
       await mint(program, tbtcKeys, minter2Keys, minterInfoPDA, recipientKeys, 1000);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
+    // cannot remove minter with wrong keys
+    try {
+      await removeMinter(program, tbtcKeys, creator, minter2Keys, minterInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -426,6 +454,15 @@ describe("solana-tbtc-anchor", () => {
     await checkState(program, tbtcKeys, creator, 0, 1, 0);
     await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
     await checkState(program, tbtcKeys, creator, 0, 0, 0);
+
+    try {
+      await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
+      expect(err.program.equals(program.programId)).is.true;
+    }
   });
 
   it('pause', async () => {
@@ -446,6 +483,17 @@ describe("solana-tbtc-anchor", () => {
     await checkPaused(program, tbtcKeys, true);
     await unpause(program, tbtcKeys, creator);
     await checkPaused(program, tbtcKeys, false);
+
+    try {
+      await unpause(program, tbtcKeys, creator);
+
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotPaused');
+      expect(err.program.equals(program.programId)).is.true;
+    }
   });
 
   it('won\'t mint when paused', async () => {
@@ -472,7 +520,7 @@ describe("solana-tbtc-anchor", () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
     await setup(program, tbtcKeys, creator);
     await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    const guardianInfoPDA = await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
     await addGuardian(program, tbtcKeys, creator, guardian2Keys, creator);
     await checkGuardian(program, tbtcKeys, guardianKeys);
     await checkGuardian(program, tbtcKeys, guardian2Keys);
@@ -493,5 +541,17 @@ describe("solana-tbtc-anchor", () => {
     await unpause(program, tbtcKeys, creator);
     await pause(program, tbtcKeys, guardian2Keys);
     await checkPaused(program, tbtcKeys, true);
+    await unpause(program, tbtcKeys, creator);
+
+    // cannot remove guardian with wrong keys
+    try {
+      await removeGuardian(program, tbtcKeys, creator, guardian2Keys, guardianInfoPDA);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.program.equals(program.programId)).is.true;
+    }
   });
 });
