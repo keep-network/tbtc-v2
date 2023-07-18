@@ -55,6 +55,7 @@ describe("System Test - Deposit and redemption", () => {
   let depositorBridgeHandle: EthereumBridge
   let bank: Contract
   let relay: Contract
+  let tbtc: Contract
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
@@ -63,6 +64,8 @@ describe("System Test - Deposit and redemption", () => {
   // Initial backoff step in milliseconds that will be increased exponentially for
   // subsequent Electrum retry attempts.
   const ELECTRUM_RETRY_BACKOFF_STEP_MS = 10000 // 10sec
+  // Multiplier to convert satoshi to TBTC token units.
+  const SATOSHI_MULTIPLIER: BigNumber = BigNumber.from("10000000000")
 
   let deposit: Deposit
   let depositUtxo: UnspentTransactionOutput
@@ -110,6 +113,13 @@ describe("System Test - Deposit and redemption", () => {
     relay = new Contract(
       relayDeploymentInfo.address,
       relayDeploymentInfo.abi,
+      maintainer
+    )
+
+    const tbtcDeploymentInfo = deployedContracts.TBTC
+    tbtc = new Contract(
+      tbtcDeploymentInfo.address,
+      tbtcDeploymentInfo.abi,
       maintainer
     )
   })
@@ -484,7 +494,8 @@ describe("System Test - Deposit and redemption", () => {
             value: BigNumber.from(0),
           },
           maintainerBridgeHandle,
-          electrumClient
+          electrumClient,
+          deposit.vault,
         )
 
         console.log(`
@@ -507,7 +518,7 @@ describe("System Test - Deposit and redemption", () => {
         expect(sweptAt).to.be.greaterThan(0)
       })
 
-      it("should increase depositor's balance in the bank", async () => {
+      it("should increase vault's balance in the bank", async () => {
         const { treasuryFee } = await TBTC.getRevealedDeposit(
           depositUtxo,
           maintainerBridgeHandle
@@ -518,10 +529,29 @@ describe("System Test - Deposit and redemption", () => {
           .sub(depositSweepTxFee)
 
         const actualBalance = await bank.balanceOf(
-          systemTestsContext.depositor.address
+          vaultAddress
         )
 
         expect(actualBalance).to.be.equal(expectedBalance)
+      })
+
+      it("should mint TBTC tokens for the depositor", async () => {
+        const { treasuryFee } = await TBTC.getRevealedDeposit(
+          depositUtxo,
+          maintainerBridgeHandle
+        )
+
+        const balanceInSatoshis = depositAmount
+          .sub(treasuryFee)
+          .sub(depositSweepTxFee)
+
+        const expectedTbtcBalance = balanceInSatoshis.mul(SATOSHI_MULTIPLIER)
+
+        const actualBalance = tbtc.balanceOf(
+          systemTestsContext.depositor.address
+        )
+
+        expect(actualBalance).to.be.equal(expectedTbtcBalance)
       })
 
       context("when redemption is requested", () => {
@@ -530,15 +560,13 @@ describe("System Test - Deposit and redemption", () => {
         let redemptionRequest: RedemptionRequest
 
         before("request the redemption", async () => {
-          // Redeem the full depositor's balance.
-          requestedAmount = await bank.balanceOf(
+          // Redeem all of the depositor's TBTC tokens.
+          const tbtcBalanceOfDepositor = await tbtc.balanceOf(
             systemTestsContext.depositor.address
           )
 
-          // Allow the bridge to take the redeemed bank balance.
-          await bank
-            .connect(systemTestsContext.depositor)
-            .approveBalance(bridgeAddress, requestedAmount)
+          // The depositor's balance converted to satoshis.
+          requestedAmount = tbtcBalanceOfDepositor.div(SATOSHI_MULTIPLIER)
 
           // Request redemption to depositor's address.
           redeemerOutputScript = `0014${computeHash160(
@@ -549,12 +577,12 @@ describe("System Test - Deposit and redemption", () => {
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
-            requestedAmount,
+            tbtcBalanceOfDepositor,
             tbtcTokenHandle,
           )
 
           console.log(
-            `Requested redemption of amount ${requestedAmount} to script ${redeemerOutputScript} on the bridge`
+            `Requested redemption of ${tbtcBalanceOfDepositor} TBTC tokens to script ${redeemerOutputScript} on the bridge`
           )
 
           redemptionRequest = await TBTC.getRedemptionRequest(
@@ -565,10 +593,8 @@ describe("System Test - Deposit and redemption", () => {
           )
         })
 
-        it("should transfer depositor's bank balance to the Bridge", async () => {
-          expect(
-            await bank.balanceOf(systemTestsContext.depositor.address)
-          ).to.be.equal(0)
+        it("should transfer vault's bank balance to the Bridge", async () => {
+          expect(await bank.balanceOf(vaultAddress)).to.be.equal(0)
 
           expect(await bank.balanceOf(bridgeAddress)).to.be.equal(
             requestedAmount
