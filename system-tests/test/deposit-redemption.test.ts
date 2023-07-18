@@ -65,7 +65,7 @@ describe("System Test - Deposit and redemption", () => {
   // subsequent Electrum retry attempts.
   const ELECTRUM_RETRY_BACKOFF_STEP_MS = 10000 // 10sec
   // Multiplier to convert satoshi to TBTC token units.
-  const SATOSHI_MULTIPLIER: BigNumber = BigNumber.from("10000000000")
+  const SATOSHI_MULTIPLIER = BigNumber.from(10000000000)
 
   let deposit: Deposit
   let depositUtxo: UnspentTransactionOutput
@@ -547,7 +547,7 @@ describe("System Test - Deposit and redemption", () => {
 
         const expectedTbtcBalance = balanceInSatoshis.mul(SATOSHI_MULTIPLIER)
 
-        const actualBalance = tbtc.balanceOf(
+        const actualBalance = await tbtc.balanceOf(
           systemTestsContext.depositor.address
         )
 
@@ -591,6 +591,14 @@ describe("System Test - Deposit and redemption", () => {
             "pending",
             maintainerBridgeHandle
           )
+        })
+
+        it("should unmint depositor's TBTC tokens", async () => {
+          const tbtcBalance = await tbtc.balanceOf(
+            systemTestsContext.depositor.address
+          )
+
+          expect(tbtcBalance).to.be.equal(0)
         })
 
         it("should transfer vault's bank balance to the Bridge", async () => {
