@@ -7,4 +7,3 @@ dist/
 .envrc
 
 yarn-error.log
-.yarn/
