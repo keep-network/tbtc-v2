@@ -13,7 +13,7 @@ pub mod solana_tbtc_anchor {
     
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let tbtc = &mut ctx.accounts.tbtc; 
-        tbtc.creator = ctx.accounts.creator.key();
+        tbtc.authority = ctx.accounts.authority.key();
         tbtc.token_mint = ctx.accounts.tbtc_mint.key();
         tbtc.token_bump = *ctx.bumps.get("tbtc_mint").unwrap();
         tbtc.minters = 0;
@@ -96,7 +96,7 @@ pub mod solana_tbtc_anchor {
 #[account]
 #[derive(Default)]
 pub struct Tbtc {
-    creator: Pubkey,
+    authority: Pubkey,
     token_mint: Pubkey,
     token_bump: u8,
     minters: u8,
@@ -126,17 +126,17 @@ pub struct Initialize<'info> {
         init,
         seeds = [b"tbtc-mint", tbtc.key().as_ref()],
         bump,
-        payer = creator,
+        payer = authority,
         mint::decimals = 9,
         mint::authority = tbtc_mint,
     )]
     pub tbtc_mint: Account<'info, SplMint>,
 
-    #[account(init, payer = creator, space = 8 + Tbtc::MAXIMUM_SIZE)]
+    #[account(init, payer = authority, space = 8 + Tbtc::MAXIMUM_SIZE)]
     pub tbtc: Account<'info, Tbtc>,
 
     #[account(mut)]
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
     
     pub token_program: Program<'info, SplToken>,
     pub system_program: Program<'info, System>
@@ -146,10 +146,10 @@ pub struct Initialize<'info> {
 pub struct AddMinter<'info> {
     #[account(
         mut,
-        has_one = creator @ TbtcError::IsNotCreator
+        has_one = authority @ TbtcError::IsNotAuthority
     )]
     pub tbtc: Account<'info, Tbtc>,
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
     pub minter: Signer<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -168,14 +168,14 @@ pub struct AddMinter<'info> {
 pub struct RemoveMinter<'info> {
     #[account(
         mut,
-        has_one = creator @ TbtcError::IsNotCreator
+        has_one = authority @ TbtcError::IsNotAuthority
     )]
     pub tbtc: Account<'info, Tbtc>,
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
     #[account(
         mut,
         constraint = minter_info.minter == minter,
-        close = creator,
+        close = authority,
         seeds = [b"minter-info", tbtc.key().as_ref(), minter.as_ref()],
         bump = minter_info.bump,
     )]
@@ -186,10 +186,10 @@ pub struct RemoveMinter<'info> {
 pub struct AddGuardian<'info> {
     #[account(
         mut,
-        has_one = creator @ TbtcError::IsNotCreator
+        has_one = authority @ TbtcError::IsNotAuthority
     )]
     pub tbtc: Account<'info, Tbtc>,
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
     pub guardian: Signer<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -208,14 +208,14 @@ pub struct AddGuardian<'info> {
 pub struct RemoveGuardian<'info> {
     #[account(
         mut,
-        has_one = creator @ TbtcError::IsNotCreator,
+        has_one = authority @ TbtcError::IsNotAuthority,
     )]
     pub tbtc: Account<'info, Tbtc>,
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
     #[account(
         mut,
         constraint = guardian_info.guardian == guardian,
-        close = creator,
+        close = authority,
         seeds = [b"guardian-info", tbtc.key().as_ref(), guardian.as_ref()],
         bump = guardian_info.bump,
     )]
@@ -243,10 +243,10 @@ pub struct Unpause<'info> {
     #[account(
         mut,
         constraint = tbtc.paused @ TbtcError::IsNotPaused,
-        has_one = creator @ TbtcError::IsNotCreator
+        has_one = authority @ TbtcError::IsNotAuthority
     )]
     pub tbtc: Account<'info, Tbtc>,
-    pub creator: Signer<'info>,
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -331,14 +331,9 @@ impl Tbtc {
 
 #[error_code]
 pub enum TbtcError {
-    // AlreadyCreated,
     IsPaused,
     IsNotPaused,
-    // IsNotMinter,
-    // IsNotGuardian,
-    IsNotCreator,
-    // NoMinters,
-    // NoGuardians,
+    IsNotAuthority,
 }
 
 #[event]

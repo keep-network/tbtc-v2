@@ -5,7 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { SolanaTbtcAnchor } from "../target/types/solana_tbtc_anchor";
 import { expect } from 'chai';
 
-function maybeCreatorAnd(
+function maybeAuthorityAnd(
   signer,
   signers
 ) {
@@ -15,7 +15,7 @@ function maybeCreatorAnd(
 async function setup(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator
+  authority
 ) {
   const [tbtcMintPDA, _] = getTokenPDA(program, tbtc);
   
@@ -24,7 +24,7 @@ async function setup(
     .accounts({
       tbtcMint: tbtcMintPDA,
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey
+      authority: authority.publicKey
     })
     .signers([tbtc])
     .rpc();
@@ -33,14 +33,14 @@ async function setup(
 async function checkState(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  expectedCreator,
+  expectedAuthority,
   expectedMinters,
   expectedGuardians,
   expectedTokensSupply
 ) {
   let tbtcState = await program.account.tbtc.fetch(tbtc.publicKey);
 
-  expect(tbtcState.creator).to.eql(expectedCreator.publicKey);
+  expect(tbtcState.authority).to.eql(expectedAuthority.publicKey);
   expect(tbtcState.minters).to.equal(expectedMinters);
   expect(tbtcState.guardians).to.equal(expectedGuardians);
 
@@ -91,7 +91,7 @@ function getMinterPDA(
 async function addMinter(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator,
+  authority,
   minter,
   payer
 ): Promise<anchor.web3.PublicKey> {
@@ -100,12 +100,12 @@ async function addMinter(
     .addMinter()
     .accounts({
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey,
+      authority: authority.publicKey,
       minter: minter.publicKey,
       payer: payer.publicKey,
       minterInfo: minterInfoPDA,
     })
-    .signers(maybeCreatorAnd(creator, [minter]))
+    .signers(maybeAuthorityAnd(authority, [minter]))
     .rpc();
   return minterInfoPDA;
 }
@@ -125,7 +125,7 @@ async function checkMinter(
 async function removeMinter(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator,
+  authority,
   minter,
   minterInfo
 ) {
@@ -133,10 +133,10 @@ async function removeMinter(
     .removeMinter(minter.publicKey)
     .accounts({
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey,
+      authority: authority.publicKey,
       minterInfo: minterInfo,
     })
-    .signers(maybeCreatorAnd(creator, []))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
 }
 
@@ -158,7 +158,7 @@ function getGuardianPDA(
 async function addGuardian(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator,
+  authority,
   guardian,
   payer
 ): Promise<anchor.web3.PublicKey> {
@@ -167,12 +167,12 @@ async function addGuardian(
     .addGuardian()
     .accounts({
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey,
+      authority: authority.publicKey,
       guardian: guardian.publicKey,
       payer: payer.publicKey,
       guardianInfo: guardianInfoPDA,
     })
-    .signers(maybeCreatorAnd(creator, [guardian]))
+    .signers(maybeAuthorityAnd(authority, [guardian]))
     .rpc();
   return guardianInfoPDA;
 }
@@ -192,7 +192,7 @@ async function checkGuardian(
 async function removeGuardian(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator,
+  authority,
   guardian,
   guardianInfo
 ) {
@@ -200,10 +200,10 @@ async function removeGuardian(
     .removeGuardian(guardian.publicKey)
     .accounts({
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey,
+      authority: authority.publicKey,
       guardianInfo: guardianInfo,
     })
-    .signers(maybeCreatorAnd(creator, []))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
 }
 
@@ -227,22 +227,22 @@ async function pause(
 async function unpause(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator
+  authority
 ) {
   await program.methods
     .unpause()
     .accounts({
       tbtc: tbtc.publicKey,
-      creator: creator.publicKey
+      authority: authority.publicKey
     })
-    .signers(maybeCreatorAnd(creator, []))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
 }
 
 async function setupMint(
   program: Program<SolanaTbtcAnchor>,
   tbtc,
-  creator,
+  authority,
   recipient,
 ) {
   const [tbtcMintPDA, _] = getTokenPDA(program, tbtc);
@@ -256,7 +256,7 @@ async function setupMint(
     .accounts({
       tbtcMint: tbtcMintPDA,
       tbtc: tbtc.publicKey,
-      payer: creator.publicKey,
+      payer: authority.publicKey,
       recipientAccount: associatedTokenAccount,
       recipient: recipient.publicKey,
     })
@@ -299,7 +299,7 @@ describe("solana-tbtc-anchor", () => {
   const program = anchor.workspace.SolanaTbtcAnchor as Program<SolanaTbtcAnchor>;
 
   
-  const creator = (program.provider as anchor.AnchorProvider).wallet;
+  const authority = (program.provider as anchor.AnchorProvider).wallet;
   const minterKeys = anchor.web3.Keypair.generate();
   const minter2Keys = anchor.web3.Keypair.generate();
   const impostorKeys = anchor.web3.Keypair.generate();
@@ -310,52 +310,52 @@ describe("solana-tbtc-anchor", () => {
 
   it('setup', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
   });
 
   it('add minter', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
-    await checkState(program, tbtcKeys, creator, 1, 0, 0);
+    await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
     try {
-      await addMinter(program, tbtcKeys, impostorKeys, minter2Keys, creator);
+      await addMinter(program, tbtcKeys, impostorKeys, minter2Keys, authority);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
   it('mint', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
-    await checkState(program, tbtcKeys, creator, 1, 0, 0);
+    await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
-    await setupMint(program, tbtcKeys, creator, recipientKeys);
+    await setupMint(program, tbtcKeys, authority, recipientKeys);
     await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000);
 
-    await checkState(program, tbtcKeys, creator, 1, 0, 1000);
+    await checkState(program, tbtcKeys, authority, 1, 0, 1000);
   });
 
   it('won\'t mint', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
-    await checkState(program, tbtcKeys, creator, 1, 0, 0);
+    await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
-    await setupMint(program, tbtcKeys, creator, recipientKeys);
+    await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     try {
       await mint(program, tbtcKeys, impostorKeys, minterInfoPDA, recipientKeys, 1000);
@@ -370,14 +370,14 @@ describe("solana-tbtc-anchor", () => {
 
   it('use two minters', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
-    const minter2InfoPDA = await addMinter(program, tbtcKeys, creator, minter2Keys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
+    const minter2InfoPDA = await addMinter(program, tbtcKeys, authority, minter2Keys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkMinter(program, tbtcKeys, minter2Keys);
-    await checkState(program, tbtcKeys, creator, 2, 0, 0);
-    await setupMint(program, tbtcKeys, creator, recipientKeys);
+    await checkState(program, tbtcKeys, authority, 2, 0, 0);
+    await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     // cannot mint with wrong keys
     try {
@@ -392,7 +392,7 @@ describe("solana-tbtc-anchor", () => {
 
     // cannot remove minter with wrong keys
     try {
-      await removeMinter(program, tbtcKeys, creator, minter2Keys, minterInfoPDA);
+      await removeMinter(program, tbtcKeys, authority, minter2Keys, minterInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -402,42 +402,42 @@ describe("solana-tbtc-anchor", () => {
     }
 
     await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 500);
-    await checkState(program, tbtcKeys, creator, 2, 0, 500);
+    await checkState(program, tbtcKeys, authority, 2, 0, 500);
   });
 
   it('remove minter', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
-    await checkState(program, tbtcKeys, creator, 1, 0, 0);
-    await removeMinter(program, tbtcKeys, creator, minterKeys, minterInfoPDA);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    await checkState(program, tbtcKeys, authority, 1, 0, 0);
+    await removeMinter(program, tbtcKeys, authority, minterKeys, minterInfoPDA);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
   });
 
   it('won\'t remove minter', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await checkMinter(program, tbtcKeys, minterKeys);
-    await checkState(program, tbtcKeys, creator, 1, 0, 0);
+    await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
     try {
       await removeMinter(program, tbtcKeys, impostorKeys, minterKeys, minterInfoPDA);
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
       expect(err.program.equals(program.programId)).is.true;
     }
 
-    await removeMinter(program, tbtcKeys, creator, minterKeys, minterInfoPDA);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    await removeMinter(program, tbtcKeys, authority, minterKeys, minterInfoPDA);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
 
     try {
-      await removeMinter(program, tbtcKeys, creator, minterKeys, minterInfoPDA);
+      await removeMinter(program, tbtcKeys, authority, minterKeys, minterInfoPDA);
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
@@ -448,30 +448,30 @@ describe("solana-tbtc-anchor", () => {
 
   it('add guardian', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await checkGuardian(program, tbtcKeys, guardianKeys);
-    await checkState(program, tbtcKeys, creator, 0, 1, 0);
+    await checkState(program, tbtcKeys, authority, 0, 1, 0);
 
     try {
-      await addGuardian(program, tbtcKeys, impostorKeys, guardian2Keys, creator);
+      await addGuardian(program, tbtcKeys, impostorKeys, guardian2Keys, authority);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
   it('remove guardian', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const guardianInfoPDA = await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const guardianInfoPDA = await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await checkGuardian(program, tbtcKeys, guardianKeys);
-    await checkState(program, tbtcKeys, creator, 0, 1, 0);
+    await checkState(program, tbtcKeys, authority, 0, 1, 0);
 
     try {
       await removeGuardian(program, tbtcKeys, impostorKeys, guardianKeys, guardianInfoPDA);
@@ -479,15 +479,15 @@ describe("solana-tbtc-anchor", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotCreator');
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
       expect(err.program.equals(program.programId)).is.true;
     }
 
-    await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
+    await removeGuardian(program, tbtcKeys, authority, guardianKeys, guardianInfoPDA);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
 
     try {
-      await removeGuardian(program, tbtcKeys, creator, guardianKeys, guardianInfoPDA);
+      await removeGuardian(program, tbtcKeys, authority, guardianKeys, guardianInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -499,8 +499,8 @@ describe("solana-tbtc-anchor", () => {
 
   it('pause', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await checkPaused(program, tbtcKeys, false);
     await pause(program, tbtcKeys, guardianKeys);
     await checkPaused(program, tbtcKeys, true);
@@ -508,16 +508,16 @@ describe("solana-tbtc-anchor", () => {
 
   it('unpause', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await checkPaused(program, tbtcKeys, false);
     await pause(program, tbtcKeys, guardianKeys);
     await checkPaused(program, tbtcKeys, true);
-    await unpause(program, tbtcKeys, creator);
+    await unpause(program, tbtcKeys, authority);
     await checkPaused(program, tbtcKeys, false);
 
     try {
-      await unpause(program, tbtcKeys, creator);
+      await unpause(program, tbtcKeys, authority);
 
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
@@ -530,11 +530,11 @@ describe("solana-tbtc-anchor", () => {
 
   it('won\'t mint when paused', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    const minterInfoPDA = await addMinter(program, tbtcKeys, creator, minterKeys, creator);
-    await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
+    await setup(program, tbtcKeys, authority);
+    const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
+    await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await pause(program, tbtcKeys, guardianKeys);
-    await setupMint(program, tbtcKeys, creator, recipientKeys);
+    await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     try {
       await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000);
@@ -550,13 +550,13 @@ describe("solana-tbtc-anchor", () => {
 
   it('use two guardians', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
-    await setup(program, tbtcKeys, creator);
-    await checkState(program, tbtcKeys, creator, 0, 0, 0);
-    const guardianInfoPDA = await addGuardian(program, tbtcKeys, creator, guardianKeys, creator);
-    await addGuardian(program, tbtcKeys, creator, guardian2Keys, creator);
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    const guardianInfoPDA = await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
+    await addGuardian(program, tbtcKeys, authority, guardian2Keys, authority);
     await checkGuardian(program, tbtcKeys, guardianKeys);
     await checkGuardian(program, tbtcKeys, guardian2Keys);
-    await checkState(program, tbtcKeys, creator, 0, 2, 0);
+    await checkState(program, tbtcKeys, authority, 0, 2, 0);
 
     await pause(program, tbtcKeys, guardianKeys);
 
@@ -570,14 +570,14 @@ describe("solana-tbtc-anchor", () => {
       expect(err.program.equals(program.programId)).is.true;
     }
 
-    await unpause(program, tbtcKeys, creator);
+    await unpause(program, tbtcKeys, authority);
     await pause(program, tbtcKeys, guardian2Keys);
     await checkPaused(program, tbtcKeys, true);
-    await unpause(program, tbtcKeys, creator);
+    await unpause(program, tbtcKeys, authority);
 
     // cannot remove guardian with wrong keys
     try {
-      await removeGuardian(program, tbtcKeys, creator, guardian2Keys, guardianInfoPDA);
+      await removeGuardian(program, tbtcKeys, authority, guardian2Keys, guardianInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
