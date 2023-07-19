@@ -8,7 +8,7 @@ use anchor_spl::{
 declare_id!("HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG");
 
 #[program]
-pub mod solana_tbtc_anchor {
+pub mod tbtc {
     use super::*;
     
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {

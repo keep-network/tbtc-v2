@@ -2091,9 +2091,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solana-tbtc-anchor-924226@workspace:cross-chain/solana/solana-tbtc-anchor":
+"solana-d8f61a@workspace:cross-chain/solana":
   version: 0.0.0-use.local
-  resolution: "solana-tbtc-anchor-924226@workspace:cross-chain/solana/solana-tbtc-anchor"
+  resolution: "solana-d8f61a@workspace:cross-chain/solana"
   dependencies:
     "@coral-xyz/anchor": ^0.28.0
     "@solana/spl-token": ^0.3.8

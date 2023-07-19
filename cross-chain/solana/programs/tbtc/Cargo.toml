@@ -1,12 +1,12 @@
 [package]
-name = "solana-tbtc-anchor"
+name = "tbtc"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "solana_tbtc_anchor"
+name = "tbtc"
 
 [features]
 no-entrypoint = []

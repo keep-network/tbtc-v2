@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program, AnchorError } from "@coral-xyz/anchor";
 import * as spl from "@solana/spl-token";
 import * as web3 from '@solana/web3.js';
-import { SolanaTbtcAnchor } from "../target/types/solana_tbtc_anchor";
+import { Tbtc } from "../target/types/tbtc";
 import { expect } from 'chai';
 
 function maybeAuthorityAnd(
@@ -13,7 +13,7 @@ function maybeAuthorityAnd(
 }
 
 async function setup(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority
 ) {
@@ -31,7 +31,7 @@ async function setup(
 }
 
 async function checkState(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   expectedAuthority,
   expectedMinters,
@@ -52,7 +52,7 @@ async function checkState(
 }
 
 async function checkPaused(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   paused: boolean
 ) {
@@ -61,7 +61,7 @@ async function checkPaused(
 }
 
 function getTokenPDA(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
 ): [anchor.web3.PublicKey, number] {
   return web3.PublicKey.findProgramAddressSync(
@@ -74,7 +74,7 @@ function getTokenPDA(
 }
 
 function getMinterPDA(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   minter
 ): [anchor.web3.PublicKey, number] {
@@ -89,7 +89,7 @@ function getMinterPDA(
 }
 
 async function addMinter(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority,
   minter,
@@ -111,7 +111,7 @@ async function addMinter(
 }
 
 async function checkMinter(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   minter
 ) {
@@ -123,7 +123,7 @@ async function checkMinter(
 }
 
 async function removeMinter(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority,
   minter,
@@ -141,7 +141,7 @@ async function removeMinter(
 }
 
 function getGuardianPDA(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   guardian
 ): [anchor.web3.PublicKey, number] {
@@ -156,7 +156,7 @@ function getGuardianPDA(
 }
 
 async function addGuardian(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority,
   guardian,
@@ -178,7 +178,7 @@ async function addGuardian(
 }
 
 async function checkGuardian(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   guardian
 ) {
@@ -190,7 +190,7 @@ async function checkGuardian(
 }
 
 async function removeGuardian(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority,
   guardian,
@@ -208,7 +208,7 @@ async function removeGuardian(
 }
 
 async function pause(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   guardian
 ) {
@@ -225,7 +225,7 @@ async function pause(
 }
 
 async function unpause(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority
 ) {
@@ -240,7 +240,7 @@ async function unpause(
 }
 
 async function setupMint(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   authority,
   recipient,
@@ -265,7 +265,7 @@ async function setupMint(
 }
 
 async function mint(
-  program: Program<SolanaTbtcAnchor>,
+  program: Program<Tbtc>,
   tbtc,
   minter,
   minterInfoPDA,
@@ -292,11 +292,11 @@ async function mint(
     .rpc();
 }
 
-describe("solana-tbtc-anchor", () => {
+describe("tbtc", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program = anchor.workspace.SolanaTbtcAnchor as Program<SolanaTbtcAnchor>;
+  const program = anchor.workspace.Tbtc as Program<Tbtc>;
 
   
   const authority = (program.provider as anchor.AnchorProvider).wallet;

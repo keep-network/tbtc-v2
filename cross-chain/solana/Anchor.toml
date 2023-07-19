@@ -2,7 +2,7 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-solana_tbtc_anchor = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
+tbtc = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
 
 [registry]
 url = "https://api.apr.dev"
