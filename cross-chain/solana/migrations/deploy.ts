@@ -13,8 +13,9 @@ module.exports = async function (provider) {
   // This wallet deployed the program and is also an authority
   const authority = loadKey(process.env.WALLET);
   const tbtcKeys = loadKey(process.env.TBTC_KEYS);
+  const minterKeys = loadKey(process.env.MINTER_KEYS);
 
-  const [tbtcMintPDA, _] = web3.PublicKey.findProgramAddressSync(
+  const [tbtcMintPDA, ] = web3.PublicKey.findProgramAddressSync(
     [
       anchor.utils.bytes.utf8.encode("tbtc-mint"),
       tbtcKeys.publicKey.toBuffer(),
@@ -33,14 +34,31 @@ module.exports = async function (provider) {
     .signers([tbtcKeys])
     .rpc();
 
-  // add a minter (wormhole gateway (minter keys))
+  const [minterInfoPDA, ] = web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode('minter-info'),
+      tbtcKeys.publicKey.toBuffer(),
+      minterKeys.publicKey.toBuffer(),
+    ],
+    program.programId
+  );
+      
+  // add minter keys (minterKeys is the wormholeGateway-keypair)
+  await program.methods
+    .addMinter()
+    .accounts({
+      tbtc: tbtcKeys.publicKey,
+      authority: authority.publicKey,
+      minter: minterKeys.publicKey,
+      payer: authority.publicKey,
+      minterInfo: minterInfoPDA,
+    })
+    .signers([minterKeys])
+    .rpc();
   
   // add a guardian?
 
   // update mappings (self, arbitrum, optimism, polygon)
-
-  // transfer ownership to council
-  // solana program set-upgrade-authority -k <current_keypair_path> <programID> --new-upgrade-authority <pubkey>
 };
 
 function loadKey(filename: string): Keypair {
