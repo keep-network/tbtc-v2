@@ -70,6 +70,7 @@ describe("System Test - Deposit and redemption", () => {
   let deposit: Deposit
   let depositUtxo: UnspentTransactionOutput
   let sweepUtxo: UnspentTransactionOutput
+  let redemptionUtxo: UnspentTransactionOutput | undefined
 
   before(async () => {
     systemTestsContext = await setupSystemTestsContext()
@@ -328,7 +329,7 @@ describe("System Test - Deposit and redemption", () => {
             before(
               "make the redemption and submit redemption proof",
               async () => {
-                ;({ transactionHash: redemptionTxHash } =
+                ;({ transactionHash: redemptionTxHash, newMainUtxo: redemptionUtxo } =
                   await submitRedemptionTransaction(
                     electrumClient,
                     maintainerBridgeHandle,
@@ -459,7 +460,8 @@ describe("System Test - Deposit and redemption", () => {
           systemTestsContext.walletBitcoinKeyPair.wif,
           true,
           [depositUtxo],
-          [deposit]
+          [deposit],
+          redemptionUtxo // The UTXO from the previous test became the new main UTXO.
         ))
 
         console.log(`
@@ -481,18 +483,16 @@ describe("System Test - Deposit and redemption", () => {
           sweepUtxo.transactionHash
         )
 
-        // TODO: Consider fetching the current wallet main UTXO and passing it
-        //       here. This will allow running this test scenario multiple
-        //       times for the same wallet.
+        // If the redemption transaction from the previous test created a new
+        // main UTXO, use it. Otherwise call it with a zero-filled main UTXO.
+        const mainUtxo = redemptionUtxo ? redemptionUtxo : {
+          transactionHash: BitcoinTransactionHash.from(constants.HashZero),
+          outputIndex: 0,
+          value: BigNumber.from(0),
+        };
         await SpvMaintainer.submitDepositSweepProof(
           sweepUtxo.transactionHash,
-          // This is the first sweep of the given wallet so there is no main UTXO.
-          {
-            // The function expects an unprefixed hash.
-            transactionHash: BitcoinTransactionHash.from(constants.HashZero),
-            outputIndex: 0,
-            value: BigNumber.from(0),
-          },
+          mainUtxo,
           maintainerBridgeHandle,
           electrumClient,
           deposit.vault,
