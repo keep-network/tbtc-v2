@@ -53,11 +53,16 @@ jobs:
         run: git config --global url."https://".insteadOf git://
 
       - name: Install Solana
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+      - name: Install Solana
         run: sh -c "$(curl -sSfL https://release.solana.com/v1.16.5/install)"
 
       - name: Install Anchor
         run: |
           cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
+          avm install latest
+          avm use latest
 
       - name: Install dependencies
         run: yarn install
@@ -93,9 +98,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install
-
-      - name: Build
-        run: yarn build
 
       - name: Check formatting
         run: yarn format
