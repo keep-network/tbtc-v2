@@ -52,6 +52,13 @@ jobs:
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
 
+      - name: Install Solana
+        run: sh -c "$(curl -sSfL https://release.solana.com/v1.16.5/install)"
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
+
       - name: Install dependencies
         run: yarn install
 
