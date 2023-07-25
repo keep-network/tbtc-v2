@@ -56,7 +56,9 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
       - name: Install Solana
-        run: sh -c "$(curl -sSfL https://release.solana.com/v1.16.5/install)"
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v1.16.5/install)"
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
 
       - name: Install Anchor
         run: |
@@ -66,10 +68,14 @@ jobs:
         run: yarn install
 
       - name: Build contracts
-        run: yarn build
+        run: |
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          yarn build
 
       - name: Run tests
-        run: yarn test
+        run: |
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"  
+          yarn test
 
   contracts-format:
     needs: contracts-detect-changes
