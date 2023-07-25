@@ -61,6 +61,7 @@ jobs:
       - name: Install Anchor
         run: |
           cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
+          apt-get update && apt-get upgrade && apt-get install -y pkg-config build-essential libudev-dev libssl-dev
           avm install latest
           avm use latest
 
