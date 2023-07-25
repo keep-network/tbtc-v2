@@ -2,14 +2,14 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-tbtc = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
+tbtc = "H5ZSi4XCPyktRH2vLT3eNq6vjZfxnmnkjH7MAGnApkRq"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "/Users/dp/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
