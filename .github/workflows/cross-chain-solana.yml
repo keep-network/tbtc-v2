@@ -52,8 +52,8 @@ jobs:
       - name: Configure git to not use unauthenticated protocol
         run: git config --global url."https://".insteadOf git://
 
-      - name: Install Solana
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - name: Install Rust
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
       - name: Install Solana
         run: sh -c "$(curl -sSfL https://release.solana.com/v1.16.5/install)"
