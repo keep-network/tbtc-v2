@@ -68,11 +68,14 @@ jobs:
         run: yarn install
 
       - name: Anchor build
-        run: yarn build
+        run: |
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          yarn build
 
       # There is problem with a `solana-keygen new` command. The workaround is to create a keyfile manually just for testing purposes.
       - name: Run tests
         run: |
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           solana config set -u localhost
           echo "[132,196,51,204,234,79,135,213,169,81,250,90,73,168,28,41,193,49,153,71,192,44,228,74,230,78,211,95,54,241,137,50,119,155,54,147,229,137,197,57,146,111,140,177,222,54,120,254,254,250,191,135,251,47,163,16,180,160,110,108,54,111,84,76]" >> ~/.config/solana/id.json
           yarn test
