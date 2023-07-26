@@ -74,7 +74,8 @@ jobs:
 
       - name: Run tests
         run: |
-          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"  
+          export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+          solana-keygen new
           yarn test
 
   contracts-format:
