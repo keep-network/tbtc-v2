@@ -61,7 +61,9 @@ const config: HardhatUserConfig = {
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["basescan"],
-      gasPrice: 1000000000,
+      // In case of deployment failing with underpriced transaction error set
+      // the `gasPrice` parameter.
+      // gasPrice: 1000000000,
       // companionNetworks: {
       //   l1: "goerli",
       // },
@@ -74,7 +76,9 @@ const config: HardhatUserConfig = {
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["basescan"],
-      gasPrice: 1000000000,
+      // In case of deployment failing with underpriced transaction error set
+      // the `gasPrice` parameter.
+      // gasPrice: 1000000000,
       // companionNetworks: {
       //   l1: "mainnet",
       // },
