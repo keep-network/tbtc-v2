@@ -12,7 +12,8 @@ pub struct AddGuardian<'info> {
     )]
     pub tbtc: Account<'info, Tbtc>,
     pub authority: Signer<'info>,
-    pub guardian: Signer<'info>,
+    /// CHECK: the guardian does not need to sign
+    pub guardian: UncheckedAccount<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(

@@ -122,7 +122,7 @@ async function addMinter(
       payer: payer.publicKey,
       minterInfo: minterInfoPDA,
     })
-    .signers(maybeAuthorityAnd(authority, [minter]))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
   return minterInfoPDA;
 }
@@ -189,7 +189,7 @@ async function addGuardian(
       payer: payer.publicKey,
       guardianInfo: guardianInfoPDA,
     })
-    .signers(maybeAuthorityAnd(authority, [guardian]))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
   return guardianInfoPDA;
 }

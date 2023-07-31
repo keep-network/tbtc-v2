@@ -12,7 +12,8 @@ pub struct AddMinter<'info> {
     )]
     pub tbtc: Account<'info, Tbtc>,
     pub authority: Signer<'info>,
-    pub minter: Signer<'info>,
+    /// CHECK: the minter does not need to sign
+    pub minter: UncheckedAccount<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
