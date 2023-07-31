@@ -1,14 +1,6 @@
-use crate::{
-    constants::SEED_PREFIX_TBTC_MINT,
-    state::{Tbtc},
-};
+use crate::{constants::SEED_PREFIX_TBTC_MINT, state::Tbtc};
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    token,
-};
-
-
-
+use anchor_spl::token;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -29,9 +21,9 @@ pub struct Initialize<'info> {
 
     #[account(mut)]
     pub authority: Signer<'info>,
-    
+
     pub token_program: Program<'info, token::Token>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 pub fn initialize(ctx: Context<Initialize>) -> Result<()> {

@@ -1,13 +1,10 @@
 use crate::{
     constants::SEED_PREFIX_TBTC_MINT,
     error::TbtcError,
-    state::{Tbtc, MinterInfo},
+    state::{MinterInfo, Tbtc},
 };
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token,
-};
+use anchor_spl::{associated_token::AssociatedToken, token};
 
 #[derive(Accounts)]
 pub struct Mint<'info> {
@@ -49,9 +46,7 @@ pub struct Mint<'info> {
     /// Validating the recipient is the minter's responsibility.
     pub recipient: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-    )]
+    #[account(mut)]
     pub payer: Signer<'info>,
 
     pub token_program: Program<'info, token::Token>,

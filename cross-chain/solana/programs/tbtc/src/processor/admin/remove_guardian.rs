@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Tbtc, GuardianInfo},
+    state::{GuardianInfo, Tbtc},
 };
 use anchor_lang::prelude::*;
 

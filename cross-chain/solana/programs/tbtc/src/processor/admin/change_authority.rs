@@ -1,7 +1,4 @@
-use crate::{
-    error::TbtcError,
-    state::{Tbtc},
-};
+use crate::{error::TbtcError, state::Tbtc};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]

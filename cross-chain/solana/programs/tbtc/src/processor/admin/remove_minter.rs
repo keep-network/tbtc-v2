@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Tbtc, MinterInfo},
+    state::{MinterInfo, Tbtc},
 };
 use anchor_lang::prelude::*;
 
