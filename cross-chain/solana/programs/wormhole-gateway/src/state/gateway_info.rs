@@ -1,13 +1,12 @@
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(Default)]
+#[derive(Debug, InitSpace)]
 pub struct GatewayInfo {
-    pub gateway: [u8; 32],
     pub bump: u8,
+    pub gateway: [u8; 32],
 }
 
 impl GatewayInfo {
-    pub const MAXIMUM_SIZE: usize = 8 + 32 + 1;
-    pub const SEED_PREFIX: &'static [u8; 12] = b"gateway-info";
+    pub const SEED_PREFIX: &'static [u8] = b"gateway-info";
 }

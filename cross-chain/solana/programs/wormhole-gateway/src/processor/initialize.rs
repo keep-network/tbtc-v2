@@ -1,46 +1,68 @@
 use crate::{
-    state::WormholeGateway,
+    constants::{TBTC_FOREIGN_TOKEN_ADDRESS, TBTC_FOREIGN_TOKEN_CHAIN},
+    state::Custodian,
 };
-
 use anchor_lang::prelude::*;
 use anchor_spl::token;
+use wormhole_anchor_sdk::token_bridge;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
-        seeds = [SEED_PREFIX_TBTC_MINT, tbtc.key().as_ref()],
+        init,
+        payer = authority,
+        space = 8 + Custodian::INIT_SPACE,
+        seeds = [Custodian::SEED_PREFIX],
         bump,
-        mint::decimals = 9,
-        mint::authority = tbtc_mint,
     )]
-    pub tbtc_mint: Account<'info, token::Mint>,
-    pub tbtc: Account<'info, tbtc::Tbtc>,
+    custodian: Account<'info, Custodian>,
+
+    /// TBTC Program's mint PDA address bump is saved in this program's config. Ordinarily, we would
+    /// not have to deserialize this account. But we do in this case to make sure the TBTC program
+    /// has been initialized before this program.
+    #[account(
+        seeds = [tbtc::SEED_PREFIX_TBTC_MINT],
+        bump,
+        seeds::program = tbtc::ID
+    )]
+    tbtc_mint: Account<'info, token::Mint>,
 
     #[account(
-        init, payer = authority, space = WormholeGateway::MAXIMUM_SIZE
+        seeds = [
+            token_bridge::WrappedMint::SEED_PREFIX,
+            &TBTC_FOREIGN_TOKEN_CHAIN.to_be_bytes(),
+            TBTC_FOREIGN_TOKEN_ADDRESS.as_ref()
+        ],
+        bump
     )]
-    pub wormhole_gateway: Account<'info, WormholeGateway>,
+    wrapped_tbtc_mint: Account<'info, token::Mint>,
 
-    pub wormhole_token_bridge: Account<'info, _>,
-    pub wormhole_bridge_token_mint: Account<'info, token::Mint>,
+    #[account(
+        init,
+        payer = authority,
+        token::mint = wrapped_tbtc_mint,
+        token::authority = authority,
+        seeds = [b"wrapped-token"],
+        bump
+    )]
+    wrapped_tbtc_token: Account<'info, token::TokenAccount>,
 
     #[account(mut)]
-    pub authority: Signer<'info>,
+    authority: Signer<'info>,
 
-    pub token_program: Program<'info, token::Token>,
-    pub system_program: Program<'info, System>,
+    system_program: Program<'info, System>,
+    token_program: Program<'info, token::Token>,
 }
 
 pub fn initialize(ctx: Context<Initialize>, minting_limit: u64) -> Result<()> {
-    ctx.accounts.wormhole_gateway.set_inner(WormholeGateway {
+    ctx.accounts.custodian.set_inner(Custodian {
+        bump: ctx.bumps["config"],
         authority: ctx.accounts.authority.key(),
-        wormhole_token_bridge: ctx.accounts.wormhole_token_bridge.key(),
-        wormhole_bridge_token_mint: ctx.accounts.wormhole_bridge_token_mint.key(),
-        tbtc: ctx.accounts.tbtc.key(),
         tbtc_mint: ctx.accounts.tbtc_mint.key(),
-        minting_limit: minting_limit,
-        minted_amount: 0,
-        self_bump: ctx.bumps.get("wormhole_gateway").unwrap(),
+        wrapped_tbtc_mint: ctx.accounts.wrapped_tbtc_mint.key(),
+        wrapped_tbtc_token: ctx.accounts.wrapped_tbtc_token.key(),
+        minting_limit,
     });
+
     Ok(())
 }

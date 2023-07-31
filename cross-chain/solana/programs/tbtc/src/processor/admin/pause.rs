@@ -10,7 +10,6 @@ pub struct Pause<'info> {
         mut,
         seeds = [Config::SEED_PREFIX],
         bump,
-        constraint = !config.paused @ TbtcError::IsPaused
     )]
     config: Account<'info, Config>,
 
@@ -24,6 +23,15 @@ pub struct Pause<'info> {
     guardian: Signer<'info>,
 }
 
+impl<'info> Pause<'info> {
+    fn constraints(ctx: &Context<Self>) -> Result<()> {
+        require!(!ctx.accounts.config.paused, TbtcError::IsPaused);
+
+        Ok(())
+    }
+}
+
+#[access_control(Pause::constraints(&ctx))]
 pub fn pause(ctx: Context<Pause>) -> Result<()> {
     ctx.accounts.config.paused = true;
     Ok(())

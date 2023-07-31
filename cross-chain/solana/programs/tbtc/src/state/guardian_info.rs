@@ -8,5 +8,5 @@ pub struct GuardianInfo {
 }
 
 impl GuardianInfo {
-    pub const SEED_PREFIX: &'static [u8; 13] = b"guardian-info";
+    pub const SEED_PREFIX: &'static [u8] = b"guardian-info";
 }

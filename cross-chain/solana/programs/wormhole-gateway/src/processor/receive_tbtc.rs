@@ -1,18 +1,31 @@
-use crate::{
-    state::WormholeGateway,
-};
-
-use tbtc::{tbtc};
-
+use crate::state::Custodian;
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 
 #[derive(Accounts)]
 pub struct ReceiveTbtc<'info> {
     #[account(mut)]
-    pub tbtc_mint: Account<'info, token::Mint>,
-    pub tbtc: Account<'info, tbtc::Tbtc>,
-    pub minter_info: Account<'info, tbtc::MinterInfo>,
+    payer: Signer<'info>,
+
+    /// NOTE: This account also acts as a minter for the TBTC program.
+    #[account(
+        seeds = [Custodian::SEED_PREFIX],
+        bump = custodian.bump,
+        has_one = wrapped_tbtc_token,
+        has_one = wrapped_tbtc_mint,
+        has_one = tbtc_mint,
+    )]
+    custodian: Account<'info, Custodian>,
+
+    // TODO: posted_vaa
+    #[account(mut)]
+    tbtc_mint: Account<'info, token::Mint>,
+
+    /// CHECK: This account is needed fot the TBTC program.
+    tbtc_config: UncheckedAccount<'info>,
+
+    /// CHECK: This account is needed fot the TBTC program.
+    minter_info: UncheckedAccount<'info>,
 
     // Use the associated token account for the recipient.
     #[account(
@@ -20,20 +33,14 @@ pub struct ReceiveTbtc<'info> {
         associated_token::authority = recipient,
     )]
     pub recipient_account: Account<'info, token::TokenAccount>,
+
     /// CHECK: the recipient doesn't need to sign the mint,
     /// and it doesn't conform to any specific rules.
     /// Validating the recipient is the minter's responsibility.
-    pub recipient: UncheckedAccount<'info>,
-
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
-    pub wormhole_gateway: Account<'info, WormholeGateway>,
+    recipient: AccountInfo<'info>,
 }
 
-pub fn receive_tbtc(
-    ctx: Context<ReceiveTbtc>,
-) -> Result <()> {
+pub fn receive_tbtc(ctx: Context<ReceiveTbtc>) -> Result<()> {
     // get balance delta
 
     let amount = _;
@@ -46,7 +53,7 @@ pub fn receive_tbtc(
     } else {
         ctx.accounts.wormhole_gateway.minted_amount += amount;
 
-        let seed_prefix = WormholeGateway::SEED_PREFIX;
+        let seed_prefix = Config::SEED_PREFIX;
         let key_seed = ctx.accounts.wormhole_gateway.key();
         let gateway_bump = ctx.accounts.wormhole_gateway.self_bump;
 

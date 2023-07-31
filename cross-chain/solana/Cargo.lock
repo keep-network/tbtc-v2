@@ -2067,12 +2067,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "wormhole-anchor-sdk"
+version = "0.1.0"
+source = "git+https://github.com/wormhole-foundation/wormhole-scaffolding?rev=f8d5ba04bfd449ab3693b15c818fd3e85e30f758#f8d5ba04bfd449ab3693b15c818fd3e85e30f758"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "cfg-if",
+]
+
+[[package]]
 name = "wormhole-gateway"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
  "tbtc",
+ "wormhole-anchor-sdk",
 ]
 
 [[package]]

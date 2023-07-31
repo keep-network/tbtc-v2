@@ -9,13 +9,18 @@ crate-type = ["cdylib", "lib"]
 name = "wormhole_gateway"
 
 [features]
+default = ["mainnet"]
+mainnet = ["wormhole-anchor-sdk/mainnet"]
+solana-devnet = ["wormhole-anchor-sdk/solana-devnet"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
 
 [dependencies]
-anchor-lang = { version="0.28.0", features = ["init-if-needed"]}
+anchor-lang = { version = "0.28.0", features = ["init-if-needed"]}
 anchor-spl = "0.28.0"
-tbtc = { path = "../tbtc" }
+
+wormhole-anchor-sdk = { git = "https://github.com/wormhole-foundation/wormhole-scaffolding", rev = "f8d5ba04bfd449ab3693b15c818fd3e85e30f758", features = ["token-bridge"], default-features = false }
+
+tbtc = { path = "../tbtc", features = ["cpi"] }

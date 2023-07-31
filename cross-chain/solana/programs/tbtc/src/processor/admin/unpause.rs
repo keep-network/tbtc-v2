@@ -5,16 +5,24 @@ use anchor_lang::prelude::*;
 pub struct Unpause<'info> {
     #[account(
         mut,
+        has_one = authority @ TbtcError::IsNotAuthority,
         seeds = [Config::SEED_PREFIX],
         bump,
-        has_one = authority @ TbtcError::IsNotAuthority,
-        constraint = config.paused @ TbtcError::IsNotPaused
     )]
     config: Account<'info, Config>,
 
     authority: Signer<'info>,
 }
 
+impl<'info> Unpause<'info> {
+    fn constraints(ctx: &Context<Self>) -> Result<()> {
+        require!(ctx.accounts.config.paused, TbtcError::IsNotPaused);
+
+        Ok(())
+    }
+}
+
+#[access_control(Unpause::constraints(&ctx))]
 pub fn unpause(ctx: Context<Unpause>) -> Result<()> {
     ctx.accounts.config.paused = false;
     Ok(())

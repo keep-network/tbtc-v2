@@ -13,6 +13,15 @@ use anchor_lang::prelude::*;
 
 declare_id!("HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG");
 
+#[derive(Clone)]
+pub struct Tbtc;
+
+impl Id for Tbtc {
+    fn id() -> Pubkey {
+        ID
+    }
+}
+
 #[program]
 pub mod tbtc {
     use super::*;

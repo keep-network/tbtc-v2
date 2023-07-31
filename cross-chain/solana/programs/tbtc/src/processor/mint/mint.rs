@@ -17,9 +17,9 @@ pub struct Mint<'info> {
     )]
     mint: Account<'info, token::Mint>,
 
-    // Can not mint when paused.
     #[account(
-        constraint = !config.paused @ TbtcError::IsPaused
+        seeds = [Config::SEED_PREFIX],
+        bump = config.bump,
     )]
     config: Account<'info, Config>,
 
@@ -30,6 +30,7 @@ pub struct Mint<'info> {
         bump = minter_info.bump,
     )]
     minter_info: Account<'info, MinterInfo>,
+
     minter: Signer<'info>,
 
     // Use the associated token account for the recipient.
@@ -40,9 +41,18 @@ pub struct Mint<'info> {
     recipient_token: Account<'info, token::TokenAccount>,
 
     token_program: Program<'info, token::Token>,
-    system_program: Program<'info, System>,
 }
 
+impl<'info> Mint<'info> {
+    fn constraints(ctx: &Context<Self>) -> Result<()> {
+        // Can not mint when paused.
+        require!(!ctx.accounts.config.paused, TbtcError::IsPaused);
+
+        Ok(())
+    }
+}
+
+#[access_control(Mint::constraints(&ctx))]
 pub fn mint(ctx: Context<Mint>, amount: u64) -> Result<()> {
     token::mint_to(
         CpiContext::new_with_signer(

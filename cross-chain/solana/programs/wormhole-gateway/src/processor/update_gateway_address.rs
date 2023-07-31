@@ -1,6 +1,6 @@
 use crate::{
     error::WormholeGatewayError,
-    state::{GatewayInfo, WormholeGateway},
+    state::{Custodian, GatewayInfo},
 };
 use anchor_lang::prelude::*;
 
@@ -8,20 +8,23 @@ use anchor_lang::prelude::*;
 #[instruction(chain_id: u16)]
 pub struct UpdateGatewayAddress<'info> {
     #[account(
+        seeds = [Custodian::SEED_PREFIX],
+        bump = custodian.bump,
         has_one = authority @ WormholeGatewayError::IsNotAuthority,
     )]
-    pub wormhole_gateway: Account<'info, WormholeGateway>,
+    pub custodian: Account<'info, Custodian>,
+
     #[account(
         init_if_needed,
-        payer = payer,
-        space = GatewayInfo::MAXIMUM_SIZE,
-        seeds = [GatewayInfo::SEED_PREFIX, wormhole_gateway.key().as_ref(), chain_id],
+        payer = authority,
+        space = 8 + GatewayInfo::INIT_SPACE,
+        seeds = [GatewayInfo::SEED_PREFIX, &chain_id.to_le_bytes()],
         bump,
     )]
     pub gateway_info: Account<'info, GatewayInfo>,
-    pub authority: Signer<'info>,
+
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub authority: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -29,8 +32,12 @@ pub struct UpdateGatewayAddress<'info> {
 pub fn update_gateway_address(
     ctx: Context<UpdateGatewayAddress>,
     chain_id: u16,
-    gateway_address: [u8; 32],
+    gateway: [u8; 32],
 ) -> Result<()> {
-    ctx.accounts.gateway_info.gateway = gateway_address;
+    ctx.accounts.gateway_info.set_inner(GatewayInfo {
+        bump: ctx.bumps["gateway_info"],
+        gateway,
+    });
+
     Ok(())
 }

@@ -1,5 +1,5 @@
-pub use gateway_info::*;
-pub use wormhole_gateway::*;
+mod custodian;
+pub use custodian::*;
 
-pub mod gateway_info;
-pub mod wormhole_gateway;
+mod gateway_info;
+pub use gateway_info::*;
