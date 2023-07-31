@@ -12,7 +12,6 @@ declare_id!("8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu");
 
 #[program]
 pub mod wormhole_gateway {
-    use std::os::unix::process;
 
     use super::*;
 
