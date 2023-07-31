@@ -56,7 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // link the proxy to the implementation contract’s ABI on (Ether)scan.
     await hre.run("verify", {
       address: proxyDeployment.address,
-      constructorArgsParams: proxyDeployment.args,
+      constructorArgsParams: [],
     })
   }
 }
