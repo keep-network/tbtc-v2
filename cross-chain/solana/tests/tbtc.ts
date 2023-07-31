@@ -51,6 +51,23 @@ async function checkState(
   expect(mintState.supply == expectedTokensSupply).to.be.true;
 }
 
+async function changeAuthority(
+  program: Program<Tbtc>,
+  tbtc,
+  authority,
+  newAuthority,
+) {
+  await program.methods
+    .changeAuthority()
+    .accounts({
+      tbtc: tbtc.publicKey,
+      authority: authority.publicKey,
+      newAuthority: newAuthority.publicKey,
+    })
+    .signers(maybeAuthorityAnd(authority, [newAuthority]))
+    .rpc();
+}
+
 async function checkPaused(
   program: Program<Tbtc>,
   tbtc,
@@ -239,31 +256,6 @@ async function unpause(
     .rpc();
 }
 
-async function setupMint(
-  program: Program<Tbtc>,
-  tbtc,
-  authority,
-  recipient,
-) {
-  const [tbtcMintPDA, _] = getTokenPDA(program, tbtc);
-  const associatedTokenAccount = spl.getAssociatedTokenAddressSync(
-    tbtcMintPDA,
-    recipient.publicKey,
-  );
-
-  await program.methods
-    .setupMint()
-    .accounts({
-      tbtcMint: tbtcMintPDA,
-      tbtc: tbtc.publicKey,
-      payer: authority.publicKey,
-      recipientAccount: associatedTokenAccount,
-      recipient: recipient.publicKey,
-    })
-    .signers([])
-    .rpc()
-}
-
 async function mint(
   program: Program<Tbtc>,
   tbtc,
@@ -271,6 +263,7 @@ async function mint(
   minterInfoPDA,
   recipient,
   amount,
+  payer,
 ) {
   const [tbtcMintPDA, _] = getTokenPDA(program, tbtc);
   const associatedTokenAccount = spl.getAssociatedTokenAddressSync(
@@ -287,8 +280,9 @@ async function mint(
       minter: minter.publicKey,
       recipientAccount: associatedTokenAccount,
       recipient: recipient.publicKey,
+      payer: payer.publicKey,
     })
-    .signers([minter])
+    .signers(maybeAuthorityAnd(payer, [minter]))
     .rpc();
 }
 
@@ -300,6 +294,7 @@ describe("tbtc", () => {
 
   
   const authority = (program.provider as anchor.AnchorProvider).wallet;
+  const newAuthority = anchor.web3.Keypair.generate();
   const minterKeys = anchor.web3.Keypair.generate();
   const minter2Keys = anchor.web3.Keypair.generate();
   const impostorKeys = anchor.web3.Keypair.generate();
@@ -313,6 +308,14 @@ describe("tbtc", () => {
     await setup(program, tbtcKeys, authority);
     await checkState(program, tbtcKeys, authority, 0, 0, 0);
   });
+
+  it('change authority', async () => {
+    const tbtcKeys = anchor.web3.Keypair.generate();
+    await setup(program, tbtcKeys, authority);
+    await checkState(program, tbtcKeys, authority, 0, 0, 0);
+    await changeAuthority(program, tbtcKeys, authority, newAuthority);
+    await checkState(program, tbtcKeys, newAuthority, 0, 0, 0);
+  })
 
   it('add minter', async () => {
     const tbtcKeys = anchor.web3.Keypair.generate();
@@ -341,8 +344,8 @@ describe("tbtc", () => {
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
-    await setupMint(program, tbtcKeys, authority, recipientKeys);
-    await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000);
+    // await setupMint(program, tbtcKeys, authority, recipientKeys);
+    await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000, authority);
 
     await checkState(program, tbtcKeys, authority, 1, 0, 1000);
   });
@@ -355,10 +358,10 @@ describe("tbtc", () => {
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkState(program, tbtcKeys, authority, 1, 0, 0);
 
-    await setupMint(program, tbtcKeys, authority, recipientKeys);
+    // await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     try {
-      await mint(program, tbtcKeys, impostorKeys, minterInfoPDA, recipientKeys, 1000);
+      await mint(program, tbtcKeys, impostorKeys, minterInfoPDA, recipientKeys, 1000, authority);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -377,11 +380,11 @@ describe("tbtc", () => {
     await checkMinter(program, tbtcKeys, minterKeys);
     await checkMinter(program, tbtcKeys, minter2Keys);
     await checkState(program, tbtcKeys, authority, 2, 0, 0);
-    await setupMint(program, tbtcKeys, authority, recipientKeys);
+    // await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     // cannot mint with wrong keys
     try {
-      await mint(program, tbtcKeys, minter2Keys, minterInfoPDA, recipientKeys, 1000);
+      await mint(program, tbtcKeys, minter2Keys, minterInfoPDA, recipientKeys, 1000, authority);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -401,7 +404,7 @@ describe("tbtc", () => {
       expect(err.program.equals(program.programId)).is.true;
     }
 
-    await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 500);
+    await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 500, authority);
     await checkState(program, tbtcKeys, authority, 2, 0, 500);
   });
 
@@ -534,10 +537,10 @@ describe("tbtc", () => {
     const minterInfoPDA = await addMinter(program, tbtcKeys, authority, minterKeys, authority);
     await addGuardian(program, tbtcKeys, authority, guardianKeys, authority);
     await pause(program, tbtcKeys, guardianKeys);
-    await setupMint(program, tbtcKeys, authority, recipientKeys);
+    // await setupMint(program, tbtcKeys, authority, recipientKeys);
 
     try {
-      await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000);
+      await mint(program, tbtcKeys, minterKeys, minterInfoPDA, recipientKeys, 1000, authority);
 
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
