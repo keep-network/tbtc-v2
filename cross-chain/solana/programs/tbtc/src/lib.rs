@@ -29,16 +29,16 @@ pub mod tbtc {
         processor::add_minter(ctx)
     }
 
-    pub fn remove_minter(ctx: Context<RemoveMinter>, minter: Pubkey) -> Result<()> {
-        processor::remove_minter(ctx, minter)
+    pub fn remove_minter(ctx: Context<RemoveMinter>) -> Result<()> {
+        processor::remove_minter(ctx)
     }
 
     pub fn add_guardian(ctx: Context<AddGuardian>) -> Result<()> {
         processor::add_guardian(ctx)
     }
 
-    pub fn remove_guardian(ctx: Context<RemoveGuardian>, guardian: Pubkey) -> Result<()> {
-        processor::remove_guardian(ctx, guardian)
+    pub fn remove_guardian(ctx: Context<RemoveGuardian>) -> Result<()> {
+        processor::remove_guardian(ctx)
     }
 
     pub fn pause(ctx: Context<Pause>) -> Result<()> {

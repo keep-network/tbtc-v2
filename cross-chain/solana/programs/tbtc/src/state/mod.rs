@@ -1,7 +1,8 @@
-pub use guardian_info::*;
-pub use minter_info::*;
-pub use tbtc::*;
+mod config;
+pub use config::*;
 
-pub mod guardian_info;
-pub mod minter_info;
-pub mod tbtc;
+mod guardian_info;
+pub use guardian_info::*;
+
+mod minter_info;
+pub use minter_info::*;

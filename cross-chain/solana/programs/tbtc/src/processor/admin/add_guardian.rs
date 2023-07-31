@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{GuardianInfo, Tbtc},
+    state::{Config, GuardianInfo},
 };
 use anchor_lang::prelude::*;
 
@@ -8,30 +8,36 @@ use anchor_lang::prelude::*;
 pub struct AddGuardian<'info> {
     #[account(
         mut,
+        seeds = [Config::SEED_PREFIX],
+        bump,
         has_one = authority @ TbtcError::IsNotAuthority
     )]
-    pub tbtc: Account<'info, Tbtc>,
-    pub authority: Signer<'info>,
-    /// CHECK: the guardian does not need to sign
-    pub guardian: UncheckedAccount<'info>,
+    config: Account<'info, Config>,
+
     #[account(mut)]
-    pub payer: Signer<'info>,
+    authority: Signer<'info>,
+
     #[account(
         init,
-        payer = payer,
-        space = GuardianInfo::MAXIMUM_SIZE,
-        seeds = [GuardianInfo::SEED_PREFIX, tbtc.key().as_ref(), guardian.key().as_ref()], bump
+        payer = authority,
+        space = 8 + GuardianInfo::INIT_SPACE,
+        seeds = [GuardianInfo::SEED_PREFIX, guardian.key().as_ref()],
+        bump
     )]
-    pub guardian_info: Account<'info, GuardianInfo>,
-    pub system_program: Program<'info, System>,
+    guardian_info: Account<'info, GuardianInfo>,
+
+    /// CHECK: Required authority to pause contract. This pubkey lives in `GuardianInfo`.
+    guardian: AccountInfo<'info>,
+
+    system_program: Program<'info, System>,
 }
 
 pub fn add_guardian(ctx: Context<AddGuardian>) -> Result<()> {
     ctx.accounts.guardian_info.set_inner(GuardianInfo {
         guardian: ctx.accounts.guardian.key(),
-        bump: *ctx.bumps.get("guardian_info").unwrap(),
+        bump: ctx.bumps["guardian_info"],
     });
 
-    ctx.accounts.tbtc.guardians += 1;
+    ctx.accounts.config.num_guardians += 1;
     Ok(())
 }

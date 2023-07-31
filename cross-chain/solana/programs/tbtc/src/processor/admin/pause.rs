@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{GuardianInfo, Tbtc},
+    state::{Config, GuardianInfo},
 };
 use anchor_lang::prelude::*;
 
@@ -8,19 +8,23 @@ use anchor_lang::prelude::*;
 pub struct Pause<'info> {
     #[account(
         mut,
-        constraint = !tbtc.paused @ TbtcError::IsPaused
+        seeds = [Config::SEED_PREFIX],
+        bump,
+        constraint = !config.paused @ TbtcError::IsPaused
     )]
-    pub tbtc: Account<'info, Tbtc>,
+    config: Account<'info, Config>,
+
     #[account(
         has_one = guardian,
-        seeds = [GuardianInfo::SEED_PREFIX, tbtc.key().as_ref(), guardian.key().as_ref()],
+        seeds = [GuardianInfo::SEED_PREFIX, guardian.key().as_ref()],
         bump = guardian_info.bump
     )]
-    pub guardian_info: Account<'info, GuardianInfo>,
-    pub guardian: Signer<'info>,
+    guardian_info: Account<'info, GuardianInfo>,
+
+    guardian: Signer<'info>,
 }
 
 pub fn pause(ctx: Context<Pause>) -> Result<()> {
-    ctx.accounts.tbtc.paused = true;
+    ctx.accounts.config.paused = true;
     Ok(())
 }

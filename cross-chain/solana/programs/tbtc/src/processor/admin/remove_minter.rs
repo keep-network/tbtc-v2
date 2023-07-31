@@ -1,29 +1,35 @@
 use crate::{
     error::TbtcError,
-    state::{MinterInfo, Tbtc},
+    state::{Config, MinterInfo},
 };
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(minter: Pubkey)]
 pub struct RemoveMinter<'info> {
     #[account(
         mut,
+        seeds = [Config::SEED_PREFIX],
+        bump,
         has_one = authority @ TbtcError::IsNotAuthority
     )]
-    pub tbtc: Account<'info, Tbtc>,
-    pub authority: Signer<'info>,
+    config: Account<'info, Config>,
+
+    authority: Signer<'info>,
+
     #[account(
         mut,
-        constraint = minter_info.minter == minter,
+        has_one = minter,
         close = authority,
-        seeds = [MinterInfo::SEED_PREFIX, tbtc.key().as_ref(), minter.as_ref()],
+        seeds = [MinterInfo::SEED_PREFIX, minter.key().as_ref()],
         bump = minter_info.bump,
     )]
-    pub minter_info: Account<'info, MinterInfo>,
+    minter_info: Account<'info, MinterInfo>,
+
+    /// CHECK: Required authority to mint tokens. This pubkey lives in `MinterInfo`.
+    minter: AccountInfo<'info>,
 }
 
-pub fn remove_minter(ctx: Context<RemoveMinter>, _minter: Pubkey) -> Result<()> {
-    ctx.accounts.tbtc.minters -= 1;
+pub fn remove_minter(ctx: Context<RemoveMinter>) -> Result<()> {
+    ctx.accounts.config.num_minters -= 1;
     Ok(())
 }

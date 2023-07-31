@@ -1,18 +1,21 @@
-use crate::{error::TbtcError, state::Tbtc};
+use crate::{error::TbtcError, state::Config};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Unpause<'info> {
     #[account(
         mut,
-        constraint = tbtc.paused @ TbtcError::IsNotPaused,
-        has_one = authority @ TbtcError::IsNotAuthority
+        seeds = [Config::SEED_PREFIX],
+        bump,
+        has_one = authority @ TbtcError::IsNotAuthority,
+        constraint = config.paused @ TbtcError::IsNotPaused
     )]
-    pub tbtc: Account<'info, Tbtc>,
-    pub authority: Signer<'info>,
+    config: Account<'info, Config>,
+
+    authority: Signer<'info>,
 }
 
 pub fn unpause(ctx: Context<Unpause>) -> Result<()> {
-    ctx.accounts.tbtc.paused = false;
+    ctx.accounts.config.paused = false;
     Ok(())
 }
