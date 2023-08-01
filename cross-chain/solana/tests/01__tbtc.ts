@@ -113,21 +113,41 @@ function getMinterPDA(
   );
 }
 
+function getMinterIndexPDA(
+  program: Program<Tbtc>,
+  index
+): [anchor.web3.PublicKey, number] {
+  let indexArr = new Uint8Array(1);
+  indexArr[0] = index;
+  return web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('minter-index'),
+      indexArr,
+    ],
+    program.programId
+  );
+}
+
 async function addMinter(
   program: Program<Tbtc>,
   authority,
-  minter,
-  payer
+  minter
 ): Promise<anchor.web3.PublicKey> {
   const [config,] = getConfigPDA(program);
   const [minterInfoPDA, _] = getMinterPDA(program, minter);
+
+  let configState = await program.account.config.fetch(config);
+
+  const [minterIndexPDA, __] = getMinterIndexPDA(program, configState.numMinters);
+
   await program.methods
     .addMinter()
     .accounts({
       config,
       authority: authority.publicKey,
-      minter: minter.publicKey,
       minterInfo: minterInfoPDA,
+      minterIndex: minterIndexPDA,
+      minter: minter.publicKey,
     })
     .signers(maybeAuthorityAnd(authority, []))
     .rpc();
@@ -136,13 +156,22 @@ async function addMinter(
 
 async function checkMinter(
   program: Program<Tbtc>,
-  minter
+  minter,
+  expectedIndex
 ) {
   const [minterInfoPDA, bump] = getMinterPDA(program, minter);
   let minterInfo = await program.account.minterInfo.fetch(minterInfoPDA);
 
+  const [minterIndexPDA, indexBump] = getMinterIndexPDA(program, minterInfo.index);
+  let minterIndex = await program.account.minterIndex.fetch(minterIndexPDA);
+
   expect(minterInfo.minter).to.eql(minter.publicKey);
   expect(minterInfo.bump).to.equal(bump);
+
+  expect(minterIndex.minterInfo).to.eql(minterInfoPDA);
+  expect(minterIndex.bump).to.equal(indexBump);
+
+  expect(minterInfo.index).to.equal(expectedIndex);
 }
 
 async function removeMinter(
@@ -152,12 +181,24 @@ async function removeMinter(
   minterInfo
 ) {
   const [config,] = getConfigPDA(program);
+  const configState = await program.account.config.fetch(config);
+  const minterInfoState = await program.account.minterInfo.fetch(minterInfo);
+
+  const [lastIndex,] = getMinterIndexPDA(program, configState.numMinters - 1);
+  const [swapIndex,] = getMinterIndexPDA(program, minterInfoState.index);
+
+  const lastIndexState = await program.account.minterIndex.fetch(lastIndex);
+  const swapInfo = lastIndexState.minterInfo;
+
   await program.methods
     .removeMinter()
     .accounts({
       config,
       authority: authority.publicKey,
       minterInfo: minterInfo,
+      minterInfoSwap: swapInfo,
+      minterIndexSwap: swapIndex,
+      minterIndexTail: lastIndex,
       minter: minter.publicKey
     })
     .signers(maybeAuthorityAnd(authority, []))
@@ -382,8 +423,8 @@ describe("tbtc", () => {
 
   it('add minter', async () => {
     await checkState(program, authority, 0, 0, 0);
-    await addMinter(program, authority, minterKeys, authority);
-    await checkMinter(program, minterKeys);
+    await addMinter(program, authority, minterKeys);
+    await checkMinter(program, minterKeys, 0);
     await checkState(program, authority, 1, 0, 0);
 
     // Transfer lamports to imposter.
@@ -400,7 +441,7 @@ describe("tbtc", () => {
     );
 
     try {
-      await addMinter(program, impostorKeys, minter2Keys, authority);
+      await addMinter(program, impostorKeys, minter2Keys);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -413,7 +454,7 @@ describe("tbtc", () => {
   it('mint', async () => {
     await checkState(program, authority, 1, 0, 0);
     const [minterInfoPDA, _] = getMinterPDA(program, minterKeys);
-    await checkMinter(program, minterKeys);
+    await checkMinter(program, minterKeys, 0);
 
     // await setupMint(program, authority, recipientKeys);
     await mint(program, minterKeys, minterInfoPDA, recipientKeys, 1000, authority);
@@ -434,7 +475,7 @@ describe("tbtc", () => {
   it('won\'t mint', async () => {
     await checkState(program, authority, 1, 0, 1000);
     const [minterInfoPDA, _] = getMinterPDA(program, minterKeys);
-    await checkMinter(program, minterKeys);
+    await checkMinter(program, minterKeys, 0);
 
     // await setupMint(program, authority, recipientKeys);
 
@@ -452,9 +493,9 @@ describe("tbtc", () => {
   it('use two minters', async () => {
     await checkState(program, authority, 1, 0, 1000);
     const [minterInfoPDA, _] = getMinterPDA(program, minterKeys);
-    await checkMinter(program, minterKeys);
-    const minter2InfoPDA = await addMinter(program, authority, minter2Keys, authority);
-    await checkMinter(program, minter2Keys);
+    await checkMinter(program, minterKeys, 0);
+    const minter2InfoPDA = await addMinter(program, authority, minter2Keys);
+    await checkMinter(program, minter2Keys, 1);
     await checkState(program, authority, 2, 0, 1000);
     // await setupMint(program, authority, recipientKeys);
 
@@ -487,7 +528,7 @@ describe("tbtc", () => {
   it('remove minter', async () => {
     await checkState(program, authority, 2, 0, 1500);
     const [minter2InfoPDA, _] = getMinterPDA(program, minter2Keys);
-    await checkMinter(program, minter2Keys);
+    await checkMinter(program, minter2Keys, 1);
     await removeMinter(program, authority, minter2Keys, minter2InfoPDA);
     await checkState(program, authority, 1, 0, 1500);
   });
@@ -495,7 +536,7 @@ describe("tbtc", () => {
   it('won\'t remove minter', async () => {
     await checkState(program, authority, 1, 0, 1500);
     const [minterInfoPDA, _] = getMinterPDA(program, minterKeys);
-    await checkMinter(program, minterKeys);
+    await checkMinter(program, minterKeys, 0);
 
     try {
       await removeMinter(program, impostorKeys, minterKeys, minterInfoPDA);
@@ -514,10 +555,7 @@ describe("tbtc", () => {
       await removeMinter(program, authority, minterKeys, minterInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
-      expect(_err).to.be.instanceOf(AnchorError);
-      const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
-      expect(err.program.equals(program.programId)).is.true;
+      expect(_err.message).to.include('Account does not exist or has no data');
     }
   });
 
@@ -604,7 +642,7 @@ describe("tbtc", () => {
 
   it('won\'t mint when paused', async () => {
     await checkState(program, authority, 0, 1, 1500);
-    const minterInfoPDA = await addMinter(program, authority, minterKeys, authority);
+    const minterInfoPDA = await addMinter(program, authority, minterKeys);
     await pause(program, guardianKeys);
     // await setupMint(program, authority, recipientKeys);
 
