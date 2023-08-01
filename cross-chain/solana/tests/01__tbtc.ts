@@ -224,39 +224,20 @@ function getGuardianPDA(
   );
 }
 
-function getGuardianIndexPDA(
-  program: Program<Tbtc>,
-  index
-): [anchor.web3.PublicKey, number] {
-  let indexArr = new Uint8Array(1);
-  indexArr[0] = index;
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('guardian-index'),
-      indexArr,
-    ],
-    program.programId
-  );
-}
-
 async function addGuardian(
   program: Program<Tbtc>,
   authority,
-  guardian
+  guardian,
+  payer
 ): Promise<anchor.web3.PublicKey> {
   const [config,] = getConfigPDA(program);
   const [guardianInfoPDA, _] = getGuardianPDA(program, guardian);
-
-  let configState = await program.account.config.fetch(config);
-
-  const [guardianIndexPDA, __] = getGuardianIndexPDA(program, configState.numGuardians);
   await program.methods
     .addGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
       guardianInfo: guardianInfoPDA,
-      guardianIndex: guardianIndexPDA,
       guardian: guardian.publicKey,
     })
     .signers(maybeAuthorityAnd(authority, []))
@@ -266,22 +247,13 @@ async function addGuardian(
 
 async function checkGuardian(
   program: Program<Tbtc>,
-  guardian,
-  expectedIndex
+  guardian
 ) {
   const [guardianInfoPDA, bump] = getGuardianPDA(program, guardian);
   let guardianInfo = await program.account.guardianInfo.fetch(guardianInfoPDA);
 
-  const [guardianIndexPDA, indexBump] = getGuardianIndexPDA(program, guardianInfo.index);
-  let guardianIndex = await program.account.guardianIndex.fetch(guardianIndexPDA);
-
   expect(guardianInfo.guardian).to.eql(guardian.publicKey);
   expect(guardianInfo.bump).to.equal(bump);
-
-  expect(guardianIndex.guardianInfo).to.eql(guardianInfoPDA);
-  expect(guardianIndex.bump).to.equal(indexBump);
-
-  expect(guardianInfo.index).to.equal(expectedIndex);
 }
 
 async function removeGuardian(
@@ -291,24 +263,12 @@ async function removeGuardian(
   guardianInfo
 ) {
   const [config,] = getConfigPDA(program);
-  const configState = await program.account.config.fetch(config);
-  const guardianInfoState = await program.account.guardianInfo.fetch(guardianInfo);
-
-  const [lastIndex,] = getGuardianIndexPDA(program, configState.numGuardians - 1);
-  const [swapIndex,] = getGuardianIndexPDA(program, guardianInfoState.index);
-
-  const lastIndexState = await program.account.guardianIndex.fetch(lastIndex);
-  const swapInfo = lastIndexState.guardianInfo;
-
   await program.methods
     .removeGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
       guardianInfo: guardianInfo,
-      guardianInfoSwap: swapInfo,
-      guardianIndexSwap: swapIndex,
-      guardianIndexTail: lastIndex,
       guardian: guardian.publicKey
     })
     .signers(maybeAuthorityAnd(authority, []))
@@ -622,12 +582,12 @@ describe("tbtc", () => {
 
   it('add guardian', async () => {
     await checkState(program, authority, 0, 0, 1500);
-    await addGuardian(program, authority, guardianKeys);
-    await checkGuardian(program, guardianKeys, 0);
+    await addGuardian(program, authority, guardianKeys, authority);
+    await checkGuardian(program, guardianKeys);
     await checkState(program, authority, 0, 1, 1500);
 
     try {
-      await addGuardian(program, impostorKeys, guardian2Keys);
+      await addGuardian(program, impostorKeys, guardian2Keys, authority);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
@@ -639,8 +599,8 @@ describe("tbtc", () => {
 
   it('remove guardian', async () => {
     await checkState(program, authority, 0, 1, 1500);
-    const [guardianInfoPDA,] = getGuardianPDA(program, guardianKeys);
-    await checkGuardian(program, guardianKeys, 0);
+    const [guardianInfoPDA, _] = getGuardianPDA(program, guardianKeys);
+    await checkGuardian(program, guardianKeys);
 
     try {
       await removeGuardian(program, impostorKeys, guardianKeys, guardianInfoPDA);
@@ -659,25 +619,16 @@ describe("tbtc", () => {
       await removeGuardian(program, authority, guardianKeys, guardianInfoPDA);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
-      expect(_err.message).to.include('Account does not exist or has no data');
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
+      expect(err.program.equals(program.programId)).is.true;
     }
-
-    await addGuardian(program, authority, guardian2Keys);
-    await addGuardian(program, authority, guardianKeys);
-    await checkGuardian(program, guardian2Keys, 0);
-    await checkGuardian(program, guardianKeys, 1);
-
-    const [guardian2InfoPDA,] = getGuardianPDA(program, guardian2Keys);
-    await removeGuardian(program, authority, guardian2Keys, guardian2InfoPDA);
-
-    await checkGuardian(program, guardianKeys, 0);
-
-    await removeGuardian(program, authority, guardianKeys, guardianInfoPDA);
   });
 
   it('pause', async () => {
     await checkState(program, authority, 0, 0, 1500);
-    await addGuardian(program, authority, guardianKeys);
+    await addGuardian(program, authority, guardianKeys, authority);
     await checkPaused(program, false);
     await pause(program, guardianKeys);
     await checkPaused(program, true);
@@ -724,9 +675,9 @@ describe("tbtc", () => {
   it('use two guardians', async () => {
     await checkState(program, authority, 1, 1, 1500);
     const [guardianInfoPDA, _] = getGuardianPDA(program, guardianKeys);
-    await checkGuardian(program, guardianKeys, 0);
-    await addGuardian(program, authority, guardian2Keys);
-    await checkGuardian(program, guardian2Keys, 1);
+    await checkGuardian(program, guardianKeys);
+    await addGuardian(program, authority, guardian2Keys, authority);
+    await checkGuardian(program, guardian2Keys);
 
     await pause(program, guardianKeys);
 

@@ -4,7 +4,6 @@ use anchor_lang::prelude::*;
 #[derive(Debug, InitSpace)]
 pub struct GuardianInfo {
     pub guardian: Pubkey,
-    pub index: u8,
     pub bump: u8,
 }
 
