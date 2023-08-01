@@ -7,6 +7,7 @@
         "@coral-xyz/anchor": "^0.28.0"
     },
     "devDependencies": {
+        "@certusone/wormhole-sdk": "^0.9.22",
         "@solana/spl-token": "^0.3.8",
         "@solana/web3.js": "^1.77.3",
         "@types/bn.js": "^5.1.0",
