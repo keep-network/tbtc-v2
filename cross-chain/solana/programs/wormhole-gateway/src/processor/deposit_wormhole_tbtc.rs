@@ -18,11 +18,11 @@ pub struct DepositWormholeTbtc<'info> {
     /// This token account is owned by this program, whose mint is the wrapped TBTC mint. This PDA
     /// address is stored in the custodian account.
     #[account(mut)]
-    wrapped_tbtc_token: Account<'info, token::TokenAccount>,
+    wrapped_tbtc_token: Box<Account<'info, token::TokenAccount>>,
 
     /// This mint is owned by the Wormhole Token Bridge program. This PDA address is stored in the
     /// custodian account.
-    wrapped_tbtc_mint: Account<'info, token::Mint>,
+    wrapped_tbtc_mint: Box<Account<'info, token::Mint>>,
 
     /// This mint is owned by the TBTC program. This PDA address is stored in the custodian account.
     #[account(mut)]
@@ -33,7 +33,7 @@ pub struct DepositWormholeTbtc<'info> {
         token::mint = wrapped_tbtc_mint,
         token::authority = recipient
     )]
-    recipient_wrapped_token: Account<'info, token::TokenAccount>,
+    recipient_wrapped_token: Box<Account<'info, token::TokenAccount>>,
 
     // Use the associated token account for the recipient.
     #[account(
@@ -41,7 +41,7 @@ pub struct DepositWormholeTbtc<'info> {
         token::mint = tbtc_mint,
         token::authority = recipient,
     )]
-    recipient_token: Account<'info, token::TokenAccount>,
+    recipient_token: Box<Account<'info, token::TokenAccount>>,
 
     /// This program requires that the owner of the TBTC token account sign for TBTC being minted
     /// into his account.
@@ -50,7 +50,7 @@ pub struct DepositWormholeTbtc<'info> {
     /// CHECK: TBTC program requires this account.
     tbtc_config: UncheckedAccount<'info>,
 
-    // CHECK: TBTC program requires this account.
+    /// CHECK: TBTC program requires this account.
     minter_info: UncheckedAccount<'info>,
 
     token_program: Program<'info, token::Token>,

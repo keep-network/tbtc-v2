@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 #[derive(Debug, InitSpace)]
 pub struct GatewayInfo {
     pub bump: u8,
-    pub gateway: [u8; 32],
+    pub address: [u8; 32],
 }
 
 impl GatewayInfo {
