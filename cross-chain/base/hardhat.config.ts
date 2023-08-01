@@ -140,8 +140,8 @@ const config: HardhatUserConfig = {
       default: 2,
       goerli: 0,
       baseGoerli: 0,
-      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
-      base: "<tbd>",
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
+      base: "0x518385dd31289F1000fE6382b0C65df4d1Cd3bfC", // Threshold Council
     },
   },
   mocha: {
