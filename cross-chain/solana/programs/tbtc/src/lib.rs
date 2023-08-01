@@ -34,6 +34,14 @@ pub mod tbtc {
         processor::change_authority(ctx)
     }
 
+    pub fn cancel_authority_change(ctx: Context<CancelAuthorityChange>) -> Result<()> {
+        processor::cancel_authority_change(ctx)
+    }
+
+    pub fn take_authority(ctx: Context<TakeAuthority>) -> Result<()> {
+        processor::take_authority(ctx)
+    }
+
     pub fn add_minter(ctx: Context<AddMinter>) -> Result<()> {
         processor::add_minter(ctx)
     }

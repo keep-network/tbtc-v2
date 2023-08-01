@@ -4,6 +4,9 @@ pub use add_guardian::*;
 mod add_minter;
 pub use add_minter::*;
 
+mod cancel_authority_change;
+pub use cancel_authority_change::*;
+
 mod change_authority;
 pub use change_authority::*;
 
@@ -18,6 +21,9 @@ pub use remove_guardian::*;
 
 mod remove_minter;
 pub use remove_minter::*;
+
+mod take_authority;
+pub use take_authority::*;
 
 mod unpause;
 pub use unpause::*;

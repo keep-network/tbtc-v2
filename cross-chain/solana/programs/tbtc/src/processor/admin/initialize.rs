@@ -36,6 +36,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
     ctx.accounts.config.set_inner(Config {
         bump: ctx.bumps["config"],
         authority: ctx.accounts.authority.key(),
+        pending_authority: None,
         mint: ctx.accounts.mint.key(),
         mint_bump: ctx.bumps["mint"],
         num_minters: 0,

@@ -5,4 +5,6 @@ pub enum TbtcError {
     IsPaused,
     IsNotPaused,
     IsNotAuthority,
+    IsNotPendingAuthority,
+    NoPendingAuthorityChange,
 }

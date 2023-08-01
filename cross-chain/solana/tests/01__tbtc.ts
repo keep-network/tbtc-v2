@@ -64,8 +64,55 @@ async function changeAuthority(
       authority: authority.publicKey,
       newAuthority: newAuthority.publicKey,
     })
-    .signers(maybeAuthorityAnd(authority, [newAuthority]))
+    .signers(maybeAuthorityAnd(authority, []))
     .rpc();
+}
+
+async function takeAuthority(
+  program: Program<Tbtc>,
+  newAuthority,
+) {
+  const [config,] = getConfigPDA(program);
+  await program.methods
+    .takeAuthority()
+    .accounts({
+      config,
+      pendingAuthority: newAuthority.publicKey,
+    })
+    .signers(maybeAuthorityAnd(newAuthority, []))
+    .rpc();
+}
+
+async function cancelAuthorityChange(
+  program: Program<Tbtc>, 
+  authority,
+) {
+  const [config,] = getConfigPDA(program);
+  await program.methods
+    .cancelAuthorityChange()
+    .accounts({
+      config,
+      authority: authority.publicKey,
+    })
+    .signers(maybeAuthorityAnd(authority, []))
+    .rpc();
+}
+
+async function checkPendingAuthority(
+  program: Program<Tbtc>,
+  pendingAuthority,
+) {
+  const [config,] = getConfigPDA(program);
+  let configState = await program.account.config.fetch(config);
+  expect(configState.pendingAuthority).to.eql(pendingAuthority.publicKey);
+}
+
+async function checkNoPendingAuthority(
+  program: Program<Tbtc>,
+) {
+  const [config,] = getConfigPDA(program);
+  let configState = await program.account.config.fetch(config);
+  expect(configState.pendingAuthority).to.equal(null);
 }
 
 async function checkPaused(
@@ -415,9 +462,61 @@ describe("tbtc", () => {
 
   it('change authority', async () => {
     await checkState(program, authority, 0, 0, 0);
+    await checkNoPendingAuthority(program);
+    try {
+      await cancelAuthorityChange(program, authority);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('NoPendingAuthorityChange');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+    try {
+      await takeAuthority(program, newAuthority);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('NoPendingAuthorityChange');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+
     await changeAuthority(program, authority, newAuthority);
+    await checkPendingAuthority(program, newAuthority);
+    await takeAuthority(program, newAuthority);
+    await checkNoPendingAuthority(program);
     await checkState(program, newAuthority, 0, 0, 0);
     await changeAuthority(program, newAuthority, authority.payer);
+    try {
+      await takeAuthority(program, impostorKeys);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotPendingAuthority');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+    try {
+      await takeAuthority(program, newAuthority);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotPendingAuthority');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+    try {
+      await cancelAuthorityChange(program, authority);
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+    await takeAuthority(program, authority);
+
     await checkState(program, authority, 0, 0, 0);
   })
 

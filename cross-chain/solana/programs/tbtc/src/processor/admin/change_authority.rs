@@ -13,10 +13,11 @@ pub struct ChangeAuthority<'info> {
 
     authority: Signer<'info>,
 
-    new_authority: Signer<'info>,
+    /// CHECK: New authority.
+    new_authority: AccountInfo<'info>,
 }
 
 pub fn change_authority(ctx: Context<ChangeAuthority>) -> Result<()> {
-    ctx.accounts.config.authority = ctx.accounts.new_authority.key();
+    ctx.accounts.config.pending_authority = Some(ctx.accounts.new_authority.key());
     Ok(())
 }

@@ -7,6 +7,7 @@ pub struct Config {
 
     /// The authority over this program.
     pub authority: Pubkey,
+    pub pending_authority: Option<Pubkey>,
 
     // Mint info.
     pub mint: Pubkey,
