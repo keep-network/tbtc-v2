@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Config, GuardianInfo},
+    state::{Config, GuardianIndex, GuardianInfo},
 };
 use anchor_lang::prelude::*;
 
@@ -26,6 +26,15 @@ pub struct AddGuardian<'info> {
     )]
     guardian_info: Account<'info, GuardianInfo>,
 
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + GuardianIndex::INIT_SPACE,
+        seeds = [GuardianIndex::SEED_PREFIX, &[config.num_guardians]],
+        bump
+    )]
+    guardian_index: Account<'info, GuardianIndex>,
+
     /// CHECK: Required authority to pause contract. This pubkey lives in `GuardianInfo`.
     guardian: AccountInfo<'info>,
 
@@ -35,7 +44,13 @@ pub struct AddGuardian<'info> {
 pub fn add_guardian(ctx: Context<AddGuardian>) -> Result<()> {
     ctx.accounts.guardian_info.set_inner(GuardianInfo {
         guardian: ctx.accounts.guardian.key(),
+        index: ctx.accounts.config.num_guardians,
         bump: ctx.bumps["guardian_info"],
+    });
+
+    ctx.accounts.guardian_index.set_inner(GuardianIndex {
+        guardian_info: ctx.accounts.guardian_info.key(),
+        bump: ctx.bumps["guardian_index"],
     });
 
     ctx.accounts.config.num_guardians += 1;
