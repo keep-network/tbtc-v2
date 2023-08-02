@@ -39,6 +39,7 @@ import { BigNumberish, BigNumber } from "ethers"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Wallet } from "../src/wallet"
 import { MockTBTCToken } from "./utils/mock-tbtc-token"
+import { BitcoinTransaction } from "../src"
 
 chai.use(chaiAsPromised)
 
@@ -1467,7 +1468,7 @@ describe("Redemption", () => {
               bitcoinClient
             )
           ).to.be.rejectedWith(
-            "Could not find a wallet with enough funds. Maximum redemption amount is 0 Satoshi."
+            "Currently, there are no live wallets in the network."
           )
         })
       }
@@ -1490,9 +1491,9 @@ describe("Redemption", () => {
           (wallet) => wallet.event
         )
 
-        const walletsUnspentTransacionOutputs = new Map<
+        const walletsTransactionHistory = new Map<
           string,
-          UnspentTransactionOutput[]
+          BitcoinTransaction[]
         >()
 
         walletsOrder.forEach((wallet) => {
@@ -1501,11 +1502,11 @@ describe("Redemption", () => {
             mainUtxoHash,
             walletPublicKey,
             btcAddress,
-            utxos,
+            transactions,
             pendingRedemptionsValue,
           } = wallet.data
 
-          walletsUnspentTransacionOutputs.set(btcAddress, utxos)
+          walletsTransactionHistory.set(btcAddress, transactions)
           bridge.setWallet(
             wallet.event.walletPublicKeyHash.toPrefixedString(),
             {
@@ -1517,8 +1518,7 @@ describe("Redemption", () => {
           )
         })
 
-        bitcoinClient.unspentTransactionOutputs =
-          walletsUnspentTransacionOutputs
+        bitcoinClient.transactionHistory = walletsTransactionHistory
       })
 
       context(
@@ -1545,29 +1545,13 @@ describe("Redemption", () => {
             })
           })
 
-          it("should get wallet data details", () => {
-            const bridgeWalletDetailsLogs = bridge.walletsLog
-
-            const wallets = Array.from(walletsOrder)
-            // Remove last live wallet.
-            wallets.pop()
-
-            expect(bridgeWalletDetailsLogs.length).to.eql(wallets.length)
-
-            wallets.forEach((wallet, index) => {
-              expect(bridgeWalletDetailsLogs[index].walletPublicKeyHash).to.eql(
-                wallet.event.walletPublicKeyHash.toPrefixedString()
-              )
-            })
-          })
-
           it("should return the wallet data that can handle redemption request", () => {
             const expectedWalletData =
               findWalletForRedemptionData.walletWithPendingRedemption.data
 
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
-              mainUtxo: expectedWalletData.utxos[0],
+              mainUtxo: expectedWalletData.mainUtxo,
             })
           })
         }
@@ -1579,8 +1563,7 @@ describe("Redemption", () => {
           const amount = BigNumber.from("10000000000") // 1 000 BTC
           const expectedMaxAmount = walletsOrder
             .map((wallet) => wallet.data)
-            .map((wallet) => wallet.utxos)
-            .flat()
+            .map((wallet) => wallet.mainUtxo)
             .map((utxo) => utxo.value)
             .sort((a, b) => (b.gt(a) ? 0 : -1))[0]
 
@@ -1647,24 +1630,13 @@ describe("Redemption", () => {
             })
           })
 
-          it("should get wallet data details", () => {
-            const bridgeWalletDetailsLogs = bridge.walletsLog
-
-            expect(bridgeWalletDetailsLogs.length).to.eql(walletsOrder.length)
-            walletsOrder.forEach((wallet, index) => {
-              expect(bridgeWalletDetailsLogs[index].walletPublicKeyHash).to.eql(
-                wallet.event.walletPublicKeyHash.toPrefixedString()
-              )
-            })
-          })
-
           it("should skip the wallet for which there is a pending redemption request to the same redeemer output script and return the wallet data that can handle redemption request", () => {
             const expectedWalletData =
               findWalletForRedemptionData.liveWallet.data
 
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
-              mainUtxo: expectedWalletData.utxos[0],
+              mainUtxo: expectedWalletData.mainUtxo,
             })
           })
         }
@@ -1676,7 +1648,7 @@ describe("Redemption", () => {
           beforeEach(async () => {
             const wallet =
               findWalletForRedemptionData.walletWithPendingRedemption
-            const walletBTCBalance = wallet.data.utxos[0].value
+            const walletBTCBalance = wallet.data.mainUtxo.value
 
             const amount: BigNumber = walletBTCBalance
               .sub(wallet.data.pendingRedemptionsValue)
@@ -1699,8 +1671,63 @@ describe("Redemption", () => {
 
             expect(result).to.deep.eq({
               walletPublicKey: expectedWalletData.walletPublicKey.toString(),
-              mainUtxo: expectedWalletData.utxos[0],
+              mainUtxo: expectedWalletData.mainUtxo,
             })
+          })
+        }
+      )
+
+      context(
+        "when all active wallets has pending redemption for a given Bitcoin address",
+        () => {
+          const amount: BigNumber = BigNumber.from("1000000") // 0.01 BTC
+          const redeemerOutputScript =
+            findWalletForRedemptionData.pendingRedemption.redeemerOutputScript
+
+          beforeEach(async () => {
+            const walletPublicKeyHash =
+              findWalletForRedemptionData.walletWithPendingRedemption.event
+                .walletPublicKeyHash
+
+            const pendingRedemptions = new Map<
+              BigNumberish,
+              RedemptionRequest
+            >()
+
+            const pendingRedemption1 = MockBridge.buildRedemptionKey(
+              walletPublicKeyHash.toString(),
+              redeemerOutputScript
+            )
+
+            const pendingRedemption2 = MockBridge.buildRedemptionKey(
+              findWalletForRedemptionData.liveWallet.event.walletPublicKeyHash.toString(),
+              redeemerOutputScript
+            )
+
+            pendingRedemptions.set(
+              pendingRedemption1,
+              findWalletForRedemptionData.pendingRedemption
+            )
+
+            pendingRedemptions.set(
+              pendingRedemption2,
+              findWalletForRedemptionData.pendingRedemption
+            )
+            bridge.setPendingRedemptions(pendingRedemptions)
+          })
+
+          it("should throw an error", async () => {
+            await expect(
+              findWalletForRedemption(
+                amount,
+                redeemerOutputScript,
+                BitcoinNetwork.Testnet,
+                bridge,
+                bitcoinClient
+              )
+            ).to.be.rejectedWith(
+              "All live wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
+            )
           })
         }
       )
