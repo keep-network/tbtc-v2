@@ -5,6 +5,7 @@ import * as web3 from '@solana/web3.js';
 import { Tbtc } from "../target/types/tbtc";
 import { expect } from 'chai';
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
+import { transferLamports } from "./helpers/utils";
 
 function maybeAuthorityAnd(
   signer,
@@ -446,17 +447,18 @@ describe("tbtc", () => {
     await checkState(program, authority, 1, 0, 0);
 
     // Transfer lamports to imposter.
-    await web3.sendAndConfirmTransaction(
-      program.provider.connection,
-      new web3.Transaction().add(
-        web3.SystemProgram.transfer({
-          fromPubkey: authority.publicKey,
-          toPubkey: impostorKeys.publicKey,
-          lamports: 1000000000,
-        })
-      ),
-      [authority.payer]
-    );
+    await transferLamports(program.provider.connection, authority.payer, impostorKeys.publicKey, 1000000000);
+    // await web3.sendAndConfirmTransaction(
+    //   program.provider.connection,
+    //   new web3.Transaction().add(
+    //     web3.SystemProgram.transfer({
+    //       fromPubkey: authority.publicKey,
+    //       toPubkey: impostorKeys.publicKey,
+    //       lamports: 1000000000,
+    //     })
+    //   ),
+    //   [authority.payer]
+    // );
 
     try {
       await addMinter(program, impostorKeys, minter2Keys, authority);

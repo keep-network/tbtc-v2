@@ -84,6 +84,8 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
         amount,
     )?;
 
+    let custodian = &ctx.accounts.custodian;
+
     // Now mint.
     tbtc::cpi::mint(
         CpiContext::new_with_signer(
@@ -92,11 +94,11 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
                 mint: ctx.accounts.tbtc_mint.to_account_info(),
                 config: ctx.accounts.tbtc_config.to_account_info(),
                 minter_info: ctx.accounts.minter_info.to_account_info(),
-                minter: ctx.accounts.custodian.to_account_info(),
+                minter: custodian.to_account_info(),
                 recipient_token: ctx.accounts.recipient_token.to_account_info(),
                 token_program: ctx.accounts.token_program.to_account_info(),
             },
-            &[&[Custodian::SEED_PREFIX, &[ctx.bumps["custodian"]]]],
+            &[&[Custodian::SEED_PREFIX, &[custodian.bump]]],
         ),
         amount,
     )

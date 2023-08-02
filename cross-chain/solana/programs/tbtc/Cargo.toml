@@ -9,11 +9,13 @@ crate-type = ["cdylib", "lib"]
 name = "tbtc"
 
 [features]
+default = []
+mainnet = []
+solana-devnet = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
 
 [dependencies]
 anchor-lang = { version = "=0.28.0", features = ["derive", "init-if-needed"] }
