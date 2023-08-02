@@ -8,7 +8,7 @@ import {
   Client as BitcoinClient,
   TransactionHash,
 } from "./bitcoin"
-import { Bridge, Identifier, TBTCToken } from "./chain"
+import { Bridge, Event, Identifier, TBTCToken } from "./chain"
 import { assembleTransactionProof } from "./proof"
 import { determineWalletMainUtxo, WalletState } from "./wallet"
 import { BitcoinNetwork } from "./bitcoin-network"
@@ -55,6 +55,20 @@ export interface RedemptionRequest {
    */
   requestedAt: number
 }
+
+/**
+ * Represents an event emitted on redemption request.
+ */
+export type RedemptionRequestedEvent = Omit<
+  RedemptionRequest,
+  "requestedAt"
+> & {
+  /**
+   * Public key hash of the wallet that is meant to handle the redemption. Must
+   * be an unprefixed hex string (without 0x prefix).
+   */
+  walletPublicKeyHash: string
+} & Event
 
 /**
  * Requests a redemption of tBTC into BTC.
