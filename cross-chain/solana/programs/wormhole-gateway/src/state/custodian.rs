@@ -15,6 +15,7 @@ pub struct Custodian {
     pub token_bridge_redeemer_bump: u8,
 
     pub minting_limit: u64,
+    pub minted_amount: u64,
 }
 
 impl Custodian {

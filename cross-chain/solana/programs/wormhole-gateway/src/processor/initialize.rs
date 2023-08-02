@@ -1,22 +1,10 @@
-use crate::state::Custodian;
+use crate::{
+    constants::{TBTC_ETHEREUM_TOKEN_ADDRESS, TBTC_ETHEREUM_TOKEN_CHAIN},
+    state::Custodian,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::token_bridge;
-
-const TBTC_FOREIGN_TOKEN_CHAIN: u16 = 2;
-
-#[cfg(feature = "mainnet")]
-const TBTC_FOREIGN_TOKEN_ADDRESS: [u8; 32] = [
-    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x18, 0x08, 0x4f, 0xba, 0x66, 0x6a,
-    0x33, 0xd3, 0x75, 0x92, 0xfa, 0x26, 0x33, 0xfd, 0x49, 0xa7, 0x4D, 0xd9, 0x3a, 0x88,
-];
-
-/// TODO: Fix this to reflect testnet contract address.
-#[cfg(feature = "solana-devnet")]
-const TBTC_FOREIGN_TOKEN_ADDRESS: [u8; 32] = [
-    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x18, 0x08, 0x4f, 0xbA, 0x66, 0x6a,
-    0x33, 0xd3, 0x75, 0x92, 0xfa, 0x26, 0x33, 0xfD, 0x49, 0xa7, 0x4d, 0xd9, 0x3a, 0x88,
-];
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -45,8 +33,8 @@ pub struct Initialize<'info> {
     #[account(
         seeds = [
             token_bridge::WrappedMint::SEED_PREFIX,
-            &TBTC_FOREIGN_TOKEN_CHAIN.to_be_bytes(),
-            TBTC_FOREIGN_TOKEN_ADDRESS.as_ref()
+            &TBTC_ETHEREUM_TOKEN_CHAIN.to_be_bytes(),
+            TBTC_ETHEREUM_TOKEN_ADDRESS.as_ref()
         ],
         bump,
         seeds::program = token_bridge::program::ID
@@ -95,6 +83,7 @@ pub fn initialize(ctx: Context<Initialize>, minting_limit: u64) -> Result<()> {
         token_bridge_redeemer: ctx.accounts.token_bridge_sender.key(),
         token_bridge_redeemer_bump: ctx.bumps["token_bridge_redeemer"],
         minting_limit,
+        minted_amount: 0,
     });
 
     Ok(())

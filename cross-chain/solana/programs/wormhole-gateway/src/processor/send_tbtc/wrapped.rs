@@ -48,7 +48,7 @@ pub struct SendTbtcWrapped<'info> {
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(mut)]
-    core_bridge: UncheckedAccount<'info>,
+    core_bridge_data: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(
@@ -111,7 +111,6 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
     } = args;
 
     let sender = &ctx.accounts.sender;
-    let custodian = &ctx.accounts.custodian;
     let wrapped_tbtc_token = &ctx.accounts.wrapped_tbtc_token;
     let token_bridge_transfer_authority = &ctx.accounts.token_bridge_transfer_authority;
     let token_program = &ctx.accounts.token_program;
@@ -119,7 +118,7 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
     // Prepare for wrapped tBTC transfer.
     let amount = super::burn_and_prepare_transfer(
         super::PrepareTransfer {
-            custodian,
+            custodian: &mut ctx.accounts.custodian,
             tbtc_mint: &ctx.accounts.tbtc_mint,
             sender_token: &ctx.accounts.sender_token,
             sender,
@@ -129,6 +128,8 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
         },
         amount,
     )?;
+
+    let custodian = &ctx.accounts.custodian;
 
     // Because the wormhole-anchor-sdk does not support relayable transfers (i.e. payload ID == 1),
     // we need to construct the instruction from scratch and invoke it.
@@ -142,7 +143,7 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
             AccountMeta::new(ctx.accounts.wrapped_tbtc_mint.key(), false),
             AccountMeta::new_readonly(ctx.accounts.token_bridge_wrapped_asset.key(), false),
             AccountMeta::new_readonly(token_bridge_transfer_authority.key(), false),
-            AccountMeta::new(ctx.accounts.core_bridge.key(), false),
+            AccountMeta::new(ctx.accounts.core_bridge_data.key(), false),
             AccountMeta::new(ctx.accounts.core_message.key(), true),
             AccountMeta::new_readonly(ctx.accounts.token_bridge_core_emitter.key(), false),
             AccountMeta::new(ctx.accounts.core_emitter_sequence.key(), false),

@@ -28,7 +28,7 @@ pub fn validate_send(
 }
 
 pub struct PrepareTransfer<'ctx, 'info> {
-    custodian: &'ctx Account<'info, Custodian>,
+    custodian: &'ctx mut Account<'info, Custodian>,
     tbtc_mint: &'ctx Account<'info, token::Mint>,
     sender_token: &'ctx Account<'info, token::TokenAccount>,
     sender: &'ctx Signer<'info>,
@@ -50,6 +50,12 @@ pub fn burn_and_prepare_transfer(prepare_transfer: PrepareTransfer, amount: u64)
 
     let truncated = 10 * (amount / 10);
     require_gt!(truncated, 0, WormholeGatewayError::TruncatedZeroAmount);
+
+    // Account for burning tBTC.
+    custodian
+        .minted_amount
+        .checked_sub(truncated)
+        .ok_or(WormholeGatewayError::MintedAmountUnderflow)?;
 
     // Burn TBTC mint.
     token::burn(

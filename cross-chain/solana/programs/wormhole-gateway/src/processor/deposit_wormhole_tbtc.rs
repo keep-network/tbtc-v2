@@ -59,9 +59,9 @@ pub struct DepositWormholeTbtc<'info> {
 
 impl<'info> DepositWormholeTbtc<'info> {
     fn constraints(ctx: &Context<Self>, amount: u64) -> Result<()> {
-        require_gt!(
+        require_gte!(
             ctx.accounts.custodian.minting_limit,
-            ctx.accounts.tbtc_mint.supply.saturating_add(amount),
+            ctx.accounts.custodian.minted_amount.saturating_add(amount),
             WormholeGatewayError::MintingLimitExceeded
         );
 
@@ -83,6 +83,10 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
         ),
         amount,
     )?;
+
+    // Account for minted amount.
+    ctx.accounts.custodian.minted_amount =
+        ctx.accounts.custodian.minted_amount.saturating_add(amount);
 
     let custodian = &ctx.accounts.custodian;
 
