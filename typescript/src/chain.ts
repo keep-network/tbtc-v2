@@ -17,7 +17,7 @@ import {
   OptimisticMintingRequestedEvent,
 } from "./optimistic-minting"
 import { Hex } from "./hex"
-import { RedemptionRequest } from "./redemption"
+import { RedemptionRequest, RedemptionRequestedEvent } from "./redemption"
 import {
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
@@ -260,6 +260,12 @@ export interface Bridge {
    * @returns The hash of the UTXO.
    */
   buildUtxoHash(utxo: UnspentTransactionOutput): Hex
+
+  /**
+   * Get emitted RedemptionRequested events.
+   * @see GetEventsFunction
+   */
+  getRedemptionRequestedEvents: GetEvents.Function<RedemptionRequestedEvent>
 }
 
 /**

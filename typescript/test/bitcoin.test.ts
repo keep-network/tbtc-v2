@@ -13,6 +13,7 @@ import {
   targetToDifficulty,
   createOutputScriptFromAddress,
   createAddressFromOutputScript,
+  readCompactSizeUint,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
@@ -503,6 +504,43 @@ describe("Bitcoin", () => {
             expect(result.toString()).to.eq(address)
           })
         })
+      })
+    })
+  })
+
+  describe("readCompactSizeUint", () => {
+    context("when the compact size uint is 1-byte", () => {
+      it("should return the the uint value and byte length", () => {
+        expect(readCompactSizeUint(Hex.from("bb"))).to.be.eql({
+          value: 187,
+          byteLength: 1,
+        })
+      })
+    })
+
+    context("when the compact size uint is 3-byte", () => {
+      it("should throw", () => {
+        expect(() => readCompactSizeUint(Hex.from("fd0302"))).to.throw(
+          "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+        )
+      })
+    })
+
+    context("when the compact size uint is 5-byte", () => {
+      it("should throw", () => {
+        expect(() => readCompactSizeUint(Hex.from("fe703a0f00"))).to.throw(
+          "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+        )
+      })
+    })
+
+    context("when the compact size uint is 9-byte", () => {
+      it("should throw", () => {
+        expect(() => {
+          return readCompactSizeUint(Hex.from("ff57284e56dab40000"))
+        }).to.throw(
+          "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+        )
       })
     })
   })

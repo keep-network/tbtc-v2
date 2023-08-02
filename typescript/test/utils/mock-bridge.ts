@@ -5,7 +5,7 @@ import {
   UnspentTransactionOutput,
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
-import { RedemptionRequest } from "../redemption"
+import { RedemptionRequest, RedemptionRequestedEvent } from "../redemption"
 import {
   Deposit,
   DepositRevealedEvent,
@@ -364,5 +364,12 @@ export class MockBridge implements Bridge {
         ]
       )
     )
+  }
+
+  getRedemptionRequestedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<RedemptionRequestedEvent[]> {
+    throw new Error("not implemented")
   }
 }
