@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
-  // See https://docs.wormhole.com/wormhole/reference/environments/evm#base
+  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base
   // This ID is valid for both Base Goerli and Base Mainnet
   const wormholeChainID = 30
 
