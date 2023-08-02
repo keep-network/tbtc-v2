@@ -9,7 +9,10 @@ import * as spl from "@solana/spl-token";
 import { expect } from 'chai';
 import { WormholeGateway } from "../target/types/wormhole_gateway";
 import { generatePayer, getOrCreateTokenAccount } from "./helpers/utils";
+import { getCustodianPDA, getTokenBridgeRedeemerPDA, getTokenBridgeSenderPDA, getWrappedTbtcTokenPDA } from "./helpers/wormholeGatewayHelpers";
+import { getConfigPDA, getTokenPDA, getMinterPDA, getGuardianPDA } from "./helpers/tbtcHelpers";
 import { web3 } from "@coral-xyz/anchor";
+import { Tbtc } from "../target/types/tbtc";
 
 const SOLANA_CORE_BRIDGE_ADDRESS = "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth";
 const SOLANA_TOKEN_BRIDGE_ADDRESS = "wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb";
@@ -18,17 +21,49 @@ const ETHEREUM_TBTC_ADDRESS = "0x18084fbA666a33d37592fA2633fD49a74DD93a88";
 
 const GUARDIAN_SET_INDEX = 3;
 
-function getCustodianPDA(
+
+async function setup(
   program: Program<WormholeGateway>,
-): [anchor.web3.PublicKey, number] {
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('custodian'),
-    ],
-    program.programId
-  );
+  tbtc: Program<Tbtc>,
+  authority,
+  mintingLimit: number
+) {
+  const [custodian,] = getCustodianPDA(program);
+  const [tbtcMint,] = getTokenPDA(tbtc);
+  const [gatewayWrappedTbtcToken,] = getWrappedTbtcTokenPDA(program);
+  const [tokenBridgeSender,] = getTokenBridgeSenderPDA(program);
+  const [tokenBridgeRedeemer,] = getTokenBridgeRedeemerPDA(program);
+
+  const connection = program.provider.connection;
+
+  const wrappedTbtcMint = tokenBridge.deriveWrappedMintKey(SOLANA_TOKEN_BRIDGE_ADDRESS, 2, ETHEREUM_TBTC_ADDRESS);
+  
+  await program.methods
+    .initialize(new anchor.BN(mintingLimit))
+    .accounts({
+      authority: authority.publicKey,
+      custodian,
+      tbtcMint,
+      wrappedTbtcMint,
+      wrappedTbtcToken: gatewayWrappedTbtcToken,
+      tokenBridgeSender,
+      tokenBridgeRedeemer,
+    })
+    .rpc();
 }
 
+async function checkState(
+  program: Program<WormholeGateway>,
+  expectedAuthority,
+  expectedMintingLimit,
+  // expectedMintedAmount,
+) {
+  const [custodian,] = getCustodianPDA(program);
+  let custodianState = await program.account.custodian.fetch(custodian);
+
+  expect(custodianState.mintingLimit.eq(new anchor.BN(expectedMintingLimit))).to.be.true;
+  expect(custodianState.authority).to.eql(expectedAuthority.publicKey);
+}
 
 describe("wormhole-gateway", () => {
   // Configure the client to use the local cluster.
@@ -36,6 +71,8 @@ describe("wormhole-gateway", () => {
 
   const program = anchor.workspace.WormholeGateway as Program<WormholeGateway>;
   const connection = program.provider.connection;
+
+  const tbtcProgram = anchor.workspace.Tbtc as Program<Tbtc>;
 
   const authority = (program.provider as anchor.AnchorProvider).wallet as anchor.Wallet;
   const newAuthority = anchor.web3.Keypair.generate();
@@ -90,8 +127,8 @@ describe("wormhole-gateway", () => {
   });
 
   it('setup', async () => {
-    // await setup(program, authority);
-    // await checkState(program, authority, 0, 0, 0);
+    await setup(program, tbtcProgram, authority, 1000);
+    await checkState(program, authority, 1000);
   });
 });
 
