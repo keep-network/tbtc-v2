@@ -1,0 +1,13 @@
+{
+  "pubkey": "6d3w8mGjJauf6gCAg7WfLezbaPmUHYGuoNutnfYF1RYM",
+  "account": {
+    "lamports": 3647040,
+    "data": [
+      "AwAAAAEAAAC++kKdV80Yt/ik2RotqatK8F0PvgAAAAAAAAAA",
+      "base64"
+    ],
+    "owner": "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth",
+    "executable": false,
+    "rentEpoch": 0
+  }
+}
