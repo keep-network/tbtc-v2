@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::token_bridge;
 
-const TBTC_FOREIGN_TOKEN_CHAIN: u8 = 2;
+const TBTC_FOREIGN_TOKEN_CHAIN: u16 = 2;
 
 #[cfg(feature = "mainnet")]
 const TBTC_FOREIGN_TOKEN_ADDRESS: [u8; 32] = [
@@ -48,7 +48,8 @@ pub struct Initialize<'info> {
             &TBTC_FOREIGN_TOKEN_CHAIN.to_be_bytes(),
             TBTC_FOREIGN_TOKEN_ADDRESS.as_ref()
         ],
-        bump
+        bump,
+        seeds::program = token_bridge::program::ID
     )]
     wrapped_tbtc_mint: Account<'info, token::Mint>,
 
