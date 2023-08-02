@@ -14,8 +14,8 @@ pub struct Config {
     pub mint_bump: u8,
 
     // Admin info.
-    pub num_minters: u8,
-    pub num_guardians: u8,
+    pub num_minters: u32,
+    pub num_guardians: u32,
     pub paused: bool,
 }
 

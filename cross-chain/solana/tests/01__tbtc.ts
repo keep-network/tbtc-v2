@@ -19,6 +19,7 @@ async function setup(
   authority
 ) {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
   const [tbtcMintPDA, _] = getTokenPDA(program);
 
   await program.methods
@@ -26,6 +27,7 @@ async function setup(
     .accounts({
       mint: tbtcMintPDA,
       config,
+      guardians,
       authority: authority.publicKey
     })
     .rpc();
@@ -50,6 +52,10 @@ async function checkState(
   let mintState = await spl.getMint(program.provider.connection, tbtcMint);
 
   expect(mintState.supply).to.equal(BigInt(expectedTokensSupply));
+
+  const [guardians,] = getGuardiansPDA(program);
+  let guardiansState = await program.account.guardians.fetch(guardians);
+  expect(guardiansState.keys).has.length(expectedGuardians);
 }
 
 async function changeAuthority(
@@ -85,7 +91,7 @@ async function takeAuthority(
 }
 
 async function cancelAuthorityChange(
-  program: Program<Tbtc>, 
+  program: Program<Tbtc>,
   authority,
 ) {
   const [config,] = getConfigPDA(program);
@@ -143,6 +149,17 @@ function getTokenPDA(
   return web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from('tbtc-mint'),
+    ],
+    program.programId
+  );
+}
+
+function getGuardiansPDA(
+  program: Program<Tbtc>,
+): [anchor.web3.PublicKey, number] {
+  return web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('guardians'),
     ],
     program.programId
   );
@@ -232,12 +249,14 @@ async function addGuardian(
   payer
 ): Promise<anchor.web3.PublicKey> {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
   const [guardianInfoPDA, _] = getGuardianPDA(program, guardian);
   await program.methods
     .addGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
+      guardians,
       guardianInfo: guardianInfoPDA,
       guardian: guardian.publicKey,
     })
@@ -264,11 +283,13 @@ async function removeGuardian(
   guardianInfo
 ) {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
   await program.methods
     .removeGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
+      guardians,
       guardianInfo: guardianInfo,
       guardian: guardian.publicKey
     })

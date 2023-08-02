@@ -3,8 +3,8 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Debug, InitSpace)]
 pub struct GuardianInfo {
-    pub guardian: Pubkey,
     pub bump: u8,
+    pub guardian: Pubkey,
 }
 
 impl GuardianInfo {

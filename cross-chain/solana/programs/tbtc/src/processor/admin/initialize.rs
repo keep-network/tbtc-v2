@@ -1,4 +1,7 @@
-use crate::{constants::SEED_PREFIX_TBTC_MINT, state::Config};
+use crate::{
+    constants::SEED_PREFIX_TBTC_MINT,
+    state::{Config, Guardians},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 
@@ -25,6 +28,15 @@ pub struct Initialize<'info> {
     )]
     config: Account<'info, Config>,
 
+    #[account(
+        init,
+        payer = authority,
+        space = Guardians::compute_size(0),
+        seeds = [Guardians::SEED_PREFIX],
+        bump,
+    )]
+    guardians: Account<'info, Guardians>,
+
     #[account(mut)]
     authority: Signer<'info>,
 
@@ -43,5 +55,11 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         num_guardians: 0,
         paused: false,
     });
+
+    ctx.accounts.guardians.set_inner(Guardians {
+        bump: ctx.bumps["guardians"],
+        keys: Vec::new(),
+    });
+
     Ok(())
 }
