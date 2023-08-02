@@ -6,6 +6,7 @@ import { Tbtc } from "../target/types/tbtc";
 import { expect } from 'chai';
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { transferLamports } from "./helpers/utils";
+import { getConfigPDA, getTokenPDA, getMinterPDA, getGuardianPDA } from "./helpers/tbtcHelpers";
 
 function maybeAuthorityAnd(
   signer,
@@ -126,40 +127,7 @@ async function checkPaused(
 }
 
 
-function getConfigPDA(
-  program: Program<Tbtc>,
-): [anchor.web3.PublicKey, number] {
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('config'),
-    ],
-    program.programId
-  );
-}
 
-function getTokenPDA(
-  program: Program<Tbtc>,
-): [anchor.web3.PublicKey, number] {
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('tbtc-mint'),
-    ],
-    program.programId
-  );
-}
-
-function getMinterPDA(
-  program: Program<Tbtc>,
-  minter
-): [anchor.web3.PublicKey, number] {
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('minter-info'),
-      minter.publicKey.toBuffer(),
-    ],
-    program.programId
-  );
-}
 
 async function addMinter(
   program: Program<Tbtc>,
@@ -210,19 +178,6 @@ async function removeMinter(
     })
     .signers(maybeAuthorityAnd(authority, []))
     .rpc();
-}
-
-function getGuardianPDA(
-  program: Program<Tbtc>,
-  guardian
-): [anchor.web3.PublicKey, number] {
-  return web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('guardian-info'),
-      guardian.publicKey.toBuffer(),
-    ],
-    program.programId
-  );
 }
 
 async function addGuardian(
