@@ -4,7 +4,7 @@ import * as coreBridge from "@certusone/wormhole-sdk/lib/cjs/solana/wormhole";
 import { NodeWallet } from "@certusone/wormhole-sdk/lib/cjs/solana";
 import { parseTokenTransferVaa, postVaaSolana, redeemOnSolana, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, AnchorError } from "@coral-xyz/anchor";
 import * as spl from "@solana/spl-token";
 import { expect } from 'chai';
 import { WormholeGateway } from "../target/types/wormhole_gateway";
@@ -137,6 +137,17 @@ describe("wormhole-gateway", () => {
     await tbtc.checkState(tbtcProgram, authority, 1, 2, 1500);
   });
 
+  it('update minting limit', async () => {
+    await program.methods
+      .updateMintingLimit(new anchor.BN(20000))
+      .accounts({
+        custodian,
+        authority: authority.publicKey
+      })
+      .rpc();
+    await checkState(program, authority, 20000);
+  });
+
   it('deposit wrapped tokens', async () => {
     const [custodian,] = getCustodianPDA(program);
     const minterInfo = await tbtc.addMinter(tbtcProgram, authority, custodian);
@@ -191,7 +202,32 @@ describe("wormhole-gateway", () => {
       .rpc();
 
     await tbtc.checkState(tbtcProgram, authority, 2, 2, 2000);
-  })
+
+    try {
+      await program.methods
+      .depositWormholeTbtc(new anchor.BN(50000))
+      .accounts({
+        custodian,
+        wrappedTbtcToken: gatewayWrappedTbtcToken,
+        wrappedTbtcMint,
+        tbtcMint,
+        recipientWrappedToken: wrappedTbtcToken.address,
+        recipientToken: recipientToken.address,
+        recipient: payer.publicKey,
+        tbtcConfig,
+        minterInfo,
+        tbtcProgram: tbtcProgram.programId,
+      })
+      .signers(tbtc.maybeAuthorityAnd(payer, []))
+      .rpc();
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('MintingLimitExceeded');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+  });
 });
 
 async function mockSignAndPostVaa(connection: web3.Connection, payer: web3.Keypair, published: Buffer) {
