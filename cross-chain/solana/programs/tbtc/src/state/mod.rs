@@ -9,3 +9,6 @@ pub use guardians::*;
 
 mod minter_info;
 pub use minter_info::*;
+
+mod minters;
+pub use minters::*;

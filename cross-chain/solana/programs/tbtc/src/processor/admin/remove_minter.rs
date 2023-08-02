@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Config, MinterInfo},
+    state::{Config, MinterInfo, Minters},
 };
 use anchor_lang::prelude::*;
 
@@ -14,7 +14,18 @@ pub struct RemoveMinter<'info> {
     )]
     config: Account<'info, Config>,
 
+    #[account(mut)]
     authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [Minters::SEED_PREFIX],
+        bump = minters.bump,
+        realloc = Minters::compute_size(minters.keys.len().saturating_sub(1)),
+        realloc::payer = authority,
+        realloc::zero = true,
+    )]
+    minters: Account<'info, Minters>,
 
     #[account(
         mut,
@@ -27,9 +38,25 @@ pub struct RemoveMinter<'info> {
 
     /// CHECK: Required authority to mint tokens. This pubkey lives in `MinterInfo`.
     minter: AccountInfo<'info>,
+
+    system_program: Program<'info, System>,
 }
 
 pub fn remove_minter(ctx: Context<RemoveMinter>) -> Result<()> {
-    ctx.accounts.config.num_minters -= 1;
-    Ok(())
+    let minters: &mut Vec<_> = &mut ctx.accounts.minters;
+    match minters
+        .iter()
+        .position(|&minter| minter == ctx.accounts.minter.key())
+    {
+        Some(index) => {
+            // Remove pubkey to minters account.
+            minters.swap_remove(index);
+
+            // Update config.
+            ctx.accounts.config.num_minters -= 1;
+
+            Ok(())
+        }
+        None => err!(TbtcError::GuardianNonexistent),
+    }
 }

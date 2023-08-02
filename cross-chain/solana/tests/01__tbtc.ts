@@ -20,6 +20,7 @@ async function setup(
 ) {
   const [config,] = getConfigPDA(program);
   const [guardians,] = getGuardiansPDA(program);
+  const [minters,] = getMintersPDA(program);
   const [tbtcMintPDA, _] = getTokenPDA(program);
 
   await program.methods
@@ -28,6 +29,7 @@ async function setup(
       mint: tbtcMintPDA,
       config,
       guardians,
+      minters,
       authority: authority.publicKey
     })
     .rpc();
@@ -56,6 +58,10 @@ async function checkState(
   const [guardians,] = getGuardiansPDA(program);
   let guardiansState = await program.account.guardians.fetch(guardians);
   expect(guardiansState.keys).has.length(expectedGuardians);
+
+  const [minters,] = getMintersPDA(program);
+  let mintersState = await program.account.minters.fetch(minters);
+  expect(mintersState.keys).has.length(expectedMinters);
 }
 
 async function changeAuthority(
@@ -165,6 +171,18 @@ function getGuardiansPDA(
   );
 }
 
+
+function getMintersPDA(
+  program: Program<Tbtc>,
+): [anchor.web3.PublicKey, number] {
+  return web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from('minters'),
+    ],
+    program.programId
+  );
+}
+
 function getMinterPDA(
   program: Program<Tbtc>,
   minter
@@ -185,12 +203,14 @@ async function addMinter(
   payer
 ): Promise<anchor.web3.PublicKey> {
   const [config,] = getConfigPDA(program);
+  const [minters,] = getMintersPDA(program);
   const [minterInfoPDA, _] = getMinterPDA(program, minter);
   await program.methods
     .addMinter()
     .accounts({
       config,
       authority: authority.publicKey,
+      minters,
       minter: minter.publicKey,
       minterInfo: minterInfoPDA,
     })
@@ -217,11 +237,13 @@ async function removeMinter(
   minterInfo
 ) {
   const [config,] = getConfigPDA(program);
+  const [minters,] = getMintersPDA(program);
   await program.methods
     .removeMinter()
     .accounts({
       config,
       authority: authority.publicKey,
+      minters,
       minterInfo: minterInfo,
       minter: minter.publicKey
     })
