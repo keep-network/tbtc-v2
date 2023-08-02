@@ -118,6 +118,7 @@ events produced by the monitoring component are:
 * DKG result challenged,
 * large deposit revealed,
 * large redemption requested,
+* stale redemption,
 * optimistic minting canceled,
 * optimistic minting requested too early,
 * optimistic minting requested for undetermined Bitcoin transaction,
@@ -179,6 +180,14 @@ the on-chain Bridge contract. This event is sent to Sentry hub and should get
 team’s attention. The default action is making sure that the redemption is
 not a result of a malicious action, and if not, that the redemption is
 handled correctly by the system.
+
+=== Stale redemption
+
+A *warning system event* indicating that a redemption request became stale, i.e.
+was not handled within the expected time. This event is sent to Sentry hub and
+should get team’s attention. The default action is investigating the cause
+of the extended processing time as this alert may be an early sign of
+a malfunctioning wallet or may indicate a problem with the maintainer bot.
 
 ==== Optimistic minting cancelled
 
