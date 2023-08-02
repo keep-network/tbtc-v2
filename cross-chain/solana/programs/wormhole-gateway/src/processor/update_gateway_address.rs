@@ -39,11 +39,16 @@ pub fn update_gateway_address(
     ctx: Context<UpdateGatewayAddress>,
     args: UpdateGatewayAddressArgs,
 ) -> Result<()> {
-    let UpdateGatewayAddressArgs { address, .. } = args;
+    let UpdateGatewayAddressArgs { chain, address } = args;
 
     ctx.accounts.gateway_info.set_inner(GatewayInfo {
         bump: ctx.bumps["gateway_info"],
         address,
+    });
+
+    emit!(crate::event::GatewayAddressUpdated {
+        chain,
+        gateway: address
     });
 
     Ok(())

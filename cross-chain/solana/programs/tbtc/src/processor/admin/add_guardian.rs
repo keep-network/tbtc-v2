@@ -58,5 +58,7 @@ pub fn add_guardian(ctx: Context<AddGuardian>) -> Result<()> {
     // Update config.
     ctx.accounts.config.num_guardians += 1;
 
+    emit!(crate::event::GuardianAdded { guardian });
+
     Ok(())
 }

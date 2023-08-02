@@ -129,6 +129,15 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
         amount,
     )?;
 
+    emit!(crate::event::WormholeTbtcSent {
+        amount,
+        recipient_chain,
+        gateway: Default::default(),
+        recipient,
+        arbiter_fee,
+        nonce
+    });
+
     let custodian = &ctx.accounts.custodian;
 
     // Because the wormhole-anchor-sdk does not support relayable transfers (i.e. payload ID == 1),

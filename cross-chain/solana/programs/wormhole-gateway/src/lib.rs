@@ -4,6 +4,8 @@ pub mod constants;
 
 pub mod error;
 
+pub(crate) mod event;
+
 mod processor;
 pub(crate) use processor::*;
 

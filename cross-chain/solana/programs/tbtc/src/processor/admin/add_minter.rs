@@ -56,5 +56,8 @@ pub fn add_minter(ctx: Context<AddMinter>) -> Result<()> {
 
     // Update config.
     ctx.accounts.config.num_minters += 1;
+
+    emit!(crate::event::MinterAdded { minter });
+
     Ok(())
 }

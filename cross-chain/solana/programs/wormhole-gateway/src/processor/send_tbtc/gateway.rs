@@ -139,6 +139,17 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
         amount,
     )?;
 
+    let gateway = ctx.accounts.gateway_info.address;
+
+    emit!(crate::event::WormholeTbtcSent {
+        amount,
+        recipient_chain,
+        gateway,
+        recipient,
+        arbiter_fee: Default::default(),
+        nonce
+    });
+
     let custodian = &ctx.accounts.custodian;
 
     // Finally transfer wrapped tBTC with the recipient encoded as this transfer's message.
@@ -180,7 +191,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
         ),
         nonce,
         amount,
-        ctx.accounts.gateway_info.address,
+        gateway,
         recipient_chain,
         recipient.to_vec(),
         &crate::ID,

@@ -182,6 +182,12 @@ pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, _message_hash: [u8; 32]) -> Resul
     // Because we are working with wrapped token amounts, we can take the amount as-is and determine
     // whether to mint or transfer based on the minting limit.
     let amount = ctx.accounts.posted_vaa.data().amount();
+    let recipient = &ctx.accounts.recipient;
+
+    emit!(crate::event::WormholeTbtcReceived {
+        receiver: recipient.key(),
+        amount
+    });
 
     let updated_minted_amount = ctx.accounts.custodian.minted_amount.saturating_add(amount);
     let custodian_seeds = &[Custodian::SEED_PREFIX, &[ctx.accounts.custodian.bump]];
@@ -198,7 +204,7 @@ pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, _message_hash: [u8; 32]) -> Resul
                 associated_token::Create {
                     payer: ctx.accounts.payer.to_account_info(),
                     associated_token: ata.to_account_info(),
-                    authority: ctx.accounts.recipient.to_account_info(),
+                    authority: recipient.to_account_info(),
                     mint: wrapped_tbtc_mint.to_account_info(),
                     token_program: ctx.accounts.token_program.to_account_info(),
                     system_program: ctx.accounts.system_program.to_account_info(),

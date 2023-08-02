@@ -16,5 +16,10 @@ pub struct UpdateMintingLimit<'info> {
 
 pub fn update_minting_limit(ctx: Context<UpdateMintingLimit>, new_limit: u64) -> Result<()> {
     ctx.accounts.custodian.minting_limit = new_limit;
+
+    emit!(crate::event::MintingLimitUpdated {
+        minting_limit: new_limit
+    });
+
     Ok(())
 }

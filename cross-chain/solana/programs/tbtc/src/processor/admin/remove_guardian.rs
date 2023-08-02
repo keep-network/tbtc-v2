@@ -42,16 +42,16 @@ pub struct RemoveGuardian<'info> {
 
 pub fn remove_guardian(ctx: Context<RemoveGuardian>) -> Result<()> {
     let guardians: &mut Vec<_> = &mut ctx.accounts.guardians;
-    match guardians
-        .iter()
-        .position(|&guardian| guardian == ctx.accounts.guardian.key())
-    {
+    let removed = ctx.accounts.guardian.key();
+    match guardians.iter().position(|&guardian| guardian == removed) {
         Some(index) => {
             // Remove pubkey to guardians account.
             guardians.swap_remove(index);
 
             // Update config.
             ctx.accounts.config.num_guardians -= 1;
+
+            emit!(crate::event::GuardianRemoved { guardian: removed });
 
             Ok(())
         }
