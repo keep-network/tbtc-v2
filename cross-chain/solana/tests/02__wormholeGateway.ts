@@ -200,6 +200,25 @@ describe("wormhole-gateway", () => {
     await checkCustodianState(program, authority, 20000);
   });
 
+  it('- won\'t let non-authority update minting limit', async () => {
+    try {
+      await program.methods
+        .updateMintingLimit(new anchor.BN(20000))
+        .accounts({
+          custodian,
+          authority: impostorKeys.publicKey
+        })
+        .signers([impostorKeys])
+        .rpc();
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+  });
+
   it('deposit wrapped tokens', async () => {
     // Set up new wallet
     const payer = await generatePayer(connection, authority.payer);
