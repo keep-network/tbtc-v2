@@ -1,3 +1,4 @@
+import { BitcoinNetwork } from "../../src/bitcoin-network"
 import {
   Client,
   UnspentTransactionOutput,
@@ -26,6 +27,7 @@ export class MockBitcoinClient implements Client {
     position: 0,
   }
   private _broadcastLog: RawTransaction[] = []
+  private _transactionHistory = new Map<string, Transaction[]>()
 
   set unspentTransactionOutputs(
     value: Map<string, UnspentTransactionOutput[]>
@@ -57,8 +59,18 @@ export class MockBitcoinClient implements Client {
     this._transactionMerkle = value
   }
 
+  set transactionHistory(value: Map<string, Transaction[]>) {
+    this._transactionHistory = value
+  }
+
   get broadcastLog(): RawTransaction[] {
     return this._broadcastLog
+  }
+
+  getNetwork(): Promise<BitcoinNetwork> {
+    return new Promise<BitcoinNetwork>((resolve, _) => {
+      resolve(BitcoinNetwork.Testnet)
+    })
   }
 
   findAllUnspentTransactionOutputs(
@@ -70,6 +82,25 @@ export class MockBitcoinClient implements Client {
           address
         ) as UnspentTransactionOutput[]
       )
+    })
+  }
+
+  getTransactionHistory(
+    address: string,
+    limit?: number
+  ): Promise<Transaction[]> {
+    return new Promise<Transaction[]>((resolve, _) => {
+      let transactions = this._transactionHistory.get(address) as Transaction[]
+
+      if (
+        typeof limit !== "undefined" &&
+        limit > 0 &&
+        transactions.length > limit
+      ) {
+        transactions = transactions.slice(-limit)
+      }
+
+      resolve(transactions)
     })
   }
 

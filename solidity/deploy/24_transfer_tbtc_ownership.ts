@@ -5,20 +5,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
-  if (hre.network.name === "hardhat") {
-    // Unit tests cover the path of the VendingMachine upgrade to TBTCVault.
-    // We transfer the ownership of TBTC token to the VendingMachine for Hardhat
-    // network used for unit tests to enable this path.
-    const VendingMachine = await deployments.get("VendingMachine")
-    await helpers.ownable.transferOwnership(
-      "TBTC",
-      VendingMachine.address,
-      deployer
-    )
-  } else {
-    // For all other environments (e.g. local dev, Goerli), we want the
-    // TBTCVault to be the owner of TBTC token. This simulates the final
-    // 1.0 version mainnet state.
+  // In unit tests we cover VendingMachine, VendingMachineV2, and TBTCVault
+  // contracts. All those tests require minting TBTC. To make the test setup
+  // easier, we leave the responsibility of transferring the TBTC ownership
+  // to the test. In system tests and on Goerli, TBTCVault is the owner of TBTC
+  // token, just like on v1.0 mainnet, after transferring the ownership from the
+  // VendingMachine.
+  if (hre.network.name !== "hardhat") {
     const TBTCVault = await deployments.get("TBTCVault")
     await helpers.ownable.transferOwnership("TBTC", TBTCVault.address, deployer)
   }

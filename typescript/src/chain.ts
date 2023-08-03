@@ -10,8 +10,22 @@ import {
   DepositScriptParameters,
   RevealedDeposit,
 } from "./deposit"
+import {
+  OptimisticMintingCancelledEvent,
+  OptimisticMintingFinalizedEvent,
+  OptimisticMintingRequest,
+  OptimisticMintingRequestedEvent,
+} from "./optimistic-minting"
 import { Hex } from "./hex"
-import { RedemptionRequest } from "./redemption"
+import { RedemptionRequest, RedemptionRequestedEvent } from "./redemption"
+import {
+  DkgResultApprovedEvent,
+  DkgResultChallengedEvent,
+  DkgResultSubmittedEvent,
+  NewWalletRegisteredEvent,
+  Wallet,
+} from "./wallet"
+import type { ExecutionLoggerFn } from "./backoff"
 
 /**
  * Represents a generic chain identifier.
@@ -21,6 +35,12 @@ export interface Identifier {
    * Identifier as an un-prefixed hex string.
    */
   identifierHex: string
+  /**
+   * Checks if two identifiers are equal.
+   *
+   * @param identifier Another identifier
+   */
+  equals(identifier: Identifier): boolean
 }
 
 /**
@@ -41,22 +61,47 @@ export interface Event {
   transactionHash: Hex
 }
 
-/**
- * Represents a generic function to get events emitted on the chain.
- */
-export interface GetEventsFunction<T extends Event> {
+export namespace GetEvents {
   /**
-   * Get emitted events.
-   * @param fromBlock Block number from which events should be queried.
-   *        If not defined a block number of a contract deployment is used.
-   * @param toBlock Block number to which events should be queried.
-   *        If not defined the latest block number will be used.
-   * @param filterArgs Arguments for events filtering.
-   * @returns Array of found events.
+   * Represents generic options used for getting events from the chain.
    */
-  (fromBlock?: number, toBlock?: number, ...filterArgs: Array<any>): Promise<
-    T[]
-  >
+  export interface Options {
+    /**
+     * Block number from which events should be queried.
+     * If not defined a block number of a contract deployment is used.
+     */
+    fromBlock?: number
+    /**
+     * Block number to which events should be queried.
+     * If not defined the latest block number will be used.
+     */
+    toBlock?: number
+    /**
+     * Number of retries in case of an error getting the events.
+     */
+    retries?: number
+    /**
+     * Number of blocks for interval length in partial events pulls.
+     */
+    batchedQueryBlockInterval?: number
+    /**
+     * A logger function to pass execution messages.
+     */
+    logger?: ExecutionLoggerFn
+  }
+
+  /**
+   * Represents a generic function to get events emitted on the chain.
+   */
+  export interface Function<T extends Event> {
+    /**
+     * Get emitted events.
+     * @param options Options for getting events.
+     * @param filterArgs Arguments for events filtering.
+     * @returns Array of found events.
+     */
+    (options?: Options, ...filterArgs: Array<any>): Promise<T[]>
+  }
 }
 
 /**
@@ -67,7 +112,7 @@ export interface Bridge {
    * Get emitted DepositRevealed events.
    * @see GetEventsFunction
    */
-  getDepositRevealedEvents: GetEventsFunction<DepositRevealedEvent>
+  getDepositRevealedEvents: GetEvents.Function<DepositRevealedEvent>
 
   /**
    * Submits a deposit sweep transaction proof to the on-chain contract.
@@ -97,7 +142,7 @@ export interface Bridge {
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
-  ): Promise<string>
+  ): Promise<string> // TODO: Update to Hex
 
   /**
    * Gets a revealed deposit from the on-chain contract.
@@ -189,4 +234,211 @@ export interface Bridge {
    *          is returned.
    */
   activeWalletPublicKey(): Promise<string | undefined>
+
+  /**
+   * Get emitted NewWalletRegisteredEvent events.
+   * @see GetEventsFunction
+   */
+  getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
+
+  /**
+   * Returns the attached WalletRegistry instance.
+   */
+  walletRegistry(): Promise<WalletRegistry>
+
+  /**
+   * Gets details about a registered wallet.
+   * @param walletPublicKeyHash The 20-byte wallet public key hash (computed
+   * using Bitcoin HASH160 over the compressed ECDSA public key).
+   * @returns Promise with the wallet details.
+   */
+  wallets(walletPublicKeyHash: Hex): Promise<Wallet>
+
+  /**
+   * Builds the UTXO hash based on the UTXO components.
+   * @param utxo UTXO components.
+   * @returns The hash of the UTXO.
+   */
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex
+
+  /**
+   * Get emitted RedemptionRequested events.
+   * @see GetEventsFunction
+   */
+  getRedemptionRequestedEvents: GetEvents.Function<RedemptionRequestedEvent>
+}
+
+/**
+ * Interface for communication with the WalletRegistry on-chain contract.
+ */
+export interface WalletRegistry {
+  /**
+   * Gets the public key for the given wallet.
+   * @param walletID ID of the wallet.
+   * @returns Uncompressed public key without the 04 prefix.
+   */
+  getWalletPublicKey(walletID: Hex): Promise<Hex>
+
+  /**
+   * Get emitted DkgResultSubmittedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultSubmittedEvents: GetEvents.Function<DkgResultSubmittedEvent>
+
+  /**
+   * Get emitted DkgResultApprovedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
+
+  /**
+   * Get emitted DkgResultChallengedEvent events.
+   * @see GetEventsFunction
+   */
+  getDkgResultChallengedEvents: GetEvents.Function<DkgResultChallengedEvent>
+}
+
+/**
+ * Interface for communication with the TBTCVault on-chain contract.
+ */
+export interface TBTCVault {
+  /**
+   * Gets optimistic minting delay.
+   *
+   * The time that needs to pass between the moment the optimistic minting is
+   * requested and the moment optimistic minting is finalized with minting TBTC.
+   * @returns Optimistic Minting Delay in seconds.
+   */
+  optimisticMintingDelay(): Promise<number>
+
+  /**
+   * Gets currently registered minters.
+   *
+   * @returns Array containing identifiers of all currently registered minters.
+   */
+  getMinters(): Promise<Identifier[]>
+
+  /**
+   * Checks if given identifier is registered as minter.
+   *
+   * @param identifier Chain identifier to check.
+   */
+  isMinter(identifier: Identifier): Promise<boolean>
+
+  /**
+   * Checks if given identifier is registered as guardian.
+   *
+   * @param identifier Chain identifier to check.
+   */
+  isGuardian(identifier: Identifier): Promise<boolean>
+
+  /**
+   * Requests optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint request transaction.
+   */
+  requestOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex>
+
+  /**
+   * Cancels optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint cancel transaction.
+   */
+  cancelOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex>
+
+  /**
+   * Finalizes optimistic minting for a deposit in an on-chain contract.
+   *
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @returns Transaction hash of the optimistic mint finalize transaction.
+   */
+  finalizeOptimisticMint(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<Hex>
+
+  /**
+   * Gets optimistic minting request for a deposit.
+   * @param depositTxHash The revealed deposit transaction's hash.
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit.
+   * @param tbtcVault Handle to the TBTCVault on-chain contract
+   * @returns Optimistic minting request.
+   */
+  optimisticMintingRequests(
+    depositTxHash: TransactionHash,
+    depositOutputIndex: number
+  ): Promise<OptimisticMintingRequest>
+
+  /**
+   * Get emitted OptimisticMintingRequested events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
+
+  /**
+   * Get emitted OptimisticMintingCancelled events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
+
+  /**
+   * Get emitted OptimisticMintingFinalized events.
+   * @see GetEventsFunction
+   */
+  getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
+}
+
+/**
+ * Interface for communication with the TBTC v2 token on-chain contract.
+ */
+export interface TBTCToken {
+  /**
+   * Gets the total supply of the TBTC v2 token. The returned value is in
+   * ERC 1e18 precision, it has to be converted before using as Bitcoin value
+   * with 1e8 precision in satoshi.
+   * @param blockNumber Optional parameter determining the block the total
+   *        supply should be fetched for. If this parameter is not set, the
+   *        total supply is taken for the latest block.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  totalSupply(blockNumber?: number): Promise<BigNumber>
+
+  /**
+   * Requests redemption in one transacion using the `approveAndCall` function
+   * from the tBTC on-chain token contract. Then the tBTC token contract calls
+   * the `receiveApproval` function from the `TBTCVault` contract which burns
+   * tBTC tokens and requests redemption.
+   * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in
+   *        the compressed form (33 bytes long with 02 or 03 prefix).
+   * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
+   *        held by the on-chain Bridge contract.
+   * @param redeemerOutputScript - The output script that the redeemed funds
+   *        will be locked to. Must be un-prefixed and not prepended with
+   *        length.
+   * @param amount - The amount to be redeemed with the precision of the tBTC
+   *        on-chain token contract.
+   * @returns Transaction hash of the approve and call transaction.
+   */
+  requestRedemption(
+    walletPublicKey: string,
+    mainUtxo: UnspentTransactionOutput,
+    redeemerOutputScript: string,
+    amount: BigNumber
+  ): Promise<Hex>
 }

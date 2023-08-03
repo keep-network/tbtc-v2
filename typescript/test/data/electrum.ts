@@ -6,6 +6,7 @@ import {
   TransactionHash,
 } from "../../src/bitcoin"
 import { BigNumber } from "ethers"
+import { Hex } from "../../src"
 
 /**
  * Bitcoin testnet address used for Electrum client tests.
@@ -27,10 +28,7 @@ export const testnetTransaction: Transaction = {
         "c6ffe9e0f8cca057acad211023ff6b9d46604fbbcb76c6dd669c20b22985f802"
       ),
       outputIndex: 1,
-      scriptSig: {
-        asm: "",
-        hex: "",
-      },
+      scriptSig: Hex.from(""),
     },
   ],
 
@@ -38,24 +36,12 @@ export const testnetTransaction: Transaction = {
     {
       outputIndex: 0,
       value: BigNumber.from(101),
-      scriptPubKey: {
-        addresses: ["tb1qfdru0xx39mw30ha5a2vw23reymmxgucujfnc7l"],
-        asm: "OP_0 4b47c798d12edd17dfb4ea98e5447926f664731c",
-        hex: "00144b47c798d12edd17dfb4ea98e5447926f664731c",
-        reqSigs: 1,
-        type: "WITNESSPUBKEYHASH",
-      },
+      scriptPubKey: Hex.from("00144b47c798d12edd17dfb4ea98e5447926f664731c"),
     },
     {
       outputIndex: 1,
       value: BigNumber.from(9125),
-      scriptPubKey: {
-        addresses: ["tb1q78ezl08lyhuazzfz592sstenmegdns7durc4cl"],
-        asm: "OP_0 f1f22fbcff25f9d10922a155082f33de50d9c3cd",
-        hex: "0014f1f22fbcff25f9d10922a155082f33de50d9c3cd",
-        reqSigs: 1,
-        type: "WITNESSPUBKEYHASH",
-      },
+      scriptPubKey: Hex.from("0014f1f22fbcff25f9d10922a155082f33de50d9c3cd"),
     },
   ],
 }

@@ -3,26 +3,24 @@ import {
   SpvMaintainer,
   ElectrumClient,
   EthereumBridge,
-} from "@keep-network/tbtc-v2.ts"
-import {
-  computeHash160,
-  TransactionHash,
-} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+  BitcoinTransactionHash,
+} from "@keep-network/tbtc-v2.ts/dist/src"
+import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import { BigNumber, constants, Contract } from "ethers"
 import chai, { expect } from "chai"
-import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit"
-import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/deposit-sweep"
-import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/redemption"
+import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
+import { submitDepositSweepTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit-sweep"
+import { submitRedemptionTransaction } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
 import chaiAsPromised from "chai-as-promised"
 
 import { setupSystemTestsContext } from "./utils/context"
 import { generateDeposit } from "./utils/deposit"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
-import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import type { UnspentTransactionOutput } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type { SystemTestsContext } from "./utils/context"
-import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/redemption"
-import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/deposit"
+import type { RedemptionRequest } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
+import type { Deposit } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 
 chai.use(chaiAsPromised)
 
@@ -56,6 +54,11 @@ describe("System Test - Deposit and redemption", () => {
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
+  // Number of retries for Electrum requests.
+  const ELECTRUM_RETRIES = 5
+  // Initial backoff step in milliseconds that will be increased exponentially for
+  // subsequent Electrum retry attempts.
+  const ELECTRUM_RETRY_BACKOFF_STEP_MS = 10000 // 10sec
 
   let deposit: Deposit
   let depositUtxo: UnspentTransactionOutput
@@ -66,18 +69,23 @@ describe("System Test - Deposit and redemption", () => {
     const { electrumUrl, maintainer, depositor, deployedContracts } =
       systemTestsContext
 
-    electrumClient = ElectrumClient.fromUrl(electrumUrl)
+    electrumClient = ElectrumClient.fromUrl(
+      electrumUrl,
+      undefined,
+      ELECTRUM_RETRIES,
+      ELECTRUM_RETRY_BACKOFF_STEP_MS
+    )
 
     bridgeAddress = deployedContracts.Bridge.address
 
     maintainerBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
-      signer: maintainer,
+      signerOrProvider: maintainer,
     })
 
     depositorBridgeHandle = new EthereumBridge({
       address: bridgeAddress,
-      signer: depositor,
+      signerOrProvider: depositor,
     })
 
     const bankDeploymentInfo = deployedContracts.Bank
@@ -188,7 +196,7 @@ describe("System Test - Deposit and redemption", () => {
           // This is the first sweep of the given wallet so there is no main UTXO.
           {
             // The function expects an unprefixed hash.
-            transactionHash: TransactionHash.from(constants.HashZero),
+            transactionHash: BitcoinTransactionHash.from(constants.HashZero),
             outputIndex: 0,
             value: BigNumber.from(0),
           },
@@ -254,12 +262,11 @@ describe("System Test - Deposit and redemption", () => {
             systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
           )}`
 
-          await TBTC.requestRedemption(
+          await depositorBridgeHandle.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
             requestedAmount,
-            depositorBridgeHandle
           )
 
           console.log(
@@ -274,6 +281,16 @@ describe("System Test - Deposit and redemption", () => {
           )
         })
 
+        it("should transfer depositor's bank balance to the Bridge", async () => {
+          expect(
+            await bank.balanceOf(systemTestsContext.depositor.address)
+          ).to.be.equal(0)
+
+          expect(await bank.balanceOf(bridgeAddress)).to.be.equal(
+            requestedAmount
+          )
+        })
+
         it("should register the redemption request on the bridge", async () => {
           expect(redemptionRequest.requestedAt).to.be.greaterThan(0)
           expect(redemptionRequest.requestedAmount).to.be.equal(requestedAmount)
@@ -285,7 +302,7 @@ describe("System Test - Deposit and redemption", () => {
         context(
           "when redemption is made and redemption proof submitted",
           () => {
-            let redemptionTxHash: TransactionHash
+            let redemptionTxHash: BitcoinTransactionHash
 
             before(
               "make the redemption and submit redemption proof",
@@ -345,10 +362,8 @@ describe("System Test - Deposit and redemption", () => {
               )
             })
 
-            it("should decrease depositor's balance in the bank", async () => {
-              const actualBalance = await bank.balanceOf(
-                systemTestsContext.depositor.address
-              )
+            it("should decrease Bridge's balance in the bank", async () => {
+              const actualBalance = await bank.balanceOf(bridgeAddress)
 
               expect(actualBalance).to.be.equal(0)
             })

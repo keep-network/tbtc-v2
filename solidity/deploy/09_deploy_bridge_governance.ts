@@ -32,6 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
 
   if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(bridgeGovernanceParameters)
     await helpers.etherscan.verify(bridgeGovernance)
   }
 
@@ -46,3 +47,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["BridgeGovernance"]
+func.dependencies = ["Bridge"]

@@ -30,17 +30,25 @@ import {
   suggestDepositWallet,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
+import { Address } from "../src/ethereum"
+import { BitcoinNetwork } from "../src"
 
 describe("Deposit", () => {
+  const depositCreatedAt: number = 1640181600
+  const depositRefundLocktimeDuration: number = 2592000
+
   const deposit: Deposit = {
-    depositor: { identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637" },
+    depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     amount: BigNumber.from(10000), // 0.0001 BTC
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
     walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
     refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
     blindingFactor: "f9f0c90d00039523",
-    refundLocktime: calculateDepositRefundLocktime(1640181600, 2592000),
+    refundLocktime: calculateDepositRefundLocktime(
+      depositCreatedAt,
+      depositRefundLocktimeDuration
+    ),
   }
 
   const depositScriptParameters: DepositScriptParameters = {
@@ -610,7 +618,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "main",
+            BitcoinNetwork.Mainnet,
             true
           )
         })
@@ -628,7 +636,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "main",
+            BitcoinNetwork.Mainnet,
             false
           )
         })
@@ -648,7 +656,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "testnet",
+            BitcoinNetwork.Testnet,
             true
           )
         })
@@ -666,7 +674,7 @@ describe("Deposit", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
             depositScriptParameters,
-            "testnet",
+            BitcoinNetwork.Testnet,
             false
           )
         })

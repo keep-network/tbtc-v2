@@ -1,11 +1,11 @@
-import { Bridge, Identifier } from "../../src/chain"
+import { Bridge, WalletRegistry, GetEvents, Identifier } from "../../src/chain"
 import {
   DecomposedRawTransaction,
   Proof,
   UnspentTransactionOutput,
 } from "../../src/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
-import { RedemptionRequest } from "../redemption"
+import { RedemptionRequest, RedemptionRequestedEvent } from "../redemption"
 import {
   Deposit,
   DepositRevealedEvent,
@@ -15,6 +15,7 @@ import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/ethereum"
 import { Hex } from "../../src/hex"
+import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
@@ -42,6 +43,15 @@ interface RedemptionProofLogEntry {
   walletPublicKey: string
 }
 
+interface NewWalletRegisteredEventsLog {
+  options?: GetEvents.Options
+  filterArgs: unknown[]
+}
+
+interface WalletLog {
+  walletPublicKeyHash: string
+}
+
 /**
  * Mock Bridge used for test purposes.
  */
@@ -55,6 +65,10 @@ export class MockBridge implements Bridge {
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
   private _deposits = new Map<BigNumberish, RevealedDeposit>()
   private _activeWalletPublicKey: string | undefined
+  private _newWalletRegisteredEvents: NewWalletRegisteredEvent[] = []
+  private _newWalletRegisteredEventsLog: NewWalletRegisteredEventsLog[] = []
+  private _wallets = new Map<string, Wallet>()
+  private _walletsLog: WalletLog[] = []
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -62,6 +76,14 @@ export class MockBridge implements Bridge {
 
   setTimedOutRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._timedOutRedemptions = value
+  }
+
+  setWallet(key: string, value: Wallet) {
+    this._wallets.set(key, value)
+  }
+
+  set newWalletRegisteredEvents(value: NewWalletRegisteredEvent[]) {
+    this._newWalletRegisteredEvents = value
   }
 
   get depositSweepProofLog(): DepositSweepProofLogEntry[] {
@@ -80,6 +102,14 @@ export class MockBridge implements Bridge {
     return this._redemptionProofLog
   }
 
+  get newWalletRegisteredEventsLog(): NewWalletRegisteredEventsLog[] {
+    return this._newWalletRegisteredEventsLog
+  }
+
+  get walletsLog(): WalletLog[] {
+    return this._walletsLog
+  }
+
   setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
     this._deposits = value
   }
@@ -89,8 +119,7 @@ export class MockBridge implements Bridge {
   }
 
   getDepositRevealedEvents(
-    fromBlock?: number,
-    toBlock?: number,
+    options?: GetEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
     const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
@@ -159,9 +188,9 @@ export class MockBridge implements Bridge {
         this._deposits.has(depositKey)
           ? (this._deposits.get(depositKey) as RevealedDeposit)
           : {
-              depositor: { identifierHex: constants.AddressZero },
+              depositor: Address.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: { identifierHex: constants.AddressZero },
+              vault: Address.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -269,7 +298,7 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: { identifierHex: constants.AddressZero },
+          redeemer: Address.from(constants.AddressZero),
           redeemerOutputScript: "",
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),
@@ -302,5 +331,45 @@ export class MockBridge implements Bridge {
 
   async activeWalletPublicKey(): Promise<string | undefined> {
     return this._activeWalletPublicKey
+  }
+
+  async getNewWalletRegisteredEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<NewWalletRegisteredEvent[]> {
+    this._newWalletRegisteredEventsLog.push({ options, filterArgs })
+    return this._newWalletRegisteredEvents
+  }
+
+  walletRegistry(): Promise<WalletRegistry> {
+    throw new Error("not implemented")
+  }
+
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    this._walletsLog.push({
+      walletPublicKeyHash: walletPublicKeyHash.toPrefixedString(),
+    })
+    const wallet = this._wallets.get(walletPublicKeyHash.toPrefixedString())
+    return wallet!
+  }
+
+  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
+  }
+
+  getRedemptionRequestedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<RedemptionRequestedEvent[]> {
+    throw new Error("not implemented")
   }
 }

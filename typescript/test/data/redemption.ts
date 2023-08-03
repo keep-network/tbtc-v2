@@ -7,8 +7,12 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
   TransactionHash,
+  createOutputScriptFromAddress,
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
+import { Address } from "../../src/ethereum"
+import { BitcoinTransaction, Hex } from "../../src"
+import { WalletState } from "../../src/wallet"
 
 /**
  * Private key (testnet) of the wallet.
@@ -75,9 +79,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -132,9 +134,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(15000),
@@ -188,9 +188,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(13000),
@@ -244,9 +242,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -301,9 +297,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -317,9 +311,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(13000),
@@ -332,9 +324,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -347,9 +337,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -407,9 +395,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -423,9 +409,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
         redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
         requestedAmount: BigNumber.from(4000),
@@ -482,9 +466,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: {
-          identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-        },
+        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -548,66 +530,44 @@ export const redemptionProof: RedemptionProofTestData = {
             "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
           ),
           outputIndex: 1,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(15900),
-          scriptPubKey: {
-            asm: "OP_DUP OP_HASH160 4130879211c54df460e484ddf9aac009cb38ee74 OP_EQUALVERIFY OP_CHECKSIG",
-            hex: "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
-            type: "PUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5"],
-          },
+          scriptPubKey: Hex.from(
+            "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+          ),
         },
         {
           outputIndex: 1,
           value: BigNumber.from(11300),
-          scriptPubKey: {
-            asm: "OP_0 4130879211c54df460e484ddf9aac009cb38ee74",
-            hex: "00144130879211c54df460e484ddf9aac009cb38ee74",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l"],
-          },
+          scriptPubKey: Hex.from(
+            "00144130879211c54df460e484ddf9aac009cb38ee74"
+          ),
         },
         {
           outputIndex: 2,
           value: BigNumber.from(9900),
-          scriptPubKey: {
-            asm: "OP_HASH160 3ec459d0f3c29286ae5df5fcc421e2786024277e OP_EQUAL",
-            hex: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
-            type: "SCRIPTHASH",
-            reqSigs: 1,
-            addresses: ["2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"],
-          },
+          scriptPubKey: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
         },
         {
           outputIndex: 3,
           value: BigNumber.from(12900),
-          scriptPubKey: {
-            asm: "OP_0 86a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            hex: "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
-            type: "WITNESSSCRIPTHASH",
-            reqSigs: 1,
-            addresses: [
-              "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y",
-            ],
-          },
+          scriptPubKey: Hex.from(
+            "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+          ),
         },
         {
           outputIndex: 4,
           value: BigNumber.from(1375180),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },
@@ -706,5 +666,219 @@ export const redemptionProof: RedemptionProofTestData = {
     },
     walletPublicKey:
       "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+  },
+}
+
+interface FindWalletForRedemptionWalletData {
+  data: {
+    state: WalletState
+    mainUtxoHash: Hex
+    walletPublicKey: Hex
+    btcAddress: string
+    mainUtxo: UnspentTransactionOutput
+    transactions: BitcoinTransaction[]
+    pendingRedemptionsValue: BigNumber
+  }
+  event: {
+    blockNumber: number
+    blockHash: Hex
+    transactionHash: Hex
+    ecdsaWalletID: Hex
+    walletPublicKeyHash: Hex
+  }
+}
+
+export const findWalletForRedemptionData: {
+  liveWallet: FindWalletForRedemptionWalletData
+  walletWithoutUtxo: FindWalletForRedemptionWalletData
+  nonLiveWallet: FindWalletForRedemptionWalletData
+  walletWithPendingRedemption: FindWalletForRedemptionWalletData
+  pendingRedemption: RedemptionRequest
+} = {
+  liveWallet: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0x3ded9dcfce0ffe479640013ebeeb69b6a82306004f9525b1346ca3b553efc6aa"
+      ),
+      walletPublicKey: Hex.from(
+        "0x028ed84936be6a9f594a2dcc636d4bebf132713da3ce4dac5c61afbf8bbb47d6f7"
+      ),
+      btcAddress: "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("791613461"),
+      },
+      transactions: [
+        {
+          transactionHash: Hex.from(
+            "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
+          ),
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("791613461"),
+              scriptPubKey: createOutputScriptFromAddress(
+                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja"
+              ),
+            },
+          ],
+        },
+      ],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 8367602,
+      blockHash: Hex.from(
+        "0x908ea9c82b388a760e6dd070522e5421d88b8931fbac6702119f9e9a483dd022"
+      ),
+      transactionHash: Hex.from(
+        "0xc1e995d0ac451cc9ffc9d43f105eddbaf2eb45ea57a61074a84fc022ecf5bda9"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x5314e0e5a62b173f52ea424958e5bc04bd77e2159478934a89d4fa193c7b3b72"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x03b74d6893ad46dfdd01b9e0e3b3385f4fce2d1e"
+      ),
+    },
+  },
+  walletWithoutUtxo: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      walletPublicKey: Hex.from(
+        "0x030fbbae74e6d85342819e719575949a1349e975b69fb382e9fef671a3a74efc52"
+      ),
+      btcAddress: "tb1qkct7r24k4wutnsun84rvp3qsyt8yfpvqz89d2y",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 9103428,
+      blockHash: Hex.from(
+        "0x92ad328db2cb1d2aad60ac809660e05e2b6763ddd376ca21630e304c98f23600"
+      ),
+      transactionHash: Hex.from(
+        "0x309085ebb92e10eb9e665c7d90c94e053f13b36f9bc8017e820bc879ba629b8e"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0xd27bfaaad9c3489e613eb3664c3b9958bd9a494377123689733267cb4a5767ba"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0xb617e1aab6abb8b9c3933d46c0c41022ce448580"
+      ),
+    },
+  },
+
+  nonLiveWallet: {
+    data: {
+      state: WalletState.Unknown,
+      mainUtxoHash: Hex.from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      walletPublicKey: Hex.from(
+        "0x02633b102417009ae55103798f4d366dfccb081dcf20025088b9bf10a8e15d8ded"
+      ),
+      btcAddress: "tb1qf6jvyd680ncf9dtr5znha9ql5jmw84lupwwuf6",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 9171960,
+      blockHash: Hex.from(
+        "0xe9a404b724183cb8f77e45718b365051e8d5ccc4a72dfece30af7596eeee4748"
+      ),
+      transactionHash: Hex.from(
+        "0x867f2c985cbe44f92a7ca2c14268b9ae78275e1c339692e1847548725484e72d"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x96975ddd76bbb2e15ed4498de6d92187ec5282913b3af3891a4e2d60581a8787"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x4ea4c237477cf092b563a0a77e941fa4b6e3d7fc"
+      ),
+    },
+  },
+  walletWithPendingRedemption: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0xb3024ef698084cfdfba459338864a595d31081748b28aa5eb02312671a720531"
+      ),
+      walletPublicKey: Hex.from(
+        "0x02ab193a63b3523bfab77d3645d11da10722393687458c4213b350b7e08f50b7ee"
+      ),
+      btcAddress: "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("3370000"), // 0.0337 BTC
+      },
+      transactions: [
+        {
+          transactionHash: Hex.from(
+            "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
+          ),
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("3370000"), // 0.0337 BTC
+              scriptPubKey: createOutputScriptFromAddress(
+                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh"
+              ),
+            },
+          ],
+        },
+      ],
+      pendingRedemptionsValue: BigNumber.from(2370000), // 0.0237 BTC
+    },
+    event: {
+      blockNumber: 8981644,
+      blockHash: Hex.from(
+        "0x6681b1bb168fb86755c2a796169cb0e06949caac9fc7145d527d94d5209a64ad"
+      ),
+      transactionHash: Hex.from(
+        "0xea3a8853c658145c95165d7847152aeedc3ff29406ec263abfc9b1436402b7b7"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x7a1437d67f49adfd44e03ddc85be0f6988715d7c39dfb0ca9780f1a88bcdca25"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x328d992e5f5b71de51a1b40fcc4056b99a88a647"
+      ),
+    },
+  },
+  pendingRedemption: {
+    redeemer: Address.from("0xeb9af8E66869902476347a4eFe59a527a57240ED"),
+    // script for testnet P2PKH address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+    redeemerOutputScript: "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+    requestedAmount: BigNumber.from(1000000),
+    treasuryFee: BigNumber.from(20000),
+    txMaxFee: BigNumber.from(20000),
+    requestedAt: 1688724606,
   },
 }

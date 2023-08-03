@@ -9,7 +9,9 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
+import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
+import { Hex } from "./hex"
 
 const { opcodes } = bcoin.script.common
 
@@ -102,7 +104,7 @@ export type RevealedDeposit = Pick<
 }
 
 /**
- * Represents an event emitted on deposit reveal to the on-chain bridge.fp
+ * Represents an event emitted on deposit reveal to the on-chain bridge.
  */
 export type DepositRevealedEvent = Deposit & {
   fundingTxHash: TransactionHash
@@ -318,15 +320,15 @@ export function calculateDepositRefundLocktime(
     depositCreatedAt + depositRefundLocktimeDuration
   )
 
-  if (locktime.toHexString().substring(2).length != 8) {
+  const locktimeHex: Hex = Hex.from(locktime.toHexString())
+
+  if (locktimeHex.toString().length != 8) {
     throw new Error("Refund locktime must be a 4 bytes number")
   }
 
   // Bitcoin locktime is interpreted as little-endian integer so we must
   // adhere to that convention by converting the locktime accordingly.
-  return Buffer.from(locktime.toHexString().substring(2), "hex")
-    .reverse()
-    .toString("hex")
+  return locktimeHex.reverse().toString()
 }
 
 /**
@@ -352,21 +354,20 @@ export async function calculateDepositScriptHash(
  * Calculates a Bitcoin target address for P2(W)SH deposit transaction.
  * @param deposit - Details of the deposit.
  * @param network - Network that the address should be created for.
- *        For example, `main` or `testnet`.
  * @param witness - If true, a witness address will be created.
  *        Otherwise, a legacy address will be made.
  * @returns Address as string.
  */
 export async function calculateDepositAddress(
   deposit: DepositScriptParameters,
-  network: string,
+  network: BitcoinNetwork,
   witness: boolean
 ): Promise<string> {
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
   const address = witness
     ? bcoin.Address.fromWitnessScripthash(scriptHash)
     : bcoin.Address.fromScripthash(scriptHash)
-  return address.toString(network)
+  return address.toString(toBcoinNetwork(network))
 }
 
 /**

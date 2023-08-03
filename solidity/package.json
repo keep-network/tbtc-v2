@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "1.0.3-dapp-dev-goerli",
+  "version": "1.6.0-dapp-dev-goerli",
   "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
@@ -35,8 +35,8 @@
     "@keep-network/ecdsa": "dapp-development-goerli",
     "@keep-network/random-beacon": "dapp-development-goerli",
     "@keep-network/tbtc": "development",
-    "@openzeppelin/contracts": "^4.6.0",
-    "@openzeppelin/contracts-upgradeable": "^4.6.0",
+    "@openzeppelin/contracts": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.1",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf"
   },
   "devDependencies": {
@@ -69,6 +69,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.7",
     "solhint-config-keep": "github:keep-network/solhint-config-keep",
+    "solidity-docgen": "^0.6.0-beta.34",
     "ts-node": "^10.4.0",
     "typechain": "^6.1.0",
     "typescript": "^4.5.4"

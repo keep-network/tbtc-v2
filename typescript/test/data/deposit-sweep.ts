@@ -9,6 +9,8 @@ import {
 } from "../../src/bitcoin"
 import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
+import { Address } from "../../src/ethereum"
+import { Hex } from "../../src"
 
 export const NO_MAIN_UTXO = {
   transactionHash: TransactionHash.from(""),
@@ -58,9 +60,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
           amount: BigNumber.from(25000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -87,9 +87,8 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+
           amount: BigNumber.from(12000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -147,9 +146,7 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             "01000000000101dcd1de7b256376f1e05b3c20846868401aee2a85c27990b95886e0d2970a3fc40100000000ffffffff02983a00000000000017a914a9a5f97d5d3c4687a52e90718168270005b369c487f065120000000000160014e257eccafbc07c381642ce6e7e55120fb077fbed02483045022100baccb37cb46a20d79ccd3875162ab8b614a671cc64dc37d3477e24ef5eb61d7102204c68c5a5caff7e5089c1cacaa173fb5aad9529642773501b5e8d88abe7b4fc9c0121039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
           amount: BigNumber.from(15000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -200,9 +197,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "08db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
           amount: BigNumber.from(17000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -230,9 +225,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
           amount: BigNumber.from(10000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -326,9 +319,7 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             "e7bc11907bfa00000000",
         },
         data: {
-          depositor: {
-            identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-          },
+          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
           amount: BigNumber.from(19000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
@@ -416,41 +407,37 @@ export const depositSweepProof: DepositSweepProofTestData = {
             "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
         {
           transactionHash: TransactionHash.from(
             "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
           ),
           outputIndex: 0,
-          scriptSig: { asm: "", hex: "" },
+          scriptSig: Hex.from(""),
         },
       ],
       outputs: [
         {
           outputIndex: 0,
           value: BigNumber.from(39800),
-          scriptPubKey: {
-            asm: "OP_0 8db50eb52063ea9d98b3eac91489a90f738986f6",
-            hex: "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            type: "WITNESSPUBKEYHASH",
-            reqSigs: 1,
-            addresses: ["tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"],
-          },
+          scriptPubKey: Hex.from(
+            "00148db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
         },
       ],
     },

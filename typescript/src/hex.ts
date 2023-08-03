@@ -49,6 +49,16 @@ export class Hex {
   }
 
   /**
+   * Checks if other value equals the current value.
+   *
+   * @param otherValue Other value that will be compared to this value.
+   * @returns True if both values are equal, false otherwise.
+   */
+  equals(otherValue: Hex): boolean {
+    return this.toString() === otherValue.toString()
+  }
+
+  /**
    * @returns Reversed hexadecimal value.
    */
   reverse(): Hex {

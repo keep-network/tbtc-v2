@@ -1,15 +1,17 @@
-import { Bridge } from "../src/ethereum"
+import { Address, Bridge, TBTCToken } from "../src/ethereum"
 import {
   deployMockContract,
   MockContract,
 } from "@ethereum-waffle/mock-contract"
 import chai, { assert, expect } from "chai"
-import { BigNumber, constants } from "ethers"
+import { BigNumber, Wallet, constants, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as WalletRegistryABI } from "@keep-network/tbtc-v2/artifacts/WalletRegistry.json"
+import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
+import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
-import { TransactionHash } from "../src/bitcoin"
+import { TransactionHash, computeHash160 } from "../src/bitcoin"
+import { Hex } from "../src/hex"
 
 chai.use(waffleChai)
 
@@ -71,9 +73,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -110,9 +110,7 @@ describe("Ethereum", () => {
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
           )
         ).to.be.eql({
-          redeemer: {
-            identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-          },
+          redeemer: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
           redeemerOutputScript:
             "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
           requestedAmount: BigNumber.from(10000),
@@ -137,17 +135,13 @@ describe("Ethereum", () => {
           },
           2,
           {
-            depositor: {
-              identifierHex: "934b98637ca318a4d6e7ca6ffd1690b8e77df637",
-            },
+            depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
             walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
             refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
             blindingFactor: "f9f0c90d00039523",
             refundLocktime: "60bcea61",
           },
-          {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          }
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -194,9 +188,7 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          {
-            identifierHex: "82883a4c7a8dd73ef165deb402d432613615ced4",
-          }
+          Address.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
       })
 
@@ -350,13 +342,9 @@ describe("Ethereum", () => {
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
-            vault: {
-              identifierHex: "014e1bfbe0f85f129749a8ae0fcb20175433741b",
-            },
+            vault: Address.from("014e1bfbe0f85f129749a8ae0fcb20175433741b"),
             revealedAt: 1654774330,
             sweptAt: 1655033516,
             treasuryFee: BigNumber.from(200),
@@ -393,9 +381,7 @@ describe("Ethereum", () => {
               0
             )
           ).to.be.eql({
-            depositor: {
-              identifierHex: "f39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-            },
+            depositor: Address.from("f39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
             amount: BigNumber.from(10000),
             vault: undefined,
             revealedAt: 1654774330,
@@ -486,4 +472,85 @@ describe("Ethereum", () => {
       "Expected contract function was not called"
     )
   }
+
+  describe("TBTCToken", () => {
+    let tbtcToken: MockContract
+    let tokenHandle: TBTCToken
+    const signer: Wallet = new MockProvider().getWallets()[0]
+
+    beforeEach(async () => {
+      tbtcToken = await deployMockContract(
+        signer,
+        `${JSON.stringify(TBTCTokenABI)}`
+      )
+
+      tokenHandle = new TBTCToken({
+        address: tbtcToken.address,
+        signerOrProvider: signer,
+      })
+    })
+
+    describe("requestRedemption", () => {
+      const data = {
+        vault: Address.from("0x24BE35e7C04E2e0a628614Ce0Ed58805e1C894F7"),
+        walletPublicKey:
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+        mainUtxo: {
+          transactionHash: TransactionHash.from(
+            "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
+          ),
+          outputIndex: 8,
+          value: BigNumber.from(9999),
+        },
+        redeemer: Address.from(signer.address),
+        amount: BigNumber.from(10000),
+        redeemerOutputScript: {
+          unprefixed:
+            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+          prefixed:
+            "0x220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+        },
+      }
+
+      beforeEach(async () => {
+        await tbtcToken.mock.owner.returns(data.vault.identifierHex)
+        await tbtcToken.mock.approveAndCall.returns(true)
+
+        await tokenHandle.requestRedemption(
+          data.walletPublicKey,
+          data.mainUtxo,
+          data.redeemerOutputScript.unprefixed,
+          data.amount
+        )
+      })
+
+      it("should request the redemption", async () => {
+        const {
+          walletPublicKey,
+          mainUtxo,
+          redeemerOutputScript,
+          redeemer,
+          vault,
+          amount,
+        } = data
+        const expectedExtraData = utils.defaultAbiCoder.encode(
+          ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
+          [
+            redeemer.identifierHex,
+            Hex.from(computeHash160(walletPublicKey)).toPrefixedString(),
+            mainUtxo.transactionHash.reverse().toPrefixedString(),
+            mainUtxo.outputIndex,
+            mainUtxo.value,
+            redeemerOutputScript.prefixed,
+          ]
+        )
+
+        assertContractCalledWith(tbtcToken, "approveAndCall", [
+          vault.identifierHex,
+          amount,
+          expectedExtraData,
+        ])
+      })
+    })
+  })
 })

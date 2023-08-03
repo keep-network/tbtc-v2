@@ -217,7 +217,7 @@ remaining: `Bridge.notifyWalletCloseable`
 
 Each of the above routes into `Wallets.moveFunds`. If the wallet has no main
 UTXO, then we can start closing it immediately via
-`Wallets.beginWalletClosing`. Otherwise, we change it's state to
+`Wallets.beginWalletClosing`. Otherwise, we change its state to
 `WalletState.MovingFunds`, decrease the live wallet count, and give the wallet
 a deadline to move its funds to other wallet(s). If this was the active wallet,
 then we currently have no active wallet.
@@ -232,7 +232,7 @@ After `movingFundsTimeout` goes by, anyone can call
 Furthermore, the `ecdsaWalletRegistry.seize` call is punishing the group members by
 `movedFundsSweepTimeoutSlashingAmount` and rewarding the notifier with a reward
 multiplier of `movedFundsSweepTimeoutNotifierRewardMultiplier` (the notifier
-gets a percentaged of the slashed stake).
+gets a percentage of the slashed stake).
 
 In order to avoid this, the wallet has to commit to which wallets they'll send
 the funds to (`Bridge.submitMovingFundsCommitment`), then actually send
@@ -502,7 +502,7 @@ wallet.
 ==== Handling Fraud
 
 image::diagrams/wallet-lifecycle/wallet-lifecycle-1-handling-frauds.png[Handling Fraud]
-This diagram covers the aspects of fraud: how to notify the system of fraudlent
+This diagram covers the aspects of fraud: how to notify the system of fraudulent
 operator behavior, and how operators defend themselves from false charges.
 
 ==== Entering The Moving Funds State
@@ -515,7 +515,7 @@ state, along with the necessary conditions to do so.
 
 image::diagrams/wallet-lifecycle/wallet-lifecycle-3-responding-to-moving-funds-state.png[Responding To The Moving Funds State]
 This diagram maps out the ways that a wallet in the `MOVING_FUNDS` state can
-respond: by asking for more time, by commiting to move its funds to other
+respond: by asking for more time, by committing to move its funds to other
 wallet(s), or by letting the system know that it has insufficient funds to
 continue.
 

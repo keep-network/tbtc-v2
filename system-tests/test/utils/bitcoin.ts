@@ -2,13 +2,11 @@
 // @ts-ignore
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/proof"
+import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/src/proof"
 
 import type { Contract } from "ethers"
-import type {
-  Client as BitcoinClient,
-  TransactionHash,
-} from "@keep-network/tbtc-v2.ts/dist/bitcoin"
+import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts/dist/src"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -77,11 +75,14 @@ export function keyPairFromWif(wif: string): KeyPair {
  */
 export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTransactionHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
-  sleep = 60000
+  sleep = 30000
 ): Promise<void> {
   for (;;) {
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setTimeout(r, sleep))
+
     console.log(`
       Checking confirmations count for transaction ${transactionHash}
     `)
@@ -101,9 +102,6 @@ export async function waitTransactionConfirmed(
     console.log(`
       Transaction ${transactionHash} has only ${confirmations}/${requiredConfirmations} confirmations. Waiting for more...
     `)
-
-    // eslint-disable-next-line no-await-in-loop
-    await new Promise((r) => setTimeout(r, sleep))
   }
 }
 
@@ -128,7 +126,7 @@ export async function waitTransactionConfirmed(
 export async function fakeRelayDifficulty(
   relay: Contract,
   bitcoinClient: BitcoinClient,
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTransactionHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
   const proof = await assembleTransactionProof(
