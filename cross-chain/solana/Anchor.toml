@@ -61,10 +61,10 @@ filename = "tests/accounts/ethereum_token_bridge.json"
 address = "DapiQYH3BGonhN8cngWcXQ6SrqSm3cwysoznoHr6Sbsx"
 filename = "tests/accounts/token_bridge_config.json"
 
-### Core Bridge -- Bridge
+### Core Bridge -- Bridge Data
 [[test.validator.clone]]
 address = "2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn"
-filename = "tests/accounts/core_bridge.json"
+filename = "tests/accounts/core_bridge_data.json"
 
 ### Core Bridge -- Emitter Sequence (Token Bridge's)
 [[test.validator.account]]

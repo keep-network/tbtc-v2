@@ -1,21 +1,27 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, AnchorError } from "@coral-xyz/anchor";
+import { AnchorError, Program } from "@coral-xyz/anchor";
 import * as spl from "@solana/spl-token";
-import * as web3 from '@solana/web3.js';
+import * as web3 from "@solana/web3.js";
+import { expect } from "chai";
 import { Tbtc } from "../target/types/tbtc";
-import { expect } from 'chai';
-import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
+import {
+  addMinter,
+  checkState,
+  getConfigPDA,
+  getGuardianPDA,
+  getGuardiansPDA,
+  getMinterPDA,
+  getMintersPDA,
+  getTokenPDA,
+  maybeAuthorityAnd,
+} from "./helpers/tbtc";
 import { transferLamports } from "./helpers/utils";
-import { maybeAuthorityAnd, getConfigPDA, getTokenPDA, getMinterPDA, getGuardianPDA, getMintersPDA, getGuardiansPDA, checkState, addMinter } from "./helpers/tbtcHelpers";
 
-async function setup(
-  program: Program<Tbtc>,
-  authority
-) {
-  const [config,] = getConfigPDA(program);
-  const [guardians,] = getGuardiansPDA(program);
-  const [minters,] = getMintersPDA(program);
-  const [tbtcMintPDA, _] = getTokenPDA(program);
+async function setup(program: Program<Tbtc>, authority) {
+  const config = getConfigPDA();
+  const guardians = getGuardiansPDA();
+  const minters = getMintersPDA();
+  const tbtcMintPDA = getTokenPDA();
 
   await program.methods
     .initialize()
@@ -24,7 +30,7 @@ async function setup(
       config,
       guardians,
       minters,
-      authority: authority.publicKey
+      authority: authority.publicKey,
     })
     .rpc();
 }
@@ -32,9 +38,9 @@ async function setup(
 async function changeAuthority(
   program: Program<Tbtc>,
   authority,
-  newAuthority,
+  newAuthority
 ) {
-  const [config,] = getConfigPDA(program);
+  const config = getConfigPDA();
   await program.methods
     .changeAuthority()
     .accounts({
@@ -46,11 +52,8 @@ async function changeAuthority(
     .rpc();
 }
 
-async function takeAuthority(
-  program: Program<Tbtc>,
-  newAuthority,
-) {
-  const [config,] = getConfigPDA(program);
+async function takeAuthority(program: Program<Tbtc>, newAuthority) {
+  const config = getConfigPDA();
   await program.methods
     .takeAuthority()
     .accounts({
@@ -61,11 +64,8 @@ async function takeAuthority(
     .rpc();
 }
 
-async function cancelAuthorityChange(
-  program: Program<Tbtc>,
-  authority,
-) {
-  const [config,] = getConfigPDA(program);
+async function cancelAuthorityChange(program: Program<Tbtc>, authority) {
+  const config = getConfigPDA();
   await program.methods
     .cancelAuthorityChange()
     .accounts({
@@ -76,41 +76,29 @@ async function cancelAuthorityChange(
     .rpc();
 }
 
-async function checkPendingAuthority(
-  program: Program<Tbtc>,
-  pendingAuthority,
-) {
-  const [config,] = getConfigPDA(program);
+async function checkPendingAuthority(program: Program<Tbtc>, pendingAuthority) {
+  const config = getConfigPDA();
   let configState = await program.account.config.fetch(config);
   expect(configState.pendingAuthority).to.eql(pendingAuthority.publicKey);
 }
 
-async function checkNoPendingAuthority(
-  program: Program<Tbtc>,
-) {
-  const [config,] = getConfigPDA(program);
+async function checkNoPendingAuthority(program: Program<Tbtc>) {
+  const config = getConfigPDA();
   let configState = await program.account.config.fetch(config);
   expect(configState.pendingAuthority).to.equal(null);
 }
 
-async function checkPaused(
-  program: Program<Tbtc>,
-  paused: boolean
-) {
-  const [config,] = getConfigPDA(program);
+async function checkPaused(program: Program<Tbtc>, paused: boolean) {
+  const config = getConfigPDA();
   let configState = await program.account.config.fetch(config);
   expect(configState.paused).to.equal(paused);
 }
 
-async function checkMinter(
-  program: Program<Tbtc>,
-  minter
-) {
-  const [minterInfoPDA, bump] = getMinterPDA(program, minter.publicKey);
+async function checkMinter(program: Program<Tbtc>, minter) {
+  const minterInfoPDA = getMinterPDA(minter.publicKey);
   let minterInfo = await program.account.minterInfo.fetch(minterInfoPDA);
 
   expect(minterInfo.minter).to.eql(minter.publicKey);
-  expect(minterInfo.bump).to.equal(bump);
 }
 
 async function removeMinter(
@@ -119,8 +107,8 @@ async function removeMinter(
   minter,
   minterInfo
 ) {
-  const [config,] = getConfigPDA(program);
-  const [minters,] = getMintersPDA(program);
+  const config = getConfigPDA();
+  const minters = getMintersPDA();
   await program.methods
     .removeMinter()
     .accounts({
@@ -128,7 +116,7 @@ async function removeMinter(
       authority: authority.publicKey,
       minters,
       minterInfo: minterInfo,
-      minter: minter.publicKey
+      minter: minter.publicKey,
     })
     .signers(maybeAuthorityAnd(authority, []))
     .rpc();
@@ -140,9 +128,9 @@ async function addGuardian(
   guardian,
   payer
 ): Promise<anchor.web3.PublicKey> {
-  const [config,] = getConfigPDA(program);
-  const [guardians,] = getGuardiansPDA(program);
-  const [guardianInfoPDA, _] = getGuardianPDA(program, guardian);
+  const config = getConfigPDA();
+  const guardians = getGuardiansPDA();
+  const guardianInfoPDA = getGuardianPDA(guardian);
   await program.methods
     .addGuardian()
     .accounts({
@@ -157,15 +145,11 @@ async function addGuardian(
   return guardianInfoPDA;
 }
 
-async function checkGuardian(
-  program: Program<Tbtc>,
-  guardian
-) {
-  const [guardianInfoPDA, bump] = getGuardianPDA(program, guardian);
+async function checkGuardian(program: Program<Tbtc>, guardian) {
+  const guardianInfoPDA = getGuardianPDA(guardian);
   let guardianInfo = await program.account.guardianInfo.fetch(guardianInfoPDA);
 
   expect(guardianInfo.guardian).to.eql(guardian.publicKey);
-  expect(guardianInfo.bump).to.equal(bump);
 }
 
 async function removeGuardian(
@@ -174,8 +158,8 @@ async function removeGuardian(
   guardian,
   guardianInfo
 ) {
-  const [config,] = getConfigPDA(program);
-  const [guardians,] = getGuardiansPDA(program);
+  const config = getConfigPDA();
+  const guardians = getGuardiansPDA();
   await program.methods
     .removeGuardian()
     .accounts({
@@ -183,39 +167,33 @@ async function removeGuardian(
       authority: authority.publicKey,
       guardians,
       guardianInfo: guardianInfo,
-      guardian: guardian.publicKey
+      guardian: guardian.publicKey,
     })
     .signers(maybeAuthorityAnd(authority, []))
     .rpc();
 }
 
-async function pause(
-  program: Program<Tbtc>,
-  guardian
-) {
-  const [config,] = getConfigPDA(program);
-  const [guardianInfoPDA, _] = getGuardianPDA(program, guardian);
+async function pause(program: Program<Tbtc>, guardian) {
+  const config = getConfigPDA();
+  const guardianInfoPDA = getGuardianPDA(guardian);
   await program.methods
     .pause()
     .accounts({
       config,
       guardianInfo: guardianInfoPDA,
-      guardian: guardian.publicKey
+      guardian: guardian.publicKey,
     })
     .signers([guardian])
     .rpc();
 }
 
-async function unpause(
-  program: Program<Tbtc>,
-  authority
-) {
-  const [config,] = getConfigPDA(program);
+async function unpause(program: Program<Tbtc>, authority) {
+  const config = getConfigPDA();
   await program.methods
     .unpause()
     .accounts({
       config,
-      authority: authority.publicKey
+      authority: authority.publicKey,
     })
     .signers(maybeAuthorityAnd(authority, []))
     .rpc();
@@ -227,21 +205,26 @@ async function mint(
   minterInfoPDA,
   recipient,
   amount,
-  payer,
+  payer
 ) {
   const connection = program.provider.connection;
 
-  const [config,] = getConfigPDA(program);
-  const [tbtcMintPDA, _] = getTokenPDA(program);
-  const recipientToken = spl.getAssociatedTokenAddressSync(tbtcMintPDA, recipient.publicKey);
+  const config = getConfigPDA();
+  const tbtcMintPDA = getTokenPDA();
+  const recipientToken = spl.getAssociatedTokenAddressSync(
+    tbtcMintPDA,
+    recipient.publicKey
+  );
 
-  const tokenData = await spl.getAccount(connection, recipientToken).catch((err) => {
-    if (err instanceof spl.TokenAccountNotFoundError) {
-      return null;
-    } else {
-      throw err;
-    };
-  });
+  const tokenData = await spl
+    .getAccount(connection, recipientToken)
+    .catch((err) => {
+      if (err instanceof spl.TokenAccountNotFoundError) {
+        return null;
+      } else {
+        throw err;
+      }
+    });
 
   if (tokenData === null) {
     const tx = await web3.sendAndConfirmTransaction(
@@ -251,13 +234,12 @@ async function mint(
           payer.publicKey,
           recipientToken,
           recipient.publicKey,
-          tbtcMintPDA,
+          tbtcMintPDA
         )
       ),
       [payer.payer]
     );
   }
-
 
   await program.methods
     .mint(new anchor.BN(amount))
@@ -278,7 +260,8 @@ describe("tbtc", () => {
 
   const program = anchor.workspace.Tbtc as Program<Tbtc>;
 
-  const authority = (program.provider as anchor.AnchorProvider).wallet as anchor.Wallet;
+  const authority = (program.provider as anchor.AnchorProvider)
+    .wallet as anchor.Wallet;
   const newAuthority = anchor.web3.Keypair.generate();
   const minterKeys = anchor.web3.Keypair.generate();
   const minter2Keys = anchor.web3.Keypair.generate();
@@ -288,13 +271,13 @@ describe("tbtc", () => {
 
   const recipientKeys = anchor.web3.Keypair.generate();
 
-  it('setup', async () => {
+  it("setup", async () => {
     await setup(program, authority);
-    await checkState(program, authority, 0, 0, 0);
+    await checkState(authority, 0, 0, 0);
   });
 
-  it('change authority', async () => {
-    await checkState(program, authority, 0, 0, 0);
+  it("change authority", async () => {
+    await checkState(authority, 0, 0, 0);
     await checkNoPendingAuthority(program);
     try {
       await cancelAuthorityChange(program, authority);
@@ -302,7 +285,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('NoPendingAuthorityChange');
+      expect(err.error.errorCode.code).to.equal("NoPendingAuthorityChange");
       expect(err.program.equals(program.programId)).is.true;
     }
     try {
@@ -311,7 +294,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('NoPendingAuthorityChange');
+      expect(err.error.errorCode.code).to.equal("NoPendingAuthorityChange");
       expect(err.program.equals(program.programId)).is.true;
     }
 
@@ -319,7 +302,7 @@ describe("tbtc", () => {
     await checkPendingAuthority(program, newAuthority);
     await takeAuthority(program, newAuthority);
     await checkNoPendingAuthority(program);
-    await checkState(program, newAuthority, 0, 0, 0);
+    await checkState(newAuthority, 0, 0, 0);
     await changeAuthority(program, newAuthority, authority.payer);
     try {
       await takeAuthority(program, impostorKeys);
@@ -327,7 +310,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotPendingAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotPendingAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
     try {
@@ -336,7 +319,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotPendingAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotPendingAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
     try {
@@ -345,22 +328,27 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
     await takeAuthority(program, authority);
 
-    await checkState(program, authority, 0, 0, 0);
-  })
+    await checkState(authority, 0, 0, 0);
+  });
 
-  it('add minter', async () => {
-    await checkState(program, authority, 0, 0, 0);
-    await addMinter(program, authority, minterKeys.publicKey);
+  it("add minter", async () => {
+    await checkState(authority, 0, 0, 0);
+    await addMinter(authority, minterKeys.publicKey);
     await checkMinter(program, minterKeys);
-    await checkState(program, authority, 1, 0, 0);
+    await checkState(authority, 1, 0, 0);
 
     // Transfer lamports to imposter.
-    await transferLamports(program.provider.connection, authority.payer, impostorKeys.publicKey, 1000000000);
+    await transferLamports(
+      program.provider.connection,
+      authority.payer,
+      impostorKeys.publicKey,
+      1000000000
+    );
     // await web3.sendAndConfirmTransaction(
     //   program.provider.connection,
     //   new web3.Transaction().add(
@@ -374,25 +362,32 @@ describe("tbtc", () => {
     // );
 
     try {
-      await addMinter(program, impostorKeys, minter2Keys.publicKey);
+      await addMinter(impostorKeys, minter2Keys.publicKey);
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('mint', async () => {
-    await checkState(program, authority, 1, 0, 0);
-    const [minterInfoPDA, _] = getMinterPDA(program, minterKeys.publicKey);
+  it("mint", async () => {
+    await checkState(authority, 1, 0, 0);
+    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     // await setupMint(program, authority, recipientKeys);
-    await mint(program, minterKeys, minterInfoPDA, recipientKeys, 1000, authority);
+    await mint(
+      program,
+      minterKeys,
+      minterInfoPDA,
+      recipientKeys,
+      1000,
+      authority
+    );
 
-    await checkState(program, authority, 1, 0, 1000);
+    await checkState(authority, 1, 0, 1000);
 
     // // Burn for next test.
     // const ix = spl.createBurnCheckedInstruction(
@@ -402,44 +397,57 @@ describe("tbtc", () => {
     //   BURN_QUANTITY * (10**MINT_DECIMALS), // Number of tokens to burn
     //   MINT_DECIMALS // Number of Decimals of the Token Mint
     // )
-
   });
 
-  it('won\'t mint', async () => {
-    await checkState(program, authority, 1, 0, 1000);
-    const [minterInfoPDA, _] = getMinterPDA(program, minterKeys.publicKey);
+  it("won't mint", async () => {
+    await checkState(authority, 1, 0, 1000);
+    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     // await setupMint(program, authority, recipientKeys);
 
     try {
-      await mint(program, impostorKeys, minterInfoPDA, recipientKeys, 1000, authority);
+      await mint(
+        program,
+        impostorKeys,
+        minterInfoPDA,
+        recipientKeys,
+        1000,
+        authority
+      );
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.error.errorCode.code).to.equal("ConstraintSeeds");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('use two minters', async () => {
-    await checkState(program, authority, 1, 0, 1000);
-    const [minterInfoPDA, _] = getMinterPDA(program, minterKeys.publicKey);
+  it("use two minters", async () => {
+    await checkState(authority, 1, 0, 1000);
+    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
-    const minter2InfoPDA = await addMinter(program, authority, minter2Keys.publicKey);
+    const minter2InfoPDA = await addMinter(authority, minter2Keys.publicKey);
     await checkMinter(program, minter2Keys);
-    await checkState(program, authority, 2, 0, 1000);
+    await checkState(authority, 2, 0, 1000);
     // await setupMint(program, authority, recipientKeys);
 
     // cannot mint with wrong keys
     try {
-      await mint(program, minter2Keys, minterInfoPDA, recipientKeys, 1000, authority);
+      await mint(
+        program,
+        minter2Keys,
+        minterInfoPDA,
+        recipientKeys,
+        1000,
+        authority
+      );
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.error.errorCode.code).to.equal("ConstraintSeeds");
       expect(err.program.equals(program.programId)).is.true;
     }
 
@@ -450,25 +458,32 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.error.errorCode.code).to.equal("ConstraintSeeds");
       expect(err.program.equals(program.programId)).is.true;
     }
 
-    await mint(program, minterKeys, minterInfoPDA, recipientKeys, 500, authority);
-    await checkState(program, authority, 2, 0, 1500);
+    await mint(
+      program,
+      minterKeys,
+      minterInfoPDA,
+      recipientKeys,
+      500,
+      authority
+    );
+    await checkState(authority, 2, 0, 1500);
   });
 
-  it('remove minter', async () => {
-    await checkState(program, authority, 2, 0, 1500);
-    const [minter2InfoPDA, _] = getMinterPDA(program, minter2Keys.publicKey);
+  it("remove minter", async () => {
+    await checkState(authority, 2, 0, 1500);
+    const minter2InfoPDA = getMinterPDA(minter2Keys.publicKey);
     await checkMinter(program, minter2Keys);
     await removeMinter(program, authority, minter2Keys, minter2InfoPDA);
-    await checkState(program, authority, 1, 0, 1500);
+    await checkState(authority, 1, 0, 1500);
   });
 
-  it('won\'t remove minter', async () => {
-    await checkState(program, authority, 1, 0, 1500);
-    const [minterInfoPDA, _] = getMinterPDA(program, minterKeys.publicKey);
+  it("won't remove minter", async () => {
+    await checkState(authority, 1, 0, 1500);
+    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     try {
@@ -477,12 +492,12 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
 
     await removeMinter(program, authority, minterKeys, minterInfoPDA);
-    await checkState(program, authority, 0, 0, 1500);
+    await checkState(authority, 0, 0, 1500);
 
     try {
       await removeMinter(program, authority, minterKeys, minterInfoPDA);
@@ -490,16 +505,16 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
+      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('add guardian', async () => {
-    await checkState(program, authority, 0, 0, 1500);
+  it("add guardian", async () => {
+    await checkState(authority, 0, 0, 1500);
     await addGuardian(program, authority, guardianKeys, authority);
     await checkGuardian(program, guardianKeys);
-    await checkState(program, authority, 0, 1, 1500);
+    await checkState(authority, 0, 1, 1500);
 
     try {
       await addGuardian(program, impostorKeys, guardian2Keys, authority);
@@ -507,28 +522,33 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('remove guardian', async () => {
-    await checkState(program, authority, 0, 1, 1500);
-    const [guardianInfoPDA, _] = getGuardianPDA(program, guardianKeys);
+  it("remove guardian", async () => {
+    await checkState(authority, 0, 1, 1500);
+    const guardianInfoPDA = getGuardianPDA(guardianKeys);
     await checkGuardian(program, guardianKeys);
 
     try {
-      await removeGuardian(program, impostorKeys, guardianKeys, guardianInfoPDA);
+      await removeGuardian(
+        program,
+        impostorKeys,
+        guardianKeys,
+        guardianInfoPDA
+      );
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotAuthority');
+      expect(err.error.errorCode.code).to.equal("IsNotAuthority");
       expect(err.program.equals(program.programId)).is.true;
     }
 
     await removeGuardian(program, authority, guardianKeys, guardianInfoPDA);
-    await checkState(program, authority, 0, 0, 1500);
+    await checkState(authority, 0, 0, 1500);
 
     try {
       await removeGuardian(program, authority, guardianKeys, guardianInfoPDA);
@@ -536,21 +556,21 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('AccountNotInitialized');
+      expect(err.error.errorCode.code).to.equal("AccountNotInitialized");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('pause', async () => {
-    await checkState(program, authority, 0, 0, 1500);
+  it("pause", async () => {
+    await checkState(authority, 0, 0, 1500);
     await addGuardian(program, authority, guardianKeys, authority);
     await checkPaused(program, false);
     await pause(program, guardianKeys);
     await checkPaused(program, true);
   });
 
-  it('unpause', async () => {
-    await checkState(program, authority, 0, 1, 1500);
+  it("unpause", async () => {
+    await checkState(authority, 0, 1, 1500);
     await checkPaused(program, true);
     await unpause(program, authority);
     await checkPaused(program, false);
@@ -562,34 +582,41 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsNotPaused');
+      expect(err.error.errorCode.code).to.equal("IsNotPaused");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
 
-  it('won\'t mint when paused', async () => {
-    await checkState(program, authority, 0, 1, 1500);
-    const minterInfoPDA = await addMinter(program, authority, minterKeys.publicKey);
+  it("won't mint when paused", async () => {
+    await checkState(authority, 0, 1, 1500);
+    const minterInfoPDA = await addMinter(authority, minterKeys.publicKey);
     await pause(program, guardianKeys);
     // await setupMint(program, authority, recipientKeys);
 
     try {
-      await mint(program, minterKeys, minterInfoPDA, recipientKeys, 1000, authority);
+      await mint(
+        program,
+        minterKeys,
+        minterInfoPDA,
+        recipientKeys,
+        1000,
+        authority
+      );
       chai.assert(false, "should've failed but didn't");
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsPaused');
+      expect(err.error.errorCode.code).to.equal("IsPaused");
       expect(err.program.equals(program.programId)).is.true;
     }
 
     await unpause(program, authority);
     await checkPaused(program, false);
-  })
+  });
 
-  it('use two guardians', async () => {
-    await checkState(program, authority, 1, 1, 1500);
-    const [guardianInfoPDA, _] = getGuardianPDA(program, guardianKeys);
+  it("use two guardians", async () => {
+    await checkState(authority, 1, 1, 1500);
+    const guardianInfoPDA = getGuardianPDA(guardianKeys);
     await checkGuardian(program, guardianKeys);
     await addGuardian(program, authority, guardian2Keys, authority);
     await checkGuardian(program, guardian2Keys);
@@ -602,7 +629,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('IsPaused');
+      expect(err.error.errorCode.code).to.equal("IsPaused");
       expect(err.program.equals(program.programId)).is.true;
     }
 
@@ -618,7 +645,7 @@ describe("tbtc", () => {
     } catch (_err) {
       expect(_err).to.be.instanceOf(AnchorError);
       const err: AnchorError = _err;
-      expect(err.error.errorCode.code).to.equal('ConstraintSeeds');
+      expect(err.error.errorCode.code).to.equal("ConstraintSeeds");
       expect(err.program.equals(program.programId)).is.true;
     }
   });
