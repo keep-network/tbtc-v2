@@ -11,7 +11,7 @@ members = [
 
 [programs.localnet]
 tbtc = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
-wormhole-gateway = "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
+wormhole_gateway = "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
 
 [registry]
 url = "https://api.apr.dev"
