@@ -46,7 +46,6 @@ export function getMinterPDA(
         program.programId
     );
 }
-  
 
 export function getGuardianPDA(
     program: Program<Tbtc>,
@@ -56,6 +55,28 @@ export function getGuardianPDA(
         [
             Buffer.from('guardian-info'),
             guardian.publicKey.toBuffer(),
+        ],
+        program.programId
+    );
+}
+
+export function getGuardiansPDA(
+    program: Program<Tbtc>,
+): [anchor.web3.PublicKey, number] {
+    return web3.PublicKey.findProgramAddressSync(
+        [
+            Buffer.from('guardians'),
+        ],
+        program.programId
+    );
+}
+
+export function getMintersPDA(
+    program: Program<Tbtc>,
+): [anchor.web3.PublicKey, number] {
+    return web3.PublicKey.findProgramAddressSync(
+        [
+            Buffer.from('minters'),
         ],
         program.programId
     );

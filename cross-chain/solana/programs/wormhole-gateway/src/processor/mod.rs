@@ -4,8 +4,8 @@ pub use deposit_wormhole_tbtc::*;
 mod initialize;
 pub use initialize::*;
 
-// mod receive_tbtc;
-// pub use receive_tbtc::*;
+mod receive_tbtc;
+pub use receive_tbtc::*;
 
 mod send_tbtc;
 pub use send_tbtc::*;

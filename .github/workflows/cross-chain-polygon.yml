@@ -9,6 +9,7 @@ on:
     paths:
       - "cross-chain/polygon/**"
       - ".github/workflows/cross-chain-polygon.yml"
+  pull_request:
 
 jobs:
   contracts-detect-changes:

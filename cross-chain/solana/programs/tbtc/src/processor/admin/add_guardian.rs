@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Config, GuardianInfo},
+    state::{Config, GuardianInfo, Guardians},
 };
 use anchor_lang::prelude::*;
 
@@ -18,6 +18,16 @@ pub struct AddGuardian<'info> {
     authority: Signer<'info>,
 
     #[account(
+        mut,
+        seeds = [Guardians::SEED_PREFIX],
+        bump = guardians.bump,
+        realloc = Guardians::compute_size(guardians.keys.len() + 1),
+        realloc::payer = authority,
+        realloc::zero = true,
+    )]
+    guardians: Account<'info, Guardians>,
+
+    #[account(
         init,
         payer = authority,
         space = 8 + GuardianInfo::INIT_SPACE,
@@ -26,18 +36,29 @@ pub struct AddGuardian<'info> {
     )]
     guardian_info: Account<'info, GuardianInfo>,
 
-    /// CHECK: Required authority to pause contract. This pubkey lives in `GuardianInfo`.
+    /// CHECK: Required authority to pause contract. This pubkey lives in `GuardianInfo` and
+    /// `Guardians`.
     guardian: AccountInfo<'info>,
 
     system_program: Program<'info, System>,
 }
 
 pub fn add_guardian(ctx: Context<AddGuardian>) -> Result<()> {
+    let guardian = ctx.accounts.guardian.key();
+
+    // Set account data.
     ctx.accounts.guardian_info.set_inner(GuardianInfo {
-        guardian: ctx.accounts.guardian.key(),
         bump: ctx.bumps["guardian_info"],
+        guardian,
     });
 
+    // Push pubkey to guardians account.
+    ctx.accounts.guardians.push(guardian);
+
+    // Update config.
     ctx.accounts.config.num_guardians += 1;
+
+    emit!(crate::event::GuardianAdded { guardian });
+
     Ok(())
 }

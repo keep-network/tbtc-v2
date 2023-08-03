@@ -9,6 +9,7 @@ on:
     paths:
       - "cross-chain/arbitrum/**"
       - ".github/workflows/cross-chain-arbitrum.yml"
+  pull_request:
 
 jobs:
   contracts-detect-changes:

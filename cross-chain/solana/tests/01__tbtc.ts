@@ -6,13 +6,15 @@ import { Tbtc } from "../target/types/tbtc";
 import { expect } from 'chai';
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { transferLamports } from "./helpers/utils";
-import { maybeAuthorityAnd, getConfigPDA, getTokenPDA, getMinterPDA, getGuardianPDA, checkState, addMinter } from "./helpers/tbtcHelpers";
+import { maybeAuthorityAnd, getConfigPDA, getTokenPDA, getMinterPDA, getGuardianPDA, getMintersPDA, getGuardiansPDA, checkState, addMinter } from "./helpers/tbtcHelpers";
 
 async function setup(
   program: Program<Tbtc>,
   authority
 ) {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
+  const [minters,] = getMintersPDA(program);
   const [tbtcMintPDA, _] = getTokenPDA(program);
 
   await program.methods
@@ -20,11 +22,12 @@ async function setup(
     .accounts({
       mint: tbtcMintPDA,
       config,
+      guardians,
+      minters,
       authority: authority.publicKey
     })
     .rpc();
 }
-
 
 async function changeAuthority(
   program: Program<Tbtc>,
@@ -59,7 +62,7 @@ async function takeAuthority(
 }
 
 async function cancelAuthorityChange(
-  program: Program<Tbtc>, 
+  program: Program<Tbtc>,
   authority,
 ) {
   const [config,] = getConfigPDA(program);
@@ -99,7 +102,6 @@ async function checkPaused(
   expect(configState.paused).to.equal(paused);
 }
 
-
 async function checkMinter(
   program: Program<Tbtc>,
   minter
@@ -118,11 +120,13 @@ async function removeMinter(
   minterInfo
 ) {
   const [config,] = getConfigPDA(program);
+  const [minters,] = getMintersPDA(program);
   await program.methods
     .removeMinter()
     .accounts({
       config,
       authority: authority.publicKey,
+      minters,
       minterInfo: minterInfo,
       minter: minter.publicKey
     })
@@ -137,12 +141,14 @@ async function addGuardian(
   payer
 ): Promise<anchor.web3.PublicKey> {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
   const [guardianInfoPDA, _] = getGuardianPDA(program, guardian);
   await program.methods
     .addGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
+      guardians,
       guardianInfo: guardianInfoPDA,
       guardian: guardian.publicKey,
     })
@@ -169,11 +175,13 @@ async function removeGuardian(
   guardianInfo
 ) {
   const [config,] = getConfigPDA(program);
+  const [guardians,] = getGuardiansPDA(program);
   await program.methods
     .removeGuardian()
     .accounts({
       config,
       authority: authority.publicKey,
+      guardians,
       guardianInfo: guardianInfo,
       guardian: guardian.publicKey
     })

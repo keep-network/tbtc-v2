@@ -1,6 +1,10 @@
 #![allow(clippy::result_large_err)]
 
+pub mod constants;
+
 pub mod error;
+
+pub(crate) mod event;
 
 mod processor;
 pub(crate) use processor::*;
@@ -41,9 +45,9 @@ pub mod wormhole_gateway {
         processor::update_minting_limit(ctx, new_limit)
     }
 
-    // pub fn receive_tbtc(ctx: Context<ReceiveTbtc>) -> Result<()> {
-    //     processor::receive_tbtc(ctx)
-    // }
+    pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, message_hash: [u8; 32]) -> Result<()> {
+        processor::receive_tbtc(ctx, message_hash)
+    }
 
     pub fn send_tbtc_gateway(
         ctx: Context<SendTbtcGateway>,
