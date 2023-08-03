@@ -632,11 +632,13 @@ contract Bridge is
 
     function mock__submitRedemptionProof(
         bytes20 walletPubKeyHash,
-        bytes calldata redeemerOutputScript
+        bytes calldata redeemerOutputScript,
+        bytes32 redemptionTxHash
     ) external {
         self.mock__submitRedemptionProof(
             walletPubKeyHash,
-            redeemerOutputScript
+            redeemerOutputScript,
+            redemptionTxHash
         );
     }
 

@@ -81,9 +81,20 @@ task("dapp:submit-redemption-proof", "Submits a redemption proof")
     undefined,
     types.string
   )
+  .addParam(
+    "redemptionTxHash",
+    "Hash of the redemption transaction on the Bitcoin chain.",
+    undefined,
+    types.string
+  )
   .setAction(async (args, hre) => {
-    const { walletPubKeyHash, redeemerOutputScript } = args
-    await submitRedemptionProof(hre, walletPubKeyHash, redeemerOutputScript)
+    const { walletPubKeyHash, redeemerOutputScript, redemptionTxHash } = args
+    await submitRedemptionProof(
+      hre,
+      walletPubKeyHash,
+      redeemerOutputScript,
+      redemptionTxHash
+    )
   })
 
 task(
@@ -233,14 +244,16 @@ async function submitDepositSweepProof(
 async function submitRedemptionProof(
   hre: HardhatRuntimeEnvironment,
   walletPubKeyHash: string,
-  redeemerOutputScript: string
+  redeemerOutputScript: string,
+  redemptionTxHash: string
 ) {
   const { helpers } = hre
   const bridge = await helpers.contracts.getContract<Bridge>("Bridge")
 
   const tx = await bridge.mock__submitRedemptionProof(
     walletPubKeyHash,
-    redeemerOutputScript
+    redeemerOutputScript,
+    redemptionTxHash
   )
   await tx.wait()
 

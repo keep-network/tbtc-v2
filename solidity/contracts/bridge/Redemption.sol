@@ -638,7 +638,8 @@ library Redemption {
     function mock__submitRedemptionProof(
         BridgeState.Storage storage self,
         bytes20 walletPubKeyHash,
-        bytes calldata redeemerOutputScript
+        bytes calldata redeemerOutputScript,
+        bytes32 redemptionTxHash
     ) external {
         uint256 redemptionKey = getRedemptionKey(
             walletPubKeyHash,
@@ -650,7 +651,7 @@ library Redemption {
 
         uint64 redeemableAmount = request.requestedAmount - request.treasuryFee;
         delete self.pendingRedemptions[redemptionKey];
-        emit RedemptionsCompleted(walletPubKeyHash, 0x0);
+        emit RedemptionsCompleted(walletPubKeyHash, redemptionTxHash);
 
         self.bank.decreaseBalance(redeemableAmount);
         self.bank.transferBalance(self.treasury, request.treasuryFee);
