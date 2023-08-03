@@ -43,18 +43,21 @@ pub struct RemoveGuardian<'info> {
 pub fn remove_guardian(ctx: Context<RemoveGuardian>) -> Result<()> {
     let guardians: &mut Vec<_> = &mut ctx.accounts.guardians;
     let removed = ctx.accounts.guardian.key();
-    match guardians.iter().position(|&guardian| guardian == removed) {
-        Some(index) => {
-            // Remove pubkey to guardians account.
-            guardians.swap_remove(index);
 
-            // Update config.
-            ctx.accounts.config.num_guardians -= 1;
+    // It is safe to unwrap because the key we are removing is guaranteed to exist since there is
+    // a guardian info account for it.
+    let index = guardians
+        .iter()
+        .position(|&guardian| guardian == removed)
+        .unwrap();
 
-            emit!(crate::event::GuardianRemoved { guardian: removed });
+    // Remove pubkey to guardians account.
+    guardians.swap_remove(index);
 
-            Ok(())
-        }
-        None => err!(TbtcError::GuardianNonexistent),
-    }
+    // Update config.
+    ctx.accounts.config.num_guardians -= 1;
+
+    emit!(crate::event::GuardianRemoved { guardian: removed });
+
+    Ok(())
 }

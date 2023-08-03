@@ -45,18 +45,21 @@ pub struct RemoveMinter<'info> {
 pub fn remove_minter(ctx: Context<RemoveMinter>) -> Result<()> {
     let minters: &mut Vec<_> = &mut ctx.accounts.minters;
     let removed = ctx.accounts.minter.key();
-    match minters.iter().position(|&minter| minter == removed) {
-        Some(index) => {
-            // Remove pubkey to minters account.
-            minters.swap_remove(index);
 
-            // Update config.
-            ctx.accounts.config.num_minters -= 1;
+    // It is safe to unwrap because the key we are removing is guaranteed to exist since there is
+    // a minter info account for it.
+    let index = minters
+        .iter()
+        .position(|&minter| minter == removed)
+        .unwrap();
 
-            emit!(crate::event::MinterRemoved { minter: removed });
+    // Remove pubkey to minters account.
+    minters.swap_remove(index);
 
-            Ok(())
-        }
-        None => err!(TbtcError::GuardianNonexistent),
-    }
+    // Update config.
+    ctx.accounts.config.num_minters -= 1;
+
+    emit!(crate::event::MinterRemoved { minter: removed });
+
+    Ok(())
 }
