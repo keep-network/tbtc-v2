@@ -772,6 +772,12 @@ export class Bridge
     options?: GetEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<RedemptionRequestedEvent[]> {
+    // FIXME: Filtering by indexed walletPubKeyHash field may not work
+    //        until https://github.com/ethers-io/ethers.js/pull/4244 is
+    //        included in the currently used version of ethers.js.
+    //        Ultimately, we should upgrade ethers.js to include that fix.
+    //        Short-term, we can workaround the problem as presented in:
+    //        https://github.com/threshold-network/token-dashboard/blob/main/src/threshold-ts/tbtc/index.ts#L1041C1-L1093C1
     const events: EthersEvent[] = await this.getEvents(
       "RedemptionRequested",
       options,
