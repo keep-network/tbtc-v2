@@ -92,23 +92,23 @@ export async function checkState(
     const [config,] = getConfigPDA(program);
     let configState = await program.account.config.fetch(config);
   
-    expect(configState.authority).to.eql(expectedAuthority.publicKey);
-    expect(configState.numMinters).to.equal(expectedMinters);
-    expect(configState.numGuardians).to.equal(expectedGuardians);
-  
+    expect(configState.authority).to.eql(expectedAuthority.publicKey, "wrong authority");
+    expect(configState.numMinters).to.equal(expectedMinters, "wrong number of minters in config");
+    expect(configState.numGuardians).to.equal(expectedGuardians, "wrong number of guardians in config");
+
     let tbtcMint = configState.mint;
   
     let mintState = await spl.getMint(program.provider.connection, tbtcMint);
   
-    expect(mintState.supply).to.equal(BigInt(expectedTokensSupply));
+    expect(mintState.supply).to.equal(BigInt(expectedTokensSupply), "wrong amount of tbtc tokens minted");
 
     const [guardians,] = getGuardiansPDA(program);
     let guardiansState = await program.account.guardians.fetch(guardians);
-    expect(guardiansState.keys).has.length(expectedGuardians);
+    expect(guardiansState.keys).has.length(expectedGuardians, "wrong length of guardians");
   
     const [minters,] = getMintersPDA(program);
     let mintersState = await program.account.minters.fetch(minters);
-    expect(mintersState.keys).has.length(expectedMinters);    
+    expect(mintersState.keys).has.length(expectedMinters, "wrong length of minters");
 }
 
 export async function addMinter(
