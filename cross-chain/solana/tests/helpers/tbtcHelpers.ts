@@ -101,7 +101,15 @@ export async function checkState(
     let mintState = await spl.getMint(program.provider.connection, tbtcMint);
   
     expect(mintState.supply).to.equal(BigInt(expectedTokensSupply));
-  }
+
+    const [guardians,] = getGuardiansPDA(program);
+    let guardiansState = await program.account.guardians.fetch(guardians);
+    expect(guardiansState.keys).has.length(expectedGuardians);
+  
+    const [minters,] = getMintersPDA(program);
+    let mintersState = await program.account.minters.fetch(minters);
+    expect(mintersState.keys).has.length(expectedMinters);    
+}
 
 export async function addMinter(
     program: Program<Tbtc>,
@@ -109,12 +117,14 @@ export async function addMinter(
     minter
   ): Promise<anchor.web3.PublicKey> {
     const [config,] = getConfigPDA(program);
+    const [minters,] = getMintersPDA(program);
     const [minterInfoPDA, _] = getMinterPDA(program, minter);
     await program.methods
       .addMinter()
       .accounts({
         config,
         authority: authority.publicKey,
+        minters,
         minter,
         minterInfo: minterInfoPDA,
       })
