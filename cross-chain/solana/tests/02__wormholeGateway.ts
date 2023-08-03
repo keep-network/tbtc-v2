@@ -220,7 +220,7 @@ describe("wormhole-gateway", () => {
     await tbtc.checkState(tbtcProgram, authority, 2, 2, 2000);
   });
 
-  it('won\'t deposit wrapped tokens over the minting limit', async () => {
+  it('- won\'t deposit wrapped tokens over the minting limit', async () => {
     const minterInfo = tbtc.getMinterPDA(tbtcProgram, custodian)[0];
     const payer = await generatePayer(connection, authority.payer);
     const wrappedTbtcToken = await bridgeToSolana(BigInt("100000000000"), connection, payer, ethereumTokenBridge);
@@ -245,7 +245,7 @@ describe("wormhole-gateway", () => {
     }
   });
 
-  it('won\'t deposit wrapped tokens with mismatched token types', async () => {
+  it('- won\'t deposit wrapped tokens with mismatched token types', async () => {
     const minterInfo = tbtc.getMinterPDA(tbtcProgram, custodian)[0];
     const payer = await generatePayer(connection, authority.payer);
     const wrappedTbtcToken = await bridgeToSolana(BigInt("100000000000"), connection, payer, ethereumTokenBridge);
@@ -287,7 +287,7 @@ describe("wormhole-gateway", () => {
     }
   });
 
-  it('won\'t deposit wrapped tokens to wrong address', async () => {
+  it('- won\'t deposit wrapped tokens to wrong owner', async () => {
     const minterInfo = tbtc.getMinterPDA(tbtcProgram, custodian)[0];
     const payer = await generatePayer(connection, authority.payer);
     const payer2 = await generatePayer(connection, authority.payer);
@@ -303,6 +303,34 @@ describe("wormhole-gateway", () => {
         50000,
         wrappedTbtcToken.address,
         recipient2Token.address,
+        payer,
+        minterInfo
+      );
+      chai.assert(false, "should've failed but didn't");
+    } catch (_err) {
+      expect(_err).to.be.instanceOf(AnchorError);
+      const err: AnchorError = _err;
+      expect(err.error.errorCode.code).to.equal('ConstraintTokenOwner');
+      expect(err.program.equals(program.programId)).is.true;
+    }
+  });
+
+  it('- won\'t deposit wrapped tokens from wrong owner', async () => {
+    const minterInfo = tbtc.getMinterPDA(tbtcProgram, custodian)[0];
+    const payer = await generatePayer(connection, authority.payer);
+    const payer2 = await generatePayer(connection, authority.payer);
+    const wrappedTbtcToken = await bridgeToSolana(BigInt("100000000000"), connection, payer, ethereumTokenBridge);
+    const recipientToken = await getOrCreateTokenAccount(connection, payer, tbtcMint, payer.publicKey);
+    const wrappedTbtcToken2 = await bridgeToSolana(BigInt("100"), connection, payer2, ethereumTokenBridge);
+    const recipient2Token = await getOrCreateTokenAccount(connection, payer, tbtcMint, payer2.publicKey);
+
+    try {
+      await depositWormholeTbtc(
+        program,
+        tbtcProgram,
+        50000,
+        wrappedTbtcToken2.address,
+        recipientToken.address,
         payer,
         minterInfo
       );
