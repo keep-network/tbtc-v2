@@ -1,5 +1,4 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, Wallet, workspace } from "@coral-xyz/anchor";
 import { getMint } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { expect } from "chai";
@@ -7,9 +6,7 @@ import { Tbtc } from "../../target/types/tbtc";
 import { TBTC_PROGRAM_ID } from "./consts";
 
 export function maybeAuthorityAnd(signer, signers) {
-  return signers.concat(
-    signer instanceof (anchor.Wallet as any) ? [] : [signer]
-  );
+  return signers.concat(signer instanceof (Wallet as any) ? [] : [signer]);
 }
 
 export function getConfigPDA(): PublicKey {
@@ -26,7 +23,7 @@ export function getTokenPDA(): PublicKey {
   )[0];
 }
 
-export function getMinterPDA(minter: PublicKey): PublicKey {
+export function getMinterInfoPDA(minter: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("minter-info"), minter.toBuffer()],
     TBTC_PROGRAM_ID
@@ -60,7 +57,7 @@ export async function checkState(
   expectedGuardians: number,
   expectedTokensSupply
 ) {
-  const program = anchor.workspace.Tbtc as Program<Tbtc>;
+  const program = workspace.Tbtc as Program<Tbtc>;
 
   const config = getConfigPDA();
   let configState = await program.account.config.fetch(config);
@@ -84,15 +81,12 @@ export async function checkState(
   expect(mintersState.keys).has.length(expectedMinters);
 }
 
-export async function addMinter(
-  authority,
-  minter
-): Promise<anchor.web3.PublicKey> {
-  const program = anchor.workspace.Tbtc as Program<Tbtc>;
+export async function addMinter(authority, minter): Promise<PublicKey> {
+  const program = workspace.Tbtc as Program<Tbtc>;
 
   const config = getConfigPDA();
   const minters = getMintersPDA();
-  const minterInfoPDA = getMinterPDA(minter);
+  const minterInfoPDA = getMinterInfoPDA(minter);
   await program.methods
     .addMinter()
     .accounts({

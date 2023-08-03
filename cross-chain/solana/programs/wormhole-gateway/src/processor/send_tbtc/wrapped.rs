@@ -19,9 +19,11 @@ pub struct SendTbtcWrapped<'info> {
     custodian: Account<'info, Custodian>,
 
     /// Custody account.
+    #[account(mut)]
     wrapped_tbtc_token: Box<Account<'info, token::TokenAccount>>,
 
     /// CHECK: This account is needed for the Token Bridge program.
+    #[account(mut)]
     wrapped_tbtc_mint: UncheckedAccount<'info>,
 
     #[account(mut)]

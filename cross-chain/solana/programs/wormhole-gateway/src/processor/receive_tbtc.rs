@@ -23,7 +23,7 @@ pub struct ReceiveTbtc<'info> {
         has_one = wrapped_tbtc_token,
         has_one = wrapped_tbtc_mint,
         has_one = tbtc_mint,
-        has_one = token_bridge_redeemer,
+        //has_one = token_bridge_redeemer,
     )]
     custodian: Account<'info, Custodian>,
 
@@ -38,10 +38,17 @@ pub struct ReceiveTbtc<'info> {
     /// transfer. By checking whether this account exists is a short-circuit way of bailing out
     /// early if this transfer has already been redeemed (as opposed to letting the Token Bridge
     /// instruction fail).
+    #[account(mut)]
     token_bridge_claim: AccountInfo<'info>,
 
     /// Custody account.
+    #[account(mut)]
     wrapped_tbtc_token: Box<Account<'info, token::TokenAccount>>,
+
+    /// This mint is owned by the Wormhole Token Bridge program. This PDA address is stored in the
+    /// custodian account.
+    #[account(mut)]
+    wrapped_tbtc_mint: Box<Account<'info, token::Mint>>,
 
     #[account(mut)]
     tbtc_mint: Box<Account<'info, token::Mint>>,
@@ -84,16 +91,13 @@ pub struct ReceiveTbtc<'info> {
     tbtc_minter_info: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
-    wrapped_tbtc_mint: UncheckedAccount<'info>,
-
-    /// CHECK: This account is needed for the Token Bridge program.
     token_bridge_config: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
     token_bridge_registered_emitter: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
-    token_bridge_redeemer: UncheckedAccount<'info>,
+    //token_bridge_redeemer: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
     token_bridge_wrapped_asset: UncheckedAccount<'info>,
@@ -105,9 +109,9 @@ pub struct ReceiveTbtc<'info> {
     rent: UncheckedAccount<'info>,
 
     tbtc_program: Program<'info, tbtc::Tbtc>,
-    associated_token_program: Program<'info, associated_token::AssociatedToken>,
     token_bridge_program: Program<'info, TokenBridge>,
     core_bridge_program: Program<'info, CoreBridge>,
+    associated_token_program: Program<'info, associated_token::AssociatedToken>,
     token_program: Program<'info, token::Token>,
     system_program: Program<'info, System>,
 }
@@ -164,7 +168,7 @@ pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, _message_hash: [u8; 32]) -> Resul
                 .token_bridge_registered_emitter
                 .to_account_info(),
             to: wrapped_tbtc_token.to_account_info(),
-            redeemer: ctx.accounts.token_bridge_redeemer.to_account_info(),
+            redeemer: ctx.accounts.custodian.to_account_info(),
             wrapped_mint: wrapped_tbtc_mint.to_account_info(),
             wrapped_metadata: ctx.accounts.token_bridge_wrapped_asset.to_account_info(),
             mint_authority: ctx.accounts.token_bridge_mint_authority.to_account_info(),
@@ -175,7 +179,7 @@ pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, _message_hash: [u8; 32]) -> Resul
         },
         &[&[
             token_bridge::SEED_PREFIX_REDEEMER,
-            &[ctx.accounts.custodian.token_bridge_redeemer_bump],
+            &[ctx.accounts.custodian.bump],
         ]],
     ))?;
 
@@ -195,6 +199,8 @@ pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, _message_hash: [u8; 32]) -> Resul
     // We send Wormhole tBTC OR mint canonical tBTC. We do not want to send dust. Sending Wormhole
     // tBTC is an exceptional situation and we want to keep it simple.
     if updated_minted_amount > ctx.accounts.custodian.minting_limit {
+        msg!("Insufficient minted amount. Sending Wormhole tBTC instead");
+
         let ata = &ctx.accounts.recipient_wrapped_token;
 
         // Create associated token account for recipient if it doesn't exist already.

@@ -51,7 +51,7 @@ pub struct DepositWormholeTbtc<'info> {
     tbtc_config: UncheckedAccount<'info>,
 
     /// CHECK: TBTC program requires this account.
-    minter_info: UncheckedAccount<'info>,
+    tbtc_minter_info: UncheckedAccount<'info>,
 
     token_program: Program<'info, token::Token>,
     tbtc_program: Program<'info, tbtc::Tbtc>,
@@ -102,7 +102,7 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
             tbtc::cpi::accounts::Mint {
                 mint: ctx.accounts.tbtc_mint.to_account_info(),
                 config: ctx.accounts.tbtc_config.to_account_info(),
-                minter_info: ctx.accounts.minter_info.to_account_info(),
+                minter_info: ctx.accounts.tbtc_minter_info.to_account_info(),
                 minter: custodian.to_account_info(),
                 recipient_token: ctx.accounts.recipient_token.to_account_info(),
                 token_program: ctx.accounts.token_program.to_account_info(),

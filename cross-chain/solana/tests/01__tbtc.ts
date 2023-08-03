@@ -10,7 +10,7 @@ import {
   getConfigPDA,
   getGuardianPDA,
   getGuardiansPDA,
-  getMinterPDA,
+  getMinterInfoPDA,
   getMintersPDA,
   getTokenPDA,
   maybeAuthorityAnd,
@@ -95,7 +95,7 @@ async function checkPaused(program: Program<Tbtc>, paused: boolean) {
 }
 
 async function checkMinter(program: Program<Tbtc>, minter) {
-  const minterInfoPDA = getMinterPDA(minter.publicKey);
+  const minterInfoPDA = getMinterInfoPDA(minter.publicKey);
   let minterInfo = await program.account.minterInfo.fetch(minterInfoPDA);
 
   expect(minterInfo.minter).to.eql(minter.publicKey);
@@ -343,12 +343,7 @@ describe("tbtc", () => {
     await checkState(authority, 1, 0, 0);
 
     // Transfer lamports to imposter.
-    await transferLamports(
-      program.provider.connection,
-      authority.payer,
-      impostorKeys.publicKey,
-      1000000000
-    );
+    await transferLamports(authority.payer, impostorKeys.publicKey, 1000000000);
     // await web3.sendAndConfirmTransaction(
     //   program.provider.connection,
     //   new web3.Transaction().add(
@@ -374,7 +369,7 @@ describe("tbtc", () => {
 
   it("mint", async () => {
     await checkState(authority, 1, 0, 0);
-    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
+    const minterInfoPDA = getMinterInfoPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     // await setupMint(program, authority, recipientKeys);
@@ -401,7 +396,7 @@ describe("tbtc", () => {
 
   it("won't mint", async () => {
     await checkState(authority, 1, 0, 1000);
-    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
+    const minterInfoPDA = getMinterInfoPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     // await setupMint(program, authority, recipientKeys);
@@ -426,7 +421,7 @@ describe("tbtc", () => {
 
   it("use two minters", async () => {
     await checkState(authority, 1, 0, 1000);
-    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
+    const minterInfoPDA = getMinterInfoPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
     const minter2InfoPDA = await addMinter(authority, minter2Keys.publicKey);
     await checkMinter(program, minter2Keys);
@@ -475,7 +470,7 @@ describe("tbtc", () => {
 
   it("remove minter", async () => {
     await checkState(authority, 2, 0, 1500);
-    const minter2InfoPDA = getMinterPDA(minter2Keys.publicKey);
+    const minter2InfoPDA = getMinterInfoPDA(minter2Keys.publicKey);
     await checkMinter(program, minter2Keys);
     await removeMinter(program, authority, minter2Keys, minter2InfoPDA);
     await checkState(authority, 1, 0, 1500);
@@ -483,7 +478,7 @@ describe("tbtc", () => {
 
   it("won't remove minter", async () => {
     await checkState(authority, 1, 0, 1500);
-    const minterInfoPDA = getMinterPDA(minterKeys.publicKey);
+    const minterInfoPDA = getMinterInfoPDA(minterKeys.publicKey);
     await checkMinter(program, minterKeys);
 
     try {

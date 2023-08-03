@@ -7,10 +7,10 @@ export const WORMHOLE_GATEWAY_PROGRAM_ID = new PublicKey(
   "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
 );
 
-export const SOLANA_CORE_BRIDGE_ADDRESS = new PublicKey(
+export const CORE_BRIDGE_PROGRAM_ID = new PublicKey(
   "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
 );
-export const SOLANA_TOKEN_BRIDGE_ADDRESS = new PublicKey(
+export const TOKEN_BRIDGE_PROGRAM_ID = new PublicKey(
   "wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb"
 );
 
