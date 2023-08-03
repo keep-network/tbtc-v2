@@ -124,9 +124,11 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
     let token_bridge_transfer_authority = &ctx.accounts.token_bridge_transfer_authority;
     let token_program = &ctx.accounts.token_program;
 
+    let gateway = ctx.accounts.gateway_info.address;
+
     // Prepare for wrapped tBTC transfer (this method also truncates the amount to prevent having to
     // handle dust since tBTC has >8 decimals).
-    let amount = super::burn_and_prepare_transfer(
+    super::burn_and_prepare_transfer(
         super::PrepareTransfer {
             custodian: &mut ctx.accounts.custodian,
             tbtc_mint: &ctx.accounts.tbtc_mint,
@@ -137,18 +139,12 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
             token_program,
         },
         amount,
-    )?;
-
-    let gateway = ctx.accounts.gateway_info.address;
-
-    emit!(crate::event::WormholeTbtcSent {
-        amount,
         recipient_chain,
-        gateway,
+        Some(gateway),
         recipient,
-        arbiter_fee: Default::default(),
-        nonce
-    });
+        None, // arbiter_fee
+        nonce,
+    )?;
 
     let custodian = &ctx.accounts.custodian;
 

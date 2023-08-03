@@ -17,9 +17,6 @@ pub enum WormholeGatewayError {
     #[msg("Amount must not be 0.")]
     ZeroAmount = 0x50,
 
-    #[msg("Amount too low to bridge.")]
-    TruncatedZeroAmount = 0x60,
-
     #[msg("Token Bridge transfer already redeemed.")]
     TransferAlreadyRedeemed = 0x70,
 

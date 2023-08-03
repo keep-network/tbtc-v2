@@ -14,7 +14,7 @@ pub struct Initialize<'info> {
         seeds = [SEED_PREFIX_TBTC_MINT],
         bump,
         payer = authority,
-        mint::decimals = 9,
+        mint::decimals = 8,
         mint::authority = config,
     )]
     mint: Account<'info, token::Mint>,

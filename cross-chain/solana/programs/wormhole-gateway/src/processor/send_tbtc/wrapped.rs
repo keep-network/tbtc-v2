@@ -116,7 +116,7 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
     let token_program = &ctx.accounts.token_program;
 
     // Prepare for wrapped tBTC transfer.
-    let amount = super::burn_and_prepare_transfer(
+    super::burn_and_prepare_transfer(
         super::PrepareTransfer {
             custodian: &mut ctx.accounts.custodian,
             tbtc_mint: &ctx.accounts.tbtc_mint,
@@ -127,16 +127,12 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
             token_program,
         },
         amount,
-    )?;
-
-    emit!(crate::event::WormholeTbtcSent {
-        amount,
         recipient_chain,
-        gateway: Default::default(),
+        None, // gateway
         recipient,
-        arbiter_fee,
-        nonce
-    });
+        Some(arbiter_fee),
+        nonce,
+    )?;
 
     let custodian = &ctx.accounts.custodian;
 
