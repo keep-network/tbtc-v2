@@ -1,43 +1,21 @@
 import { BigNumber } from "ethers"
 
 import { SystemEventType } from "./system-event"
-import { context, Environment } from "./context"
+import { context } from "./context"
+import { createBtcTxUrl, createEthTxUrl } from "./block-explorer"
 
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
 import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
 
-const satsToRoundedBTC = (sats: BigNumber): string =>
+export const satsToRoundedBTC = (sats: BigNumber): string =>
   (sats.div(BigNumber.from(1e6)).toNumber() / 100).toFixed(2)
-
-const hashUrls = (chainEvent: DepositRevealedChainEvent) => {
-  let fundingHashUrlPrefix = ""
-  let revealHashUrlPrefix = ""
-  switch (context.environment) {
-    case Environment.Mainnet: {
-      fundingHashUrlPrefix = "https://mempool.space/tx/"
-      revealHashUrlPrefix = "https://etherscan.io/tx/"
-      break
-    }
-    case Environment.Testnet: {
-      fundingHashUrlPrefix = "https://mempool.space/testnet/tx/"
-      revealHashUrlPrefix = "https://goerli.etherscan.io/tx/"
-      break
-    }
-  }
-
-  const fundingHash = chainEvent.fundingTxHash.toString()
-  const transactionHash = chainEvent.transactionHash.toPrefixedString()
-  return {
-    btcFundingTxHashURL: fundingHashUrlPrefix + fundingHash,
-    ethRevealTxHashURL: revealHashUrlPrefix + transactionHash,
-  }
-}
 
 const DepositRevealed = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => {
-  const { btcFundingTxHashURL, ethRevealTxHashURL } = hashUrls(chainEvent)
+  const btcFundingTxHashURL = createBtcTxUrl(chainEvent.fundingTxHash)
+  const ethRevealTxHashURL = createEthTxUrl(chainEvent.transactionHash)
 
   return {
     title: "Deposit revealed",
@@ -57,7 +35,8 @@ const DepositRevealed = (
 const LargeDepositRevealed = (
   chainEvent: DepositRevealedChainEvent
 ): SystemEvent => {
-  const { btcFundingTxHashURL, ethRevealTxHashURL } = hashUrls(chainEvent)
+  const btcFundingTxHashURL = createBtcTxUrl(chainEvent.fundingTxHash)
+  const ethRevealTxHashURL = createEthTxUrl(chainEvent.transactionHash)
 
   return {
     title: "Large deposit revealed",

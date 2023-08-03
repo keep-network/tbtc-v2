@@ -111,11 +111,13 @@ are propagated to the Sentry hub that decides about next steps. Specific system
 events produced by the monitoring component are:
 
 * deposit revealed,
+* redemption requested,
 * wallet registered,
 * DKG result submitted,
 * DKG result approved,
 * DKG result challenged,
 * large deposit revealed,
+* large redemption requested,
 * optimistic minting canceled,
 * optimistic minting requested too early,
 * optimistic minting requested for undetermined Bitcoin transaction,
@@ -129,6 +131,12 @@ events produced by the monitoring component are:
 
 An *informational system event* indicating that a new deposit was revealed to
 the on-chain Bridge contract. This event is directly sent to Discord as a
+notification that does not require any action.
+
+==== Redemption requested
+
+An *informational system event* indicating that a new redemption was requested
+from the on-chain Bridge contract. This event is directly sent to Discord as a
 notification that does not require any action.
 
 ==== Wallet registered
@@ -162,6 +170,14 @@ wallet operator or a serious bug in the off-chain client code.
 A *warning system event* indicating that a large deposit was revealed to the
 on-chain Bridge contract. This event is sent to Sentry hub and should get
 team’s attention. The default action is making sure that the deposit is
+handled correctly by the system.
+
+==== Large redemption requested
+
+A *warning system event* indicating that a large redemption was requested from
+the on-chain Bridge contract. This event is sent to Sentry hub and should get
+team’s attention. The default action is making sure that the redemption is
+not a result of a malicious action, and if not, that the redemption is
 handled correctly by the system.
 
 ==== Optimistic minting cancelled

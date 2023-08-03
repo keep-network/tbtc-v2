@@ -158,6 +158,8 @@ The behavior can be configured using the following env variables:
 
 |*LARGE_DEPOSIT_THRESHOLD_SAT* |Satoshi threshold used to determine which deposits are large. Default: _1000000000_ |No
 
+|*LARGE_REDEMPTION_THRESHOLD_SAT* |Satoshi threshold used to determine which redemptions are large. Default: _1000000000_ |No
+
 |*DATA_DIR_PATH* |Directory used to persist processing data. Default: _./data_ |No
 
 |*SENTRY_DSN* |DSN of the Sentry receiver. If not set, events are not dispatched to Sentry |No
