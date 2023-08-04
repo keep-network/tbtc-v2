@@ -712,6 +712,35 @@ describe("wormhole-gateway", () => {
     await expectIxFail([ix], [commonTokenOwner], "ZeroAmount");
   });
 
+  it("cannot send tbtc to gateway (recipient is zero address)", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getMintPDA(),
+      sender
+    );
+
+    // Get destination gateway.
+    const recipientChain = 2;
+    const recipient = Array.from(Buffer.alloc(32)); // empty buffer
+    const nonce = 420;
+
+    const sendAmount = BigInt(69);
+    const ix = await wormholeGateway.sendTbtcGatewayIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(sendAmount.toString()),
+        recipientChain,
+        recipient,
+        nonce,
+      }
+    );
+    await expectIxFail([ix], [commonTokenOwner], "ZeroRecipient");
+  });
+
   it("send wrapped tbtc", async () => {
     // Use common token account.
     const sender = commonTokenOwner.publicKey;
@@ -731,32 +760,15 @@ describe("wormhole-gateway", () => {
     const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
     const nonce = 420;
 
-    // Try an amount that won't work.
-    const badAmount = BigInt(123000);
-    const badIx = await wormholeGateway.sendTbtcWrappedIx(
-      {
-        senderToken,
-        sender,
-      },
-      {
-        amount: new anchor.BN(badAmount.toString()),
-        recipientChain,
-        recipient,
-        arbiterFee: new anchor.BN(0),
-        nonce,
-      }
-    );
-    await expectIxFail([badIx], [commonTokenOwner], "NotEnoughWrappedTbtc");
-
     // This should work.
-    const goodAmount = BigInt(2000);
+    const sendAmount = BigInt(2000);
     const ix = await wormholeGateway.sendTbtcWrappedIx(
       {
         senderToken,
         sender,
       },
       {
-        amount: new anchor.BN(goodAmount.toString()),
+        amount: new anchor.BN(sendAmount.toString()),
         recipientChain,
         recipient,
         arbiterFee: new anchor.BN(0),
@@ -773,8 +785,106 @@ describe("wormhole-gateway", () => {
 
     // Check balance change.
     expect(senderTbtcAfter.amount).to.equal(
-      senderTbtcBefore.amount - goodAmount
+      senderTbtcBefore.amount - sendAmount
     );
-    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount - goodAmount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount - sendAmount);
+  });
+
+  it("cannot send wrapped tbtc (insufficient wrapped balance)", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getMintPDA(),
+      sender
+    );
+
+    // Get destination gateway.
+    const recipientChain = 2;
+    const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
+    const nonce = 420;
+
+    // Check token accounts.
+    const gatewayWrappedBalance = await getAccount(
+      connection,
+      gatewayWrappedTbtcToken
+    );
+
+    // Try an amount that won't work.
+    const sendAmount = gatewayWrappedBalance.amount + BigInt(69);
+    const ix = await wormholeGateway.sendTbtcWrappedIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(sendAmount.toString()),
+        recipientChain,
+        recipient,
+        arbiterFee: new anchor.BN(0),
+        nonce,
+      }
+    );
+    await expectIxFail([ix], [commonTokenOwner], "NotEnoughWrappedTbtc");
+  });
+
+  it("cannot send wrapped tbtc(zero amount)", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getMintPDA(),
+      sender
+    );
+
+    // Get destination gateway.
+    const recipientChain = 2;
+    const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
+    const nonce = 420;
+
+    // Try an amount that won't work.
+    const sendAmount = BigInt(0);
+    const ix = await wormholeGateway.sendTbtcWrappedIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(sendAmount.toString()),
+        recipientChain,
+        recipient,
+        arbiterFee: new anchor.BN(0),
+        nonce,
+      }
+    );
+    await expectIxFail([ix], [commonTokenOwner], "ZeroAmount");
+  });
+
+  it("cannot send wrapped tbtc (recipient is zero address)", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getMintPDA(),
+      sender
+    );
+
+    // Get destination gateway.
+    const recipientChain = 2;
+    const recipient = Array.from(Buffer.alloc(32)); // empty buffer
+    const nonce = 420;
+
+    const sendAmount = BigInt(69);
+    const ix = await wormholeGateway.sendTbtcWrappedIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(sendAmount.toString()),
+        recipientChain,
+        recipient,
+        arbiterFee: new anchor.BN(0),
+        nonce,
+      }
+    );
+    await expectIxFail([ix], [commonTokenOwner], "ZeroRecipient");
   });
 });
