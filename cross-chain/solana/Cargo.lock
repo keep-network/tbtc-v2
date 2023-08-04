@@ -2068,8 +2068,9 @@ dependencies = [
 
 [[package]]
 name = "wormhole-anchor-sdk"
-version = "0.1.0"
-source = "git+https://github.com/wormhole-foundation/wormhole-scaffolding?rev=81e6801bd9224958614504ff18914c220e9fdaf2#81e6801bd9224958614504ff18914c220e9fdaf2"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1789eb9fd2113b6e2945cb67123b902141a9bfde1ec33762be58447eb2431f6"
 dependencies = [
  "anchor-lang",
  "anchor-spl",

@@ -1,5 +1,5 @@
 use crate::state::Custodian;
-use anchor_lang::{prelude::*, solana_program};
+use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::{
     token_bridge::{self, program::TokenBridge},
@@ -162,16 +162,12 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
                 wormhole_program: ctx.accounts.core_bridge_program.to_account_info(),
             },
             &[
-                &[
-                    token_bridge::SEED_PREFIX_SENDER,
-                    &[ctx.accounts.custodian.token_bridge_sender_bump],
-                ],
+                &[Custodian::SEED_PREFIX, &[custodian.bump]],
                 &[
                     b"msg",
                     &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
                     &[ctx.bumps["core_message"]],
                 ],
-                &[Custodian::SEED_PREFIX, &[custodian.bump]],
             ],
         ),
         nonce,

@@ -21,6 +21,6 @@ cpi = ["no-entrypoint"]
 anchor-lang = { version = "0.28.0", features = ["init-if-needed"]}
 anchor-spl = "0.28.0"
 
-wormhole-anchor-sdk = { git = "https://github.com/wormhole-foundation/wormhole-scaffolding", rev = "81e6801bd9224958614504ff18914c220e9fdaf2", features = ["token-bridge"], default-features = false }
+wormhole-anchor-sdk = { version = "0.1.0-alpha.1", features = ["token-bridge"], default-features = false }
 
 tbtc = { path = "../tbtc", features = ["cpi"] }
