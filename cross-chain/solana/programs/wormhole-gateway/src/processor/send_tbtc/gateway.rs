@@ -1,4 +1,7 @@
-use crate::state::{Custodian, GatewayInfo};
+use crate::{
+    constants::MSG_SEED_PREFIX,
+    state::{Custodian, GatewayInfo},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::{
@@ -62,7 +65,10 @@ pub struct SendTbtcGateway<'info> {
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(
         mut,
-        seeds = [b"msg", &core_emitter_sequence.value().to_le_bytes()],
+        seeds = [
+            MSG_SEED_PREFIX,
+            &core_emitter_sequence.value().to_le_bytes()
+        ],
         bump,
     )]
     core_message: AccountInfo<'info>,
@@ -181,7 +187,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
                     &[ctx.accounts.custodian.token_bridge_sender_bump],
                 ],
                 &[
-                    b"msg",
+                    MSG_SEED_PREFIX,
                     &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
                     &[ctx.bumps["core_message"]],
                 ],
