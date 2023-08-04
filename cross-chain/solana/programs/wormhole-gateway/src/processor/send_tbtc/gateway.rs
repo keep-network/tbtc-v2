@@ -175,6 +175,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
                 wormhole_program: ctx.accounts.core_bridge_program.to_account_info(),
             },
             &[
+                &[Custodian::SEED_PREFIX, &[custodian.bump]],
                 &[
                     token_bridge::SEED_PREFIX_SENDER,
                     &[ctx.accounts.custodian.token_bridge_sender_bump],
@@ -184,7 +185,6 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
                     &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
                     &[ctx.bumps["core_message"]],
                 ],
-                &[Custodian::SEED_PREFIX, &[custodian.bump]],
             ],
         ),
         nonce,
