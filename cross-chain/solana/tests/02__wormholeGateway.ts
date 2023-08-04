@@ -53,7 +53,6 @@ async function setup(
       wrappedTbtcMint: WRAPPED_TBTC_MINT,
       wrappedTbtcToken: gatewayWrappedTbtcToken,
       tokenBridgeSender,
-      //tokenBridgeRedeemer,
     })
     .rpc();
 }
@@ -319,6 +318,40 @@ describe("wormhole-gateway", () => {
         amount: new anchor.BN(goodAmount.toString()),
         recipientChain,
         recipient,
+        nonce,
+      }
+    );
+    await expectIxSuccess([ix], [commonTokenOwner]);
+  });
+
+  it("send wrapped tbtc", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getTokenPDA(),
+      sender
+    );
+
+    // Check token account.
+    const gatewayBefore = await getAccount(connection, gatewayWrappedTbtcToken);
+
+    // Get destination gateway.
+    const recipientChain = 69;
+    const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
+    const nonce = 420;
+
+    // // This should work.
+    const goodAmount = BigInt(2000);
+    const ix = await wormholeGateway.sendTbtcWrappedIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(goodAmount.toString()),
+        recipientChain,
+        recipient,
+        arbiterFee: new anchor.BN(0),
         nonce,
       }
     );

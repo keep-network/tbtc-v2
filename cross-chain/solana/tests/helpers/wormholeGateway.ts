@@ -575,167 +575,154 @@ export async function sendTbtcGatewayIx(
     .instruction();
 }
 
-// type SendTbtcWrappedContext = {
-//   custodian?: PublicKey;
-//   gatewayInfo?: PublicKey;
-//   wrappedTbtcToken?: PublicKey;
-//   wrappedTbtcMint?: PublicKey;
-//   tbtcMint?: PublicKey;
-//   senderToken: PublicKey;
-//   sender: PublicKey;
-//   tokenBridgeConfig?: PublicKey;
-//   tokenBridgeWrappedAsset?: PublicKey;
-//   tokenBridgeTransferAuthority?: PublicKey;
-//   coreBridgeData?: PublicKey;
-//   coreMessage: PublicKey;
-//   tokenBridgeCoreEmitter?: PublicKey;
-//   coreEmitterSequence?: PublicKey;
-//   coreFeeCollector?: PublicKey;
-//   clock?: PublicKey;
-//   tokenBridgeSender?: PublicKey;
-//   rent?: PublicKey;
-//   tokenBridgeProgram?: PublicKey;
-//   coreBridgeProgram?: PublicKey;
-// };
+type SendTbtcWrappedContext = {
+  custodian?: PublicKey;
+  wrappedTbtcToken?: PublicKey;
+  wrappedTbtcMint?: PublicKey;
+  tbtcMint?: PublicKey;
+  senderToken: PublicKey;
+  sender: PublicKey;
+  tokenBridgeConfig?: PublicKey;
+  tokenBridgeWrappedAsset?: PublicKey;
+  tokenBridgeTransferAuthority?: PublicKey;
+  coreBridgeData?: PublicKey;
+  coreMessage?: PublicKey;
+  tokenBridgeCoreEmitter?: PublicKey;
+  coreEmitterSequence?: PublicKey;
+  coreFeeCollector?: PublicKey;
+  clock?: PublicKey;
+  rent?: PublicKey;
+  tokenBridgeProgram?: PublicKey;
+  coreBridgeProgram?: PublicKey;
+};
 
-// type SendTbtcWrappedArgs = {
-//   amount: BN;
-//   recipientChain: number;
-//   recipient: number[];
-//   nonce: number;
-// };
+type SendTbtcWrappedArgs = {
+  amount: BN;
+  recipientChain: number;
+  recipient: number[];
+  arbiterFee: BN;
+  nonce: number;
+};
 
-// export async function sendTbtcGatewayIx(
-//   accounts: SendTbtcGatewayContext,
-//   args: SendTbtcGatewayArgs
-// ): Promise<TransactionInstruction> {
-//   const program = workspace.WormholeGateway as Program<WormholeGateway>;
-//   let {
-//     custodian,
-//     gatewayInfo,
-//     wrappedTbtcToken,
-//     wrappedTbtcMint,
-//     tbtcMint,
-//     senderToken,
-//     sender,
-//     tokenBridgeConfig,
-//     tokenBridgeWrappedAsset,
-//     tokenBridgeTransferAuthority,
-//     coreBridgeData,
-//     coreMessage,
-//     tokenBridgeCoreEmitter,
-//     coreEmitterSequence,
-//     coreFeeCollector,
-//     clock,
-//     tokenBridgeSender,
-//     rent,
-//     tokenBridgeProgram,
-//     coreBridgeProgram,
-//   } = accounts;
+export async function sendTbtcWrappedIx(
+  accounts: SendTbtcWrappedContext,
+  args: SendTbtcWrappedArgs
+): Promise<TransactionInstruction> {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
+  let {
+    custodian,
+    wrappedTbtcToken,
+    wrappedTbtcMint,
+    tbtcMint,
+    senderToken,
+    sender,
+    tokenBridgeConfig,
+    tokenBridgeWrappedAsset,
+    tokenBridgeTransferAuthority,
+    coreBridgeData,
+    coreMessage,
+    tokenBridgeCoreEmitter,
+    coreEmitterSequence,
+    coreFeeCollector,
+    clock,
+    rent,
+    tokenBridgeProgram,
+    coreBridgeProgram,
+  } = accounts;
 
-//   if (custodian === undefined) {
-//     custodian = getCustodianPDA();
-//   }
+  if (custodian === undefined) {
+    custodian = getCustodianPDA();
+  }
 
-//   if (gatewayInfo === undefined) {
-//     gatewayInfo = getGatewayInfoPDA(args.recipientChain);
-//   }
+  if (wrappedTbtcToken === undefined) {
+    wrappedTbtcToken = getWrappedTbtcTokenPDA();
+  }
 
-//   if (wrappedTbtcToken === undefined) {
-//     wrappedTbtcToken = getWrappedTbtcTokenPDA();
-//   }
+  if (wrappedTbtcMint === undefined) {
+    wrappedTbtcMint = WRAPPED_TBTC_MINT;
+  }
 
-//   if (wrappedTbtcMint === undefined) {
-//     wrappedTbtcMint = WRAPPED_TBTC_MINT;
-//   }
+  if (tbtcMint === undefined) {
+    tbtcMint = tbtc.getTokenPDA();
+  }
 
-//   if (tbtcMint === undefined) {
-//     tbtcMint = tbtc.getTokenPDA();
-//   }
+  if (tokenBridgeConfig === undefined) {
+    tokenBridgeConfig = tokenBridge.deriveTokenBridgeConfigKey(
+      TOKEN_BRIDGE_PROGRAM_ID
+    );
+  }
 
-//   if (tokenBridgeConfig === undefined) {
-//     tokenBridgeConfig = tokenBridge.deriveTokenBridgeConfigKey(
-//       TOKEN_BRIDGE_PROGRAM_ID
-//     );
-//   }
+  if (tokenBridgeWrappedAsset === undefined) {
+    tokenBridgeWrappedAsset = WRAPPED_TBTC_ASSET;
+  }
 
-//   if (tokenBridgeWrappedAsset === undefined) {
-//     tokenBridgeWrappedAsset = WRAPPED_TBTC_ASSET;
-//   }
+  if (tokenBridgeTransferAuthority === undefined) {
+    tokenBridgeTransferAuthority = tokenBridge.deriveAuthoritySignerKey(
+      TOKEN_BRIDGE_PROGRAM_ID
+    );
+  }
 
-//   if (tokenBridgeTransferAuthority === undefined) {
-//     tokenBridgeTransferAuthority = tokenBridge.deriveAuthoritySignerKey(
-//       TOKEN_BRIDGE_PROGRAM_ID
-//     );
-//   }
+  if (coreBridgeData === undefined) {
+    coreBridgeData = CORE_BRIDGE_DATA;
+  }
 
-//   if (coreBridgeData === undefined) {
-//     coreBridgeData = CORE_BRIDGE_DATA;
-//   }
+  if (coreMessage === undefined) {
+    const sequence = await getTokenBridgeSequence();
+    coreMessage = getCoreMessagePDA(sequence);
+  }
 
-//   if (tokenBridgeCoreEmitter === undefined) {
-//     [tokenBridgeCoreEmitter] = PublicKey.findProgramAddressSync(
-//       [Buffer.from("emitter")],
-//       TOKEN_BRIDGE_PROGRAM_ID
-//     );
-//   }
+  if (tokenBridgeCoreEmitter === undefined) {
+    tokenBridgeCoreEmitter = getTokenBridgeCoreEmitter();
+  }
 
-//   if (coreEmitterSequence === undefined) {
-//     coreEmitterSequence = coreBridge.deriveEmitterSequenceKey(
-//       tokenBridgeCoreEmitter,
-//       CORE_BRIDGE_PROGRAM_ID
-//     );
-//   }
+  if (coreEmitterSequence === undefined) {
+    coreEmitterSequence = coreBridge.deriveEmitterSequenceKey(
+      tokenBridgeCoreEmitter,
+      CORE_BRIDGE_PROGRAM_ID
+    );
+  }
 
-//   if (coreFeeCollector === undefined) {
-//     coreFeeCollector = coreBridge.deriveFeeCollectorKey(CORE_BRIDGE_PROGRAM_ID);
-//   }
+  if (coreFeeCollector === undefined) {
+    coreFeeCollector = coreBridge.deriveFeeCollectorKey(CORE_BRIDGE_PROGRAM_ID);
+  }
 
-//   if (clock === undefined) {
-//     clock = SYSVAR_CLOCK_PUBKEY;
-//   }
+  if (clock === undefined) {
+    clock = SYSVAR_CLOCK_PUBKEY;
+  }
 
-//   if (tokenBridgeSender === undefined) {
-//     tokenBridgeSender = tokenBridge.deriveSenderAccountKey(
-//       WORMHOLE_GATEWAY_PROGRAM_ID
-//     );
-//   }
+  if (rent === undefined) {
+    rent = SYSVAR_RENT_PUBKEY;
+  }
 
-//   if (rent === undefined) {
-//     rent = SYSVAR_RENT_PUBKEY;
-//   }
+  if (tokenBridgeProgram === undefined) {
+    tokenBridgeProgram = TOKEN_BRIDGE_PROGRAM_ID;
+  }
 
-//   if (tokenBridgeProgram === undefined) {
-//     tokenBridgeProgram = TOKEN_BRIDGE_PROGRAM_ID;
-//   }
+  if (coreBridgeProgram === undefined) {
+    coreBridgeProgram = CORE_BRIDGE_PROGRAM_ID;
+  }
 
-//   if (coreBridgeProgram === undefined) {
-//     coreBridgeProgram = CORE_BRIDGE_PROGRAM_ID;
-//   }
-
-//   return program.methods
-//     .sendTbtcGateway(args)
-//     .accounts({
-//       custodian,
-//       gatewayInfo,
-//       wrappedTbtcToken,
-//       wrappedTbtcMint,
-//       tbtcMint,
-//       senderToken,
-//       sender,
-//       tokenBridgeConfig,
-//       tokenBridgeWrappedAsset,
-//       tokenBridgeTransferAuthority,
-//       coreBridgeData,
-//       coreMessage,
-//       tokenBridgeCoreEmitter,
-//       coreEmitterSequence,
-//       coreFeeCollector,
-//       clock,
-//       tokenBridgeSender,
-//       rent,
-//       tokenBridgeProgram,
-//       coreBridgeProgram,
-//     })
-//     .instruction();
-// }
+  return program.methods
+    .sendTbtcWrapped(args)
+    .accounts({
+      custodian,
+      wrappedTbtcToken,
+      wrappedTbtcMint,
+      tbtcMint,
+      senderToken,
+      sender,
+      tokenBridgeConfig,
+      tokenBridgeWrappedAsset,
+      tokenBridgeTransferAuthority,
+      coreBridgeData,
+      coreMessage,
+      tokenBridgeCoreEmitter,
+      coreEmitterSequence,
+      coreFeeCollector,
+      clock,
+      rent,
+      tokenBridgeProgram,
+      coreBridgeProgram,
+    })
+    .instruction();
+}
