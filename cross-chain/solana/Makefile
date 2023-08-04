@@ -26,4 +26,6 @@ test: node_modules
 
 lint:
 	cargo fmt --check
-	cargo clippy --no-deps -- -D warnings
+	cargo check --features "mainnet" --no-default-features
+	cargo check --features "solana-devnet" --no-default-features
+	cargo clippy --no-deps --all-targets -- -D warnings
