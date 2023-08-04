@@ -34,6 +34,18 @@ pub mod wormhole_gateway {
         processor::initialize(ctx, minting_limit)
     }
 
+    pub fn change_authority(ctx: Context<ChangeAuthority>) -> Result<()> {
+        processor::change_authority(ctx)
+    }
+
+    pub fn cancel_authority_change(ctx: Context<CancelAuthorityChange>) -> Result<()> {
+        processor::cancel_authority_change(ctx)
+    }
+
+    pub fn take_authority(ctx: Context<TakeAuthority>) -> Result<()> {
+        processor::take_authority(ctx)
+    }
+
     pub fn update_gateway_address(
         ctx: Context<UpdateGatewayAddress>,
         args: UpdateGatewayAddressArgs,

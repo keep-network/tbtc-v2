@@ -76,16 +76,18 @@ export async function getCustodianData() {
   return program.account.custodian.fetch(custodian);
 }
 
-export async function checkState(
-  expectedAuthority: PublicKey,
-  expectedMintingLimit: bigint
-) {
+export async function checkCustodian(expected: {
+  authority: PublicKey;
+  mintingLimit: bigint;
+  pendingAuthority: PublicKey | null;
+}) {
+  let { authority, mintingLimit, pendingAuthority } = expected;
   const custodianState = await getCustodianData();
 
-  expect(
-    custodianState.mintingLimit.eq(new BN(expectedMintingLimit.toString()))
-  ).to.be.true;
-  expect(custodianState.authority).to.eql(expectedAuthority);
+  expect(custodianState.mintingLimit.eq(new BN(mintingLimit.toString()))).to.be
+    .true;
+  expect(custodianState.authority).to.eql(authority);
+  expect(custodianState.pendingAuthority).to.eql(pendingAuthority);
 }
 
 export async function getGatewayInfo(chain: number) {
@@ -97,6 +99,80 @@ export async function getGatewayInfo(chain: number) {
 export async function checkGateway(chain: number, expectedAddress: number[]) {
   const gatewayInfoState = await getGatewayInfo(chain);
   expect(gatewayInfoState.address).to.eql(expectedAddress);
+}
+
+type CancelAuthorityChange = {
+  custodian?: PublicKey;
+  authority: PublicKey;
+};
+
+export async function cancelAuthorityChangeIx(
+  accounts: CancelAuthorityChange
+): Promise<TransactionInstruction> {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
+
+  let { custodian, authority } = accounts;
+  if (custodian === undefined) {
+    custodian = getCustodianPDA();
+  }
+
+  return program.methods
+    .cancelAuthorityChange()
+    .accounts({
+      custodian,
+      authority,
+    })
+    .instruction();
+}
+
+type ChangeAuthorityContext = {
+  custodian?: PublicKey;
+  authority: PublicKey;
+  newAuthority: PublicKey;
+};
+
+export async function changeAuthorityIx(
+  accounts: ChangeAuthorityContext
+): Promise<TransactionInstruction> {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
+
+  let { custodian, authority, newAuthority } = accounts;
+  if (custodian === undefined) {
+    custodian = getCustodianPDA();
+  }
+
+  return program.methods
+    .changeAuthority()
+    .accounts({
+      custodian,
+      authority,
+      newAuthority,
+    })
+    .instruction();
+}
+
+type TakeAuthorityContext = {
+  custodian?: PublicKey;
+  pendingAuthority: PublicKey;
+};
+
+export async function takeAuthorityIx(
+  accounts: TakeAuthorityContext
+): Promise<TransactionInstruction> {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
+
+  let { custodian, pendingAuthority } = accounts;
+  if (custodian === undefined) {
+    custodian = getCustodianPDA();
+  }
+
+  return program.methods
+    .takeAuthority()
+    .accounts({
+      custodian,
+      pendingAuthority,
+    })
+    .instruction();
 }
 
 type UpdateMintingLimitContext = {

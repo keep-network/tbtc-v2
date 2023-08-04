@@ -8,6 +8,12 @@ pub enum WormholeGatewayError {
     #[msg("Only custodian authority is permitted for this action")]
     IsNotAuthority = 0x20,
 
+    #[msg("Not valid pending authority to take authority")]
+    IsNotPendingAuthority = 0x22,
+
+    #[msg("No pending authority")]
+    NoPendingAuthorityChange = 0x24,
+
     #[msg("0x0 recipient not allowed")]
     ZeroRecipient = 0x30,
 

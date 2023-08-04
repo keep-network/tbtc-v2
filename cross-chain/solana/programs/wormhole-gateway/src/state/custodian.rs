@@ -6,6 +6,7 @@ use wormhole_anchor_sdk::token_bridge;
 pub struct Custodian {
     pub bump: u8,
     pub authority: Pubkey,
+    pub pending_authority: Option<Pubkey>,
 
     pub tbtc_mint: Pubkey,
     pub wrapped_tbtc_mint: Pubkey,

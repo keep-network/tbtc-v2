@@ -67,6 +67,7 @@ pub fn initialize(ctx: Context<Initialize>, minting_limit: u64) -> Result<()> {
     ctx.accounts.custodian.set_inner(Custodian {
         bump: ctx.bumps["custodian"],
         authority: ctx.accounts.authority.key(),
+        pending_authority: None,
         tbtc_mint: ctx.accounts.tbtc_mint.key(),
         wrapped_tbtc_mint: ctx.accounts.wrapped_tbtc_mint.key(),
         wrapped_tbtc_token: ctx.accounts.wrapped_tbtc_token.key(),
