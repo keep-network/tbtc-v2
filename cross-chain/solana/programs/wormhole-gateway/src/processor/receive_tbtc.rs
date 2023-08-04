@@ -22,8 +22,7 @@ pub struct ReceiveTbtc<'info> {
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,
         has_one = wrapped_tbtc_mint,
-        has_one = tbtc_mint,
-        //has_one = token_bridge_redeemer,
+        has_one = tbtc_mint
     )]
     custodian: Account<'info, Custodian>,
 
@@ -97,9 +96,6 @@ pub struct ReceiveTbtc<'info> {
     token_bridge_registered_emitter: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
-    //token_bridge_redeemer: UncheckedAccount<'info>,
-
-    /// CHECK: This account is needed for the Token Bridge program.
     token_bridge_wrapped_asset: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
@@ -133,7 +129,7 @@ impl<'info> ReceiveTbtc<'info> {
         );
 
         // There must be an encoded amount.
-        require_gte!(
+        require_gt!(
             transfer.amount(),
             0,
             WormholeGatewayError::NoTbtcTransferred

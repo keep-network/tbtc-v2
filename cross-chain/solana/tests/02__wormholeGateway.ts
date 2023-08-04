@@ -32,6 +32,7 @@ import {
 } from "./helpers";
 import * as tbtc from "./helpers/tbtc";
 import * as wormholeGateway from "./helpers/wormholeGateway";
+import { PublicKey } from "@solana/web3.js";
 
 async function setup(
   program: Program<WormholeGateway>,
@@ -106,9 +107,13 @@ describe("wormhole-gateway", () => {
       tbtc.getTokenPDA(),
       commonTokenOwner.publicKey
     );
+
+    // Give the impostor some lamports.
+    await transferLamports(authority, impostorKeys.publicKey, 100000000000);
   });
 
   it("update minting limit", async () => {
+    // Update minting limit as authority. 
     const newLimit = BigInt(20000);
     const ix = await wormholeGateway.updateMintingLimitIx(
       {
@@ -118,11 +123,19 @@ describe("wormhole-gateway", () => {
     );
     await expectIxSuccess([ix], [authority]);
     await wormholeGateway.checkState(authority.publicKey, newLimit);
+
+    // Only the authority can update the minting limit.
+    const failingIx = await wormholeGateway.updateMintingLimitIx(
+      {
+        authority: impostorKeys.publicKey,
+      },
+      newLimit + BigInt(1)
+    );
+    await expectIxFail([failingIx], [impostorKeys], "IsNotAuthority");
+    await wormholeGateway.checkState(authority.publicKey, newLimit);
   });
 
   it("deposit wrapped tokens", async () => {
-    const custodian = wormholeGateway.getCustodianPDA();
-    
     // Set up new wallet
     const payer = await generatePayer(authority);
 
@@ -282,6 +295,275 @@ describe("wormhole-gateway", () => {
     // Check balance change.
     expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + sentAmount);
     expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount);
+
+    // Cannot receive tbtc again. 
+    await expectIxFail([ix], [payer], "TransferAlreadyRedeemed");
+  });
+
+  it("receive wrapped tbtc (ata doesn't exist)", async () => {
+    // Set up new wallet
+    const payer = await generatePayer(authority);
+    
+    // Use common token account.
+    const recipient = commonTokenOwner.publicKey;
+    const recipientToken = getAssociatedTokenAddressSync(
+      tbtc.getTokenPDA(),
+      recipient
+    );
+    const recipientWrappedToken = getAssociatedTokenAddressSync(
+      WRAPPED_TBTC_MINT,
+      recipient
+    );
+
+    // Verify that the wrapped token account doesn't exist yet. 
+    try {
+      await getAccount(connection, recipientWrappedToken);
+    } catch (e: any) {
+      expect(e.toString()).to.equal("TokenAccountNotFoundError");
+    } 
+
+    // Get foreign gateway.
+    const fromGateway = await wormholeGateway
+      .getGatewayInfo(2)
+      .then((info) => info.address);
+
+    // Create transfer VAA.
+    const sentAmount = BigInt(5000);
+    const signedVaa = await ethereumGatewaySendTbtc(
+      payer,
+      ethereumTokenBridge,
+      sentAmount,
+      fromGateway,
+      WORMHOLE_GATEWAY_PROGRAM_ID,
+      recipient
+    );
+
+    // Set the mint limit to a value smaller than sentAmount.
+    const newLimit = sentAmount - BigInt(69);
+    const updateLimitIx = await wormholeGateway.updateMintingLimitIx(
+      {
+        authority: authority.publicKey,
+      },
+      newLimit
+    );
+    await expectIxSuccess([updateLimitIx], [authority]);
+    await wormholeGateway.checkState(authority.publicKey, newLimit);
+
+    // Balance check before receiving wrapped tbtc. We can't
+    // check the balance of the recipient's wrapped tbtc yet, 
+    // since the contract will create the ATA.
+    const [tbtcBefore, gatewayBefore] = await Promise.all([
+      getAccount(connection, recipientToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    const ix = await wormholeGateway.receiveTbtcIx(
+      {
+        payer: payer.publicKey,
+        recipientToken,
+        recipient,
+      },
+      signedVaa
+    );
+    await expectIxSuccess([ix], [payer]);
+
+    // Check token accounts after receiving wrapped tbtc. We should 
+    // be able to fetch the recipient's wrapped tbtc now.
+    const [tbtcAfter, wrappedTbtcAfter, gatewayAfter] = await Promise.all([
+      getAccount(connection, recipientToken),
+      getAccount(connection, recipientWrappedToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    // Check balance change.
+    expect(tbtcAfter.amount).to.equal(tbtcBefore.amount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount);
+    expect(wrappedTbtcAfter.amount).to.equal(sentAmount);
+  });
+
+  it("receive wrapped tbtc (ata exists)", async () => {
+    // Set up new wallet
+    const payer = await generatePayer(authority);
+    
+    // Use common token account.
+    const recipient = commonTokenOwner.publicKey;
+    const recipientToken = getAssociatedTokenAddressSync(
+      tbtc.getTokenPDA(),
+      recipient
+    );
+    const recipientWrappedToken = await getOrCreateAta(
+      payer,
+      WRAPPED_TBTC_MINT,
+      recipient
+    );
+
+    // Get foreign gateway.
+    const fromGateway = await wormholeGateway
+      .getGatewayInfo(2)
+      .then((info) => info.address);
+
+    // Create transfer VAA.
+    const sentAmount = BigInt(5000);
+    const signedVaa = await ethereumGatewaySendTbtc(
+      payer,
+      ethereumTokenBridge,
+      sentAmount,
+      fromGateway,
+      WORMHOLE_GATEWAY_PROGRAM_ID,
+      recipient
+    );
+
+    // Set the mint limit to a value smaller than sentAmount.
+    const newLimit = sentAmount - BigInt(69);
+    const updateLimitIx = await wormholeGateway.updateMintingLimitIx(
+      {
+        authority: authority.publicKey,
+      },
+      newLimit
+    );
+    await expectIxSuccess([updateLimitIx], [authority]);
+    await wormholeGateway.checkState(authority.publicKey, newLimit);
+
+    // Balance check before receiving wrapped tbtc. If this 
+    // line successfully executes, then the recipient's
+    // wrapped tbtc account already exists.
+    const [tbtcBefore, wrappedTbtcBefore, gatewayBefore] = await Promise.all([
+      getAccount(connection, recipientToken),
+      getAccount(connection, recipientWrappedToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    const ix = await wormholeGateway.receiveTbtcIx(
+      {
+        payer: payer.publicKey,
+        recipientToken,
+        recipient,
+      },
+      signedVaa
+    );
+    await expectIxSuccess([ix], [payer]);
+
+    // Check token accounts after receiving wrapped tbtc. 
+    const [tbtcAfter, wrappedTbtcAfter, gatewayAfter] = await Promise.all([
+      getAccount(connection, recipientToken),
+      getAccount(connection, recipientWrappedToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    // Check balance change.
+    expect(tbtcAfter.amount).to.equal(tbtcBefore.amount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount);
+    expect(wrappedTbtcAfter.amount).to.equal(wrappedTbtcBefore.amount + sentAmount);
+  });
+
+  it("cannot receive non-tbtc transfers", async () => {
+    // Set up new wallet
+    const payer = await generatePayer(authority);
+
+    // Use common token account.
+    const recipient = commonTokenOwner.publicKey;
+    const recipientToken = getAssociatedTokenAddressSync(
+      tbtc.getTokenPDA(),
+      recipient
+    );
+
+    // Get foreign gateway.
+    const fromGateway = await wormholeGateway
+      .getGatewayInfo(2)
+      .then((info) => info.address);
+
+    const sentAmount = BigInt(5000);
+    const signedVaa = await ethereumGatewaySendTbtc(
+      payer,
+      ethereumTokenBridge,
+      sentAmount,
+      fromGateway,
+      WORMHOLE_GATEWAY_PROGRAM_ID,
+      recipient,
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH address
+      69 // hehe
+    );
+
+    const failingIx = await wormholeGateway.receiveTbtcIx(
+      {
+        payer: payer.publicKey,
+        recipientToken,
+        recipient,
+      },
+      signedVaa
+    );
+    await expectIxFail([failingIx], [payer], "InvalidEthereumTbtc");
+  });
+
+  it("cannot receive zero-amount tbtc transfers", async () => {
+    // Set up new wallet
+    const payer = await generatePayer(authority);
+
+    // Use common token account.
+    const recipient = commonTokenOwner.publicKey;
+    const recipientToken = getAssociatedTokenAddressSync(
+      tbtc.getTokenPDA(),
+      recipient
+    );
+
+    // Get foreign gateway.
+    const fromGateway = await wormholeGateway
+      .getGatewayInfo(2)
+      .then((info) => info.address);
+
+    const sentAmount = BigInt(0);
+    const signedVaa = await ethereumGatewaySendTbtc(
+      payer,
+      ethereumTokenBridge,
+      sentAmount,
+      fromGateway,
+      WORMHOLE_GATEWAY_PROGRAM_ID,
+      recipient
+    );
+
+    const failingIx = await wormholeGateway.receiveTbtcIx(
+      {
+        payer: payer.publicKey,
+        recipientToken,
+        recipient,
+      },
+      signedVaa
+    );
+    await expectIxFail([failingIx], [payer], "NoTbtcTransferred");
+  });
+
+  it("cannot receive tbtc transfer with zero address as recipient", async () => {
+    // Set up new wallet
+    const payer = await generatePayer(authority);
+
+    // Use common token account. Set the recipient to the zero address.
+    const recipient = PublicKey.default;
+    const defaultTokenAccount = await getOrCreateAta(payer, tbtc.getTokenPDA(), recipient);
+
+    // Get foreign gateway.
+    const fromGateway = await wormholeGateway
+      .getGatewayInfo(2)
+      .then((info) => info.address);
+
+    const sentAmount = BigInt(100);
+    const signedVaa = await ethereumGatewaySendTbtc(
+      payer,
+      ethereumTokenBridge,
+      sentAmount,
+      fromGateway,
+      WORMHOLE_GATEWAY_PROGRAM_ID,
+      recipient
+    );
+
+    const failingIx = await wormholeGateway.receiveTbtcIx(
+      {
+        payer: payer.publicKey,
+        recipientToken: defaultTokenAccount,
+        recipient
+      },
+      signedVaa
+    );
+    await expectIxFail([failingIx], [payer], "RecipientZeroAddress");
   });
 
   it("send tbtc to gateway", async () => {

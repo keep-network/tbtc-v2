@@ -177,13 +177,15 @@ export async function ethereumGatewaySendTbtc<T extends Idl>(
   amount: bigint,
   fromGateway: number[],
   toGateway: PublicKey,
-  recipient: PublicKey
+  recipient: PublicKey,
+  tokenAddress?: string,
+  tokenChain?: number
 ) {
   const program = workspace.WormholeGateway as Program<T>;
 
   const published = ethereumTokenBridge.publishTransferTokensWithPayload(
-    tryNativeToHexString(ETHEREUM_TBTC_ADDRESS, "ethereum"),
-    2,
+    tryNativeToHexString(tokenAddress ?? ETHEREUM_TBTC_ADDRESS, "ethereum"),
+    tokenChain ?? 2,
     amount,
     1,
     toGateway.toBuffer().toString("hex"),
