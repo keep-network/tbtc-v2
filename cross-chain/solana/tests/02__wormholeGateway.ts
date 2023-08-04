@@ -78,11 +78,12 @@ describe("wormhole-gateway", () => {
   const newAuthority = anchor.web3.Keypair.generate();
   const minterKeys = anchor.web3.Keypair.generate();
   const minter2Keys = anchor.web3.Keypair.generate();
-  const impostorKeys = anchor.web3.Keypair.generate();
+  const imposter = anchor.web3.Keypair.generate();
   const guardianKeys = anchor.web3.Keypair.generate();
   const guardian2Keys = anchor.web3.Keypair.generate();
 
-  const recipientKeys = anchor.web3.Keypair.generate();
+  const recipient = anchor.web3.Keypair.generate();
+  const txPayer = anchor.web3.Keypair.generate();
 
   const commonTokenOwner = anchor.web3.Keypair.generate();
 
@@ -91,14 +92,26 @@ describe("wormhole-gateway", () => {
     ETHEREUM_TOKEN_BRIDGE_ADDRESS
   );
 
+  it("set up payers", async () => {
+    await transferLamports(authority, newAuthority.publicKey, 10000000000);
+    await transferLamports(authority, imposter.publicKey, 10000000000);
+    await transferLamports(authority, recipient.publicKey, 10000000000);
+    await transferLamports(authority, txPayer.publicKey, 10000000000);
+    await transferLamports(authority, commonTokenOwner.publicKey, 10000000000);
+  });
+
   describe("setup", () => {
-      it("initialize", async () => {
+    it("initialize", async () => {
       // Max amount of TBTC that can be minted.
       const mintingLimit = BigInt(10000);
 
       // Initialize the program.
       await setup(program, authority, mintingLimit);
-      await wormholeGateway.checkState(authority.publicKey, mintingLimit);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit,
+        pendingAuthority: null,
+      });
       await tbtc.checkConfig({
         authority: authority.publicKey,
         numMinters: 0,
@@ -109,7 +122,6 @@ describe("wormhole-gateway", () => {
       });
 
       // Also set up common token account.
-      await transferLamports(authority, commonTokenOwner.publicKey, 100000000000);
       await getOrCreateAta(
         authority,
         tbtc.getMintPDA(),
@@ -117,11 +129,120 @@ describe("wormhole-gateway", () => {
       );
 
       // Give the impostor some lamports.
-      await transferLamports(authority, impostorKeys.publicKey, 100000000000);
+      await transferLamports(authority, imposter.publicKey, 100000000000);
     });
-  }); 
+  });
 
-  describe("minting limit", () => { 
+  describe("authority changes", () => {
+    it("cannot cancel authority if no pending", async () => {
+      const failedCancelIx = await wormholeGateway.cancelAuthorityChangeIx({
+        authority: authority.publicKey,
+      });
+      await expectIxFail(
+        [failedCancelIx],
+        [authority],
+        "NoPendingAuthorityChange"
+      );
+    });
+
+    it("cannot take authority if no pending", async () => {
+      const failedTakeIx = await wormholeGateway.takeAuthorityIx({
+        pendingAuthority: newAuthority.publicKey,
+      });
+      await expectIxFail(
+        [failedTakeIx],
+        [newAuthority],
+        "NoPendingAuthorityChange"
+      );
+    });
+
+    it("change authority to new authority", async () => {
+      const changeIx = await wormholeGateway.changeAuthorityIx({
+        authority: authority.publicKey,
+        newAuthority: newAuthority.publicKey,
+      });
+      await expectIxSuccess([changeIx], [authority]);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: BigInt(10000),
+        pendingAuthority: newAuthority.publicKey,
+      });
+    });
+
+    it("take as new authority", async () => {
+      // Bug in validator? Need to wait a bit for new blockhash.
+      //await sleep(10000);
+
+      const takeIx = await wormholeGateway.takeAuthorityIx({
+        pendingAuthority: newAuthority.publicKey,
+      });
+      await expectIxSuccess([takeIx], [newAuthority]);
+      await wormholeGateway.checkCustodian({
+        authority: newAuthority.publicKey,
+        mintingLimit: BigInt(10000),
+        pendingAuthority: null,
+      });
+    });
+
+    it("change pending authority back to original authority", async () => {
+      const changeBackIx = await wormholeGateway.changeAuthorityIx({
+        authority: newAuthority.publicKey,
+        newAuthority: authority.publicKey,
+      });
+      await expectIxSuccess([changeBackIx], [newAuthority]);
+      await wormholeGateway.checkCustodian({
+        authority: newAuthority.publicKey,
+        mintingLimit: BigInt(10000),
+        pendingAuthority: authority.publicKey,
+      });
+    });
+
+    it("cannot take as signers that are not pending authority", async () => {
+      const failedImposterTakeIx = await wormholeGateway.takeAuthorityIx({
+        pendingAuthority: imposter.publicKey,
+      });
+      await expectIxFail(
+        [failedImposterTakeIx],
+        [imposter],
+        "IsNotPendingAuthority"
+      );
+
+      const failedNewAuthorityTakeIx = await wormholeGateway.takeAuthorityIx({
+        pendingAuthority: newAuthority.publicKey,
+      });
+      await expectIxFail(
+        [failedNewAuthorityTakeIx],
+        [newAuthority],
+        "IsNotPendingAuthority"
+      );
+    });
+
+    it("cannot cancel as someone else", async () => {
+      const anotherFailedCancelIx =
+        await wormholeGateway.cancelAuthorityChangeIx({
+          authority: authority.publicKey,
+        });
+      await expectIxFail(
+        [anotherFailedCancelIx],
+        [authority],
+        "IsNotAuthority"
+      );
+    });
+
+    it("finally take as authority", async () => {
+      const anotherTakeIx = await wormholeGateway.takeAuthorityIx({
+        pendingAuthority: authority.publicKey,
+      });
+      await expectIxSuccess([anotherTakeIx], [authority]);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: BigInt(10000),
+        pendingAuthority: null,
+      });
+    });
+  });
+
+  describe("minting limit", () => {
     it("update minting limit", async () => {
       // Update minting limit as authority.
       const newLimit = BigInt(20000);
@@ -132,7 +253,11 @@ describe("wormhole-gateway", () => {
         newLimit
       );
       await expectIxSuccess([ix], [authority]);
-      await wormholeGateway.checkState(authority.publicKey, newLimit); 
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: newLimit,
+        pendingAuthority: null,
+      });
     });
 
     it("cannot update minting limit (not authority)", async () => {
@@ -140,11 +265,11 @@ describe("wormhole-gateway", () => {
       const newLimit = BigInt(69000);
       const failingIx = await wormholeGateway.updateMintingLimitIx(
         {
-          authority: impostorKeys.publicKey,
+          authority: imposter.publicKey,
         },
         newLimit
       );
-      await expectIxFail([failingIx], [impostorKeys], "IsNotAuthority");
+      await expectIxFail([failingIx], [imposter], "IsNotAuthority");
     });
   });
 
@@ -160,7 +285,7 @@ describe("wormhole-gateway", () => {
     });
 
     it("set initial gateway address", async () => {
-       // Make new gateway.
+      // Make new gateway.
       const firstAddress = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
       const firstIx = await wormholeGateway.updateGatewayAddress(
         {
@@ -184,7 +309,7 @@ describe("wormhole-gateway", () => {
       await expectIxSuccess([secondIx], [authority]);
       await wormholeGateway.checkGateway(chain, goodAddress);
     });
-  }); 
+  });
 
   describe("other", () => {
     it("deposit wrapped tokens", async () => {
@@ -257,9 +382,13 @@ describe("wormhole-gateway", () => {
       ]);
 
       // Check balance change.
-      expect(wrappedAfter.amount).to.equal(wrappedBefore.amount - depositAmount);
+      expect(wrappedAfter.amount).to.equal(
+        wrappedBefore.amount - depositAmount
+      );
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + depositAmount);
-      expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + depositAmount);
+      expect(gatewayAfter.amount).to.equal(
+        gatewayBefore.amount + depositAmount
+      );
 
       // Cannot deposit past minting limit.
       const failingIx = await wormholeGateway.depositWormholeTbtcIx(
@@ -281,9 +410,13 @@ describe("wormhole-gateway", () => {
         newLimit
       );
       await expectIxSuccess([updateLimitIx], [authority]);
-      await wormholeGateway.checkState(authority.publicKey, newLimit);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: newLimit,
+        pendingAuthority: null,
+      });
       await expectIxSuccess([failingIx], [payer]);
-    }); 
+    });
 
     it("receive tbtc", async () => {
       // Set up new wallet
@@ -386,7 +519,11 @@ describe("wormhole-gateway", () => {
         newLimit
       );
       await expectIxSuccess([updateLimitIx], [authority]);
-      await wormholeGateway.checkState(authority.publicKey, newLimit);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: newLimit,
+        pendingAuthority: null,
+      });
 
       // Balance check before receiving wrapped tbtc. We can't
       // check the balance of the recipient's wrapped tbtc yet,
@@ -461,7 +598,11 @@ describe("wormhole-gateway", () => {
         newLimit
       );
       await expectIxSuccess([updateLimitIx], [authority]);
-      await wormholeGateway.checkState(authority.publicKey, newLimit);
+      await wormholeGateway.checkCustodian({
+        authority: authority.publicKey,
+        mintingLimit: newLimit,
+        pendingAuthority: null,
+      });
 
       // Balance check before receiving wrapped tbtc. If this
       // line successfully executes, then the recipient's
