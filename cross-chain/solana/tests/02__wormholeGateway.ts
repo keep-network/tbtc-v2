@@ -741,6 +741,35 @@ describe("wormhole-gateway", () => {
     await expectIxFail([ix], [commonTokenOwner], "ZeroRecipient");
   });
 
+  it("cannot send tbtc to gateway (invalid target gateway)", async () => {
+    // Use common token account.
+    const sender = commonTokenOwner.publicKey;
+    const senderToken = getAssociatedTokenAddressSync(
+      tbtc.getMintPDA(),
+      sender
+    );
+
+    // Get destination gateway.
+    const recipientChain = 69; // bad gateway
+    const recipient = Array.from(Buffer.alloc(32)); // empty buffer
+    const nonce = 420;
+
+    const sendAmount = BigInt(69);
+    const ix = await wormholeGateway.sendTbtcGatewayIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(sendAmount.toString()),
+        recipientChain,
+        recipient,
+        nonce,
+      }
+    );
+    await expectIxFail([ix], [commonTokenOwner], "AccountNotInitialized");
+  });
+
   it("send wrapped tbtc", async () => {
     // Use common token account.
     const sender = commonTokenOwner.publicKey;
