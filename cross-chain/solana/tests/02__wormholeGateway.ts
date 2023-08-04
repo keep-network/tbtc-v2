@@ -42,7 +42,6 @@ async function setup(
   const tbtcMint = tbtc.getTokenPDA();
   const gatewayWrappedTbtcToken = wormholeGateway.getWrappedTbtcTokenPDA();
   const tokenBridgeSender = wormholeGateway.getTokenBridgeSenderPDA();
-  //const tokenBridgeRedeemer = wormholeGateway.getTokenBridgeRedeemerPDA();
 
   await program.methods
     .initialize(new anchor.BN(mintingLimit.toString()))
@@ -61,6 +60,7 @@ describe("wormhole-gateway", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
+  // Initialize anchor program.
   const program = anchor.workspace.WormholeGateway as Program<WormholeGateway>;
   const connection = program.provider.connection;
 
@@ -85,12 +85,16 @@ describe("wormhole-gateway", () => {
 
   const commonTokenOwner = anchor.web3.Keypair.generate();
 
+  // Mock foreign emitter. 
   const ethereumTokenBridge = new MockEthereumTokenBridge(
     ETHEREUM_TOKEN_BRIDGE_ADDRESS
   );
 
   it("setup", async () => {
+    // Max amount of TBTC that can be minted.
     const mintingLimit = BigInt(10000);
+
+    // Initialize the program.
     await setup(program, authority, mintingLimit);
     await wormholeGateway.checkState(authority.publicKey, mintingLimit);
     await tbtc.checkState(authority, 1, 2, 1500);
@@ -118,11 +122,7 @@ describe("wormhole-gateway", () => {
 
   it("deposit wrapped tokens", async () => {
     const custodian = wormholeGateway.getCustodianPDA();
-    // TODO: cannot deposit if custodian isn't minter yet.
-
-    // Add custodian as minter.
-    await tbtc.addMinter(authority, custodian);
-
+    
     // Set up new wallet
     const payer = await generatePayer(authority);
 
@@ -139,15 +139,10 @@ describe("wormhole-gateway", () => {
       tbtcMint,
       payer.publicKey
     );
-
-    const [wrappedBefore, tbtcBefore, gatewayBefore] = await Promise.all([
-      getAccount(connection, recipientWrappedToken),
-      getAccount(connection, recipientToken),
-      getAccount(connection, gatewayWrappedTbtcToken),
-    ]);
-
+    
     const depositAmount = BigInt(500);
 
+    // Attempt to deposit before the custodian is a minter.
     const ix = await wormholeGateway.depositWormholeTbtcIx(
       {
         recipientWrappedToken,
@@ -156,6 +151,18 @@ describe("wormhole-gateway", () => {
       },
       depositAmount
     );
+    await expectIxFail([ix], [payer], "AccountNotInitialized");
+
+    // Add custodian as minter.
+    await tbtc.addMinter(authority, custodian); 
+
+    // Check token account balances before deposit.
+    const [wrappedBefore, tbtcBefore, gatewayBefore] = await Promise.all([
+      getAccount(connection, recipientWrappedToken),
+      getAccount(connection, recipientToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
     await expectIxSuccess([ix], [payer]);
     await tbtc.checkState(authority, 2, 2, 2000);
 
