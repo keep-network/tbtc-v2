@@ -19,6 +19,8 @@ pub struct Custodian {
 }
 
 impl Custodian {
-    /// TODO: This is an undesirable pattern in the Token Bridge due to how transfers are redeemed.
+    /// Due to the Token Bridge requiring the redeemer PDA be the owner of the token account for
+    /// completing transfers with payload, we are conveniently having the Custodian's PDA address
+    /// derived as this redeemer.
     pub const SEED_PREFIX: &'static [u8] = token_bridge::SEED_PREFIX_REDEEMER;
 }
