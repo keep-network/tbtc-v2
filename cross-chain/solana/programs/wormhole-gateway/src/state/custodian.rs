@@ -12,8 +12,6 @@ pub struct Custodian {
     pub wrapped_tbtc_token: Pubkey,
     pub token_bridge_sender: Pubkey,
     pub token_bridge_sender_bump: u8,
-    // pub token_bridge_redeemer: Pubkey,
-    // pub token_bridge_redeemer_bump: u8,
     pub minting_limit: u64,
     pub minted_amount: u64,
 }
