@@ -1,8 +1,15 @@
 import {
+  postVaaSolana,
+  redeemOnSolana,
+  tryNativeToHexString,
+} from "@certusone/wormhole-sdk";
+import {
   MockEthereumTokenBridge,
   MockGuardians,
 } from "@certusone/wormhole-sdk/lib/cjs/mock";
-import { Idl, Program, web3, workspace } from "@coral-xyz/anchor";
+import { NodeWallet } from "@certusone/wormhole-sdk/lib/cjs/solana";
+import * as coreBridge from "@certusone/wormhole-sdk/lib/cjs/solana/wormhole";
+import { Program, web3, workspace } from "@coral-xyz/anchor";
 import {
   Account,
   TokenAccountNotFoundError,
@@ -11,7 +18,6 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import {
-  Connection,
   Keypair,
   PublicKey,
   SystemProgram,
@@ -19,29 +25,25 @@ import {
   TransactionInstruction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import { assert, expect } from "chai";
+import { WormholeGateway } from "../../target/types/wormhole_gateway"; // This is only here to hack a connection.
 import {
-  ETHEREUM_TBTC_ADDRESS,
-  GUARDIAN_SET_INDEX,
   CORE_BRIDGE_PROGRAM_ID,
+  ETHEREUM_TBTC_ADDRESS,
+  GUARDIAN_DEVNET_PRIVATE_KEYS,
+  GUARDIAN_SET_INDEX,
   TOKEN_BRIDGE_PROGRAM_ID,
   WRAPPED_TBTC_MINT,
-  GUARDIAN_DEVNET_PRIVATE_KEYS,
 } from "./consts";
-import {
-  postVaaSolana,
-  redeemOnSolana,
-  tryNativeToHexString,
-} from "@certusone/wormhole-sdk";
-import { NodeWallet } from "@certusone/wormhole-sdk/lib/cjs/solana";
-import { expect } from "chai";
-import * as coreBridge from "@certusone/wormhole-sdk/lib/cjs/solana/wormhole";
 
-export async function transferLamports<T extends Idl>(
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export async function transferLamports(
   fromSigner: web3.Keypair,
   toPubkey: web3.PublicKey,
   lamports: number
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   return sendAndConfirmTransaction(
     program.provider.connection,
     new Transaction().add(
@@ -55,12 +57,9 @@ export async function transferLamports<T extends Idl>(
   );
 }
 
-export async function generatePayer<T extends Idl>(
-  funder: Keypair,
-  lamports?: number
-) {
+export async function generatePayer(funder: Keypair, lamports?: number) {
   const newPayer = Keypair.generate();
-  await transferLamports<T>(
+  await transferLamports(
     funder,
     newPayer.publicKey,
     lamports === undefined ? 1000000000 : lamports
@@ -68,12 +67,12 @@ export async function generatePayer<T extends Idl>(
   return newPayer;
 }
 
-export async function getOrCreateAta<T extends Idl>(
+export async function getOrCreateAta(
   payer: Keypair,
   mint: PublicKey,
   owner: PublicKey
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   const connection = program.provider.connection;
 
   const token = getAssociatedTokenAddressSync(mint, owner);
@@ -105,16 +104,23 @@ export async function getOrCreateAta<T extends Idl>(
   return token;
 }
 
-export async function preloadWrappedTbtc<T extends Idl>(
+export async function getTokenBalance(token: PublicKey): Promise<bigint> {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
+  return getAccount(program.provider.connection, token).then(
+    (account) => account.amount
+  );
+}
+
+export async function preloadWrappedTbtc(
   payer: Keypair,
   ethereumTokenBridge: MockEthereumTokenBridge,
   amount: bigint,
   tokenOwner: PublicKey
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   const connection = program.provider.connection;
 
-  const wrappedTbtcToken = await getOrCreateAta<T>(
+  const wrappedTbtcToken = await getOrCreateAta(
     payer,
     WRAPPED_TBTC_MINT,
     tokenOwner
@@ -146,11 +152,11 @@ export async function preloadWrappedTbtc<T extends Idl>(
   return wrappedTbtcToken;
 }
 
-export async function mockSignAndPostVaa<T extends Idl>(
+export async function mockSignAndPostVaa(
   payer: web3.Keypair,
   published: Buffer
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
 
   const guardians = new MockGuardians(GUARDIAN_SET_INDEX, [
     "cfb12303a19cde580bb4dd771639b0d26bc68353645571a8cff516ab2ee113a0",
@@ -171,7 +177,7 @@ export async function mockSignAndPostVaa<T extends Idl>(
   return signedVaa;
 }
 
-export async function ethereumGatewaySendTbtc<T extends Idl>(
+export async function ethereumGatewaySendTbtc(
   payer: web3.Keypair,
   ethereumTokenBridge: MockEthereumTokenBridge,
   amount: bigint,
@@ -181,7 +187,7 @@ export async function ethereumGatewaySendTbtc<T extends Idl>(
   tokenAddress?: string,
   tokenChain?: number
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
 
   const published = ethereumTokenBridge.publishTransferTokensWithPayload(
     tryNativeToHexString(tokenAddress ?? ETHEREUM_TBTC_ADDRESS, "ethereum"),
@@ -215,35 +221,40 @@ export async function ethereumGatewaySendTbtc<T extends Idl>(
   return signedVaa;
 }
 
-export async function expectIxSuccess<T extends Idl>(
+export async function expectIxSuccess(
   ixes: TransactionInstruction[],
   signers: Keypair[]
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   await sendAndConfirmTransaction(
     program.provider.connection,
     new Transaction().add(...ixes),
     signers
   ).catch((err) => {
-    console.log(err.logs);
+    if (err.logs !== undefined) {
+      console.log(err.logs);
+    }
     throw err;
   });
 }
 
-export async function expectIxFail<T extends Idl>(
+export async function expectIxFail(
   ixes: TransactionInstruction[],
   signers: Keypair[],
   errorMessage: string
 ) {
-  const program = workspace.WormholeGateway as Program<T>;
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   try {
     const txSig = await sendAndConfirmTransaction(
       program.provider.connection,
       new Transaction().add(...ixes),
       signers
     );
-    chai.assert(false, `transaction should have failed: ${txSig}`);
+    assert(false, `transaction should have failed: ${txSig}`);
   } catch (err) {
+    if (err.logs === undefined) {
+      throw err;
+    }
     const logs: string[] = err.logs;
     expect(logs.join("\n")).includes(errorMessage);
   }
@@ -258,8 +269,8 @@ export function getTokenBridgeCoreEmitter() {
   return tokenBridgeCoreEmitter;
 }
 
-export async function getTokenBridgeSequence<T extends Idl>() {
-  const program = workspace.WormholeGateway as Program<T>;
+export async function getTokenBridgeSequence() {
+  const program = workspace.WormholeGateway as Program<WormholeGateway>;
   const emitter = getTokenBridgeCoreEmitter();
   return coreBridge
     .getSequenceTracker(

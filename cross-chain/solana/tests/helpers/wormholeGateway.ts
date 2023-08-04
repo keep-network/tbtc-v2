@@ -204,7 +204,7 @@ export async function depositWormholeTbtcIx(
   }
 
   if (tbtcMint === undefined) {
-    tbtcMint = tbtc.getTokenPDA();
+    tbtcMint = tbtc.getMintPDA();
   }
 
   if (tbtcConfig === undefined) {
@@ -320,7 +320,7 @@ export async function receiveTbtcIx(
   }
 
   if (tbtcMint === undefined) {
-    tbtcMint = tbtc.getTokenPDA();
+    tbtcMint = tbtc.getMintPDA();
   }
 
   if (recipientWrappedToken == undefined) {
@@ -483,7 +483,7 @@ export async function sendTbtcGatewayIx(
   }
 
   if (tbtcMint === undefined) {
-    tbtcMint = tbtc.getTokenPDA();
+    tbtcMint = tbtc.getMintPDA();
   }
 
   if (tokenBridgeConfig === undefined) {
@@ -643,7 +643,7 @@ export async function sendTbtcWrappedIx(
   }
 
   if (tbtcMint === undefined) {
-    tbtcMint = tbtc.getTokenPDA();
+    tbtcMint = tbtc.getMintPDA();
   }
 
   if (tokenBridgeConfig === undefined) {
