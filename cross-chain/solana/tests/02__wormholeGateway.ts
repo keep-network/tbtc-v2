@@ -309,10 +309,22 @@ describe("wormhole-gateway", () => {
       await expectIxSuccess([secondIx], [authority]);
       await wormholeGateway.checkGateway(chain, goodAddress);
     });
+
+    it("cannot update gateway address (not authority)", async () => {
+      // Only the authority can update the gateway address.
+      const goodAddress = Array.from(ethereumTokenBridge.address);
+      const failingIx = await wormholeGateway.updateGatewayAddress(
+        {
+          authority: imposter.publicKey,
+        },
+        { chain, address: goodAddress }
+      );
+      await expectIxFail([failingIx], [imposter], "IsNotAuthority");
+    });
   });
 
-  describe("other", () => {
-    it("deposit wrapped tokens", async () => {
+  describe("deposit wrapped tbtc", () => {
+    it("cannot deposit wrapped tbtc (custodian not a minter)", async () => {
       // Set up new wallet
       const payer = await generatePayer(authority);
 
@@ -342,6 +354,36 @@ describe("wormhole-gateway", () => {
         depositAmount
       );
       await expectIxFail([ix], [payer], "AccountNotInitialized");
+
+    });
+    it("deposit wrapped tokens", async () => {
+      // Set up new wallet
+      const payer = await generatePayer(authority);
+
+      // Check wrapped tBTC mint.
+      const recipientWrappedToken = await preloadWrappedTbtc(
+        payer,
+        ethereumTokenBridge,
+        BigInt("100000000000"),
+        payer.publicKey
+      );
+
+      const recipientToken = await getOrCreateAta(
+        payer,
+        tbtcMint,
+        payer.publicKey
+      );
+
+      const depositAmount = BigInt(500);
+
+      const ix = await wormholeGateway.depositWormholeTbtcIx(
+        {
+          recipientWrappedToken,
+          recipientToken,
+          recipient: payer.publicKey,
+        },
+        depositAmount
+      );
 
       // Add custodian as minter.
       const addMinterIx = await tbtc.addMinterIx({
@@ -388,6 +430,25 @@ describe("wormhole-gateway", () => {
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + depositAmount);
       expect(gatewayAfter.amount).to.equal(
         gatewayBefore.amount + depositAmount
+      ); 
+    });
+
+    it("cannot deposit wrapped tbtc (minting limit exceeded)", async () => {
+      // Set up new wallet
+      const payer = await generatePayer(authority);
+
+      // Check wrapped tBTC mint.
+      const recipientWrappedToken = await preloadWrappedTbtc(
+        payer,
+        ethereumTokenBridge,
+        BigInt("100000000000"),
+        payer.publicKey
+      );
+
+      const recipientToken = await getOrCreateAta(
+        payer,
+        tbtcMint,
+        payer.publicKey
       );
 
       // Cannot deposit past minting limit.
@@ -400,6 +461,35 @@ describe("wormhole-gateway", () => {
         BigInt(50000)
       );
       await expectIxFail([failingIx], [payer], "MintingLimitExceeded");
+    });
+
+    it("deposit wrapped tbtc after increasing mint limit", async () => {
+      // Set up new wallet
+      const payer = await generatePayer(authority);
+
+      // Check wrapped tBTC mint.
+      const recipientWrappedToken = await preloadWrappedTbtc(
+        payer,
+        ethereumTokenBridge,
+        BigInt("100000000000"),
+        payer.publicKey
+      );
+
+      const recipientToken = await getOrCreateAta(
+        payer,
+        tbtcMint,
+        payer.publicKey
+      );
+
+      // Cannot deposit past minting limit.
+      const failingIx = await wormholeGateway.depositWormholeTbtcIx(
+        {
+          recipientWrappedToken,
+          recipientToken,
+          recipient: payer.publicKey,
+        },
+        BigInt(50000)
+      );
 
       // Will succeed if minting limit is increased.
       const newLimit = BigInt(70000);
@@ -417,7 +507,11 @@ describe("wormhole-gateway", () => {
       });
       await expectIxSuccess([failingIx], [payer]);
     });
+  });
 
+  describe("receive tbtc", () => {
+    let replayVaa;
+    
     it("receive tbtc", async () => {
       // Set up new wallet
       const payer = await generatePayer(authority);
@@ -466,7 +560,31 @@ describe("wormhole-gateway", () => {
 
       // Check balance change.
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + sentAmount);
-      expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount);
+      expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount); 
+
+      // Save vaa.
+      replayVaa = signedVaa;
+    });
+
+    it("cannot receive tbtc (vaa already redeemed)", async () => {
+      // Set up new wallet
+      const payer = await generatePayer(authority);
+
+      // Use common token account.
+      const recipient = commonTokenOwner.publicKey;
+      const recipientToken = getAssociatedTokenAddressSync(
+        tbtc.getMintPDA(),
+        recipient
+      );
+
+      const ix = await wormholeGateway.receiveTbtcIx(
+        {
+          payer: payer.publicKey,
+          recipientToken,
+          recipient,
+        },
+        replayVaa
+      );
 
       // Cannot receive tbtc again.
       await expectIxFail([ix], [payer], "TransferAlreadyRedeemed");
@@ -751,7 +869,9 @@ describe("wormhole-gateway", () => {
       );
       await expectIxFail([failingIx], [payer], "RecipientZeroAddress");
     });
+  });
 
+  describe("send tbtc", () => {
     it("send tbtc to gateway", async () => {
       // Use common token account.
       const sender = commonTokenOwner.publicKey;
@@ -922,8 +1042,10 @@ describe("wormhole-gateway", () => {
         }
       );
       await expectIxFail([ix], [commonTokenOwner], "AccountNotInitialized");
-    });
+    });    
+  });
 
+  describe("send wrapped tbtc", () => {
     it("send wrapped tbtc", async () => {
       // Use common token account.
       const sender = commonTokenOwner.publicKey;
