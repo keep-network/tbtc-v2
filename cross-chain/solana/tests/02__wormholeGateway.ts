@@ -1,38 +1,24 @@
-import { redeemOnSolana, tryNativeToHexString } from "@certusone/wormhole-sdk";
 import { MockEthereumTokenBridge } from "@certusone/wormhole-sdk/lib/cjs/mock";
-import * as tokenBridge from "@certusone/wormhole-sdk/lib/cjs/solana/tokenBridge";
-import * as coreBridge from "@certusone/wormhole-sdk/lib/cjs/solana/wormhole";
 import * as anchor from "@coral-xyz/anchor";
-import { AnchorError, Program } from "@coral-xyz/anchor";
-import {
-  getAccount,
-  getAssociatedTokenAddressSync,
-  getMint,
-} from "@solana/spl-token";
+import { Program } from "@coral-xyz/anchor";
+import { getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import { expect } from "chai";
 import { WormholeGateway } from "../target/types/wormhole_gateway";
 import {
-  ETHEREUM_TBTC_ADDRESS,
   ETHEREUM_TOKEN_BRIDGE_ADDRESS,
-  GUARDIAN_SET_INDEX,
-  CORE_BRIDGE_PROGRAM_ID,
-  TOKEN_BRIDGE_PROGRAM_ID,
-  TBTC_PROGRAM_ID,
   WORMHOLE_GATEWAY_PROGRAM_ID,
   WRAPPED_TBTC_MINT,
+  ethereumGatewaySendTbtc,
   expectIxFail,
   expectIxSuccess,
   generatePayer,
   getOrCreateAta,
-  mockSignAndPostVaa,
   preloadWrappedTbtc,
-  ethereumGatewaySendTbtc,
   transferLamports,
-  getTokenBridgeSequence,
 } from "./helpers";
 import * as tbtc from "./helpers/tbtc";
 import * as wormholeGateway from "./helpers/wormholeGateway";
-import { PublicKey } from "@solana/web3.js";
 
 async function setup(
   program: Program<WormholeGateway>,
@@ -354,7 +340,6 @@ describe("wormhole-gateway", () => {
         depositAmount
       );
       await expectIxFail([ix], [payer], "AccountNotInitialized");
-
     });
     it("deposit wrapped tokens", async () => {
       // Set up new wallet
@@ -430,7 +415,7 @@ describe("wormhole-gateway", () => {
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + depositAmount);
       expect(gatewayAfter.amount).to.equal(
         gatewayBefore.amount + depositAmount
-      ); 
+      );
     });
 
     it("cannot deposit wrapped tbtc (minting limit exceeded)", async () => {
@@ -511,7 +496,7 @@ describe("wormhole-gateway", () => {
 
   describe("receive tbtc", () => {
     let replayVaa;
-    
+
     it("receive tbtc", async () => {
       // Set up new wallet
       const payer = await generatePayer(authority);
@@ -560,7 +545,7 @@ describe("wormhole-gateway", () => {
 
       // Check balance change.
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + sentAmount);
-      expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount); 
+      expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount);
 
       // Save vaa.
       replayVaa = signedVaa;
@@ -1042,7 +1027,7 @@ describe("wormhole-gateway", () => {
         }
       );
       await expectIxFail([ix], [commonTokenOwner], "AccountNotInitialized");
-    });    
+    });
   });
 
   describe("send wrapped tbtc", () => {
