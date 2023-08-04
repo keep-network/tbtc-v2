@@ -279,7 +279,9 @@ describe("wormhole-gateway", () => {
       getAccount(connection, gatewayWrappedTbtcToken),
     ]);
 
-    // TODO: compare balances
+    // Check balance change.
+    expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + sentAmount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount);
   });
 
   it("send tbtc to gateway", async () => {
@@ -290,8 +292,11 @@ describe("wormhole-gateway", () => {
       sender
     );
 
-    // Check token account.
-    const gatewayBefore = await getAccount(connection, gatewayWrappedTbtcToken);
+    // Check token accounts.
+    const [senderTbtcBefore, gatewayBefore] = await Promise.all([
+      getAccount(connection, senderToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
 
     // Get destination gateway.
     const recipientChain = 2;
@@ -314,7 +319,7 @@ describe("wormhole-gateway", () => {
     );
     await expectIxFail([badIx], [commonTokenOwner], "NotEnoughWrappedTbtc");
 
-    // // This should work.
+    // This should work.
     const goodAmount = BigInt(2000);
     const ix = await wormholeGateway.sendTbtcGatewayIx(
       {
@@ -329,6 +334,16 @@ describe("wormhole-gateway", () => {
       }
     );
     await expectIxSuccess([ix], [commonTokenOwner]);
+
+    // Check token accounts after sending tbtc. 
+    const [senderTbtcAfter, gatewayAfter] = await Promise.all([
+      getAccount(connection, senderToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    // Check balance change.
+    expect(senderTbtcAfter.amount).to.equal(senderTbtcBefore.amount - goodAmount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount - goodAmount);
   });
 
   it("send wrapped tbtc", async () => {
@@ -339,15 +354,35 @@ describe("wormhole-gateway", () => {
       sender
     );
 
-    // Check token account.
-    const gatewayBefore = await getAccount(connection, gatewayWrappedTbtcToken);
+    // Check token accounts.
+    const [senderTbtcBefore, gatewayBefore] = await Promise.all([
+      getAccount(connection, senderToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
 
     // Get destination gateway.
     const recipientChain = 69;
     const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
     const nonce = 420;
 
-    // // This should work.
+    // Try an amount that won't work.
+    const badAmount = BigInt(123000);
+    const badIx = await wormholeGateway.sendTbtcWrappedIx(
+      {
+        senderToken,
+        sender,
+      },
+      {
+        amount: new anchor.BN(badAmount.toString()),
+        recipientChain,
+        recipient,
+        arbiterFee: new anchor.BN(0),
+        nonce,
+      }
+    );
+    await expectIxFail([badIx], [commonTokenOwner], "NotEnoughWrappedTbtc");
+
+    // This should work.
     const goodAmount = BigInt(2000);
     const ix = await wormholeGateway.sendTbtcWrappedIx(
       {
@@ -363,5 +398,15 @@ describe("wormhole-gateway", () => {
       }
     );
     await expectIxSuccess([ix], [commonTokenOwner]);
+
+    // Check token accounts after sending tbtc. 
+    const [senderTbtcAfter, gatewayAfter] = await Promise.all([
+      getAccount(connection, senderToken),
+      getAccount(connection, gatewayWrappedTbtcToken),
+    ]);
+
+    // Check balance change.
+    expect(senderTbtcAfter.amount).to.equal(senderTbtcBefore.amount - goodAmount);
+    expect(gatewayAfter.amount).to.equal(gatewayBefore.amount - goodAmount);
   });
 });
