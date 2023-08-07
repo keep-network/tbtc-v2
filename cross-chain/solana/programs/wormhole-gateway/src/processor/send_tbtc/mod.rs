@@ -57,7 +57,7 @@ pub fn burn_and_prepare_transfer(
     } = prepare_transfer;
 
     // Account for burning tBTC.
-    custodian
+    custodian.minted_amount = custodian
         .minted_amount
         .checked_sub(amount)
         .ok_or(WormholeGatewayError::MintedAmountUnderflow)?;

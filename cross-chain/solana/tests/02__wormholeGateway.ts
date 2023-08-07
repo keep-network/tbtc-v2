@@ -341,6 +341,7 @@ describe("wormhole-gateway", () => {
       );
       await expectIxFail([ix], [payer], "AccountNotInitialized");
     });
+
     it("deposit wrapped tokens", async () => {
       // Set up new wallet
       const payer = await generatePayer(authority);
@@ -358,6 +359,8 @@ describe("wormhole-gateway", () => {
         tbtcMint,
         payer.publicKey
       );
+
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
 
       const depositAmount = BigInt(500);
 
@@ -407,6 +410,10 @@ describe("wormhole-gateway", () => {
         getAccount(connection, recipientToken),
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
+
+      // Check minted amount after.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore + depositAmount);
 
       // Check balance change.
       expect(wrappedAfter.amount).to.equal(
@@ -466,6 +473,11 @@ describe("wormhole-gateway", () => {
         payer.publicKey
       );
 
+      // Check minted amount before deposit.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
+
+      const depositAmount = BigInt(50000);
+
       // Cannot deposit past minting limit.
       const failingIx = await wormholeGateway.depositWormholeTbtcIx(
         {
@@ -473,7 +485,7 @@ describe("wormhole-gateway", () => {
           recipientToken,
           recipient: payer.publicKey,
         },
-        BigInt(50000)
+        depositAmount
       );
 
       // Will succeed if minting limit is increased.
@@ -491,6 +503,10 @@ describe("wormhole-gateway", () => {
         pendingAuthority: null,
       });
       await expectIxSuccess([failingIx], [payer]);
+
+      // Check minted amount after.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore + depositAmount);
     });
   });
 
@@ -512,6 +528,9 @@ describe("wormhole-gateway", () => {
       const fromGateway = await wormholeGateway
         .getGatewayInfo(2)
         .then((info) => info.address);
+
+      // Get minted amount before.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
 
       const sentAmount = BigInt(5000);
       const signedVaa = await ethereumGatewaySendTbtc(
@@ -546,6 +565,10 @@ describe("wormhole-gateway", () => {
       // Check balance change.
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount + sentAmount);
       expect(gatewayAfter.amount).to.equal(gatewayBefore.amount + sentAmount);
+
+      // Check minted amount.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore + sentAmount);
 
       // Save vaa.
       replayVaa = signedVaa;
@@ -589,6 +612,9 @@ describe("wormhole-gateway", () => {
         WRAPPED_TBTC_MINT,
         recipient
       );
+
+      // Get minted amount before.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
 
       // Verify that the wrapped token account doesn't exist yet.
       try {
@@ -654,6 +680,10 @@ describe("wormhole-gateway", () => {
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
 
+      // Check minted amount.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore);
+
       // Check balance change.
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount);
       expect(gatewayAfter.amount).to.equal(gatewayBefore.amount);
@@ -680,6 +710,9 @@ describe("wormhole-gateway", () => {
       const fromGateway = await wormholeGateway
         .getGatewayInfo(2)
         .then((info) => info.address);
+
+      // Get minted amount before.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
 
       // Create transfer VAA.
       const sentAmount = BigInt(5000);
@@ -732,6 +765,10 @@ describe("wormhole-gateway", () => {
         getAccount(connection, recipientWrappedToken),
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
+
+      // Check minted amount.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore);
 
       // Check balance change.
       expect(tbtcAfter.amount).to.equal(tbtcBefore.amount);
@@ -871,6 +908,9 @@ describe("wormhole-gateway", () => {
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
 
+      // Check minted amount before.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
+
       // Get destination gateway.
       const recipientChain = 2;
       const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
@@ -897,6 +937,10 @@ describe("wormhole-gateway", () => {
         getAccount(connection, senderToken),
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
+
+      // Check minted amount.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore - sendAmount);
 
       // Check balance change.
       expect(senderTbtcAfter.amount).to.equal(
@@ -1045,6 +1089,9 @@ describe("wormhole-gateway", () => {
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
 
+      // Check minted amount before.
+      const mintedAmountBefore = await wormholeGateway.getMintedAmount();
+
       // Get destination gateway.
       const recipientChain = 69;
       const recipient = Array.from(Buffer.alloc(32, "deadbeef", "hex"));
@@ -1072,6 +1119,10 @@ describe("wormhole-gateway", () => {
         getAccount(connection, senderToken),
         getAccount(connection, gatewayWrappedTbtcToken),
       ]);
+
+      // Check minted amount.
+      const mintedAmountAfter = await wormholeGateway.getMintedAmount();
+      expect(mintedAmountAfter).to.equal(mintedAmountBefore - sendAmount);
 
       // Check balance change.
       expect(senderTbtcAfter.amount).to.equal(

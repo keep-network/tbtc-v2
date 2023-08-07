@@ -13,6 +13,7 @@ use wormhole_anchor_sdk::{
 #[instruction(args: SendTbtcGatewayArgs)]
 pub struct SendTbtcGateway<'info> {
     #[account(
+        mut, 
         seeds = [Custodian::SEED_PREFIX],
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,

@@ -7,6 +7,7 @@ use anchor_spl::token;
 pub struct DepositWormholeTbtc<'info> {
     /// NOTE: This account also acts as a minter for the TBTC program.
     #[account(
+        mut, 
         seeds = [Custodian::SEED_PREFIX],
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,

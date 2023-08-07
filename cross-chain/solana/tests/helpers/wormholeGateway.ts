@@ -90,6 +90,11 @@ export async function checkCustodian(expected: {
   expect(custodianState.pendingAuthority).to.eql(pendingAuthority);
 }
 
+export async function getMintedAmount(): Promise<bigint> {
+  const custodianState = await getCustodianData();
+  return BigInt(custodianState.mintedAmount.toString());
+}
+
 export async function getGatewayInfo(chain: number) {
   const program = workspace.WormholeGateway as Program<WormholeGateway>;
   const gatewayInfo = getGatewayInfoPDA(chain);
