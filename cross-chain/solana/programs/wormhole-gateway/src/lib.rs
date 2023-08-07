@@ -1,6 +1,10 @@
 #![allow(clippy::result_large_err)]
 
+pub mod constants;
+
 pub mod error;
+
+pub(crate) mod event;
 
 mod processor;
 pub(crate) use processor::*;
@@ -30,6 +34,18 @@ pub mod wormhole_gateway {
         processor::initialize(ctx, minting_limit)
     }
 
+    pub fn change_authority(ctx: Context<ChangeAuthority>) -> Result<()> {
+        processor::change_authority(ctx)
+    }
+
+    pub fn cancel_authority_change(ctx: Context<CancelAuthorityChange>) -> Result<()> {
+        processor::cancel_authority_change(ctx)
+    }
+
+    pub fn take_authority(ctx: Context<TakeAuthority>) -> Result<()> {
+        processor::take_authority(ctx)
+    }
+
     pub fn update_gateway_address(
         ctx: Context<UpdateGatewayAddress>,
         args: UpdateGatewayAddressArgs,
@@ -41,9 +57,9 @@ pub mod wormhole_gateway {
         processor::update_minting_limit(ctx, new_limit)
     }
 
-    // pub fn receive_tbtc(ctx: Context<ReceiveTbtc>) -> Result<()> {
-    //     processor::receive_tbtc(ctx)
-    // }
+    pub fn receive_tbtc(ctx: Context<ReceiveTbtc>, message_hash: [u8; 32]) -> Result<()> {
+        processor::receive_tbtc(ctx, message_hash)
+    }
 
     pub fn send_tbtc_gateway(
         ctx: Context<SendTbtcGateway>,

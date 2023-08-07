@@ -18,6 +18,9 @@ no-log-ix-name = []
 cpi = ["no-entrypoint"]
 
 [dependencies]
-anchor-lang = { version = "=0.28.0", features = ["derive", "init-if-needed"] }
-anchor-spl = "=0.28.0"
-solana-program = "=1.14.20"
+anchor-lang = { version = "0.28.0", features = ["derive", "init-if-needed"] }
+anchor-spl = { version = "0.28.0", features = ["metadata"] }
+
+solana-program = "=1.14"
+
+mpl-token-metadata = "1.13.1"
