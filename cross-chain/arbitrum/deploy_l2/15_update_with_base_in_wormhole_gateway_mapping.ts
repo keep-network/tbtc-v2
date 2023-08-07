@@ -7,16 +7,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   // Fake BaseWormholeGateway for local development purposes only.
-  const fakeBaseWormholeGateway =
-    "0x1af5DC16568EFF2d480a43A77E6C409e497FcFb9"
+  const fakeBaseWormholeGateway = "0x1af5DC16568EFF2d480a43A77E6C409e497FcFb9"
 
   // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base
   // This ID is valid for both Base Testnet and Mainnet
   const baseWormholeChainID = 30
 
-  const baseWormholeGateway = await deployments.getOrNull(
-    "BaseWormholeGateway"
-  )
+  const baseWormholeGateway = await deployments.getOrNull("BaseWormholeGateway")
 
   let baseWormholeGatewayAddress = baseWormholeGateway?.address
   if (!baseWormholeGatewayAddress && hre.network.name === "hardhat") {
