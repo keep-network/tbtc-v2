@@ -28,7 +28,7 @@ pub fn validate_send(
 }
 
 pub struct PrepareTransfer<'ctx, 'info> {
-    custodian: &'ctx Account<'info, Custodian>,
+    custodian: &'ctx mut Account<'info, Custodian>,
     tbtc_mint: &'ctx Account<'info, token::Mint>,
     sender_token: &'ctx Account<'info, token::TokenAccount>,
     sender: &'ctx Signer<'info>,
@@ -37,7 +37,15 @@ pub struct PrepareTransfer<'ctx, 'info> {
     token_program: &'ctx Program<'info, token::Token>,
 }
 
-pub fn burn_and_prepare_transfer(prepare_transfer: PrepareTransfer, amount: u64) -> Result<u64> {
+pub fn burn_and_prepare_transfer(
+    prepare_transfer: PrepareTransfer,
+    amount: u64,
+    recipient_chain: u16,
+    gateway: Option<[u8; 32]>,
+    recipient: [u8; 32],
+    arbiter_fee: Option<u64>,
+    nonce: u32,
+) -> Result<()> {
     let PrepareTransfer {
         custodian,
         tbtc_mint,
@@ -48,8 +56,11 @@ pub fn burn_and_prepare_transfer(prepare_transfer: PrepareTransfer, amount: u64)
         token_program,
     } = prepare_transfer;
 
-    let truncated = 10 * (amount / 10);
-    require_gt!(truncated, 0, WormholeGatewayError::TruncatedZeroAmount);
+    // Account for burning tBTC.
+    custodian.minted_amount = custodian
+        .minted_amount
+        .checked_sub(amount)
+        .ok_or(WormholeGatewayError::MintedAmountUnderflow)?;
 
     // Burn TBTC mint.
     token::burn(
@@ -64,6 +75,15 @@ pub fn burn_and_prepare_transfer(prepare_transfer: PrepareTransfer, amount: u64)
         amount,
     )?;
 
+    emit!(crate::event::WormholeTbtcSent {
+        amount,
+        recipient_chain,
+        gateway: gateway.unwrap_or_default(),
+        recipient,
+        arbiter_fee: arbiter_fee.unwrap_or_default(),
+        nonce
+    });
+
     // Delegate authority to Token Bridge's transfer authority.
     token::approve(
         CpiContext::new_with_signer(
@@ -75,8 +95,6 @@ pub fn burn_and_prepare_transfer(prepare_transfer: PrepareTransfer, amount: u64)
             },
             &[&[Custodian::SEED_PREFIX, &[custodian.bump]]],
         ),
-        truncated,
-    )?;
-
-    Ok(truncated)
+        amount,
+    )
 }

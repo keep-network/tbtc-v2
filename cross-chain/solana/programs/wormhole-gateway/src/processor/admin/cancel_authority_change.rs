@@ -2,19 +2,21 @@ use crate::{error::WormholeGatewayError, state::Custodian};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-pub struct UpdateMintingLimit<'info> {
+
+pub struct CancelAuthorityChange<'info> {
     #[account(
         mut,
         seeds = [Custodian::SEED_PREFIX],
-        bump = custodian.bump,
+        bump,
         has_one = authority @ WormholeGatewayError::IsNotAuthority,
+        constraint = custodian.pending_authority.is_some() @ WormholeGatewayError::NoPendingAuthorityChange
     )]
     custodian: Account<'info, Custodian>,
 
     authority: Signer<'info>,
 }
 
-pub fn update_minting_limit(ctx: Context<UpdateMintingLimit>, new_limit: u64) -> Result<()> {
-    ctx.accounts.custodian.minting_limit = new_limit;
+pub fn cancel_authority_change(ctx: Context<CancelAuthorityChange>) -> Result<()> {
+    ctx.accounts.custodian.pending_authority = None;
     Ok(())
 }

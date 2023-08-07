@@ -11,7 +11,7 @@ members = [
 
 [programs.localnet]
 tbtc = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
-wormhole-gateway = "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
+wormhole_gateway = "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
 
 [registry]
 url = "https://api.apr.dev"
@@ -61,10 +61,10 @@ filename = "tests/accounts/ethereum_token_bridge.json"
 address = "DapiQYH3BGonhN8cngWcXQ6SrqSm3cwysoznoHr6Sbsx"
 filename = "tests/accounts/token_bridge_config.json"
 
-### Core Bridge -- Bridge
-[[test.validator.clone]]
+### Core Bridge -- Bridge Data
+[[test.validator.account]]
 address = "2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn"
-filename = "tests/accounts/core_bridge.json"
+filename = "tests/accounts/core_bridge_data.json"
 
 ### Core Bridge -- Emitter Sequence (Token Bridge's)
 [[test.validator.account]]
