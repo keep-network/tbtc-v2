@@ -22,7 +22,6 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-authority = "ts-node --files ./typescript/transfer_authority.ts"
 
 [test]
 startup_wait = 10000

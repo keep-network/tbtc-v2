@@ -29,3 +29,9 @@ lint:
 	cargo check --features "mainnet" --no-default-features
 	cargo check --features "solana-devnet" --no-default-features
 	cargo clippy --no-deps --all-targets -- -D warnings
+
+init_programs:
+	ts-node --files ./deploy/deploy.ts
+
+transfer_authority:
+	ts-node --files deploy/transfer_authority.ts

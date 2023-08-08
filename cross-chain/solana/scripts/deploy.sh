@@ -2,11 +2,13 @@
 set -eo pipefail
 
 # Setting env variables in the current bash shell
-source solana.env
+source .env
 
-[ -z "$CLUSTER" ] && {
-  echo "'--cluster' option not provided" >&2
-  help
+# Deploy to devnet by default
+ARTIFACTS_PATH=artifacts-testnet
+
+[ -z "$NETWORK" ] && {
+  echo "'NETWORK' env var is not set" >&2
   exit 1
 }
 
@@ -15,17 +17,16 @@ source solana.env
   exit 1
 }
 
-echo "Building workspace for cluster: $CLUSTER ..."
-anchor build --provider.cluster $CLUSTER
+if [[ $CLUSTER = mainnet-beta ]]
+then
+  ARTIFACTS_PATH=artifacts-mainnet
+fi
 
-echo "Syncing the program's id ..."
-anchor keys sync
+echo "Building workspace for cluster: $NETWORK ..."
+make build
 
-echo "Building workspace again to include new program ID in the binary ..."
-anchor build --provider.cluster $CLUSTER
+echo "Deploying TBTC program for cluster: $CLUSTER ..."
+solana program deploy --url $CLUSTER --keypair $AUTHORITY ./$ARTIFACTS_PATH/tbtc.so
 
-echo "Deploying program(s) for cluster: $CLUSTER ..."
-anchor deploy --provider.cluster $CLUSTER --provider.wallet $AUTHORITY
-
-echo "Migrating..."
-anchor migrate --provider.cluster $CLUSTER --provider.wallet $AUTHORITY
+echo "Deploying WORMHOLE_GATEWAY program for cluster: $CLUSTER ..."
+solana program deploy --url $CLUSTER --keypair $AUTHORITY ./$ARTIFACTS_PATH/wormhole_gateway.so
