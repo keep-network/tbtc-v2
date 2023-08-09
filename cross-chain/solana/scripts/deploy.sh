@@ -22,11 +22,32 @@ then
   ARTIFACTS_PATH=artifacts-mainnet
 fi
 
-echo "Building workspace for cluster: $NETWORK ..."
-make build
+# Build and deploy process should be split in a couple of steps. Here is a 
+# checklist:
 
-echo "Deploying TBTC program for cluster: $CLUSTER ..."
-solana program deploy --url $CLUSTER --keypair $AUTHORITY ./$ARTIFACTS_PATH/tbtc.so
+## First run the following 'make build'
+# echo "Building workspace for cluster: $NETWORK ..."
+# make build
 
-echo "Deploying WORMHOLE_GATEWAY program for cluster: $CLUSTER ..."
-solana program deploy --url $CLUSTER --keypair $AUTHORITY ./$ARTIFACTS_PATH/wormhole_gateway.so
+## Now check the program IDs by running
+## `solana-keygen pubkey target/deploy/tbtc-keypair.json`
+## `solana-keygen pubkey target/deploy/wormhole_gateway-keypair.json`
+## Copy and paste these addresses in both programs 'lib.rs' and in Anchor.toml
+## In Anchor toml make sure that cluster and program point to the right network:
+## e.g. devnet, mainnet-beta
+
+## Now run the build again to. his step is to include the new program id in the binary.
+# anchor build --arch sbf -- --features "<NETWORK>" -- --no-default-features
+## where NETWORK can be one of the following: solana-devnet OR mainnet
+
+## Deploy programs
+# echo "Deploying program(s) for cluster: $CLUSTER ..."
+# anchor deploy --provider.cluster $CLUSTER --provider.wallet $AUTHORITY
+
+## And now it's time to initialize tbtc and wormhole_gatewa programs
+# make init_programs
+
+## The last step is to transfer authority to the Threshold Council. (for mainnet only)
+# make transfer_authority
+
+## Also run transfer_authority.sh script to transfer upgrade authority. (for mainnet only)
