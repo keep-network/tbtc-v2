@@ -124,11 +124,13 @@ async function run(): Promise<void> {
   let OPTIMISM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
   let POLYGON_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
   let BASE_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
+  let SOLANA_GATEWAY = consts.SOLANA_GATEWAY_ADDRESS_TESTNET
   if (process.env.CLUSTER === "mainnet-beta") {
     ARBITRUM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_MAINNET
     OPTIMISM_GATEWAY = consts.OPTIMISM_GATEWAY_ADDRESS_MAINNET
     POLYGON_GATEWAY = consts.POLYGON_GATEWAY_ADDRESS_MAINNET
     BASE_GATEWAY = consts.BASE_GATEWAY_ADDRESS_MAINNET
+    // TODO: add SOLANA_GATEWAY_ADDRESS_MAINNET once it's deployed
   }
 
   // Updating with Arbitrum
@@ -144,7 +146,7 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
-  wormholeGatewayProgram.methods
+  await wormholeGatewayProgram.methods
     .updateGatewayAddress(arbiArgs)
     .accounts({
       custodian: minter,
@@ -166,7 +168,7 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
-  wormholeGatewayProgram.methods
+  await wormholeGatewayProgram.methods
     .updateGatewayAddress(optiArgs)
     .accounts({
       custodian: minter,
@@ -188,7 +190,7 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
-  wormholeGatewayProgram.methods
+  await wormholeGatewayProgram.methods
     .updateGatewayAddress(polyArgs)
     .accounts({
       custodian: minter,
@@ -210,7 +212,7 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
-  wormholeGatewayProgram.methods
+  await wormholeGatewayProgram.methods
     .updateGatewayAddress(baseArgs)
     .accounts({
       custodian: minter,
@@ -219,8 +221,27 @@ async function run(): Promise<void> {
     })
     .rpc()
 
-  // TODO: confirm with the WH team if Solana gateway should be self updated just
-  // like we do on EVMs, i.e updateGatewayAddress(solanaArgs)
+  // Updating with self (SOLANA)
+  const solanaArgs = {
+    chain: consts.WH_SOLANA_CHAIN_ID,
+    address: Array.from(new PublicKey(SOLANA_GATEWAY).toBuffer()),
+  }
+
+  const encodedSolanaChain = Buffer.alloc(2)
+  encodedSolanaChain.writeUInt16LE(consts.WH_SOLANA_CHAIN_ID)
+  const gatewaySolanaInfo = PublicKey.findProgramAddressSync(
+    [Buffer.from("gateway-info"), encodedSolanaChain],
+    wormholeGatewayProgram.programId
+  )[0]
+
+  await wormholeGatewayProgram.methods
+    .updateGatewayAddress(solanaArgs)
+    .accounts({
+      custodian: minter,
+      gatewayInfo: gatewaySolanaInfo,
+      authority,
+    })
+    .rpc()
 
   console.log("Done initializing programs!")
 }
