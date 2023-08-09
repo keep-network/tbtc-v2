@@ -988,5 +988,8 @@
       "name": "MintedAmountOverflow",
       "msg": "Minted amount after deposit exceeds u64"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "87MEvHZCXE3ML5rrmh5uX1FbShHmRXXS32xJDGbQ7h5t"
+  }
 }

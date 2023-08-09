@@ -557,5 +557,8 @@
       "name": "IsNotPaused",
       "msg": "Program is not paused"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "Gj93RRt6QB7FjmyokAD5rcMAku7pq3Fk2Aa8y6nNbwsV"
+  }
 }
