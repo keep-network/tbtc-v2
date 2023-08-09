@@ -31,7 +31,7 @@ lint:
 	cargo clippy --no-deps --all-targets -- -D warnings
 
 init_programs:
-	ts-node --files ./deploy/deploy.ts
+	ts-node --files ./deploy/init.ts
 
 transfer_authority:
-	ts-node --files deploy/transfer_authority.ts
+	ts-node --files ./deploy/transfer_authority.ts
