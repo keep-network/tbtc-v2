@@ -47,10 +47,5 @@ fi
 ## And now it's time to initialize tbtc and wormhole_gatewa programs
 # make init_programs
 
-## The last step is to transfer authority to the Threshold Council. (for mainnet only)
-# make transfer_authority
-
-## Also run transfer_authority.sh script to transfer upgrade authority. (for mainnet only)
-
 ## Publishing IDL so that Solana ecosystem can detect and display data nicely (nice to have)
 # anchor idl init --provider.cluster $CLUSTER --provider.wallet $AUTHORITY -f target/idl/<program_idl>.json <program_id>

@@ -1,3 +1,4 @@
+import { WormholeGateway } from "./../target/types/wormhole_gateway"
 import * as anchor from "@coral-xyz/anchor"
 import fs from "fs"
 import { PublicKey, Keypair } from "@solana/web3.js"
@@ -6,15 +7,23 @@ import dotenv from "dotenv"
 async function run(): Promise<void> {
   dotenv.config({ path: "solana.env" })
 
+  anchor.setProvider(anchor.AnchorProvider.env())
+
   const authority = loadKey(process.env.AUTHORITY)
   const newAuthority = process.env.THRESHOLD_COUNCIL_MULTISIG
 
   const tbtcProgram = anchor.workspace.Tbtc
+  const wormholeGatewayProgram = anchor.workspace.WormholeGateway
 
   const config = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
     tbtcProgram.programId
-  )[0];
+  )[0]
+
+  const custodian = PublicKey.findProgramAddressSync(
+    [Buffer.from("redeemer")],
+    wormholeGatewayProgram.programId
+  )[0]
 
   await tbtcProgram.methods
     .changeAuthority()
@@ -23,7 +32,16 @@ async function run(): Promise<void> {
       authority,
       newAuthority,
     })
-    .instruction();
+    .rpc()
+
+  await wormholeGatewayProgram.methods
+    .changeAuthority()
+    .accounts({
+      custodian,
+      authority,
+      newAuthority,
+    })
+    .rpc()
 }
 
 ;(async () => {
