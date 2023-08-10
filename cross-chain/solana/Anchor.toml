@@ -1,0 +1,82 @@
+[features]
+seeds = false
+skip-lint = false
+
+[workspace]
+members = [
+    "programs/tbtc",
+    "programs/wormhole-gateway",
+]
+
+
+[programs.localnet]
+tbtc = "HksEtDgsXJV1BqcuhzbLRTmXp5gHgHJktieJCtQd3pG"
+wormhole_gateway = "8H9F5JGbEMyERycwaGuzLS5MQnV7dn2wm2h6egJ3Leiu"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 10000
+
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+### MPL Token Metadata
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+
+### Wormhole Core Bridge
+[[test.validator.clone]]
+address = "worm2ZoG2kUd4vFXhvjh93UUH596ayRfgQ2MgjNMTth"
+
+### Wormhole Token Bridge
+[[test.validator.clone]]
+address = "wormDTUJ6AWPNvk59vGQbDvGJmqbDTdgWgAqcLBCgUb"
+
+### Token Bridge -- Wrapped tBTC Mint
+[[test.validator.account]]
+address = "25rXTx9zDZcHyTav5sRqM6YBvTGu9pPH9yv83uAEqbgG"
+filename = "tests/accounts/wrapped_tbtc_mint.json"
+
+### Token Bridge -- Wrapped tBTC Asset
+[[test.validator.account]]
+address = "5LEUZpBxUQmoxoNGqmYmFEGAPDuhWbAY5CGt519UixLo"
+filename = "tests/accounts/wrapped_tbtc_asset.json"
+
+### Token Bridge -- Ethereum Foreign Endpoint
+[[test.validator.account]]
+address = "DujfLgMKW71CT2W8pxknf42FT86VbcK5PjQ6LsutjWKC"
+filename = "tests/accounts/ethereum_token_bridge.json"
+
+### Token Bridge -- Config
+[[test.validator.account]]
+address = "DapiQYH3BGonhN8cngWcXQ6SrqSm3cwysoznoHr6Sbsx"
+filename = "tests/accounts/token_bridge_config.json"
+
+### Core Bridge -- Bridge Data
+[[test.validator.account]]
+address = "2yVjuQwpsvdsrywzsJJVs9Ueh4zayyo5DYJbBNc3DDpn"
+filename = "tests/accounts/core_bridge_data.json"
+
+### Core Bridge -- Emitter Sequence (Token Bridge's)
+[[test.validator.account]]
+address = "GF2ghkjwsR9CHkGk1RvuZrApPZGBZynxMm817VNi51Nf"
+filename = "tests/accounts/core_emitter_sequence.json"
+
+### Core Bridge -- Fee Collector
+[[test.validator.account]]
+address = "9bFNrXNb2WTx8fMHXCheaZqkLZ3YCCaiqTftHxeintHy"
+filename = "tests/accounts/core_fee_collector.json"
+
+### Core Bridge -- Guardian Set (index == 3)
+[[test.validator.account]]
+address = "6d3w8mGjJauf6gCAg7WfLezbaPmUHYGuoNutnfYF1RYM"
+filename = "tests/accounts/core_guardian_set.json"

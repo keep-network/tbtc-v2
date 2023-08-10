@@ -27,12 +27,13 @@ import {
   DepositRevealedEvent,
 } from "./deposit"
 import { getEvents, sendWithRetry } from "./ethereum-helpers"
-import { RedemptionRequest } from "./redemption"
+import { RedemptionRequest, RedemptionRequestedEvent } from "./redemption"
 import {
   compressPublicKey,
   computeHash160,
   DecomposedRawTransaction,
   Proof,
+  readCompactSizeUint,
   TransactionHash,
   UnspentTransactionOutput,
 } from "./bitcoin"
@@ -761,6 +762,48 @@ export class Bridge
         ]
       )
     )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {ChainBridge#getDepositRevealedEvents}
+   */
+  async getRedemptionRequestedEvents(
+    options?: GetEvents.Options,
+    ...filterArgs: Array<unknown>
+  ): Promise<RedemptionRequestedEvent[]> {
+    // FIXME: Filtering by indexed walletPubKeyHash field may not work
+    //        until https://github.com/ethers-io/ethers.js/pull/4244 is
+    //        included in the currently used version of ethers.js.
+    //        Ultimately, we should upgrade ethers.js to include that fix.
+    //        Short-term, we can workaround the problem as presented in:
+    //        https://github.com/threshold-network/token-dashboard/blob/main/src/threshold-ts/tbtc/index.ts#L1041C1-L1093C1
+    const events: EthersEvent[] = await this.getEvents(
+      "RedemptionRequested",
+      options,
+      ...filterArgs
+    )
+
+    return events.map<RedemptionRequestedEvent>((event) => {
+      const prefixedRedeemerOutputScript = Hex.from(
+        event.args!.redeemerOutputScript
+      )
+      const redeemerOutputScript = prefixedRedeemerOutputScript
+        .toString()
+        .slice(readCompactSizeUint(prefixedRedeemerOutputScript).byteLength * 2)
+
+      return {
+        blockNumber: BigNumber.from(event.blockNumber).toNumber(),
+        blockHash: Hex.from(event.blockHash),
+        transactionHash: Hex.from(event.transactionHash),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        redeemer: new Address(event.args!.redeemer),
+        redeemerOutputScript: redeemerOutputScript,
+        requestedAmount: BigNumber.from(event.args!.requestedAmount),
+        treasuryFee: BigNumber.from(event.args!.treasuryFee),
+        txMaxFee: BigNumber.from(event.args!.txMaxFee),
+      }
+    })
   }
 }
 

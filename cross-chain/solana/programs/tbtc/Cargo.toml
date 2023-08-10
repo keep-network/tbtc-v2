@@ -1,0 +1,26 @@
+[package]
+name = "tbtc"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "tbtc"
+
+[features]
+default = []
+mainnet = []
+solana-devnet = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+
+[dependencies]
+anchor-lang = { version = "0.28.0", features = ["derive", "init-if-needed"] }
+anchor-spl = { version = "0.28.0", features = ["metadata"] }
+
+solana-program = "=1.14"
+
+mpl-token-metadata = "1.13.1"

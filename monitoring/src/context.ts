@@ -4,6 +4,7 @@ const {
   ETHEREUM_URL,
   ELECTRUM_URL,
   LARGE_DEPOSIT_THRESHOLD_SAT,
+  LARGE_REDEMPTION_THRESHOLD_SAT,
   DATA_DIR_PATH,
   SENTRY_DSN,
   DISCORD_WEBHOOK_URL,
@@ -52,6 +53,7 @@ export const context = {
   ethereumUrl: resolveEthereumUrl(),
   electrumUrl: resolveElectrumUrl(),
   largeDepositThresholdSat: LARGE_DEPOSIT_THRESHOLD_SAT ?? 1000000000, // 10 BTC by default
+  largeRedemptionThresholdSat: LARGE_REDEMPTION_THRESHOLD_SAT ?? 1000000000, // 10 BTC by default
   dataDirPath: DATA_DIR_PATH ?? "./data",
   sentryDsn: SENTRY_DSN,
   discordWebhookUrl: DISCORD_WEBHOOK_URL,
