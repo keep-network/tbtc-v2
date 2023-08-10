@@ -17,12 +17,6 @@ async function run(): Promise<void> {
   const wormholeGatewayProgram = anchor.workspace
     .WormholeGateway as Program<WormholeGateway>
 
-  console.log("tbtcProgram.programId", tbtcProgram.programId)
-  console.log(
-    "wormholeGatewayProgram.programId",
-    wormholeGatewayProgram.programId
-  )
-
   // This wallet deployed the program and is also an authority
   const authority = loadKey(process.env.AUTHORITY).publicKey
 
@@ -121,9 +115,9 @@ async function run(): Promise<void> {
 
   // Point to devnet addresses by default
   let ARBITRUM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
-  let OPTIMISM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
-  let POLYGON_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
-  let BASE_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
+  let OPTIMISM_GATEWAY = consts.OPTIMISM_GATEWAY_ADDRESS_TESTNET
+  let POLYGON_GATEWAY = consts.POLYGON_GATEWAY_ADDRESS_TESTNET
+  let BASE_GATEWAY = consts.BASE_GATEWAY_ADDRESS_TESTNET
   let SOLANA_GATEWAY = consts.SOLANA_GATEWAY_ADDRESS_TESTNET
   if (process.env.CLUSTER === "mainnet-beta") {
     ARBITRUM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_MAINNET
