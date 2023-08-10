@@ -51,3 +51,6 @@ fi
 # make transfer_authority
 
 ## Also run transfer_authority.sh script to transfer upgrade authority. (for mainnet only)
+
+## Publishing IDL so that Solana ecosystem can detect and display data nicely (nice to have)
+# anchor idl init --provider.cluster $CLUSTER --provider.wallet $AUTHORITY -f target/idl/<program_idl>.json <program_id>
