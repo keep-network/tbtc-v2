@@ -66,7 +66,7 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
-  const mintingLimit = 10000 // Arbitrary big number of TBTC
+  const mintingLimit = "18446744073709551615" // Max u64
   let WRAPPED_TBTC = consts.WRAPPED_TBTC_MINT_TESTNET
   if (process.env.CLUSTER === "mainnet-beta") {
     WRAPPED_TBTC = consts.WRAPPED_TBTC_MINT_MAINNET
