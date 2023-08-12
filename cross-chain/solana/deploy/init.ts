@@ -68,7 +68,7 @@ async function run(): Promise<void> {
 
   const mintingLimit = "18446744073709551615" // Max u64
   let WRAPPED_TBTC = consts.WRAPPED_TBTC_MINT_TESTNET
-  if (process.env.CLUSTER === "mainnet-beta") {
+  if (process.env.CLUSTER === "mainnet") {
     WRAPPED_TBTC = consts.WRAPPED_TBTC_MINT_MAINNET
   }
   const WRAPPED_TBTC_MINT = new PublicKey(WRAPPED_TBTC)
@@ -83,6 +83,11 @@ async function run(): Promise<void> {
     wormholeGatewayProgram.programId
   )[0]
 
+  // NOTE: It might happen on mainnet that tbtc won't be initialized if running this
+  // script in one shot.
+  // The simplest solution is just to wait a bit and then proceed with wormhole_gateway
+  // initializtion.
+
   // Initialize wormhole gateway
   await wormholeGatewayProgram.methods
     .initialize(new anchor.BN(mintingLimit))
@@ -95,6 +100,8 @@ async function run(): Promise<void> {
       tokenBridgeSender,
     })
     .rpc()
+
+  console.log("Initialized wormhole gateway program..")
 
   const minterInfo = PublicKey.findProgramAddressSync(
     [Buffer.from("minter-info"), minter.toBuffer()],
@@ -113,18 +120,20 @@ async function run(): Promise<void> {
     })
     .rpc()
 
+  console.log("Added a minter..")
+
   // Point to devnet addresses by default
   let ARBITRUM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_TESTNET
   let OPTIMISM_GATEWAY = consts.OPTIMISM_GATEWAY_ADDRESS_TESTNET
   let POLYGON_GATEWAY = consts.POLYGON_GATEWAY_ADDRESS_TESTNET
   let BASE_GATEWAY = consts.BASE_GATEWAY_ADDRESS_TESTNET
   let SOLANA_GATEWAY = consts.SOLANA_GATEWAY_ADDRESS_TESTNET
-  if (process.env.CLUSTER === "mainnet-beta") {
+  if (process.env.CLUSTER === "mainnet") {
     ARBITRUM_GATEWAY = consts.ARBITRUM_GATEWAY_ADDRESS_MAINNET
     OPTIMISM_GATEWAY = consts.OPTIMISM_GATEWAY_ADDRESS_MAINNET
     POLYGON_GATEWAY = consts.POLYGON_GATEWAY_ADDRESS_MAINNET
     BASE_GATEWAY = consts.BASE_GATEWAY_ADDRESS_MAINNET
-    // TODO: add SOLANA_GATEWAY_ADDRESS_MAINNET once it's deployed
+    SOLANA_GATEWAY = consts.SOLANA_GATEWAY_ADDRESS_MAINNET
   }
 
   // Updating with Arbitrum
@@ -149,6 +158,11 @@ async function run(): Promise<void> {
     })
     .rpc()
 
+  console.log(
+    "Updated Solana gateway with Arbitrum..",
+    Array.from(new PublicKey(ARBITRUM_GATEWAY).toBuffer())
+  )
+
   // Updating with Optimism
   const optiArgs = {
     chain: consts.WH_OPTIMISM_CHAIN_ID,
@@ -170,6 +184,11 @@ async function run(): Promise<void> {
       authority,
     })
     .rpc()
+
+  console.log(
+    "Updated Solana gateway with Optimism..",
+    Array.from(new PublicKey(OPTIMISM_GATEWAY).toBuffer())
+  )
 
   // Updating with Polygon
   const polyArgs = {
@@ -193,6 +212,11 @@ async function run(): Promise<void> {
     })
     .rpc()
 
+  console.log(
+    "Updated Solana gateway with Polygon..",
+    Array.from(new PublicKey(POLYGON_GATEWAY).toBuffer())
+  )
+
   // Updating with BASE
   const baseArgs = {
     chain: consts.WH_BASE_CHAIN_ID,
@@ -215,6 +239,11 @@ async function run(): Promise<void> {
     })
     .rpc()
 
+  console.log(
+    "Updated Solana gateway with Base..",
+    Array.from(Buffer.alloc(32, BASE_GATEWAY, "hex"))
+  )
+
   // Updating with self (SOLANA)
   const solanaArgs = {
     chain: consts.WH_SOLANA_CHAIN_ID,
@@ -236,6 +265,11 @@ async function run(): Promise<void> {
       authority,
     })
     .rpc()
+
+  console.log(
+    "Updated Solana gateway with self (Solana)..",
+    Array.from(new PublicKey(SOLANA_GATEWAY).toBuffer())
+  )
 
   console.log("Done initializing programs!")
 }
