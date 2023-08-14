@@ -4,12 +4,10 @@
     "description": "tBTC v2 on Solana",
     "license": "GPL-3.0-only",
     "scripts": {
-        "build": "anchor build",
         "format": "npm run lint",
         "format:fix": "npm run lint:fix",
         "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-        "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-        "test": "anchor test"
+        "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
     },
     "dependencies": {
         "@coral-xyz/anchor": "^0.28.0"
