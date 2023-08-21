@@ -2,9 +2,12 @@
 .anchor
 .prettierrc.json
 .DS_Store
-target
+/target/*
 **/*.rs.bk
 node_modules
 test-ledger
 artifacts-mainnet
 artifacts-testnet
+.env
+!/target/idl/
+!/target/idl/*
