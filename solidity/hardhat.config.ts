@@ -117,6 +117,14 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["tenderly"],
     },
+    sepolia: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 11155111,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
+      tags: ["tenderly"],
+    },
     mainnet: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 1,
@@ -172,6 +180,11 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/random-beacon/artifacts",
         "node_modules/@keep-network/ecdsa/artifacts",
       ],
+      sepolia: [
+        "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@keep-network/random-beacon/artifacts",
+        "node_modules/@keep-network/ecdsa/artifacts",
+      ],
       mainnet: ["./external/mainnet"],
     },
   },
@@ -180,16 +193,19 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
       goerli: 0,
+      sepolia: 0,
       mainnet: 0, // "0x123694886DBf5Ac94DDA07135349534536D14cAf"
     },
     governance: {
       default: 2,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     chaosnetOwner: {
       default: 3,
       goerli: 0,
+      sepolia: 0,
       // Not used for mainnet deployment scripts of `@keepn-network/tbtc-v2`.
       // Used by `@keep-network/random-beacon` and `@keep-network/ecdsa`
       // when deploying `SortitionPool`s.
@@ -197,36 +213,43 @@ const config: HardhatUserConfig = {
     esdm: {
       default: 4,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
     },
     keepTechnicalWalletTeam: {
       default: 5,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A",
     },
     keepCommunityMultiSig: {
       default: 6,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
     treasury: {
       default: 7,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0x87F005317692D05BAA4193AB0c961c69e175f45f", // Token Holder DAO
     },
     spvMaintainer: {
       default: 8,
       goerli: 0,
+      sepolia: 0,
       // We are not setting SPV maintainer for mainnet in deployment scripts.
     },
     coordinator: {
       default: 9,
       goerli: "0x4815cd81fFc21039a25aCFbD97CE75cCE8579042",
+      // TODO: add one for sepolia
       mainnet: "0x0595acCca29654c43Bd67E18578b30a405265234",
     },
     v1Redeemer: {
       default: 10,
       goerli: 0,
+      sepolia: 0,
       mainnet: "0x8Bac178fA95Cb56D11A94d4f1b2B1F5Fc48A30eA",
     },
   },

@@ -21,9 +21,9 @@ func.tags = ["AuthorizeSpvMaintainer"]
 func.dependencies = ["Bridge"]
 
 // SPV maintainer can submit SPV proofs to the Bridge. We authorize spvMaintainer
-// account for Hardhat network (unit tests) and Goerli (testnet) but we DO NOT
-// want to authorize it for Mainnet deployment. SPV maintainer will be authorized
-// separately by the Governance when sweeping will be activated.
+// account for Hardhat network (unit tests) and Goerli/Sepolia (testnets) but we
+// DO NOT want to authorize it for Mainnet deployment. SPV maintainer will be
+// authorized separately by the Governance when sweeping will be activated.
 //
 // Note that at this point MaintainerProxy contract is already authorized in the
 // Bridge (see AuthorizeMaintainerProxyInBridge tag).
