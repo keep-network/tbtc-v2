@@ -10,6 +10,7 @@
 !/deployments/mainnet/
 !/deployments/arbitrumOne/
 !/deployments/arbitrumGoerli/
+!/deployments/arbitrumSepolia/
 
 # OZ
 /.openzeppelin/unknown-*.json
