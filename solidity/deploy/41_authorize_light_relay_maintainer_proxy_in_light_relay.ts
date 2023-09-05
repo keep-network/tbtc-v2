@@ -24,4 +24,6 @@ func.tags = ["AuthorizeLightRelayMaintainerProxyInLightRelay"]
 func.dependencies = ["LightRelay", "LightRelayMaintainerProxy"]
 
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
-  hre.network.name === "goerli" || hre.network.name === "system_tests"
+  hre.network.name === "goerli"
+    || hre.network.name === "sepolia"
+    || hre.network.name === "system_tests"
