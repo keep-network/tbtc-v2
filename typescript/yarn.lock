@@ -1522,7 +1522,7 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
 
-"@keep-network/keep-ecdsa@1.9.0-dev.1", "@keep-network/keep-ecdsa@>1.9.0-dev <1.9.0-ropsten":
+"@keep-network/keep-ecdsa@>1.9.0-dev <1.9.0-ropsten":
   version "1.9.0-dev.1"
   resolved "https://registry.yarnpkg.com/@keep-network/keep-ecdsa/-/keep-ecdsa-1.9.0-dev.1.tgz#7522b47dd639ddd7479a0e71dc328a9e0bba7cae"
   integrity sha512-FRIDejTUiQO7c9gBXgjtTp2sXkEQKFBBqVjYoZE20OCGRxbgum9FbgD/B5RWIctBy4GGr5wJHnA1789iaK3X6A==
