@@ -1,5 +1,5 @@
 import bcoin from "bcoin"
-import { Transaction, address } from "bitcoinjs-lib"
+import { Transaction, address, networks } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
@@ -18,6 +18,8 @@ import {
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
+import { ECPairFactory, ECPairInterface } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -286,6 +288,10 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   const walletKeyRing = createKeyRing(walletPrivateKey, witness)
   const walletAddress = walletKeyRing.getAddress("string")
 
+  const ecPairApi = ECPairFactory(tinysecp);
+  // TODO: Pass appropriate network type (testnet vs mainnet).
+  const ecPair = ecPairApi.fromWIF(walletPrivateKey, networks.testnet)
+
   const transaction = new Transaction()
   let totalInputValue = BigNumber.from(0)
 
@@ -302,6 +308,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   }
 
   for (const utxo of utxos) {
+    // TODO: Validate that the utxo's value is the same as the value in deposit
     const prevTx = Transaction.fromHex(utxo.transactionHex)
     const scriptSig = prevTx.outs[utxo.outputIndex].script
     transaction.addInput(
@@ -312,6 +319,9 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
     )
     totalInputValue = totalInputValue.add(utxo.value)
   }
+
+  // Subtract fee from the output
+  totalInputValue = totalInputValue.sub(fee)
 
   // TODO: Verify that output script is properly created from both testnet
   //       and mainnet addresses.
@@ -333,7 +343,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
       isP2PKH(transaction.ins[i].script) ||
       isP2WPKH(transaction.ins[i].script)
     ) {
-      signMainUtxoInputBitcoinJsLib(transaction, i, walletKeyRing)
+      signMainUtxoInputBitcoinJsLib(transaction, i, ecPair)
       continue
     }
 
@@ -353,7 +363,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
-        walletKeyRing
+        ecPair
       )
     } else if (isP2WSH(transaction.ins[i].script)) {
       // P2WSH (deposit UTXO)
@@ -361,7 +371,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
-        walletKeyRing
+        ecPair
       )
     } else {
       throw new Error("Unsupported UTXO script type")
@@ -483,7 +493,7 @@ async function signP2WSHDepositInput(
 async function signMainUtxoInputBitcoinJsLib(
   transaction: any,
   inputIndex: number,
-  walletKeyRing: any
+  ecPair: ECPairInterface
 ) {
   // TODO: Implement
 }
@@ -493,7 +503,7 @@ async function signP2SHDepositInputBitcoinJsLib(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: any
+  ecPair: ECPairInterface
 ) {
   // TODO: Implement
 }
@@ -506,6 +516,42 @@ async function signP2WSHDepositInputBitcoinJsLib(
   walletKeyRing: any
 ) {
   // TODO: Implement
+}
+
+async function prepareInputSignDataBitcoinIsLib(
+  deposit: Deposit,
+  ecPair: ECPairInterface
+): Promise<{
+  walletPublicKey: string
+  depositScript: any
+  previousOutputValue: number
+}> {
+  const walletPublicKey = ecPair.publicKey.toString("hex")
+
+  if (
+    computeHash160(walletPublicKey) != deposit.walletPublicKeyHash
+  ) {
+    throw new Error(
+      "Wallet public key does not correspond to wallet private key"
+    )
+  }
+
+  if (!isCompressedPublicKey(walletPublicKey)) {
+    throw new Error("Wallet public key must be compressed")
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  const { amount, vault, ...depositScriptParameters } = deposit
+
+  const depositScript = Buffer.from(
+    await assembleDepositScript(depositScriptParameters)
+  )
+
+  return {
+    walletPublicKey,
+    depositScript: depositScript,
+    previousOutputValue: deposit.amount.toNumber(),
+  }
 }
 
 /**
