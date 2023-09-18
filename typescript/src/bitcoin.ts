@@ -6,6 +6,7 @@ import sha256 from "bcrypto/lib/sha256-browser.js"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
+import { payments } from "bitcoinjs-lib"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -677,5 +678,61 @@ export function readCompactSizeUint(varLenData: Hex): {
         byteLength: 1,
       }
     }
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2PKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2PKH, false otherwise.
+ */
+export function isP2PKH(script: Buffer): boolean {
+  try {
+    payments.p2pkh({ output: script });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2WPKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2WPKH, false otherwise.
+ */
+export function isP2WPKH(script: Buffer): boolean {
+  try {
+    payments.p2wpkh({ output: script });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2SH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2SH, false otherwise.
+ */
+export function isP2SH(script: Buffer): boolean {
+  try {
+    payments.p2sh({ output: script });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2PKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2WSH, false otherwise.
+ */
+export function isP2WSH(script: Buffer): boolean {
+  try {
+    payments.p2wsh({ output: script });
+    return true;
+  } catch (err) {
+    return false;
   }
 }
