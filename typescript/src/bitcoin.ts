@@ -688,10 +688,10 @@ export function readCompactSizeUint(varLenData: Hex): {
  */
 export function isP2PKH(script: Buffer): boolean {
   try {
-    payments.p2pkh({ output: script });
-    return true;
+    payments.p2pkh({ output: script })
+    return true
   } catch (err) {
-    return false;
+    return false
   }
 }
 
@@ -702,10 +702,10 @@ export function isP2PKH(script: Buffer): boolean {
  */
 export function isP2WPKH(script: Buffer): boolean {
   try {
-    payments.p2wpkh({ output: script });
-    return true;
+    payments.p2wpkh({ output: script })
+    return true
   } catch (err) {
-    return false;
+    return false
   }
 }
 
@@ -716,10 +716,10 @@ export function isP2WPKH(script: Buffer): boolean {
  */
 export function isP2SH(script: Buffer): boolean {
   try {
-    payments.p2sh({ output: script });
-    return true;
+    payments.p2sh({ output: script })
+    return true
   } catch (err) {
-    return false;
+    return false
   }
 }
 
@@ -730,9 +730,9 @@ export function isP2SH(script: Buffer): boolean {
  */
 export function isP2WSH(script: Buffer): boolean {
   try {
-    payments.p2wsh({ output: script });
-    return true;
+    payments.p2wsh({ output: script })
+    return true
   } catch (err) {
-    return false;
+    return false
   }
 }

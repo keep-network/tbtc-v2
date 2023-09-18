@@ -1,4 +1,5 @@
 import bcoin from "bcoin"
+import { Transaction, address } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
@@ -9,6 +10,10 @@ import {
   createKeyRing,
   TransactionHash,
   computeHash160,
+  isP2PKH,
+  isP2WPKH,
+  isP2SH,
+  isP2WSH,
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
@@ -236,6 +241,149 @@ export async function assembleDepositSweepTransaction(
 }
 
 /**
+ * Assembles a Bitcoin P2WPKH deposit sweep transaction.
+ * @dev The caller is responsible for ensuring the provided UTXOs are correctly
+ *      formed, can be spent by the wallet and their combined value is greater
+ *      then the fee.
+ * @param fee - the value that should be subtracted from the sum of the UTXOs
+ *        values and used as the transaction fee.
+ * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
+ * @param witness - The parameter used to decide about the type of the new main
+ *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
+ * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
+ * @param deposits - Array of deposits. Each element corresponds to UTXO.
+ *        The number of UTXOs and deposit elements must equal.
+ * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
+ *        from the previous wallet transaction (optional).
+ * @returns The outcome consisting of:
+ *          - the sweep transaction hash,
+ *          - the new wallet's main UTXO produced by this transaction.
+ *          - the sweep transaction in the raw format
+ */
+// TODO: Rename once it's finished.
+export async function assembleDepositSweepTransactionBitcoinJsLib(
+  fee: BigNumber,
+  walletPrivateKey: string,
+  witness: boolean,
+  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  deposits: Deposit[],
+  mainUtxo?: UnspentTransactionOutput & RawTransaction
+): Promise<{
+  transactionHash: TransactionHash
+  newMainUtxo: UnspentTransactionOutput
+  rawTransaction: RawTransaction
+}> {
+  if (utxos.length < 1) {
+    throw new Error("There must be at least one deposit UTXO to sweep")
+  }
+
+  if (utxos.length != deposits.length) {
+    throw new Error("Number of UTXOs must equal the number of deposit elements")
+  }
+
+  // TODO: Replace keyring with bitcoinjs-lib functionalities for managing
+  //       keys (ecpair).
+  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
+  const walletAddress = walletKeyRing.getAddress("string")
+
+  const transaction = new Transaction()
+  let totalInputValue = BigNumber.from(0)
+
+  if (mainUtxo) {
+    const prevTx = Transaction.fromHex(mainUtxo.transactionHex)
+    const scriptSig = prevTx.outs[mainUtxo.outputIndex].script
+    transaction.addInput(
+      mainUtxo.transactionHash.toBuffer(),
+      mainUtxo.outputIndex,
+      undefined,
+      scriptSig
+    )
+    totalInputValue = totalInputValue.add(mainUtxo.value)
+  }
+
+  for (const utxo of utxos) {
+    const prevTx = Transaction.fromHex(utxo.transactionHex)
+    const scriptSig = prevTx.outs[utxo.outputIndex].script
+    transaction.addInput(
+      utxo.transactionHash.toBuffer(),
+      utxo.outputIndex,
+      undefined,
+      scriptSig
+    )
+    totalInputValue = totalInputValue.add(utxo.value)
+  }
+
+  // TODO: Verify that output script is properly created from both testnet
+  //       and mainnet addresses.
+  const scriptPubKey = address.toOutputScript(walletAddress)
+  transaction.addOutput(scriptPubKey, totalInputValue.toNumber())
+
+  // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
+  // order
+  const utxosWithDeposits: (UnspentTransactionOutput &
+    RawTransaction &
+    Deposit)[] = utxos.map((utxo, index) => ({
+    ...utxo,
+    ...deposits[index],
+  }))
+
+  for (let i = 0; i < transaction.ins.length; i++) {
+    // P2(W)PKH (main UTXO)
+    if (
+      isP2PKH(transaction.ins[i].script) ||
+      isP2WPKH(transaction.ins[i].script)
+    ) {
+      signMainUtxoInputBitcoinJsLib(transaction, i, walletKeyRing)
+      continue
+    }
+
+    const utxoWithDeposit = utxosWithDeposits.find(
+      (u) =>
+        u.transactionHash.toString() ===
+          transaction.ins[i].hash.toString("hex") &&
+        u.outputIndex == transaction.ins[i].index
+    )
+    if (!utxoWithDeposit) {
+      throw new Error("Unknown input")
+    }
+
+    if (isP2SH(transaction.ins[i].script)) {
+      // P2SH (deposit UTXO)
+      signP2SHDepositInputBitcoinJsLib(
+        transaction,
+        i,
+        utxoWithDeposit,
+        walletKeyRing
+      )
+    } else if (isP2WSH(transaction.ins[i].script)) {
+      // P2WSH (deposit UTXO)
+      signP2WSHDepositInputBitcoinJsLib(
+        transaction,
+        i,
+        utxoWithDeposit,
+        walletKeyRing
+      )
+    } else {
+      throw new Error("Unsupported UTXO script type")
+    }
+  }
+
+  const transactionHash = TransactionHash.from(transaction.getId())
+
+  return {
+    transactionHash,
+    newMainUtxo: {
+      transactionHash,
+      outputIndex: 0, // There is only one output.
+      value: BigNumber.from(transaction.outs[0].value),
+    },
+    rawTransaction: {
+      transactionHex: transaction.toHex(),
+    },
+  }
+}
+
+/**
  * Creates script for the transaction input at the given index and signs the
  * input.
  * @param transaction - Mutable transaction containing the input to be signed.
@@ -330,6 +478,34 @@ async function signP2WSHDepositInput(
   witness.compile()
 
   transaction.inputs[inputIndex].witness = witness
+}
+
+async function signMainUtxoInputBitcoinJsLib(
+  transaction: any,
+  inputIndex: number,
+  walletKeyRing: any
+) {
+  // TODO: Implement
+}
+
+// TODO: Rename once the function is implemented.
+async function signP2SHDepositInputBitcoinJsLib(
+  transaction: Transaction,
+  inputIndex: number,
+  deposit: Deposit,
+  walletKeyRing: any
+) {
+  // TODO: Implement
+}
+
+// TODO: Rename once the function is implemented.
+async function signP2WSHDepositInputBitcoinJsLib(
+  transaction: Transaction,
+  inputIndex: number,
+  deposit: Deposit,
+  walletKeyRing: any
+) {
+  // TODO: Implement
 }
 
 /**
