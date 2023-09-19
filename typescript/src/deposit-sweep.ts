@@ -1,5 +1,5 @@
 import bcoin from "bcoin"
-import { Transaction, address, networks } from "bitcoinjs-lib"
+import { Transaction, Stack, address, script, networks } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import {
   RawTransaction,
@@ -292,39 +292,38 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   // TODO: Pass appropriate network type (testnet vs mainnet).
   const ecPair = ecPairApi.fromWIF(walletPrivateKey, networks.testnet)
 
-  const transaction = new Transaction()
+  // Calculate the value of transaction's output. Note that the value of fee
+  // needs to be subtracted from the sum.
   let totalInputValue = BigNumber.from(0)
-
   if (mainUtxo) {
-    const prevTx = Transaction.fromHex(mainUtxo.transactionHex)
-    const scriptSig = prevTx.outs[mainUtxo.outputIndex].script
-    transaction.addInput(
-      mainUtxo.transactionHash.toBuffer(),
-      mainUtxo.outputIndex,
-      undefined,
-      scriptSig
-    )
     totalInputValue = totalInputValue.add(mainUtxo.value)
   }
-
   for (const utxo of utxos) {
-    // TODO: Validate that the utxo's value is the same as the value in deposit
-    const prevTx = Transaction.fromHex(utxo.transactionHex)
-    const scriptSig = prevTx.outs[utxo.outputIndex].script
-    transaction.addInput(
-      utxo.transactionHash.toBuffer(),
-      utxo.outputIndex,
-      undefined,
-      scriptSig
-    )
     totalInputValue = totalInputValue.add(utxo.value)
   }
-
-  // Subtract fee from the output
   totalInputValue = totalInputValue.sub(fee)
+
+  // Create the transaction.
+  const transaction = new Transaction()
+
+  // Add the transaction's inputs.
+  if (mainUtxo) {
+    transaction.addInput(
+      mainUtxo.transactionHash.reverse().toBuffer(),
+      mainUtxo.outputIndex,
+    )
+  }
+  for (const utxo of utxos) {
+    // TODO: Validate that the utxo's value is the same as the value in deposit
+    transaction.addInput(
+      utxo.transactionHash.reverse().toBuffer(),
+      utxo.outputIndex
+    )
+  }
 
   // TODO: Verify that output script is properly created from both testnet
   //       and mainnet addresses.
+  // Add transaction output.
   const scriptPubKey = address.toOutputScript(walletAddress)
   transaction.addOutput(scriptPubKey, totalInputValue.toNumber())
 
@@ -338,18 +337,23 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   }))
 
   for (let i = 0; i < transaction.ins.length; i++) {
+    const previousOutput = findPreviousOutput(
+      TransactionHash.from(transaction.ins[i].hash).reverse(),
+      transaction.ins[i].index,
+      utxos,
+      mainUtxo
+    )
+    const previousOutputScript = previousOutput.script
+
     // P2(W)PKH (main UTXO)
-    if (
-      isP2PKH(transaction.ins[i].script) ||
-      isP2WPKH(transaction.ins[i].script)
-    ) {
+    if (isP2PKH(previousOutputScript) || isP2WPKH(previousOutputScript)) {
       signMainUtxoInputBitcoinJsLib(transaction, i, ecPair)
       continue
     }
 
     const utxoWithDeposit = utxosWithDeposits.find(
       (u) =>
-        u.transactionHash.toString() ===
+        u.transactionHash.reverse().toString() ===
           transaction.ins[i].hash.toString("hex") &&
         u.outputIndex == transaction.ins[i].index
     )
@@ -357,17 +361,17 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
       throw new Error("Unknown input")
     }
 
-    if (isP2SH(transaction.ins[i].script)) {
+    if (isP2SH(previousOutputScript)) {
       // P2SH (deposit UTXO)
-      signP2SHDepositInputBitcoinJsLib(
+      await signP2SHDepositInputBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
         ecPair
       )
-    } else if (isP2WSH(transaction.ins[i].script)) {
+    } else if (isP2WSH(previousOutputScript)) {
       // P2WSH (deposit UTXO)
-      signP2WSHDepositInputBitcoinJsLib(
+      await signP2WSHDepositInputBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
@@ -391,6 +395,27 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
       transactionHex: transaction.toHex(),
     },
   }
+}
+
+function findPreviousOutput(
+  inputHash: TransactionHash,
+  inputIndex: number,
+  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  mainUtxo?: UnspentTransactionOutput & RawTransaction
+) {
+  if (mainUtxo &&
+    mainUtxo.transactionHash.equals(inputHash) &&
+    mainUtxo.outputIndex === inputIndex) {
+    return Transaction.fromHex(mainUtxo.transactionHex).outs[mainUtxo.outputIndex]
+  }
+
+  for (const utxo of utxos) {
+    if (utxo.transactionHash.equals(inputHash) && utxo.outputIndex === inputIndex) {
+      return Transaction.fromHex(utxo.transactionHex).outs[utxo.outputIndex]
+    }
+  }
+
+  throw new Error("Unknown input")
 }
 
 /**
@@ -505,7 +530,25 @@ async function signP2SHDepositInputBitcoinJsLib(
   deposit: Deposit,
   ecPair: ECPairInterface
 ) {
-  // TODO: Implement
+  const { walletPublicKey, depositScript } =
+    await prepareInputSignDataBitcoinIsLib(deposit, ecPair)
+
+  const sigHashType = Transaction.SIGHASH_ALL
+
+  const sigHash = transaction.hashForSignature(
+    inputIndex,
+    depositScript,
+    sigHashType
+  )
+
+  const signature = script.signature.encode(ecPair.sign(sigHash), sigHashType)
+
+  const scriptSig: Stack = []
+  scriptSig.push(signature)
+  scriptSig.push(Buffer.from(walletPublicKey, "hex"))
+  scriptSig.push(depositScript)
+
+  transaction.ins[inputIndex].script = script.compile(scriptSig)
 }
 
 // TODO: Rename once the function is implemented.
@@ -513,9 +556,28 @@ async function signP2WSHDepositInputBitcoinJsLib(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: any
+  ecPair: ECPairInterface
 ) {
-  // TODO: Implement
+  const { walletPublicKey, depositScript, previousOutputValue } =
+  await prepareInputSignDataBitcoinIsLib(deposit, ecPair)
+
+  const sigHashType = Transaction.SIGHASH_ALL
+
+  const sigHash = transaction.hashForWitnessV0(
+    inputIndex,
+    depositScript,
+    previousOutputValue,
+    sigHashType
+  )
+
+  const signature = script.signature.encode(ecPair.sign(sigHash), sigHashType)
+
+  const witness: Buffer[] = []
+  witness.push(signature)
+  witness.push(Buffer.from(walletPublicKey, "hex"))
+  witness.push(depositScript)
+
+  transaction.ins[inputIndex].witness = witness
 }
 
 async function prepareInputSignDataBitcoinIsLib(
@@ -544,7 +606,8 @@ async function prepareInputSignDataBitcoinIsLib(
   const { amount, vault, ...depositScriptParameters } = deposit
 
   const depositScript = Buffer.from(
-    await assembleDepositScript(depositScriptParameters)
+    await assembleDepositScript(depositScriptParameters),
+    "hex"
   )
 
   return {
