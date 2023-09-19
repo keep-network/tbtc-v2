@@ -555,7 +555,7 @@ export class Client implements BitcoinClient {
  * @param script - Bitcoin script as hex string
  * @returns Electrum script hash as a hex string.
  */
-function computeScriptHash(script: string): string {
+export function computeScriptHash(script: string): string {
   const _script = Hex.from(Buffer.from(script, "hex")).toPrefixedString()
   const hash256 = utils.sha256(_script)
 

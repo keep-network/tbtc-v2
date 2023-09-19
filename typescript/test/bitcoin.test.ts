@@ -14,6 +14,8 @@ import {
   createOutputScriptFromAddress,
   createAddressFromOutputScript,
   readCompactSizeUint,
+  computeHash160,
+  computeHash256,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
@@ -63,6 +65,31 @@ describe("Bitcoin", () => {
           "The public key parameter must be 64-byte. Neither 0x nor 04 prefix is allowed"
         )
       })
+    })
+  })
+
+  describe("computeHash160", () => {
+    it("should compute hash160 correctly", () => {
+      const compressedPublicKey =
+        "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+      const expectedHash160 = "3e1dfbd72483fb3964ca828ee71cf3270cafdc65"
+
+      expect(computeHash160(compressedPublicKey)).to.be.equal(expectedHash160)
+    })
+  })
+
+  describe("computeHash256", () => {
+    it("should compute hash256 correctly", () => {
+      const hexValue = Hex.from(
+        "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+      )
+      const expectedHash256 = Hex.from(
+        "9f0b7447ca6ea11b8badd8a60a4dec1b846451551ef455975b1720f52bc90546"
+      )
+
+      expect(computeHash256(hexValue).toString()).to.be.equal(
+        expectedHash256.toString()
+      )
     })
   })
 
