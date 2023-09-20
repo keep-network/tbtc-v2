@@ -18,7 +18,7 @@ import {
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
-import { ECPairFactory, ECPairInterface } from "ecpair"
+import { ECPairFactory as ecFactory, ECPairInterface } from "ecpair"
 import * as tinysecp from "tiny-secp256k1"
 
 /**
@@ -288,7 +288,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   const walletKeyRing = createKeyRing(walletPrivateKey, witness)
   const walletAddress = walletKeyRing.getAddress("string")
 
-  const ecPairApi = ECPairFactory(tinysecp);
+  const ecPairApi = ecFactory(tinysecp)
   // TODO: Pass appropriate network type (testnet vs mainnet).
   const ecPair = ecPairApi.fromWIF(walletPrivateKey, networks.testnet)
 
@@ -310,7 +310,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   if (mainUtxo) {
     transaction.addInput(
       mainUtxo.transactionHash.reverse().toBuffer(),
-      mainUtxo.outputIndex,
+      mainUtxo.outputIndex
     )
   }
   for (const utxo of utxos) {
@@ -403,14 +403,21 @@ function findPreviousOutput(
   utxos: (UnspentTransactionOutput & RawTransaction)[],
   mainUtxo?: UnspentTransactionOutput & RawTransaction
 ) {
-  if (mainUtxo &&
+  if (
+    mainUtxo &&
     mainUtxo.transactionHash.equals(inputHash) &&
-    mainUtxo.outputIndex === inputIndex) {
-    return Transaction.fromHex(mainUtxo.transactionHex).outs[mainUtxo.outputIndex]
+    mainUtxo.outputIndex === inputIndex
+  ) {
+    return Transaction.fromHex(mainUtxo.transactionHex).outs[
+      mainUtxo.outputIndex
+    ]
   }
 
   for (const utxo of utxos) {
-    if (utxo.transactionHash.equals(inputHash) && utxo.outputIndex === inputIndex) {
+    if (
+      utxo.transactionHash.equals(inputHash) &&
+      utxo.outputIndex === inputIndex
+    ) {
       return Transaction.fromHex(utxo.transactionHex).outs[utxo.outputIndex]
     }
   }
@@ -559,7 +566,7 @@ async function signP2WSHDepositInputBitcoinJsLib(
   ecPair: ECPairInterface
 ) {
   const { walletPublicKey, depositScript, previousOutputValue } =
-  await prepareInputSignDataBitcoinIsLib(deposit, ecPair)
+    await prepareInputSignDataBitcoinIsLib(deposit, ecPair)
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -590,9 +597,7 @@ async function prepareInputSignDataBitcoinIsLib(
 }> {
   const walletPublicKey = ecPair.publicKey.toString("hex")
 
-  if (
-    computeHash160(walletPublicKey) != deposit.walletPublicKeyHash
-  ) {
+  if (computeHash160(walletPublicKey) != deposit.walletPublicKeyHash) {
     throw new Error(
       "Wallet public key does not correspond to wallet private key"
     )
