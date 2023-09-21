@@ -13,8 +13,7 @@ import {
 } from "./bitcoin"
 import { BitcoinNetwork } from "./bitcoin-network"
 import Electrum from "electrum-client-js"
-import sha256 from "bcrypto/lib/sha256-browser.js"
-import { BigNumber } from "ethers"
+import { BigNumber, utils } from "ethers"
 import { URL } from "url"
 import { Hex } from "./hex"
 import { backoffRetrier, RetrierFn } from "./backoff"
@@ -556,6 +555,9 @@ export class Client implements BitcoinClient {
  * @param script - Bitcoin script as hex string
  * @returns Electrum script hash as a hex string.
  */
-function computeScriptHash(script: string): string {
-  return sha256.digest(Buffer.from(script, "hex")).reverse().toString("hex")
+export function computeScriptHash(script: string): string {
+  const _script = Hex.from(Buffer.from(script, "hex")).toPrefixedString()
+  const hash256 = utils.sha256(_script)
+
+  return Hex.from(hash256).reverse().toString()
 }

@@ -1,6 +1,7 @@
 import {
   Credentials as ElectrumCredentials,
   Client as ElectrumClient,
+  computeScriptHash,
 } from "../src/electrum"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import {
@@ -215,6 +216,16 @@ describe("Electrum", () => {
             testnetTransactionMerkleBranch.blockHeight
           )
           expect(result).to.be.eql(testnetTransactionMerkleBranch)
+        })
+      })
+
+      describe("computeScriptHash", () => {
+        it("should convert Bitcoin script to an Electrum script hash correctly", () => {
+          const script = "00144b47c798d12edd17dfb4ea98e5447926f664731c"
+          const expectedScriptHash =
+            "cabdea0bfc10fb3521721dde503487dd1f0e41dd6609da228066757563f292ab"
+
+          expect(computeScriptHash(script)).to.be.equal(expectedScriptHash)
         })
       })
     })
