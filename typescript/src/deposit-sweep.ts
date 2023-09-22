@@ -323,7 +323,6 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
     )
   }
   for (const utxo of utxos) {
-    // TODO: Validate that the utxo's value is the same as the value in deposit
     transaction.addInput(
       utxo.transactionHash.reverse().toBuffer(),
       utxo.outputIndex
@@ -383,6 +382,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
+        previousOutputValue,
         keyPair
       )
     } else if (isP2WSH(previousOutputScript)) {
@@ -391,6 +391,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
         transaction,
         i,
         utxoWithDeposit,
+        previousOutputValue,
         keyPair
       )
     } else {
@@ -545,6 +546,7 @@ async function signMainUtxoInputBitcoinJsLib(
   prevOutValue: number,
   keyPair: Signer
 ) {
+  // TODO: Check that input the belongs to the wallet.
   const sigHashType = Transaction.SIGHASH_ALL
 
   if (isP2PKH(prevOutScript)) {
@@ -603,10 +605,11 @@ async function signP2SHDepositInputBitcoinJsLib(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
+  prevOutValue: number,
   keyPair: Signer
 ) {
   const { walletPublicKey, depositScript } =
-    await prepareInputSignDataBitcoinIsLib(deposit, keyPair)
+    await prepareInputSignDataBitcoinIsLib(deposit, prevOutValue, keyPair)
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -631,10 +634,11 @@ async function signP2WSHDepositInputBitcoinJsLib(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
+  prevOutValue: number,
   keyPair: Signer
 ) {
   const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignDataBitcoinIsLib(deposit, keyPair)
+    await prepareInputSignDataBitcoinIsLib(deposit, prevOutValue, keyPair)
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -657,12 +661,17 @@ async function signP2WSHDepositInputBitcoinJsLib(
 
 async function prepareInputSignDataBitcoinIsLib(
   deposit: Deposit,
+  prevOutValue: number,
   ecPair: Signer
 ): Promise<{
   walletPublicKey: string
   depositScript: any
   previousOutputValue: number
 }> {
+  if (prevOutValue != deposit.amount.toNumber()) {
+    throw new Error("Mismatch between amount in deposit and deposit tx")
+  }
+
   const walletPublicKey = ecPair.publicKey.toString("hex")
 
   if (computeHash160(walletPublicKey) != deposit.walletPublicKeyHash) {
