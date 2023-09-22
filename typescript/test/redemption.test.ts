@@ -1,9 +1,11 @@
 import {
+  BitcoinNetwork,
   Transaction,
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "../src/bitcoin"
+} from "../src/lib/bitcoin"
+import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
   walletPrivateKey,
@@ -30,13 +32,11 @@ import {
   submitRedemptionProof,
   submitRedemptionTransaction,
 } from "../src/redemption"
-import { txToJSON } from "./utils/helpers"
 import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
-import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Wallet } from "../src/wallet"
 import { MockTBTCToken } from "./utils/mock-tbtc-token"
 import { BitcoinTransaction } from "../src"
@@ -53,6 +53,8 @@ describe("Redemption", () => {
     const token: MockTBTCToken = new MockTBTCToken()
 
     beforeEach(async () => {
+      bcoin.set("testnet")
+
       await requestRedemption(
         walletPublicKey,
         mainUtxo,
@@ -80,6 +82,7 @@ describe("Redemption", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
+      bcoin.set("testnet")
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
     })
@@ -495,7 +498,6 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
-                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -510,10 +512,8 @@ describe("Redemption", () => {
                   )
 
                   // Convert raw transaction to JSON to make detailed comparison.
-                  const txJSON = txToJSON(
-                    transaction.transactionHex,
-                    BitcoinNetwork.Testnet
-                  )
+                  const buffer = Buffer.from(transaction.transactionHex, "hex")
+                  const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
                     data.expectedRedemption.transactionHash.toString()
@@ -525,14 +525,17 @@ describe("Redemption", () => {
 
                   const input = txJSON.inputs[0]
 
-                  expect(input.hash).to.be.equal(
+                  expect(input.prevout.hash).to.be.equal(
                     data.mainUtxo.transactionHash.toString()
                   )
-                  expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+                  expect(input.prevout.index).to.be.equal(
+                    data.mainUtxo.outputIndex
+                  )
                   // Transaction should be signed but this is SegWit input so the `script`
                   // field should be empty and the `witness` field should be filled instead.
                   expect(input.script.length).to.be.equal(0)
                   expect(input.witness.length).to.be.greaterThan(0)
+                  expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
                   // Validate outputs.
                   expect(txJSON.outputs.length).to.be.equal(2)
@@ -608,7 +611,6 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
-                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -623,10 +625,8 @@ describe("Redemption", () => {
                   )
 
                   // Convert raw transaction to JSON to make detailed comparison.
-                  const txJSON = txToJSON(
-                    transaction.transactionHex,
-                    BitcoinNetwork.Testnet
-                  )
+                  const buffer = Buffer.from(transaction.transactionHex, "hex")
+                  const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
                     data.expectedRedemption.transactionHash.toString()
@@ -638,14 +638,17 @@ describe("Redemption", () => {
 
                   const input = txJSON.inputs[0]
 
-                  expect(input.hash).to.be.equal(
+                  expect(input.prevout.hash).to.be.equal(
                     data.mainUtxo.transactionHash.toString()
                   )
-                  expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+                  expect(input.prevout.index).to.be.equal(
+                    data.mainUtxo.outputIndex
+                  )
                   // Transaction should be signed but this is SegWit input so the `script`
                   // field should be empty and the `witness` field should be filled instead.
                   expect(input.script.length).to.be.equal(0)
                   expect(input.witness.length).to.be.greaterThan(0)
+                  expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
                   // Validate outputs.
                   expect(txJSON.outputs.length).to.be.equal(2)
@@ -720,7 +723,6 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
-                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -735,10 +737,8 @@ describe("Redemption", () => {
                   )
 
                   // Convert raw transaction to JSON to make detailed comparison.
-                  const txJSON = txToJSON(
-                    transaction.transactionHex,
-                    BitcoinNetwork.Testnet
-                  )
+                  const buffer = Buffer.from(transaction.transactionHex, "hex")
+                  const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
                     data.expectedRedemption.transactionHash.toString()
@@ -750,14 +750,17 @@ describe("Redemption", () => {
 
                   const input = txJSON.inputs[0]
 
-                  expect(input.hash).to.be.equal(
+                  expect(input.prevout.hash).to.be.equal(
                     data.mainUtxo.transactionHash.toString()
                   )
-                  expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+                  expect(input.prevout.index).to.be.equal(
+                    data.mainUtxo.outputIndex
+                  )
                   // Transaction should be signed but this is SegWit input so the `script`
                   // field should be empty and the `witness` field should be filled instead.
                   expect(input.script.length).to.be.equal(0)
                   expect(input.witness.length).to.be.greaterThan(0)
+                  expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
                   // Validate outputs.
                   expect(txJSON.outputs.length).to.be.equal(2)
@@ -832,7 +835,6 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
-                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -847,10 +849,8 @@ describe("Redemption", () => {
                   )
 
                   // Convert raw transaction to JSON to make detailed comparison.
-                  const txJSON = txToJSON(
-                    transaction.transactionHex,
-                    BitcoinNetwork.Testnet
-                  )
+                  const buffer = Buffer.from(transaction.transactionHex, "hex")
+                  const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
                   expect(txJSON.hash).to.be.equal(
                     data.expectedRedemption.transactionHash.toString()
@@ -862,14 +862,17 @@ describe("Redemption", () => {
 
                   const input = txJSON.inputs[0]
 
-                  expect(input.hash).to.be.equal(
+                  expect(input.prevout.hash).to.be.equal(
                     data.mainUtxo.transactionHash.toString()
                   )
-                  expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+                  expect(input.prevout.index).to.be.equal(
+                    data.mainUtxo.outputIndex
+                  )
                   // Transaction should be signed but this is SegWit input so the `script`
                   // field should be empty and the `witness` field should be filled instead.
                   expect(input.script.length).to.be.equal(0)
                   expect(input.witness.length).to.be.greaterThan(0)
+                  expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
                   // Validate outputs.
                   expect(txJSON.outputs.length).to.be.equal(2)
@@ -943,7 +946,6 @@ describe("Redemption", () => {
                 newMainUtxo,
                 rawTransaction: transaction,
               } = await assembleRedemptionTransaction(
-                BitcoinNetwork.Testnet,
                 walletPrivateKey,
                 data.mainUtxo,
                 redemptionRequests,
@@ -956,10 +958,8 @@ describe("Redemption", () => {
               expect(transaction).to.be.eql(data.expectedRedemption.transaction)
 
               // Convert raw transaction to JSON to make detailed comparison.
-              const txJSON = txToJSON(
-                transaction.transactionHex,
-                BitcoinNetwork.Testnet
-              )
+              const buffer = Buffer.from(transaction.transactionHex, "hex")
+              const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
               expect(txJSON.hash).to.be.equal(
                 data.expectedRedemption.transactionHash.toString()
@@ -971,14 +971,15 @@ describe("Redemption", () => {
 
               const input = txJSON.inputs[0]
 
-              expect(input.hash).to.be.equal(
+              expect(input.prevout.hash).to.be.equal(
                 data.mainUtxo.transactionHash.toString()
               )
-              expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+              expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
               // Transaction should be signed but this is SegWit input so the `script`
               // field should be empty and the `witness` field should be filled instead.
               expect(input.script.length).to.be.equal(0)
               expect(input.witness.length).to.be.greaterThan(0)
+              expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
               // Validate outputs.
               expect(txJSON.outputs.length).to.be.equal(5)
@@ -1102,7 +1103,6 @@ describe("Redemption", () => {
               newMainUtxo,
               rawTransaction: transaction,
             } = await assembleRedemptionTransaction(
-              BitcoinNetwork.Testnet,
               walletPrivateKey,
               data.mainUtxo,
               redemptionRequests,
@@ -1115,10 +1115,8 @@ describe("Redemption", () => {
             expect(transaction).to.be.eql(data.expectedRedemption.transaction)
 
             // Convert raw transaction to JSON to make detailed comparison.
-            const txJSON = txToJSON(
-              transaction.transactionHex,
-              BitcoinNetwork.Testnet
-            )
+            const buffer = Buffer.from(transaction.transactionHex, "hex")
+            const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
             expect(txJSON.hash).to.be.equal(
               data.expectedRedemption.transactionHash.toString()
@@ -1130,14 +1128,15 @@ describe("Redemption", () => {
 
             const input = txJSON.inputs[0]
 
-            expect(input.hash).to.be.equal(
+            expect(input.prevout.hash).to.be.equal(
               data.mainUtxo.transactionHash.toString()
             )
-            expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+            expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
             // Transaction should be signed but this is SegWit input so the `script`
             // field should be empty and the `witness` field should be filled instead.
             expect(input.script.length).to.be.equal(0)
             expect(input.witness.length).to.be.greaterThan(0)
+            expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
             // Validate outputs.
             expect(txJSON.outputs.length).to.be.equal(2)
@@ -1210,7 +1209,6 @@ describe("Redemption", () => {
             newMainUtxo,
             rawTransaction: transaction,
           } = await assembleRedemptionTransaction(
-            BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
             redemptionRequests,
@@ -1223,10 +1221,9 @@ describe("Redemption", () => {
           expect(transaction).to.be.eql(data.expectedRedemption.transaction)
 
           // Convert raw transaction to JSON to make detailed comparison.
-          const txJSON = txToJSON(
-            transaction.transactionHex,
-            BitcoinNetwork.Testnet
-          )
+          const buffer = Buffer.from(transaction.transactionHex, "hex")
+          const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
+
           expect(txJSON.hash).to.be.equal(
             data.expectedRedemption.transactionHash.toString()
           )
@@ -1237,14 +1234,15 @@ describe("Redemption", () => {
 
           const input = txJSON.inputs[0]
 
-          expect(input.hash).to.be.equal(
+          expect(input.prevout.hash).to.be.equal(
             data.mainUtxo.transactionHash.toString()
           )
-          expect(input.index).to.be.equal(data.mainUtxo.outputIndex)
+          expect(input.prevout.index).to.be.equal(data.mainUtxo.outputIndex)
           // Transaction should be signed but this is SegWit input so the `script`
           // field should be empty and the `witness` field should be filled instead.
           expect(input.script.length).to.be.equal(0)
           expect(input.witness.length).to.be.greaterThan(0)
+          expect(input.address).to.be.equal(p2wpkhWalletAddress)
 
           // Validate outputs.
           expect(txJSON.outputs.length).to.be.equal(2)
@@ -1300,7 +1298,6 @@ describe("Redemption", () => {
       it("should revert", async () => {
         await expect(
           assembleRedemptionTransaction(
-            BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
             [], // empty list of redemption requests
@@ -1324,6 +1321,8 @@ describe("Redemption", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
+      bcoin.set("testnet")
+
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
 

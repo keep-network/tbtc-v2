@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { TransactionHash } from "./lib/bitcoin"
-import { Identifier, Event, TBTCVault } from "./chain"
+import { Identifier, Event, TBTCVault } from "./lib/contracts"
 import { Hex } from "./hex"
 
 /**

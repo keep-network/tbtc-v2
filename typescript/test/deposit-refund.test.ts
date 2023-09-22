@@ -5,7 +5,7 @@ import chaiAsPromised from "chai-as-promised"
 chai.use(chaiAsPromised)
 import { expect } from "chai"
 import { submitDepositRefundTransaction } from "../src/deposit-refund"
-import { TransactionHash, RawTransaction } from "./bitcoin"
+import { TransactionHash, RawTransaction } from "./lib/bitcoin"
 import {
   refunderPrivateKey,
   depositRefundOfWitnessDepositAndWitnessRefunderAddress,

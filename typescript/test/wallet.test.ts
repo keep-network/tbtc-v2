@@ -3,7 +3,7 @@ import { MockBridge } from "./utils/mock-bridge"
 import { BitcoinNetwork, BitcoinTransaction, Hex } from "../src"
 import { determineWalletMainUtxo, Wallet } from "../src/wallet"
 import { expect } from "chai"
-import { encodeToBitcoinAddress } from "../src/bitcoin"
+import { encodeToBitcoinAddress } from "../src/lib/bitcoin"
 import { BigNumber } from "ethers"
 
 describe("Wallet", () => {

@@ -11,7 +11,7 @@ import {
   hashLEToBigNumber,
   serializeBlockHeader,
   BlockHeader,
-} from "./bitcoin"
+} from "./lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 

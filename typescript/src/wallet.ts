@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
-import { Bridge, Event, Identifier } from "./chain"
+import { Bridge, Event, Identifier } from "./lib/contracts"
 import {
   Client as BitcoinClient,
   BitcoinNetwork,

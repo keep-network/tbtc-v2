@@ -3,7 +3,7 @@ import {
   Client as ElectrumClient,
   computeScriptHash,
 } from "../src/electrum"
-import { BitcoinNetwork } from "../src/bitcoin-network"
+import { BitcoinNetwork } from "../src/lib/bitcoin"
 import {
   testnetAddress,
   testnetHeadersChain,

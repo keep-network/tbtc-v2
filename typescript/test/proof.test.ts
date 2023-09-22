@@ -1,5 +1,10 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import { serializeBlockHeader, Transaction, BlockHeader } from "../src/bitcoin"
+import {
+  serializeBlockHeader,
+  Transaction,
+  BlockHeader,
+  Proof,
+} from "../src/lib/bitcoin"
 import { Hex } from "../src/hex"
 import {
   singleInputProofTestData,
@@ -15,7 +20,6 @@ import {
   validateTransactionProof,
   splitHeaders,
 } from "../src/proof"
-import { Proof } from "./bitcoin"
 import { expect } from "chai"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"

@@ -12,7 +12,7 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "../src/bitcoin"
+} from "../src/lib/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
   assembleDepositScript,

@@ -11,7 +11,7 @@ import {
   computeHash160,
 } from "./lib/bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
-import { Bridge, Identifier } from "./chain"
+import { Bridge, Identifier } from "./lib/contracts"
 import { assembleTransactionProof } from "./proof"
 
 /**

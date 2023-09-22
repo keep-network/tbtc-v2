@@ -11,7 +11,7 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./lib/bitcoin"
-import { Bridge, Event, Identifier } from "./chain"
+import { Bridge, Event, Identifier } from "./lib/contracts"
 import { Hex } from "./hex"
 
 const { opcodes } = bcoin.script.common

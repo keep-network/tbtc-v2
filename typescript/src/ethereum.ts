@@ -5,7 +5,7 @@ import {
   TBTCToken as ChainTBTCToken,
   Identifier as ChainIdentifier,
   GetEvents,
-} from "./chain"
+} from "./lib/contracts"
 import {
   BigNumber,
   constants,
