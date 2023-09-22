@@ -56,9 +56,8 @@ export {
   Transaction as BitcoinTransaction,
   TransactionOutput as BitcoinTransactionOutput,
   locktimeToNumber as BitcoinLocktimeToNumber,
-} from "./bitcoin"
-
-export { BitcoinNetwork } from "./bitcoin-network"
+  BitcoinNetwork,
+} from "./lib/bitcoin"
 
 export { Client as ElectrumClient } from "./electrum"
 

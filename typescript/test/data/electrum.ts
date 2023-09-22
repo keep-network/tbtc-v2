@@ -4,7 +4,7 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
   TransactionHash,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "../../src"
 

@@ -8,7 +8,7 @@ import {
   TransactionMerkleBranch,
   TransactionHash,
   createOutputScriptFromAddress,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
 import { Address } from "../../src/ethereum"
 import { BitcoinNetwork, BitcoinTransaction, Hex } from "../../src"

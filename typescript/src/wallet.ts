@@ -3,12 +3,12 @@ import { Hex } from "./hex"
 import { Bridge, Event, Identifier } from "./chain"
 import {
   Client as BitcoinClient,
+  BitcoinNetwork,
   createOutputScriptFromAddress,
   encodeToBitcoinAddress,
   TransactionOutput,
   UnspentTransactionOutput,
-} from "./bitcoin"
-import { BitcoinNetwork } from "./bitcoin-network"
+} from "./lib/bitcoin"
 
 /* eslint-disable no-unused-vars */
 export enum WalletState {

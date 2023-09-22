@@ -3,7 +3,7 @@ import {
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 import { Deposit, calculateDepositRefundLocktime } from "../../src/deposit"
 import { Address } from "../../src/ethereum"
 

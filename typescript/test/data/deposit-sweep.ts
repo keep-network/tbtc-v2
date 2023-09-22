@@ -6,7 +6,7 @@ import {
   UnspentTransactionOutput,
   TransactionMerkleBranch,
   TransactionHash,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
 import { Address } from "../../src/ethereum"

@@ -1,7 +1,9 @@
 import { expect } from "chai"
-import { BitcoinNetwork, toBitcoinJsLibNetwork } from "../src/bitcoin-network"
-import { TransactionHash } from "../src/bitcoin"
-import { networks } from "bitcoinjs-lib"
+import {
+  TransactionHash,
+  BitcoinNetwork,
+  toBcoinNetwork,
+} from "../src/lib/bitcoin"
 
 describe("BitcoinNetwork", () => {
   const testData = [
@@ -10,7 +12,7 @@ describe("BitcoinNetwork", () => {
       enumValue: "unknown",
       // any value that doesn't match other supported networks
       genesisHash: TransactionHash.from("0x00010203"),
-      expectedToBitcoinJsLibResult: new Error("network not supported"),
+      expectedToBcoinResult: new Error("network not supported"),
     },
     {
       enumKey: BitcoinNetwork.Testnet,
@@ -18,7 +20,7 @@ describe("BitcoinNetwork", () => {
       genesisHash: TransactionHash.from(
         "0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
       ),
-      expectedToBitcoinJsLibResult: networks.testnet,
+      expectedToBcoinResult: "testnet",
     },
     {
       enumKey: BitcoinNetwork.Mainnet,
@@ -26,12 +28,12 @@ describe("BitcoinNetwork", () => {
       genesisHash: TransactionHash.from(
         "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
       ),
-      expectedToBitcoinJsLibResult: networks.bitcoin,
+      expectedToBcoinResult: "main",
     },
   ]
 
   testData.forEach(
-    ({ enumKey, enumValue, genesisHash, expectedToBitcoinJsLibResult }) => {
+    ({ enumKey, enumValue, genesisHash, expectedToBcoinResult }) => {
       context(enumKey, async () => {
         describe(`toString`, async () => {
           it(`should return correct value`, async () => {
@@ -47,18 +49,16 @@ describe("BitcoinNetwork", () => {
           })
         })
 
-        describe(`toBitcoinJsLibNetwork`, async () => {
-          if (expectedToBitcoinJsLibResult instanceof Error) {
+        describe(`toBcoinNetwork`, async () => {
+          if (expectedToBcoinResult instanceof Error) {
             it(`should throw an error`, async () => {
-              expect(() => toBitcoinJsLibNetwork(enumKey)).to.throw(
-                expectedToBitcoinJsLibResult.message
+              expect(() => toBcoinNetwork(enumKey)).to.throw(
+                expectedToBcoinResult.message
               )
             })
           } else {
-            it(`should return ${expectedToBitcoinJsLibResult}`, async () => {
-              expect(toBitcoinJsLibNetwork(enumKey)).to.be.equal(
-                expectedToBitcoinJsLibResult
-              )
+            it(`should return ${expectedToBcoinResult}`, async () => {
+              expect(toBcoinNetwork(enumKey)).to.be.equal(expectedToBcoinResult)
             })
           }
         })

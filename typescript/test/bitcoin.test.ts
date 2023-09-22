@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import {
+  BitcoinNetwork,
   compressPublicKey,
   encodeToBitcoinAddress,
   decodeBitcoinAddress,
@@ -13,23 +14,14 @@ import {
   targetToDifficulty,
   createOutputScriptFromAddress,
   createAddressFromOutputScript,
-  createAddressFromPublicKey,
   readCompactSizeUint,
   computeHash160,
-  computeSha256,
   computeHash256,
-  isP2PKHScript,
-  isP2WPKHScript,
-  isP2SHScript,
-  isP2WSHScript,
-  decomposeRawTransaction,
-} from "../src/bitcoin"
+} from "../src/lib/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
-import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
-import { btcAddresses, btcAddressFromPublicKey } from "./data/bitcoin"
-import { depositSweepWithNoMainUtxoAndWitnessOutput } from "./data/deposit-sweep"
+import { btcAddresses } from "./data/bitcoin"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -101,21 +93,6 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("computeSha256", () => {
-    it("should compute hash256 correctly", () => {
-      const hexValue = Hex.from(
-        "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
-      )
-      const expectedSha256 = Hex.from(
-        "c62e5cb26c97cb52fea7f9965e9ea1f8d41c97773688aa88674e64629fc02901"
-      )
-
-      expect(computeSha256(hexValue).toString()).to.be.equal(
-        expectedSha256.toString()
-      )
-    })
-  })
-
   describe("P2PKH <-> public key hash conversion", () => {
     const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
     const P2WPKHAddress = "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy"
@@ -148,10 +125,7 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw(
-                'Expected property "hash" of type Buffer(Length: 20), got ' +
-                  "Buffer(Length: 21)"
-              )
+              ).to.throw("P2WPKH must be 20 bytes")
             })
           })
         })
@@ -179,10 +153,7 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw(
-                'Expected property "hash" of type Buffer(Length: 20), got ' +
-                  "Buffer(Length: 21)"
-              )
+              ).to.throw("P2PKH must be 20 bytes")
             })
           })
         })
@@ -212,10 +183,7 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw(
-                'Expected property "hash" of type Buffer(Length: 20), got ' +
-                  "Buffer(Length: 21)"
-              )
+              ).to.throw("P2WPKH must be 20 bytes")
             })
           })
         })
@@ -243,10 +211,7 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw(
-                'Expected property "hash" of type Buffer(Length: 20), got ' +
-                  "Buffer(Length: 21)"
-              )
+              ).to.throw("P2PKH must be 20 bytes")
             })
           })
         })
@@ -261,21 +226,21 @@ describe("Bitcoin", () => {
       })
     })
 
-    describe("decodeBitcoinAddress", () => {
+    describe("decodeAddress", () => {
       context("when network is mainnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(
-              decodeBitcoinAddress(P2WPKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            expect(decodeBitcoinAddress(P2WPKHAddress)).to.be.equal(
+              publicKeyHash
+            )
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(
-              decodeBitcoinAddress(P2PKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            expect(decodeBitcoinAddress(P2PKHAddress)).to.be.equal(
+              publicKeyHash
+            )
           })
         })
 
@@ -283,10 +248,8 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddress
 
-            expect(() =>
-              decodeBitcoinAddress(bitcoinAddress, BitcoinNetwork.Mainnet)
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
+              "Address is too long"
             )
           })
         })
@@ -294,13 +257,8 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              decodeBitcoinAddress(
-                "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX",
-                BitcoinNetwork.Mainnet
-              )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
+              decodeBitcoinAddress("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
 
@@ -308,25 +266,9 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress(
-                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
-                BitcoinNetwork.Mainnet
+                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m"
               )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
-          })
-        })
-
-        context("when address from testnet network is provided", () => {
-          it("should throw", () => {
-            expect(() =>
-              decodeBitcoinAddress(
-                "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw",
-                BitcoinNetwork.Mainnet
-              )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
       })
@@ -334,17 +276,17 @@ describe("Bitcoin", () => {
       context("when network is testnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(
-              decodeBitcoinAddress(P2WPKHAddressTestnet, BitcoinNetwork.Testnet)
-            ).to.be.equal(publicKeyHash)
+            expect(decodeBitcoinAddress(P2WPKHAddressTestnet)).to.be.equal(
+              publicKeyHash
+            )
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(
-              decodeBitcoinAddress(P2PKHAddressTestnet, BitcoinNetwork.Testnet)
-            ).to.be.equal(publicKeyHash)
+            expect(decodeBitcoinAddress(P2PKHAddressTestnet)).to.be.equal(
+              publicKeyHash
+            )
           })
         })
 
@@ -352,10 +294,8 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddressTestnet
 
-            expect(() =>
-              decodeBitcoinAddress(bitcoinAddress, BitcoinNetwork.Testnet)
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
+            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
+              "Address is too long"
             )
           })
         })
@@ -363,13 +303,8 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              decodeBitcoinAddress(
-                "2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5",
-                BitcoinNetwork.Testnet
-              )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
+              decodeBitcoinAddress("2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5")
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
 
@@ -377,25 +312,9 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress(
-                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
-                BitcoinNetwork.Testnet
+                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
               )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
-          })
-        })
-
-        context("when address from mainnet network is provided", () => {
-          it("should throw", () => {
-            expect(() =>
-              decodeBitcoinAddress(
-                "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy",
-                BitcoinNetwork.Testnet
-              )
-            ).to.throw(
-              "Address must be P2PKH or P2WPKH valid for given network"
-            )
+            ).to.throw("Address must be P2PKH or P2WPKH")
           })
         })
       })
@@ -585,11 +504,7 @@ describe("Bitcoin", () => {
         ).forEach(
           ([addressType, { address, scriptPubKey: expectedOutputScript }]) => {
             it(`should create correct output script for ${addressType} address type`, () => {
-              const network =
-                bitcoinNetwork === "mainnet"
-                  ? BitcoinNetwork.Mainnet
-                  : BitcoinNetwork.Testnet
-              const result = createOutputScriptFromAddress(address, network)
+              const result = createOutputScriptFromAddress(address)
 
               expect(result.toString()).to.eq(expectedOutputScript.toString())
             })
@@ -599,7 +514,7 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("createAddressFromOutputScript", () => {
+  describe("getAddressFromScriptPubKey", () => {
     Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
       context(`with ${bitcoinNetwork} addresses`, () => {
         Object.entries(
@@ -618,30 +533,6 @@ describe("Bitcoin", () => {
         })
       })
     })
-  })
-
-  describe("createAddressFromPublicKey", () => {
-    Object.entries(btcAddressFromPublicKey).forEach(
-      ([bitcoinNetwork, addressData]) => {
-        context(`with ${bitcoinNetwork} addresses`, () => {
-          Object.entries(addressData).forEach(
-            ([addressType, { publicKey, address }]) => {
-              it(`should return correct ${addressType} address for ${bitcoinNetwork}`, () => {
-                const witness = addressType === "P2WPKH"
-                const result = createAddressFromPublicKey(
-                  publicKey,
-                  bitcoinNetwork === "mainnet"
-                    ? BitcoinNetwork.Mainnet
-                    : BitcoinNetwork.Testnet,
-                  witness
-                )
-                expect(result).to.eq(address)
-              })
-            }
-          )
-        })
-      }
-    )
   })
 
   describe("readCompactSizeUint", () => {
@@ -679,83 +570,5 @@ describe("Bitcoin", () => {
         )
       })
     })
-  })
-
-  describe("Bitcoin Script Type", () => {
-    const testData = [
-      {
-        testFunction: isP2PKHScript,
-        validScript: Buffer.from(
-          "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac",
-          "hex"
-        ),
-        name: "P2PKH",
-      },
-      {
-        testFunction: isP2WPKHScript,
-        validScript: Buffer.from(
-          "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-          "hex"
-        ),
-        name: "P2WPKH",
-      },
-      {
-        testFunction: isP2SHScript,
-        validScript: Buffer.from(
-          "a914a9a5f97d5d3c4687a52e90718168270005b369c487",
-          "hex"
-        ),
-        name: "P2SH",
-      },
-      {
-        testFunction: isP2WSHScript,
-        validScript: Buffer.from(
-          "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7",
-          "hex"
-        ),
-        name: "P2WSH",
-      },
-    ]
-
-    testData.forEach(({ testFunction, validScript, name }) => {
-      describe(`is${name}Script`, () => {
-        it(`should return true for a valid ${name} script`, () => {
-          expect(testFunction(validScript)).to.be.true
-        })
-
-        it("should return false for other scripts", () => {
-          testData.forEach((data) => {
-            if (data.name !== name) {
-              expect(testFunction(data.validScript)).to.be.false
-            }
-          })
-        })
-      })
-    })
-  })
-})
-
-describe("decomposeRawTransaction", () => {
-  it("should return correctly decomposed transaction", () => {
-    const rawTransaction =
-      depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
-    const decomposedTransaction = decomposeRawTransaction(rawTransaction)
-
-    expect(decomposedTransaction.version).to.be.equal("01000000")
-    expect(decomposedTransaction.inputs).to.be.equal(
-      "02bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699bacd53e3d07400" +
-        "000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f0cb3ef852a468153" +
-        "e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f816bf27991c2b73211e" +
-        "227db27ec200bc0a012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f25" +
-        "64da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508" +
-        "f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763" +
-        "ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac" +
-        "68ffffffffdc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa826394df" +
-        "ec545c0000000000ffffffff"
-    )
-    expect(decomposedTransaction.outputs).to.be.equal(
-      "01488a0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
-    )
-    expect(decomposedTransaction.locktime).to.be.equal("00000000")
   })
 })

@@ -4,7 +4,7 @@ import {
   UnspentTransactionOutput,
   DecomposedRawTransaction,
   TransactionHash,
-} from "./bitcoin"
+} from "./lib/bitcoin"
 import {
   DepositRevealedEvent,
   DepositScriptParameters,

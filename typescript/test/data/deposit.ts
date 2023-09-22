@@ -2,7 +2,7 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 import { BigNumber } from "ethers"
 
 /**

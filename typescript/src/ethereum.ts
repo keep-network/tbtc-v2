@@ -36,7 +36,7 @@ import {
   readCompactSizeUint,
   TransactionHash,
   UnspentTransactionOutput,
-} from "./bitcoin"
+} from "./lib/bitcoin"
 import type {
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,

@@ -1,5 +1,4 @@
-import { Hex } from "./hex"
-import { networks } from "bitcoinjs-lib"
+import { Hex } from "../../hex"
 
 /**
  * Bitcoin networks.
@@ -46,21 +45,19 @@ export namespace BitcoinNetwork {
 }
 
 /**
- * Converts the provided {@link BitcoinNetwork} enumeration to a format expected
- * by the `bitcoinjs-lib` library.
- * @param bitcoinNetwork - Specified Bitcoin network.
- * @returns Network representation compatible with the `bitcoinjs-lib` library.
- * @throws An error if the network is not supported by `bitcoinjs-lib`.
+ * Converts enumerated {@link BitcoinNetwork} to a string expected by the
+ * {@link https://github.com/keep-network/bcoin/blob/aba6841e43546e8a485e96dc0019d1e788eab2ee/lib/protocol/networks.js#L33| `bcoin` library}
+ * @param bitcoinNetwork Bitcoin network.
+ * @returns String representing the given network in bcoin library.
+ * @throws An error if the network is not supported by bcoin.
  */
-export function toBitcoinJsLibNetwork(
-  bitcoinNetwork: BitcoinNetwork
-): networks.Network {
+export function toBcoinNetwork(bitcoinNetwork: BitcoinNetwork): string {
   switch (bitcoinNetwork) {
     case BitcoinNetwork.Mainnet: {
-      return networks.bitcoin
+      return "main"
     }
     case BitcoinNetwork.Testnet: {
-      return networks.testnet
+      return "testnet"
     }
     default: {
       throw new Error(`network not supported`)

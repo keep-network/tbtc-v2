@@ -1,8 +1,8 @@
-import { Transaction as Tx, TxInput, TxOutput } from "bitcoinjs-lib"
+import bcoin from "bcoin"
 import pTimeout from "p-timeout"
 import {
   Client as BitcoinClient,
-  computeSha256,
+  BitcoinNetwork,
   createOutputScriptFromAddress,
   RawTransaction,
   Transaction,
@@ -11,8 +11,7 @@ import {
   TransactionMerkleBranch,
   TransactionOutput,
   UnspentTransactionOutput,
-} from "./bitcoin"
-import { BitcoinNetwork } from "./bitcoin-network"
+} from "./lib/bitcoin"
 import Electrum from "electrum-client-js"
 import { BigNumber, utils } from "ethers"
 import { URL } from "url"
@@ -233,11 +232,7 @@ export class Client implements BitcoinClient {
   ): Promise<UnspentTransactionOutput[]> {
     return this.withElectrum<UnspentTransactionOutput[]>(
       async (electrum: Electrum) => {
-        const bitcoinNetwork = await this.getNetwork()
-        const script = createOutputScriptFromAddress(
-          address,
-          bitcoinNetwork
-        ).toString()
+        const script = createOutputScriptFromAddress(address).toString()
 
         // eslint-disable-next-line camelcase
         type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -267,11 +262,7 @@ export class Client implements BitcoinClient {
     limit?: number
   ): Promise<Transaction[]> {
     return this.withElectrum<Transaction[]>(async (electrum: Electrum) => {
-      const bitcoinNetwork = await this.getNetwork()
-      const script = createOutputScriptFromAddress(
-        address,
-        bitcoinNetwork
-      ).toString()
+      const script = createOutputScriptFromAddress(address).toString()
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
@@ -338,26 +329,26 @@ export class Client implements BitcoinClient {
       }
 
       // Decode the raw transaction.
-      const transaction = Tx.fromHex(rawTransaction)
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
 
-      const inputs = transaction.ins.map(
-        (input: TxInput): TransactionInput => ({
-          transactionHash: TransactionHash.from(input.hash).reverse(),
-          outputIndex: input.index,
-          scriptSig: Hex.from(input.script),
+      const inputs = transaction.inputs.map(
+        (input: any): TransactionInput => ({
+          transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
+          outputIndex: input.prevout.index,
+          scriptSig: Hex.from(input.script.toRaw()),
         })
       )
 
-      const outputs = transaction.outs.map(
-        (output: TxOutput, i: number): TransactionOutput => ({
+      const outputs = transaction.outputs.map(
+        (output: any, i: number): TransactionOutput => ({
           outputIndex: i,
           value: BigNumber.from(output.value),
-          scriptPubKey: Hex.from(output.script),
+          scriptPubKey: Hex.from(output.script.toRaw()),
         })
       )
 
       return {
-        transactionHash: TransactionHash.from(transaction.getId()),
+        transactionHash: TransactionHash.from(transaction.hash()).reverse(),
         inputs: inputs,
         outputs: outputs,
       }
@@ -408,7 +399,7 @@ export class Client implements BitcoinClient {
       )
 
       // Decode the raw transaction.
-      const transaction = Tx.fromHex(rawTransaction)
+      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
 
       // As a workaround for the problem described in https://github.com/Blockstream/electrs/pull/36
       // we need to calculate the number of confirmations based on the latest
@@ -426,10 +417,8 @@ export class Client implements BitcoinClient {
       // If a transaction is unconfirmed (is still in the mempool) the height will
       // have a value of `0` or `-1`.
       let txBlockHeight: number = Math.min()
-      for (const output of transaction.outs) {
-        const scriptHash: Buffer = computeSha256(
-          Hex.from(output.script)
-        ).toBuffer()
+      for (const output of transaction.outputs) {
+        const scriptHash: Buffer = output.script.sha256()
 
         type HistoryEntry = {
           // eslint-disable-next-line camelcase
