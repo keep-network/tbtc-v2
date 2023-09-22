@@ -5,7 +5,7 @@ import {
   TransactionHash,
 } from "../../src/lib/bitcoin"
 import { Deposit, calculateDepositRefundLocktime } from "../../src/deposit"
-import { Address } from "../../src/ethereum"
+import { Address } from "../../src/lib/ethereum"
 
 /**
  * Testnet private key that can be used to refund the deposits used in tests.

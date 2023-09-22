@@ -1,7 +1,7 @@
-import { TBTCToken } from "../../src/chain"
+import { TBTCToken } from "../../src/lib/contracts"
 import { Hex } from "../../src/hex"
 import { BigNumber } from "ethers"
-import { UnspentTransactionOutput } from "../../src/bitcoin"
+import { UnspentTransactionOutput } from "../../src/lib/bitcoin"
 
 interface RequestRedemptionLog {
   walletPublicKey: string

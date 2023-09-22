@@ -67,7 +67,7 @@ export {
   Address as EthereumAddress,
   TBTCVault as EthereumTBTCVault,
   TBTCToken as EthereumTBTCToken,
-} from "./ethereum"
+} from "./lib/ethereum"
 
 export { Hex } from "./hex"
 

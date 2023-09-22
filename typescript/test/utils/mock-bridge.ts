@@ -1,9 +1,16 @@
-import { Bridge, WalletRegistry, GetEvents, Identifier } from "../../src/chain"
+import {
+  Bridge,
+  WalletRegistry,
+  GetEvents,
+  Identifier,
+} from "../../src/lib/contracts"
 import {
   DecomposedRawTransaction,
   Proof,
   UnspentTransactionOutput,
-} from "../../src/bitcoin"
+  computeHash160,
+  TransactionHash,
+} from "../../src/lib/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { RedemptionRequest, RedemptionRequestedEvent } from "../redemption"
 import {
@@ -11,9 +18,8 @@ import {
   DepositRevealedEvent,
   RevealedDeposit,
 } from "../../src/deposit"
-import { computeHash160, TransactionHash } from "../../src/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
-import { Address } from "../../src/ethereum"
+import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src/hex"
 import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 

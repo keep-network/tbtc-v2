@@ -1,12 +1,12 @@
-import { BitcoinNetwork } from "../../src/bitcoin-network"
 import {
+  BitcoinNetwork,
   Client,
   UnspentTransactionOutput,
   TransactionMerkleBranch,
   RawTransaction,
   Transaction,
   TransactionHash,
-} from "../../src/bitcoin"
+} from "../../src/lib/bitcoin"
 
 /**
  * Mock Bitcoin client used for test purposes.

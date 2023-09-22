@@ -9,7 +9,7 @@ import {
 } from "../../src/lib/bitcoin"
 import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
 import { BigNumber } from "ethers"
-import { Address } from "../../src/ethereum"
+import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src"
 
 export const NO_MAIN_UTXO = {

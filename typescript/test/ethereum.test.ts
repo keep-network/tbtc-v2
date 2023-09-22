@@ -1,4 +1,4 @@
-import { Address, Bridge, TBTCToken } from "../src/ethereum"
+import { Address, Bridge, TBTCToken } from "../src/lib/ethereum"
 import {
   deployMockContract,
   MockContract,

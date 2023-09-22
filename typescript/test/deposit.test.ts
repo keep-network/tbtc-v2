@@ -14,6 +14,7 @@ import {
   UnspentTransactionOutput,
 } from "../src/lib/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
+import bcoin from "bcoin"
 import {
   assembleDepositScript,
   assembleDepositTransaction,
@@ -29,8 +30,7 @@ import {
   suggestDepositWallet,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
-import { txToJSON } from "./utils/helpers"
-import { Address } from "../src/ethereum"
+import { Address } from "../src/lib/ethereum"
 import { BitcoinNetwork } from "../src"
 
 describe("Deposit", () => {
@@ -224,7 +224,15 @@ describe("Deposit", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
+      bcoin.set("testnet")
+
       bitcoinClient = new MockBitcoinClient()
+
+      // Tie used testnetAddress with testnetUTXO to use it during deposit
+      // creation.
+      const utxos = new Map<string, UnspentTransactionOutput[]>()
+      utxos.set(testnetAddress, [testnetUTXO])
+      bitcoinClient.unspentTransactionOutputs = utxos
 
       // Tie testnetTransaction to testnetUTXO. This is needed since
       // submitDepositTransaction attach transaction data to each UTXO.
@@ -238,14 +246,11 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        const fee = BigNumber.from(1520)
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
-          true,
-          [testnetUTXO],
-          fee
+          true
         ))
       })
 
@@ -278,15 +283,11 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
-        const fee = BigNumber.from(1410)
-
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
-          false,
-          [testnetUTXO],
-          fee
+          false
         ))
       })
 
@@ -322,18 +323,15 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
-        const fee = BigNumber.from(1520)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          BitcoinNetwork.Testnet,
           deposit,
-          testnetPrivateKey,
-          true,
           [testnetUTXO],
-          fee
+          testnetPrivateKey,
+          true
         ))
       })
 
@@ -342,10 +340,8 @@ describe("Deposit", () => {
         expect(transaction).to.be.eql(expectedP2WSHDeposit.transaction)
 
         // Convert raw transaction to JSON to make detailed comparison.
-        const txJSON = txToJSON(
-          transaction.transactionHex,
-          BitcoinNetwork.Testnet
-        )
+        const buffer = Buffer.from(transaction.transactionHex, "hex")
+        const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
           expectedP2WSHDeposit.transactionHash.toString()
@@ -357,12 +353,15 @@ describe("Deposit", () => {
 
         const input = txJSON.inputs[0]
 
-        expect(input.hash).to.be.equal(testnetUTXO.transactionHash.toString())
-        expect(input.index).to.be.equal(testnetUTXO.outputIndex)
+        expect(input.prevout.hash).to.be.equal(
+          testnetUTXO.transactionHash.toString()
+        )
+        expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
         // Transaction should be signed but this is SegWit input so the `script`
         // field should be empty and the `witness` field should be filled instead.
         expect(input.script.length).to.be.equal(0)
         expect(input.witness.length).to.be.greaterThan(0)
+        expect(input.address).to.be.equal(testnetAddress)
 
         // Validate outputs.
         expect(txJSON.outputs.length).to.be.equal(2)
@@ -421,18 +420,15 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
-        const fee = BigNumber.from(1410)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
-          BitcoinNetwork.Testnet,
           deposit,
-          testnetPrivateKey,
-          false,
           [testnetUTXO],
-          fee
+          testnetPrivateKey,
+          false
         ))
       })
 
@@ -441,10 +437,8 @@ describe("Deposit", () => {
         expect(transaction).to.be.eql(expectedP2SHDeposit.transaction)
 
         // Convert raw transaction to JSON to make detailed comparison.
-        const txJSON = txToJSON(
-          transaction.transactionHex,
-          BitcoinNetwork.Testnet
-        )
+        const buffer = Buffer.from(transaction.transactionHex, "hex")
+        const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
 
         expect(txJSON.hash).to.be.equal(
           expectedP2SHDeposit.transactionHash.toString()
@@ -456,12 +450,15 @@ describe("Deposit", () => {
 
         const input = txJSON.inputs[0]
 
-        expect(input.hash).to.be.equal(testnetUTXO.transactionHash.toString())
-        expect(input.index).to.be.equal(testnetUTXO.outputIndex)
+        expect(input.prevout.hash).to.be.equal(
+          testnetUTXO.transactionHash.toString()
+        )
+        expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
         // Transaction should be signed but this is SegWit input so the `script`
         // field should be empty and the `witness` field should be filled instead.
         expect(input.script.length).to.be.equal(0)
         expect(input.witness.length).to.be.greaterThan(0)
+        expect(input.address).to.be.equal(testnetAddress)
 
         // Validate outputs.
         expect(txJSON.outputs.length).to.be.equal(2)
@@ -701,14 +698,11 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
-      const fee = BigNumber.from(1520)
       const result = await assembleDepositTransaction(
-        BitcoinNetwork.Testnet,
         deposit,
-        testnetPrivateKey,
-        true,
         [testnetUTXO],
-        fee
+        testnetPrivateKey,
+        true
       )
 
       transaction = result.rawTransaction
@@ -746,14 +740,11 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
-      const fee = BigNumber.from(1520)
       ;({ depositUtxo } = await assembleDepositTransaction(
-        BitcoinNetwork.Testnet,
         deposit,
-        testnetPrivateKey,
-        true,
         [testnetUTXO],
-        fee
+        testnetPrivateKey,
+        true
       ))
 
       revealedDeposit = {
