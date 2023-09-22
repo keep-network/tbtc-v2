@@ -11,12 +11,12 @@ import {
   TransactionMerkleBranch,
   TransactionOutput,
   UnspentTransactionOutput,
-} from "./lib/bitcoin"
+} from "../bitcoin"
 import Electrum from "electrum-client-js"
 import { BigNumber, utils } from "ethers"
 import { URL } from "url"
-import { Hex } from "./hex"
-import { backoffRetrier, RetrierFn } from "./backoff"
+import { Hex } from "../../hex"
+import { backoffRetrier, RetrierFn } from "../../backoff"
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.

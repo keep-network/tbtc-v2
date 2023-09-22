@@ -59,7 +59,7 @@ export {
   BitcoinNetwork,
 } from "./lib/bitcoin"
 
-export { Client as ElectrumClient } from "./electrum"
+export { Client as ElectrumClient } from "./lib/electrum"
 
 export {
   Bridge as EthereumBridge,

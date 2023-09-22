@@ -2,7 +2,7 @@ import {
   Credentials as ElectrumCredentials,
   Client as ElectrumClient,
   computeScriptHash,
-} from "../src/electrum"
+} from "../src/lib/electrum"
 import { BitcoinNetwork } from "../src/lib/bitcoin"
 import {
   testnetAddress,
