@@ -1,13 +1,8 @@
 import { TransactionHash } from "../bitcoin"
 import { Hex } from "../utils"
-import {
-  OptimisticMintingCancelledEvent,
-  OptimisticMintingFinalizedEvent,
-  OptimisticMintingRequest,
-  OptimisticMintingRequestedEvent,
-} from "../../optimistic-minting"
 import { Identifier } from "./chain-identifier"
-import { GetEvents } from "./chain-event"
+import { Event, GetEvents } from "./chain-event"
+import { BigNumber } from "ethers"
 
 /**
  * Interface for communication with the TBTCVault on-chain contract.
@@ -112,3 +107,99 @@ export interface TBTCVault {
    */
   getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
 }
+
+/**
+ * Represents optimistic minting request for the given deposit revealed to the
+ * Bridge.
+ */
+export type OptimisticMintingRequest = {
+  /**
+   * UNIX timestamp at which the optimistic minting was requested.
+   */
+  requestedAt: number
+  /**
+   * UNIX timestamp at which the optimistic minting was finalized.
+   * 0 if not yet finalized.
+   */
+  finalizedAt: number
+}
+
+/**
+ * Represents an event that is emitted when a new optimistic minting is requested
+ * on chain.
+ */
+export type OptimisticMintingRequestedEvent = {
+  /**
+   * Minter's chain identifier.
+   */
+  minter: Identifier
+  /**
+   * Unique deposit identifier.
+   * @see Bridge.buildDepositKey
+   */
+  depositKey: Hex
+  /**
+   * Depositor's chain identifier.
+   */
+  depositor: Identifier
+  /**
+   * Amount of tokens requested to mint.
+   * This value is in ERC 1e18 precision, it has to be converted before using
+   * as Bitcoin value with 1e8 precision in satoshi.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  amount: BigNumber
+  /**
+   * Hash of a Bitcoin transaction made to fund the deposit.
+   */
+  fundingTxHash: TransactionHash
+  /**
+   * Index of an output in the funding transaction made to fund the deposit.
+   */
+  fundingOutputIndex: number
+} & Event
+
+/**
+ * Represents an event that is emitted when an optimistic minting request
+ * is cancelled on chain.
+ */
+export type OptimisticMintingCancelledEvent = {
+  /**
+   * Guardian's chain identifier.
+   */
+  guardian: Identifier
+  /**
+   * Unique deposit identifier.
+   * @see Bridge.buildDepositKey
+   */
+  depositKey: Hex
+} & Event
+
+/**
+ * Represents an event that is emitted when an optimistic minting request
+ * is finalized on chain.
+ */
+export type OptimisticMintingFinalizedEvent = {
+  /**
+   * Minter's chain identifier.
+   */
+  minter: Identifier
+  /**
+   * Unique deposit identifier.
+   * @see Bridge.buildDepositKey
+   */
+  depositKey: Hex
+  /**
+   * Depositor's chain identifier.
+   */
+  depositor: Identifier
+  /**
+   * Value of the new optimistic minting debt of the depositor.
+   * This value is in ERC 1e18 precision, it has to be converted before using
+   * as Bitcoin value with 1e8 precision in satoshi.
+   */
+  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
+  //       precision to Bitcoin in 1e8 precision (satoshi).
+  optimisticMintingDebt: BigNumber
+} & Event

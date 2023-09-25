@@ -1,14 +1,15 @@
 import { TBTCVault as ContractTBTCVault } from "../../../typechain/TBTCVault"
-import { GetEvents, TBTCVault as ChainTBTCVault } from "../contracts"
-import { BigNumber, ContractTransaction } from "ethers"
-import { TransactionHash } from "../bitcoin"
-import { backoffRetrier, Hex } from "../utils"
 import {
+  GetEvents,
+  TBTCVault as ChainTBTCVault,
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
-} from "../../optimistic-minting"
+} from "../contracts"
+import { BigNumber, ContractTransaction } from "ethers"
+import { TransactionHash } from "../bitcoin"
+import { backoffRetrier, Hex } from "../utils"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 import {
   ContractConfig,

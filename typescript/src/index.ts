@@ -74,4 +74,4 @@ export { Hex } from "./lib/utils"
 export {
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
-} from "./optimistic-minting"
+} from "./lib/contracts"
