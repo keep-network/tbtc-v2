@@ -6,7 +6,6 @@ import {
   payments,
   address,
   script,
-  networks,
 } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import {
@@ -28,6 +27,7 @@ import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
 import { ECPairFactory as ecFactory } from "ecpair"
 import * as tinysecp from "tiny-secp256k1"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -272,6 +272,7 @@ export async function assembleDepositSweepTransaction(
  */
 // TODO: Rename once it's finished.
 export async function assembleDepositSweepTransactionBitcoinJsLib(
+  bitcoinNetwork: BitcoinNetwork,
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
@@ -291,15 +292,14 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
     throw new Error("Number of UTXOs must equal the number of deposit elements")
   }
 
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
   // TODO: Replace keyring with bitcoinjs-lib functionalities for managing
   //       keys (ecpair).
   const walletKeyRing = createKeyRing(walletPrivateKey, witness)
   const walletAddress = walletKeyRing.getAddress("string")
 
-  const keyPair = ecFactory(tinysecp).fromWIF(
-    walletPrivateKey,
-    networks.testnet
-  )
+  const keyPair = ecFactory(tinysecp).fromWIF(walletPrivateKey, network)
 
   // Calculate the value of transaction's output. Note that the value of fee
   // needs to be subtracted from the sum.
@@ -332,7 +332,7 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   // TODO: Verify that output script is properly created from both testnet
   //       and mainnet addresses.
   // Add transaction output.
-  const scriptPubKey = address.toOutputScript(walletAddress)
+  const scriptPubKey = address.toOutputScript(walletAddress, network)
   transaction.addOutput(scriptPubKey, totalInputValue.toNumber())
 
   // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any

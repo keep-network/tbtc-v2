@@ -1,4 +1,5 @@
 import { Hex } from "./hex"
+import { networks } from "bitcoinjs-lib"
 
 /**
  * Bitcoin networks.
@@ -58,6 +59,22 @@ export function toBcoinNetwork(bitcoinNetwork: BitcoinNetwork): string {
     }
     case BitcoinNetwork.Testnet: {
       return "testnet"
+    }
+    default: {
+      throw new Error(`network not supported`)
+    }
+  }
+}
+
+export function toBitcoinJsLibNetwork(
+  bitcoinNetwork: BitcoinNetwork
+): networks.Network {
+  switch (bitcoinNetwork) {
+    case BitcoinNetwork.Mainnet: {
+      return networks.bitcoin
+    }
+    case BitcoinNetwork.Testnet: {
+      return networks.testnet
     }
     default: {
       throw new Error(`network not supported`)
