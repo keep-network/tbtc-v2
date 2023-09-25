@@ -1,6 +1,7 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
+  assembleTransactionProof,
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
@@ -12,7 +13,6 @@ import {
 } from "./lib/bitcoin"
 import { assembleDepositScript } from "./deposit"
 import { Bridge, Identifier, Deposit } from "./lib/contracts"
-import { assembleTransactionProof } from "./proof"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and

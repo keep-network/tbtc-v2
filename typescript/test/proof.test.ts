@@ -4,6 +4,9 @@ import {
   Transaction,
   BlockHeader,
   Proof,
+  assembleTransactionProof,
+  validateTransactionProof,
+  splitBlockHeadersChain,
 } from "../src/lib/bitcoin"
 import { Hex } from "../src/lib/utils"
 import {
@@ -15,11 +18,6 @@ import {
   ProofTestData,
   TransactionProofData,
 } from "./data/proof"
-import {
-  assembleTransactionProof,
-  validateTransactionProof,
-  splitHeaders,
-} from "../src/proof"
 import { expect } from "chai"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
@@ -285,7 +283,7 @@ describe("Proof", () => {
         it("should throw", async () => {
           // Corrupt data by modifying previous block header hash of one of the
           // headers.
-          const headers: BlockHeader[] = splitHeaders(
+          const headers: BlockHeader[] = splitBlockHeadersChain(
             transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
           )
           headers[headers.length - 1].previousBlockHeaderHash = Hex.from(
@@ -313,7 +311,7 @@ describe("Proof", () => {
         it("should throw", async () => {
           // Corrupt data by modifying the nonce of one of the headers, so that
           // the resulting hash will be above the required difficulty target.
-          const headers: BlockHeader[] = splitHeaders(
+          const headers: BlockHeader[] = splitBlockHeadersChain(
             transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
           )
           headers[headers.length - 1].nonce++

@@ -1,6 +1,7 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
+  assembleTransactionProof,
   BitcoinNetwork,
   createKeyRing,
   decomposeRawTransaction,
@@ -15,7 +16,6 @@ import {
   TBTCToken,
   WalletState,
 } from "./lib/contracts"
-import { assembleTransactionProof } from "./proof"
 import { determineWalletMainUtxo } from "./wallet"
 import { Hex } from "./lib/utils"
 
