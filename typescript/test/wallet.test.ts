@@ -1,9 +1,10 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { MockBridge } from "./utils/mock-bridge"
 import { BitcoinNetwork, BitcoinTransaction, Hex } from "../src"
-import { determineWalletMainUtxo, Wallet } from "../src/wallet"
+import { determineWalletMainUtxo } from "../src/wallet"
 import { expect } from "chai"
 import { encodeToBitcoinAddress } from "../src/lib/bitcoin"
+import { Wallet } from "../src/lib/contracts"
 import { BigNumber } from "ethers"
 
 describe("Wallet", () => {

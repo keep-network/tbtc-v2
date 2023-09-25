@@ -1,11 +1,12 @@
 import { WalletRegistry as ContractWalletRegistry } from "../../../typechain/WalletRegistry"
-import { GetEvents, WalletRegistry as ChainWalletRegistry } from "../contracts"
-import { backoffRetrier, Hex } from "../utils"
 import {
+  GetEvents,
+  WalletRegistry as ChainWalletRegistry,
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
-} from "../../wallet"
+} from "../contracts"
+import { backoffRetrier, Hex } from "../utils"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber } from "ethers"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"

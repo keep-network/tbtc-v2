@@ -9,9 +9,15 @@ import {
   Client as BitcoinClient,
   TransactionHash,
 } from "./lib/bitcoin"
-import { Bridge, Event, Identifier, TBTCToken } from "./lib/contracts"
+import {
+  Bridge,
+  Event,
+  Identifier,
+  TBTCToken,
+  WalletState,
+} from "./lib/contracts"
 import { assembleTransactionProof } from "./proof"
-import { determineWalletMainUtxo, WalletState } from "./wallet"
+import { determineWalletMainUtxo } from "./wallet"
 import { Hex } from "./lib/utils"
 
 /**

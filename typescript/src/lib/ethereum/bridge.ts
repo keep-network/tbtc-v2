@@ -9,6 +9,9 @@ import {
   GetEvents,
   Identifier as ChainIdentifier,
   WalletRegistry as ChainWalletRegistry,
+  NewWalletRegisteredEvent,
+  Wallet,
+  WalletState,
 } from "../contracts"
 import {
   DepositRevealedEvent,
@@ -28,7 +31,6 @@ import {
   UnspentTransactionOutput,
 } from "../bitcoin"
 import { RedemptionRequest, RedemptionRequestedEvent } from "../../redemption"
-import { NewWalletRegisteredEvent, Wallet, WalletState } from "../../wallet"
 import {
   ContractConfig,
   EthereumContract,

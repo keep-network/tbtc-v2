@@ -3,6 +3,8 @@ import {
   WalletRegistry,
   GetEvents,
   Identifier,
+  NewWalletRegisteredEvent,
+  Wallet,
 } from "../../src/lib/contracts"
 import {
   DecomposedRawTransaction,
@@ -21,7 +23,6 @@ import {
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src/lib/utils"
-import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {
   sweepTx: DecomposedRawTransaction
