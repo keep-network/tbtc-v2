@@ -66,6 +66,7 @@ export function toBcoinNetwork(bitcoinNetwork: BitcoinNetwork): string {
   }
 }
 
+// TODO: Description
 export function toBitcoinJsLibNetwork(
   bitcoinNetwork: BitcoinNetwork
 ): networks.Network {

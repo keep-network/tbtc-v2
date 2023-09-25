@@ -4,7 +4,8 @@ import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
 import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
-import { payments } from "bitcoinjs-lib"
+import { payments, networks } from "bitcoinjs-lib"
+import { ECPairInterface } from "ecpair"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -738,5 +739,20 @@ export function isP2WSH(script: Buffer): boolean {
     return true
   } catch (err) {
     return false
+  }
+}
+
+// TODO: Description and unit tests.
+export function addressFromKeyPair(
+  keyPair: ECPairInterface,
+  network: networks.Network,
+  witness: boolean
+): string {
+  if (witness) {
+    // P2WPKH (SegWit)
+    return payments.p2wpkh({ pubkey: keyPair.publicKey, network }).address!
+  } else {
+    // P2PKH (Legacy)
+    return payments.p2pkh({ pubkey: keyPair.publicKey, network }).address!
   }
 }

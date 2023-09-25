@@ -15,6 +15,7 @@ import {
   decomposeRawTransaction,
   isCompressedPublicKey,
   createKeyRing,
+  addressFromKeyPair,
   TransactionHash,
   computeHash160,
   isP2PKH,
@@ -293,13 +294,8 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
   }
 
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
-
-  // TODO: Replace keyring with bitcoinjs-lib functionalities for managing
-  //       keys (ecpair).
-  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
-  const walletAddress = walletKeyRing.getAddress("string")
-
   const keyPair = ecFactory(tinysecp).fromWIF(walletPrivateKey, network)
+  const walletAddress = addressFromKeyPair(keyPair, network, witness)
 
   // Calculate the value of transaction's output. Note that the value of fee
   // needs to be subtracted from the sum.
