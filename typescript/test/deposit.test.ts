@@ -13,6 +13,11 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "../src/lib/bitcoin"
+import {
+  Deposit,
+  DepositScriptParameters,
+  RevealedDeposit,
+} from "../src/lib/contracts"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 import {
@@ -21,11 +26,8 @@ import {
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
-  Deposit,
-  DepositScriptParameters,
   getRevealedDeposit,
   revealDeposit,
-  RevealedDeposit,
   submitDepositTransaction,
   suggestDepositWallet,
 } from "../src/deposit"

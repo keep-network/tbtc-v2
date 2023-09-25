@@ -10,8 +10,8 @@ import {
   TransactionHash,
   computeHash160,
 } from "./lib/bitcoin"
-import { assembleDepositScript, Deposit } from "./deposit"
-import { Bridge, Identifier } from "./lib/contracts"
+import { assembleDepositScript } from "./deposit"
+import { Bridge, Identifier, Deposit } from "./lib/contracts"
 import { assembleTransactionProof } from "./proof"
 
 /**

@@ -4,7 +4,8 @@ import {
   UnspentTransactionOutput,
   TransactionHash,
 } from "../../src/lib/bitcoin"
-import { Deposit, calculateDepositRefundLocktime } from "../../src/deposit"
+import { Deposit } from "../../src/lib/contracts"
+import { calculateDepositRefundLocktime } from "../../src/deposit"
 import { Address } from "../../src/lib/ethereum"
 
 /**

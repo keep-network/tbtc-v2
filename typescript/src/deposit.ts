@@ -11,106 +11,16 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./lib/bitcoin"
-import { Bridge, Event, Identifier } from "./lib/contracts"
+import {
+  Bridge,
+  Identifier,
+  Deposit,
+  DepositScriptParameters,
+  RevealedDeposit,
+} from "./lib/contracts"
 import { Hex } from "./lib/utils"
 
 const { opcodes } = bcoin.script.common
-
-// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
-// strings with a Hex type.
-
-/**
- * Represents a deposit.
- */
-export interface Deposit {
-  /**
-   * Depositor's chain identifier.
-   */
-  depositor: Identifier
-
-  /**
-   * Deposit amount in satoshis.
-   */
-  amount: BigNumber
-
-  /**
-   * An 8-byte blinding factor as an un-prefixed hex string. Must be unique
-   * for the given depositor, wallet public key and refund public key.
-   */
-  blindingFactor: string
-
-  /**
-   * Public key hash of the wallet that is meant to receive the deposit. Must
-   * be an unprefixed hex string (without 0x prefix).
-   *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
-   */
-  walletPublicKeyHash: string
-
-  /**
-   * Public key hash that is meant to be used during deposit refund after the
-   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
-   *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
-   */
-  refundPublicKeyHash: string
-
-  /**
-   * A 4-byte little-endian refund locktime as an un-prefixed hex string.
-   */
-  refundLocktime: string
-
-  /**
-   * Optional identifier of the vault the deposit should be routed in.
-   */
-  vault?: Identifier
-}
-
-/**
- * Helper type that groups deposit's fields required to assemble a deposit
- * script.
- */
-export type DepositScriptParameters = Pick<
-  Deposit,
-  | "depositor"
-  | "blindingFactor"
-  | "refundLocktime"
-  | "walletPublicKeyHash"
-  | "refundPublicKeyHash"
-> & {}
-
-/**
- * Represents a deposit revealed to the on-chain bridge. This type emphasizes
- * the on-chain state of the revealed deposit and omits the deposit script
- * parameters as they are not relevant in this context.
- */
-export type RevealedDeposit = Pick<
-  Deposit,
-  "depositor" | "amount" | "vault"
-> & {
-  /**
-   * UNIX timestamp the deposit was revealed at.
-   */
-  revealedAt: number
-  /**
-   * UNIX timestamp the request was swept at. If not swept yet, this parameter
-   * should have zero as value.
-   */
-  sweptAt: number
-  /**
-   * Value of the treasury fee calculated for this revealed deposit.
-   * Denominated in satoshi.
-   */
-  treasuryFee: BigNumber
-}
-
-/**
- * Represents an event emitted on deposit reveal to the on-chain bridge.
- */
-export type DepositRevealedEvent = Deposit & {
-  fundingTxHash: TransactionHash
-  fundingOutputIndex: number
-} & Event
 
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH

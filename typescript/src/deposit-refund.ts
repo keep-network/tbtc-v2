@@ -9,9 +9,9 @@ import {
   computeHash160,
   isCompressedPublicKey,
 } from "./lib/bitcoin"
+import { Deposit } from "./lib/contracts"
 import {
   assembleDepositScript,
-  Deposit,
   validateDepositScriptParameters,
 } from "./deposit"
 

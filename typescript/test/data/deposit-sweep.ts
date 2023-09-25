@@ -7,7 +7,8 @@ import {
   TransactionMerkleBranch,
   TransactionHash,
 } from "../../src/lib/bitcoin"
-import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
+import { Deposit } from "../../src/lib/contracts"
+import { calculateDepositRefundLocktime } from "../../src/deposit"
 import { BigNumber } from "ethers"
 import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src"

@@ -7,6 +7,9 @@ import {
   Wallet,
   RedemptionRequest,
   RedemptionRequestedEvent,
+  Deposit,
+  DepositRevealedEvent,
+  RevealedDeposit,
 } from "../../src/lib/contracts"
 import {
   DecomposedRawTransaction,
@@ -16,11 +19,6 @@ import {
   TransactionHash,
 } from "../../src/lib/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
-import {
-  Deposit,
-  DepositRevealedEvent,
-  RevealedDeposit,
-} from "../../src/deposit"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src/lib/utils"

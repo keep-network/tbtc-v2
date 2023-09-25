@@ -14,12 +14,10 @@ import {
   WalletState,
   RedemptionRequest,
   RedemptionRequestedEvent,
-} from "../contracts"
-import {
   DepositRevealedEvent,
   DepositScriptParameters,
   RevealedDeposit,
-} from "../../deposit"
+} from "../contracts"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber, constants, ContractTransaction, utils } from "ethers"
 import { backoffRetrier, Hex } from "../utils"
