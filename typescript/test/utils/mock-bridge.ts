@@ -5,6 +5,8 @@ import {
   Identifier,
   NewWalletRegisteredEvent,
   Wallet,
+  RedemptionRequest,
+  RedemptionRequestedEvent,
 } from "../../src/lib/contracts"
 import {
   DecomposedRawTransaction,
@@ -14,7 +16,6 @@ import {
   TransactionHash,
 } from "../../src/lib/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
-import { RedemptionRequest, RedemptionRequestedEvent } from "../redemption"
 import {
   Deposit,
   DepositRevealedEvent,

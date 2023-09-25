@@ -23,11 +23,11 @@ import {
   RedemptionTestData,
   findWalletForRedemptionData,
 } from "./data/redemption"
+import { RedemptionRequest, Wallet } from "../src/lib/contracts"
 import {
   assembleRedemptionTransaction,
   findWalletForRedemption,
   getRedemptionRequest,
-  RedemptionRequest,
   requestRedemption,
   submitRedemptionProof,
   submitRedemptionTransaction,
@@ -37,7 +37,6 @@ import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
-import { Wallet } from "../src/wallet"
 import { MockTBTCToken } from "./utils/mock-tbtc-token"
 import { BitcoinTransaction } from "../src"
 

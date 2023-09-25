@@ -11,70 +11,13 @@ import {
 } from "./lib/bitcoin"
 import {
   Bridge,
-  Event,
-  Identifier,
+  RedemptionRequest,
   TBTCToken,
   WalletState,
 } from "./lib/contracts"
 import { assembleTransactionProof } from "./proof"
 import { determineWalletMainUtxo } from "./wallet"
 import { Hex } from "./lib/utils"
-
-/**
- * Represents a redemption request.
- */
-export interface RedemptionRequest {
-  /**
-   * On-chain identifier of the redeemer.
-   */
-  redeemer: Identifier
-
-  /**
-   * The output script the redeemed Bitcoin funds are locked to. It is un-prefixed
-   * and is not prepended with length.
-   */
-  redeemerOutputScript: string
-
-  /**
-   * The amount of Bitcoins in satoshis that is requested to be redeemed.
-   * The actual value of the output in the Bitcoin transaction will be decreased
-   * by the sum of the fee share and the treasury fee for this particular output.
-   */
-  requestedAmount: BigNumber
-
-  /**
-   * The amount of Bitcoins in satoshis that is subtracted from the amount of
-   * the redemption request and used to pay the treasury fee.
-   * The value should be exactly equal to the value of treasury fee in the Bridge
-   * on-chain contract at the time the redemption request was made.
-   */
-  treasuryFee: BigNumber
-
-  /**
-   * The maximum amount of Bitcoins in satoshis that can be subtracted from the
-   * redemption's `requestedAmount` to pay the transaction network fee.
-   */
-  txMaxFee: BigNumber
-
-  /**
-   * UNIX timestamp the request was created at.
-   */
-  requestedAt: number
-}
-
-/**
- * Represents an event emitted on redemption request.
- */
-export type RedemptionRequestedEvent = Omit<
-  RedemptionRequest,
-  "requestedAt"
-> & {
-  /**
-   * Public key hash of the wallet that is meant to handle the redemption. Must
-   * be an unprefixed hex string (without 0x prefix).
-   */
-  walletPublicKeyHash: string
-} & Event
 
 /**
  * Requests a redemption of tBTC into BTC.

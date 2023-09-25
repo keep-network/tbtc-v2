@@ -12,6 +12,8 @@ import {
   NewWalletRegisteredEvent,
   Wallet,
   WalletState,
+  RedemptionRequest,
+  RedemptionRequestedEvent,
 } from "../contracts"
 import {
   DepositRevealedEvent,
@@ -30,7 +32,6 @@ import {
   TransactionHash,
   UnspentTransactionOutput,
 } from "../bitcoin"
-import { RedemptionRequest, RedemptionRequestedEvent } from "../../redemption"
 import {
   ContractConfig,
   EthereumContract,

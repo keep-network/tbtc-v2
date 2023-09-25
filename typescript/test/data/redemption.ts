@@ -9,10 +9,9 @@ import {
   TransactionHash,
   createOutputScriptFromAddress,
 } from "../../src/lib/bitcoin"
-import { RedemptionRequest } from "../../src/redemption"
+import { RedemptionRequest, WalletState } from "../../src/lib/contracts"
 import { Address } from "../../src/lib/ethereum"
 import { BitcoinTransaction, Hex } from "../../src"
-import { WalletState } from "../../src/wallet"
 
 /**
  * Private key (testnet) of the wallet.

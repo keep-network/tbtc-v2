@@ -11,7 +11,7 @@ import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRe
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
 import { TransactionHash, computeHash160 } from "../src/lib/bitcoin"
-import { Hex } from "../src/hex"
+import { Hex } from "../src/lib/utils"
 
 chai.use(waffleChai)
 
