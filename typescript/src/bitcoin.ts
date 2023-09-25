@@ -5,7 +5,7 @@ import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
 import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 import { payments, networks } from "bitcoinjs-lib"
-import { ECPairInterface } from "ecpair"
+import { Signer } from "ecpair"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -744,7 +744,7 @@ export function isP2WSH(script: Buffer): boolean {
 
 // TODO: Description and unit tests.
 export function addressFromKeyPair(
-  keyPair: ECPairInterface,
+  keyPair: Signer,
   network: networks.Network,
   witness: boolean
 ): string {

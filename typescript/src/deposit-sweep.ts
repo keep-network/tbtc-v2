@@ -6,6 +6,7 @@ import {
   payments,
   address,
   script,
+  networks,
 } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import {
@@ -352,12 +353,13 @@ export async function assembleDepositSweepTransactionBitcoinJsLib(
 
     // P2(W)PKH (main UTXO)
     if (isP2PKH(previousOutputScript) || isP2WPKH(previousOutputScript)) {
-      signMainUtxoInputBitcoinJsLib(
+      await signMainUtxoInputBitcoinJsLib(
         transaction,
         i,
         previousOutputScript,
         previousOutputValue,
-        keyPair
+        keyPair,
+        network
       )
       continue
     }
@@ -540,9 +542,13 @@ async function signMainUtxoInputBitcoinJsLib(
   inputIndex: number,
   prevOutScript: Buffer,
   prevOutValue: number,
-  keyPair: Signer
+  keyPair: Signer,
+  network: networks.Network
 ) {
-  // TODO: Check that input the belongs to the wallet.
+  if (!ownsUtxo(keyPair, prevOutScript, network)) {
+    throw new Error("UTXO does not belong to the wallet")
+  }
+
   const sigHashType = Transaction.SIGHASH_ALL
 
   if (isP2PKH(prevOutScript)) {
@@ -781,5 +787,40 @@ export async function submitDepositSweepProof(
     proof,
     mainUtxo,
     vault
+  )
+}
+
+// TODO: Description and unit test.
+export function ownsUtxo(
+  keyPair: Signer,
+  prevOutScript: Buffer,
+  network: networks.Network
+): boolean {
+  // Derive P2PKH and P2WPKH addresses from the public key.
+  const p2pkhAddress =
+    payments.p2pkh({ pubkey: keyPair.publicKey, network }).address || ""
+  const p2wpkhAddress =
+    payments.p2wpkh({ pubkey: keyPair.publicKey, network }).address || ""
+
+  // Try to extract an address from the provided prevOutScript.
+  let addressFromOutput = ""
+  try {
+    addressFromOutput =
+      payments.p2pkh({ output: prevOutScript, network }).address || ""
+  } catch (e) {
+    // If not P2PKH, try P2WPKH.
+    try {
+      addressFromOutput =
+        payments.p2wpkh({ output: prevOutScript, network }).address || ""
+    } catch (err) {
+      // If neither p2pkh nor p2wpkh address can be derived, assume the previous
+      // output script comes from a different UTXO type or is corrupted.
+      return false
+    }
+  }
+
+  // Check if the UTXO's address matches either of the derived addresses.
+  return (
+    addressFromOutput === p2pkhAddress || addressFromOutput === p2wpkhAddress
   )
 }
