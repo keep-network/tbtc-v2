@@ -5,7 +5,7 @@ import {
   BlockHeader,
   Proof,
 } from "../src/lib/bitcoin"
-import { Hex } from "../src/hex"
+import { Hex } from "../src/lib/utils"
 import {
   singleInputProofTestData,
   multipleInputsProofTestData,

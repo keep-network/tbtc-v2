@@ -12,7 +12,7 @@ import {
 import { Bridge, Event, Identifier, TBTCToken } from "./lib/contracts"
 import { assembleTransactionProof } from "./proof"
 import { determineWalletMainUtxo, WalletState } from "./wallet"
-import { Hex } from "./hex"
+import { Hex } from "./lib/utils"
 
 /**
  * Represents a redemption request.

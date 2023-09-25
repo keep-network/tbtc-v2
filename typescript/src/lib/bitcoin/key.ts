@@ -1,7 +1,7 @@
 import bcoin from "bcoin"
 import wif from "wif"
 import { BigNumber } from "ethers"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * Checks whether given public key is a compressed Bitcoin public key.

@@ -10,7 +10,7 @@ import {
   DepositScriptParameters,
   RevealedDeposit,
 } from "../../deposit"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 import { RedemptionRequest, RedemptionRequestedEvent } from "../../redemption"
 import { NewWalletRegisteredEvent, Wallet } from "../../wallet"
 import { GetEvents } from "./chain-event"

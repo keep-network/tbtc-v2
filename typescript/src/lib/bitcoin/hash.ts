@@ -1,5 +1,5 @@
 import { BigNumber, utils } from "ethers"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * Computes the HASH160 for the given text.

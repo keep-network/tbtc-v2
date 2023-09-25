@@ -13,7 +13,7 @@ import {
   BlockHeader,
 } from "./lib/bitcoin"
 import { BigNumber } from "ethers"
-import { Hex } from "./hex"
+import { Hex } from "./lib/utils"
 
 /**
  * Assembles a proof that a given transaction was included in the blockchain and

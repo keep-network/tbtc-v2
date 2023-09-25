@@ -69,7 +69,7 @@ export {
   TBTCToken as EthereumTBTCToken,
 } from "./lib/ethereum"
 
-export { Hex } from "./hex"
+export { Hex } from "./lib/utils"
 
 export {
   OptimisticMintingRequest,

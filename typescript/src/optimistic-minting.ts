@@ -1,7 +1,7 @@
 import { BigNumber } from "ethers"
 import { TransactionHash } from "./lib/bitcoin"
 import { Identifier, Event, TBTCVault } from "./lib/contracts"
-import { Hex } from "./hex"
+import { Hex } from "./lib/utils"
 
 /**
  * Represents an event that is emitted when a new optimistic minting is requested

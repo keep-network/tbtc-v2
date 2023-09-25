@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers"
-import { Hex } from "./hex"
+import { Hex } from "./lib/utils"
 import { Bridge, Event, Identifier } from "./lib/contracts"
 import {
   Client as BitcoinClient,

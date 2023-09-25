@@ -20,7 +20,7 @@ import {
 } from "../../src/deposit"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
 import { Address } from "../../src/lib/ethereum"
-import { Hex } from "../../src/hex"
+import { Hex } from "../../src/lib/utils"
 import { NewWalletRegisteredEvent, Wallet } from "../../src/wallet"
 
 interface DepositSweepProofLogEntry {

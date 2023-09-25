@@ -1,5 +1,5 @@
 import { TBTCToken } from "../../src/lib/contracts"
-import { Hex } from "../../src/hex"
+import { Hex } from "../../src/lib/utils"
 import { BigNumber } from "ethers"
 import { UnspentTransactionOutput } from "../../src/lib/bitcoin"
 

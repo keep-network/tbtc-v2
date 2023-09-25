@@ -1,5 +1,5 @@
 import { TransactionHash } from "../bitcoin"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 import {
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,

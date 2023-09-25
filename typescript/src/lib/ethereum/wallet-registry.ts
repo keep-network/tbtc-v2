@@ -1,7 +1,6 @@
 import { WalletRegistry as ContractWalletRegistry } from "../../../typechain/WalletRegistry"
 import { GetEvents, WalletRegistry as ChainWalletRegistry } from "../contracts"
-import { Hex } from "../../hex"
-import { backoffRetrier } from "../../backoff"
+import { backoffRetrier, Hex } from "../utils"
 import {
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,

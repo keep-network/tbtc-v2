@@ -2,7 +2,7 @@ import { TBTC as ContractTBTC } from "../../../typechain/TBTC"
 import { TBTCToken as ChainTBTCToken } from "../contracts"
 import { BigNumber, ContractTransaction, utils } from "ethers"
 import { computeHash160, UnspentTransactionOutput } from "../bitcoin"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 import {
   ContractConfig,
   EthereumContract,

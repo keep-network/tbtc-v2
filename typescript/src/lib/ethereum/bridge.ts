@@ -17,7 +17,7 @@ import {
 } from "../../deposit"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber, constants, ContractTransaction, utils } from "ethers"
-import { Hex } from "../../hex"
+import { backoffRetrier, Hex } from "../utils"
 import {
   compressPublicKey,
   computeHash160,
@@ -28,7 +28,6 @@ import {
   UnspentTransactionOutput,
 } from "../bitcoin"
 import { RedemptionRequest, RedemptionRequestedEvent } from "../../redemption"
-import { backoffRetrier } from "../../backoff"
 import { NewWalletRegisteredEvent, Wallet, WalletState } from "../../wallet"
 import {
   ContractConfig,

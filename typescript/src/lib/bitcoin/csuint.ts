@@ -1,4 +1,4 @@
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * Reads the leading compact size uint from the provided variable length data.

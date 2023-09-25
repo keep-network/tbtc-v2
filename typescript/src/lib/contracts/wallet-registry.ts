@@ -1,4 +1,4 @@
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 import {
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,

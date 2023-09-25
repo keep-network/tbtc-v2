@@ -9,7 +9,7 @@ import {
   backoffRetrier,
   ExecutionLoggerFn,
   skipRetryWhenMatched,
-} from "../../backoff"
+} from "../utils"
 import { Address } from "./address"
 
 /**

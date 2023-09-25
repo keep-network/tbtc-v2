@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { UnspentTransactionOutput } from "../bitcoin"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * Interface for communication with the TBTC v2 token on-chain contract.

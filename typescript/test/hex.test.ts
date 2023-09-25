@@ -1,5 +1,5 @@
 import { assert } from "chai"
-import { Hex } from "../src/hex"
+import { Hex } from "../src/lib/utils"
 
 describe("Hex", () => {
   const stringUnprefixed =

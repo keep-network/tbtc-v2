@@ -1,5 +1,5 @@
 import bcoin, { Script } from "bcoin"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 import { BitcoinNetwork, toBcoinNetwork } from "./network"
 
 /**

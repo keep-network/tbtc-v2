@@ -1,7 +1,7 @@
 import { TX } from "bcoin"
 import bufio from "bufio"
 import { BigNumber } from "ethers"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex

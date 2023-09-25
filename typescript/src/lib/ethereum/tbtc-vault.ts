@@ -1,9 +1,8 @@
 import { TBTCVault as ContractTBTCVault } from "../../../typechain/TBTCVault"
 import { GetEvents, TBTCVault as ChainTBTCVault } from "../contracts"
-import { backoffRetrier } from "../../backoff"
 import { BigNumber, ContractTransaction } from "ethers"
 import { TransactionHash } from "../bitcoin"
-import { Hex } from "../../hex"
+import { backoffRetrier, Hex } from "../utils"
 import {
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,

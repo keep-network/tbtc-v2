@@ -1,5 +1,4 @@
-import { Hex } from "../../hex"
-import { ExecutionLoggerFn } from "../../backoff"
+import { ExecutionLoggerFn, Hex } from "../utils"
 
 /**
  * Represents a generic chain event.

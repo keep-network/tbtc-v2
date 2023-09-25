@@ -12,7 +12,7 @@ import {
   isPublicKeyHashLength,
 } from "./lib/bitcoin"
 import { Bridge, Event, Identifier } from "./lib/contracts"
-import { Hex } from "./hex"
+import { Hex } from "./lib/utils"
 
 const { opcodes } = bcoin.script.common
 

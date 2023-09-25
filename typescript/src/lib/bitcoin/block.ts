@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers"
-import { Hex } from "../../hex"
+import { Hex } from "../utils"
 
 /**
  * BlockHeader represents the header of a Bitcoin block. For reference, see:

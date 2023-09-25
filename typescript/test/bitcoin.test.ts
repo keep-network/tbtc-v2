@@ -19,7 +19,7 @@ import {
   computeHash256,
 } from "../src/lib/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
-import { Hex } from "../src/hex"
+import { Hex } from "../src/lib/utils"
 import { BigNumber } from "ethers"
 import { btcAddresses } from "./data/bitcoin"
 
