@@ -7,9 +7,9 @@ import {
   Wallet,
   RedemptionRequest,
   RedemptionRequestedEvent,
-  Deposit,
+  DepositReceipt,
   DepositRevealedEvent,
-  RevealedDeposit,
+  DepositRequest,
 } from "../../src/lib/contracts"
 import {
   BitcoinRawTxVectors,
@@ -32,7 +32,7 @@ interface DepositSweepProofLogEntry {
 interface RevealDepositLogEntry {
   depositTx: BitcoinRawTxVectors
   depositOutputIndex: number
-  deposit: Deposit
+  deposit: DepositReceipt
 }
 
 interface RequestRedemptionLogEntry {
@@ -69,7 +69,7 @@ export class MockBridge implements Bridge {
   private _revealDepositLog: RevealDepositLogEntry[] = []
   private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
-  private _deposits = new Map<BigNumberish, RevealedDeposit>()
+  private _deposits = new Map<BigNumberish, DepositRequest>()
   private _activeWalletPublicKey: string | undefined
   private _newWalletRegisteredEvents: NewWalletRegisteredEvent[] = []
   private _newWalletRegisteredEventsLog: NewWalletRegisteredEventsLog[] = []
@@ -116,7 +116,7 @@ export class MockBridge implements Bridge {
     return this._walletsLog
   }
 
-  setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
+  setDeposits(value: Map<BigNumberish, DepositRequest>) {
     this._deposits = value
   }
 
@@ -169,7 +169,7 @@ export class MockBridge implements Bridge {
   revealDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
-    deposit: Deposit
+    deposit: DepositReceipt
   ): Promise<string> {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
     return new Promise<string>((resolve, _) => {
@@ -183,8 +183,8 @@ export class MockBridge implements Bridge {
   deposits(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
-  ): Promise<RevealedDeposit> {
-    return new Promise<RevealedDeposit>((resolve, _) => {
+  ): Promise<DepositRequest> {
+    return new Promise<DepositRequest>((resolve, _) => {
       const depositKey = MockBridge.buildDepositKey(
         depositTxHash,
         depositOutputIndex
@@ -192,7 +192,7 @@ export class MockBridge implements Bridge {
 
       resolve(
         this._deposits.has(depositKey)
-          ? (this._deposits.get(depositKey) as RevealedDeposit)
+          ? (this._deposits.get(depositKey) as DepositRequest)
           : {
               depositor: EthereumAddress.from(constants.AddressZero),
               amount: BigNumber.from(0),

@@ -48,7 +48,7 @@ export interface Bridge {
   revealDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
-    deposit: DepositScriptParameters,
+    deposit: DepositReceipt,
     vault?: ChainIdentifier
   ): Promise<string> // TODO: Update to Hex
 
@@ -62,7 +62,7 @@ export interface Bridge {
   deposits(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
-  ): Promise<RevealedDeposit>
+  ): Promise<DepositRequest>
 
   /**
    * Requests a redemption from the on-chain contract.
@@ -180,18 +180,14 @@ export interface Bridge {
 // strings with a Hex type.
 
 /**
- * Represents a deposit.
+ * Represents a deposit receipt. The receipt holds all information required
+ * to build a unique deposit address on Bitcoin chain.
  */
-export interface Deposit {
+export interface DepositReceipt {
   /**
    * Depositor's chain identifier.
    */
   depositor: ChainIdentifier
-
-  /**
-   * Deposit amount in satoshis.
-   */
-  amount: BigNumber
 
   /**
    * An 8-byte blinding factor as an un-prefixed hex string. Must be unique
@@ -219,35 +215,27 @@ export interface Deposit {
    * A 4-byte little-endian refund locktime as an un-prefixed hex string.
    */
   refundLocktime: string
+}
+
+/**
+ * Represents a deposit request revealed to the on-chain bridge.
+ */
+export interface DepositRequest {
+  /**
+   * Depositor's chain identifier.
+   */
+  depositor: ChainIdentifier
+
+  /**
+   * Deposit amount in satoshis.
+   */
+  amount: BigNumber
 
   /**
    * Optional identifier of the vault the deposit should be routed in.
    */
   vault?: ChainIdentifier
-}
 
-/**
- * Helper type that groups deposit's fields required to assemble a deposit
- * script.
- */
-export type DepositScriptParameters = Pick<
-  Deposit,
-  | "depositor"
-  | "blindingFactor"
-  | "refundLocktime"
-  | "walletPublicKeyHash"
-  | "refundPublicKeyHash"
-> & {}
-
-/**
- * Represents a deposit revealed to the on-chain bridge. This type emphasizes
- * the on-chain state of the revealed deposit and omits the deposit script
- * parameters as they are not relevant in this context.
- */
-export type RevealedDeposit = Pick<
-  Deposit,
-  "depositor" | "amount" | "vault"
-> & {
   /**
    * UNIX timestamp the deposit was revealed at.
    */
@@ -267,10 +255,11 @@ export type RevealedDeposit = Pick<
 /**
  * Represents an event emitted on deposit reveal to the on-chain bridge.
  */
-export type DepositRevealedEvent = Deposit & {
-  fundingTxHash: BitcoinTxHash
-  fundingOutputIndex: number
-} & ChainEvent
+export type DepositRevealedEvent = DepositReceipt &
+  Pick<DepositRequest, "amount" | "vault"> & {
+    fundingTxHash: BitcoinTxHash
+    fundingOutputIndex: number
+  } & ChainEvent
 
 /**
  * Represents a redemption request.

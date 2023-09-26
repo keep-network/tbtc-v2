@@ -919,31 +919,6 @@ describe("Sweep", () => {
       }
     )
 
-    context(
-      "when there is a mismatch between the UTXO's value and amount in deposit",
-      () => {
-        const utxoWithRaw =
-          depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0].utxo
-        // Use a deposit that does not match the UTXO
-        const deposit =
-          depositSweepWithNoMainUtxoAndWitnessOutput.deposits[1].data
-
-        it("should revert", async () => {
-          await expect(
-            assembleDepositSweepTransaction(
-              fee,
-              testnetWalletPrivateKey,
-              true,
-              [utxoWithRaw],
-              [deposit]
-            )
-          ).to.be.rejectedWith(
-            "Mismatch between amount in deposit and deposit tx"
-          )
-        })
-      }
-    )
-
     context("when the main UTXO does not belong to the wallet", () => {
       const utxoWithRaw =
         depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0].utxo

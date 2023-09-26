@@ -13,13 +13,22 @@ import {
 import {
   Bridge,
   ChainIdentifier,
-  Deposit,
-  DepositScriptParameters,
-  RevealedDeposit,
+  DepositReceipt,
+  DepositRequest,
 } from "./lib/contracts"
 import { Hex } from "./lib/utils"
 
 const { opcodes } = bcoin.script.common
+
+/**
+ * Deposit receipt enhanced with deposit amount information.
+ */
+export type DepositReceiptWithAmount = DepositReceipt & {
+  /**
+   * Deposit amount in satoshis.
+   */
+  amount: BigNumber
+}
 
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
@@ -34,7 +43,7 @@ const { opcodes } = bcoin.script.common
  *          - the deposit UTXO produced by this transaction.
  */
 export async function submitDepositTransaction(
-  deposit: Deposit,
+  deposit: DepositReceiptWithAmount,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean
@@ -91,7 +100,7 @@ export async function submitDepositTransaction(
  *          - the deposit transaction in the raw format
  */
 export async function assembleDepositTransaction(
-  deposit: Deposit,
+  deposit: DepositReceiptWithAmount,
   utxos: (BitcoinUtxo & BitcoinRawTx)[],
   depositorPrivateKey: string,
   witness: boolean
@@ -152,9 +161,9 @@ export async function assembleDepositTransaction(
  * @returns Script as an un-prefixed hex string.
  */
 export async function assembleDepositScript(
-  deposit: DepositScriptParameters
+  deposit: DepositReceipt
 ): Promise<string> {
-  validateDepositScriptParameters(deposit)
+  validateDepositReceipt(deposit)
 
   // All HEXes pushed to the script must be un-prefixed.
   const script = new bcoin.Script()
@@ -187,15 +196,12 @@ export async function assembleDepositScript(
 
 // eslint-disable-next-line valid-jsdoc
 /**
- * Validates the given deposit script parameters. Throws in case of a
- * validation error.
- * @param deposit - The validated deposit script parameters.
+ * Validates the given deposit receipt. Throws in case of a validation error.
+ * @param deposit - The validated deposit receipt.
  * @dev This function does not validate the depositor's identifier as its
  *      validity is chain-specific. This parameter must be validated outside.
  */
-export function validateDepositScriptParameters(
-  deposit: DepositScriptParameters
-) {
+export function validateDepositReceipt(deposit: DepositReceipt) {
   if (deposit.blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
@@ -250,7 +256,7 @@ export function calculateDepositRefundLocktime(
  * @returns Buffer with script hash.
  */
 export async function calculateDepositScriptHash(
-  deposit: DepositScriptParameters,
+  deposit: DepositReceipt,
   witness: boolean
 ): Promise<Buffer> {
   const script = await assembleDepositScript(deposit)
@@ -270,7 +276,7 @@ export async function calculateDepositScriptHash(
  * @returns Address as string.
  */
 export async function calculateDepositAddress(
-  deposit: DepositScriptParameters,
+  deposit: DepositReceipt,
   network: BitcoinNetwork,
   witness: boolean
 ): Promise<string> {
@@ -295,7 +301,7 @@ export async function calculateDepositAddress(
  */
 export async function revealDeposit(
   utxo: BitcoinUtxo,
-  deposit: DepositScriptParameters,
+  deposit: DepositReceipt,
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   vault?: ChainIdentifier
@@ -316,7 +322,7 @@ export async function revealDeposit(
 export async function getRevealedDeposit(
   utxo: BitcoinUtxo,
   bridge: Bridge
-): Promise<RevealedDeposit> {
+): Promise<DepositRequest> {
   return bridge.deposits(utxo.transactionHash, utxo.outputIndex)
 }
 

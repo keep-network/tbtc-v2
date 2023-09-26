@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers"
 import { BitcoinRawTx, BitcoinUtxo, BitcoinTxHash } from "../../src/lib/bitcoin"
-import { Deposit } from "../../src/lib/contracts"
+import { DepositReceipt } from "../../src/lib/contracts"
 import { calculateDepositRefundLocktime } from "../../src/deposit"
 import { EthereumAddress } from "../../src/lib/ethereum"
 
@@ -18,7 +18,7 @@ export const refunderPrivateKey =
 export interface DepositRefundTestData {
   deposit: {
     utxo: BitcoinUtxo & BitcoinRawTx
-    data: Deposit
+    data: DepositReceipt
   }
   refunderAddress: string
   expectedRefund: {
@@ -55,7 +55,6 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        amount: BigNumber.from(100000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
@@ -110,7 +109,6 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        amount: BigNumber.from(90000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
@@ -165,7 +163,6 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        amount: BigNumber.from(150000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",

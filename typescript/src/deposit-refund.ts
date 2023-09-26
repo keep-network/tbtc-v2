@@ -9,11 +9,8 @@ import {
   BitcoinHashUtils,
   BitcoinPublicKeyUtils,
 } from "./lib/bitcoin"
-import { Deposit } from "./lib/contracts"
-import {
-  assembleDepositScript,
-  validateDepositScriptParameters,
-} from "./deposit"
+import { assembleDepositScript, validateDepositReceipt } from "./deposit"
+import { DepositReceipt } from "./lib/contracts"
 
 /**
  * Submits a deposit refund by creating and broadcasting a Bitcoin P2(W)PKH
@@ -39,7 +36,7 @@ export async function submitDepositRefundTransaction(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
   utxo: BitcoinUtxo,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   refunderAddress: string,
   refunderPrivateKey: string
 ): Promise<{ transactionHash: BitcoinTxHash }> {
@@ -87,14 +84,14 @@ export async function submitDepositRefundTransaction(
 export async function assembleDepositRefundTransaction(
   fee: BigNumber,
   utxo: BitcoinUtxo & BitcoinRawTx,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   refunderAddress: string,
   refunderPrivateKey: string
 ): Promise<{
   transactionHash: BitcoinTxHash
   rawTransaction: BitcoinRawTx
 }> {
-  validateInputParameters(deposit, utxo)
+  validateDepositReceipt(deposit)
 
   const refunderKeyRing =
     BitcoinPrivateKeyUtils.createKeyRing(refunderPrivateKey)
@@ -171,7 +168,7 @@ export async function assembleDepositRefundTransaction(
 async function prepareInputSignData(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   refunderKeyRing: any
 ): Promise<{
   refunderPublicKey: string
@@ -180,10 +177,6 @@ async function prepareInputSignData(
 }> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
-
-  if (previousOutput.value != deposit.amount.toNumber()) {
-    throw new Error("Mismatch between amount in deposit and deposit refund tx")
-  }
 
   const refunderPublicKey = refunderKeyRing.getPublicKey("hex")
   if (
@@ -199,11 +192,8 @@ async function prepareInputSignData(
     throw new Error("Refunder public key must be compressed")
   }
 
-  // eslint-disable-next-line no-unused-vars
-  const { amount, vault, ...depositScriptParameters } = deposit
-
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+    Buffer.from(await assembleDepositScript(deposit), "hex")
   )
 
   return {
@@ -225,7 +215,7 @@ async function prepareInputSignData(
 async function signP2SHDepositInput(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   refunderKeyRing: any
 ) {
   const { refunderPublicKey, depositScript, previousOutputValue } =
@@ -266,7 +256,7 @@ async function signP2SHDepositInput(
 async function signP2WSHDepositInput(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   refunderKeyRing: any
 ) {
   const { refunderPublicKey, depositScript, previousOutputValue } =
@@ -308,18 +298,4 @@ function locktimeToUnixTimestamp(locktime: string): number {
     .toString("hex")
 
   return parseInt(bigEndianLocktime, 16)
-}
-
-/**
- * Validates whether the provided input parameters are correct.
- * @param deposit - Data of the deposit to be refunded.
- * @param utxo - UTXO that was created during depositing that needs be refunded.
- * @returns Empty return.
- */
-function validateInputParameters(deposit: Deposit, utxo: BitcoinUtxo) {
-  validateDepositScriptParameters(deposit)
-
-  if (!deposit.amount.eq(utxo.value)) {
-    throw new Error("Mismatch between provided deposit amount and utxo value")
-  }
 }

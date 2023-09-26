@@ -15,8 +15,8 @@ import {
   RedemptionRequest,
   RedemptionRequestedEvent,
   DepositRevealedEvent,
-  DepositScriptParameters,
-  RevealedDeposit,
+  DepositReceipt,
+  DepositRequest,
 } from "../contracts"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber, constants, ContractTransaction, utils } from "ethers"
@@ -200,7 +200,7 @@ export class EthereumBridge
   async revealDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
-    deposit: DepositScriptParameters,
+    deposit: DepositReceipt,
     vault?: ChainIdentifier
   ): Promise<string> {
     const depositTxParam = {
@@ -391,7 +391,7 @@ export class EthereumBridge
   async deposits(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
-  ): Promise<RevealedDeposit> {
+  ): Promise<DepositRequest> {
     const depositKey = EthereumBridge.buildDepositKey(
       depositTxHash,
       depositOutputIndex
@@ -404,7 +404,7 @@ export class EthereumBridge
         }
       )
 
-    return this.parseRevealedDeposit(deposit)
+    return this.parseDepositRequest(deposit)
   }
 
   /**
@@ -429,13 +429,13 @@ export class EthereumBridge
   }
 
   /**
-   * Parses a revealed deposit using data fetched from the on-chain contract.
-   * @param deposit Data of the revealed deposit.
-   * @returns Parsed revealed deposit.
+   * Parses a deposit request using data fetched from the on-chain contract.
+   * @param deposit Data of the deposit request.
+   * @returns Parsed deposit request.
    */
-  private parseRevealedDeposit(
+  private parseDepositRequest(
     deposit: DepositRequestTypechain
-  ): RevealedDeposit {
+  ): DepositRequest {
     return {
       depositor: EthereumAddress.from(deposit.depositor),
       amount: BigNumber.from(deposit.amount),

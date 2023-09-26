@@ -12,7 +12,7 @@ import {
   BitcoinHashUtils,
 } from "./lib/bitcoin"
 import { assembleDepositScript } from "./deposit"
-import { Bridge, ChainIdentifier, Deposit } from "./lib/contracts"
+import { Bridge, ChainIdentifier, DepositReceipt } from "./lib/contracts"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -42,7 +42,7 @@ export async function submitDepositSweepTransaction(
   walletPrivateKey: string,
   witness: boolean,
   utxos: BitcoinUtxo[],
-  deposits: Deposit[],
+  deposits: DepositReceipt[],
   mainUtxo?: BitcoinUtxo
 ): Promise<{
   transactionHash: BitcoinTxHash
@@ -115,7 +115,7 @@ export async function assembleDepositSweepTransaction(
   walletPrivateKey: string,
   witness: boolean,
   utxos: (BitcoinUtxo & BitcoinRawTx)[],
-  deposits: Deposit[],
+  deposits: DepositReceipt[],
   mainUtxo?: BitcoinUtxo & BitcoinRawTx
 ): Promise<{
   transactionHash: BitcoinTxHash
@@ -180,12 +180,11 @@ export async function assembleDepositSweepTransaction(
 
   // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
   // order
-  const utxosWithDeposits: (BitcoinUtxo & BitcoinRawTx & Deposit)[] = utxos.map(
-    (utxo, index) => ({
+  const utxosWithDeposits: (BitcoinUtxo & BitcoinRawTx & DepositReceipt)[] =
+    utxos.map((utxo, index) => ({
       ...utxo,
       ...deposits[index],
-    })
-  )
+    }))
 
   for (let i = 0; i < transaction.inputs.length; i++) {
     const previousOutpoint = transaction.inputs[i].prevout
@@ -274,7 +273,7 @@ async function signMainUtxoInput(
 async function signP2SHDepositInput(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
@@ -310,7 +309,7 @@ async function signP2SHDepositInput(
 async function signP2WSHDepositInput(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   walletKeyRing: any
 ): Promise<void> {
   const { walletPublicKey, depositScript, previousOutputValue } =
@@ -346,7 +345,7 @@ async function signP2WSHDepositInput(
 async function prepareInputSignData(
   transaction: any,
   inputIndex: number,
-  deposit: Deposit,
+  deposit: DepositReceipt,
   walletKeyRing: any
 ): Promise<{
   walletPublicKey: string
@@ -355,10 +354,6 @@ async function prepareInputSignData(
 }> {
   const previousOutpoint = transaction.inputs[inputIndex].prevout
   const previousOutput = transaction.view.getOutput(previousOutpoint)
-
-  if (previousOutput.value != deposit.amount.toNumber()) {
-    throw new Error("Mismatch between amount in deposit and deposit tx")
-  }
 
   const walletPublicKey = walletKeyRing.getPublicKey("hex")
   if (
@@ -374,11 +369,8 @@ async function prepareInputSignData(
     throw new Error("Wallet public key must be compressed")
   }
 
-  // eslint-disable-next-line no-unused-vars
-  const { amount, vault, ...depositScriptParameters } = deposit
-
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+    Buffer.from(await assembleDepositScript(deposit), "hex")
   )
 
   return {

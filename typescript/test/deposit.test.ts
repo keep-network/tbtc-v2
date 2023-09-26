@@ -13,11 +13,7 @@ import {
   BitcoinTxHash,
   BitcoinUtxo,
 } from "../src/lib/bitcoin"
-import {
-  Deposit,
-  DepositScriptParameters,
-  RevealedDeposit,
-} from "../src/lib/contracts"
+import { DepositRequest } from "../src/lib/contracts"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 import {
@@ -26,6 +22,7 @@ import {
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
+  DepositReceiptWithAmount,
   getRevealedDeposit,
   revealDeposit,
   submitDepositTransaction,
@@ -39,7 +36,7 @@ describe("Deposit", () => {
   const depositCreatedAt: number = 1640181600
   const depositRefundLocktimeDuration: number = 2592000
 
-  const deposit: Deposit = {
+  const deposit: DepositReceiptWithAmount = {
     depositor: EthereumAddress.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     amount: BigNumber.from(10000), // 0.0001 BTC
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
@@ -51,14 +48,6 @@ describe("Deposit", () => {
       depositCreatedAt,
       depositRefundLocktimeDuration
     ),
-  }
-
-  const depositScriptParameters: DepositScriptParameters = {
-    depositor: deposit.depositor,
-    walletPublicKeyHash: deposit.walletPublicKeyHash,
-    refundPublicKeyHash: deposit.refundPublicKeyHash,
-    blindingFactor: deposit.blindingFactor,
-    refundLocktime: deposit.refundLocktime,
   }
 
   // All test scenarios using the deposit script within `Deposit` group
@@ -518,7 +507,7 @@ describe("Deposit", () => {
     let script: string
 
     beforeEach(async () => {
-      script = await assembleDepositScript(depositScriptParameters)
+      script = await assembleDepositScript(deposit)
     })
 
     it("should return script with proper structure", async () => {
@@ -567,10 +556,7 @@ describe("Deposit", () => {
       let scriptHash: Buffer
 
       beforeEach(async () => {
-        scriptHash = await calculateDepositScriptHash(
-          depositScriptParameters,
-          true
-        )
+        scriptHash = await calculateDepositScriptHash(deposit, true)
       })
 
       it("should return proper witness script hash", async () => {
@@ -591,10 +577,7 @@ describe("Deposit", () => {
       let scriptHash: Buffer
 
       beforeEach(async () => {
-        scriptHash = await calculateDepositScriptHash(
-          depositScriptParameters,
-          false
-        )
+        scriptHash = await calculateDepositScriptHash(deposit, false)
       })
 
       it("should return proper non-witness script hash", async () => {
@@ -619,7 +602,7 @@ describe("Deposit", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
-            depositScriptParameters,
+            deposit,
             BitcoinNetwork.Mainnet,
             true
           )
@@ -637,7 +620,7 @@ describe("Deposit", () => {
       context("when witness option is false", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
-            depositScriptParameters,
+            deposit,
             BitcoinNetwork.Mainnet,
             false
           )
@@ -657,7 +640,7 @@ describe("Deposit", () => {
       context("when witness option is true", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
-            depositScriptParameters,
+            deposit,
             BitcoinNetwork.Testnet,
             true
           )
@@ -675,7 +658,7 @@ describe("Deposit", () => {
       context("when witness option is false", () => {
         beforeEach(async () => {
           address = await calculateDepositAddress(
-            depositScriptParameters,
+            deposit,
             BitcoinNetwork.Testnet,
             false
           )
@@ -737,7 +720,7 @@ describe("Deposit", () => {
 
   describe("getRevealedDeposit", () => {
     let depositUtxo: BitcoinUtxo
-    let revealedDeposit: RevealedDeposit
+    let revealedDeposit: DepositRequest
     let bridge: MockBridge
 
     beforeEach(async () => {
@@ -752,13 +735,13 @@ describe("Deposit", () => {
       revealedDeposit = {
         depositor: deposit.depositor,
         amount: deposit.amount,
-        vault: deposit.vault,
+        vault: EthereumAddress.from("954b98637ca318a4d6e7ca6ffd1690b8e77df637"),
         revealedAt: 1654774330,
         sweptAt: 1655033516,
         treasuryFee: BigNumber.from(200),
       }
 
-      const revealedDeposits = new Map<BigNumberish, RevealedDeposit>()
+      const revealedDeposits = new Map<BigNumberish, DepositRequest>()
       revealedDeposits.set(
         MockBridge.buildDepositKey(
           depositUtxo.transactionHash,

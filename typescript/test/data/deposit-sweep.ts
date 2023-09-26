@@ -7,7 +7,7 @@ import {
   BitcoinTxMerkleBranch,
   BitcoinTxHash,
 } from "../../src/lib/bitcoin"
-import { Deposit } from "../../src/lib/contracts"
+import { DepositReceipt } from "../../src/lib/contracts"
 import { calculateDepositRefundLocktime } from "../../src/deposit"
 import { BigNumber } from "ethers"
 import { EthereumAddress } from "../../src/lib/ethereum"
@@ -26,7 +26,7 @@ export const NO_MAIN_UTXO = {
 export interface DepositSweepTestData {
   deposits: {
     utxo: BitcoinUtxo & BitcoinRawTx
-    data: Deposit
+    data: DepositReceipt
   }[]
   mainUtxo: BitcoinUtxo & BitcoinRawTx
   witness: boolean
@@ -64,7 +64,6 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-          amount: BigNumber.from(25000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
@@ -93,8 +92,6 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-
-          amount: BigNumber.from(12000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
@@ -154,7 +151,6 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-          amount: BigNumber.from(15000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
@@ -207,7 +203,6 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-          amount: BigNumber.from(17000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
@@ -237,7 +232,6 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-          amount: BigNumber.from(10000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
@@ -333,7 +327,6 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
           depositor: EthereumAddress.from(
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
-          amount: BigNumber.from(19000),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
           walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
