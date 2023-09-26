@@ -12,7 +12,7 @@ import {
 } from "./lib/bitcoin"
 import {
   Bridge,
-  Identifier,
+  ChainIdentifier,
   Deposit,
   DepositScriptParameters,
   RevealedDeposit,
@@ -298,7 +298,7 @@ export async function revealDeposit(
   deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
-  vault?: Identifier
+  vault?: ChainIdentifier
 ): Promise<string> {
   const depositTx = extractBitcoinRawTxVectors(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)

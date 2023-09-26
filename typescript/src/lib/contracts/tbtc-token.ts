@@ -19,7 +19,7 @@ export interface TBTCToken {
   totalSupply(blockNumber?: number): Promise<BigNumber>
 
   /**
-   * Requests redemption in one transacion using the `approveAndCall` function
+   * Requests redemption in one transaction using the `approveAndCall` function
    * from the tBTC on-chain token contract. Then the tBTC token contract calls
    * the `receiveApproval` function from the `TBTCVault` contract which burns
    * tBTC tokens and requests redemption.

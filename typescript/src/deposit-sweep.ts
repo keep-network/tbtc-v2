@@ -12,7 +12,7 @@ import {
   BitcoinHashUtils,
 } from "./lib/bitcoin"
 import { assembleDepositScript } from "./deposit"
-import { Bridge, Identifier, Deposit } from "./lib/contracts"
+import { Bridge, ChainIdentifier, Deposit } from "./lib/contracts"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -403,7 +403,7 @@ export async function submitDepositSweepProof(
   mainUtxo: BitcoinUtxo,
   bridge: Bridge,
   bitcoinClient: BitcoinClient,
-  vault?: Identifier
+  vault?: ChainIdentifier
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
   const proof = await assembleBitcoinSpvProof(

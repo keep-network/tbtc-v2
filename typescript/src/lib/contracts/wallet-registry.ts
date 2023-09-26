@@ -1,7 +1,7 @@
 import { Hex } from "../utils"
-import { Event, GetEvents } from "./chain-event"
+import { ChainEvent, GetChainEvents } from "./chain-event"
 import { BigNumber } from "ethers"
-import { Identifier } from "./chain-identifier"
+import { ChainIdentifier } from "./chain-identifier"
 
 /**
  * Interface for communication with the WalletRegistry on-chain contract.
@@ -18,19 +18,19 @@ export interface WalletRegistry {
    * Get emitted DkgResultSubmittedEvent events.
    * @see GetEventsFunction
    */
-  getDkgResultSubmittedEvents: GetEvents.Function<DkgResultSubmittedEvent>
+  getDkgResultSubmittedEvents: GetChainEvents.Function<DkgResultSubmittedEvent>
 
   /**
    * Get emitted DkgResultApprovedEvent events.
    * @see GetEventsFunction
    */
-  getDkgResultApprovedEvents: GetEvents.Function<DkgResultApprovedEvent>
+  getDkgResultApprovedEvents: GetChainEvents.Function<DkgResultApprovedEvent>
 
   /**
    * Get emitted DkgResultChallengedEvent events.
    * @see GetEventsFunction
    */
-  getDkgResultChallengedEvents: GetEvents.Function<DkgResultChallengedEvent>
+  getDkgResultChallengedEvents: GetChainEvents.Function<DkgResultChallengedEvent>
 }
 
 /**
@@ -50,7 +50,7 @@ export type DkgResultSubmittedEvent = {
    * DKG result object.
    */
   result: DkgResult
-} & Event
+} & ChainEvent
 
 /**
  * Represents an event emitted when a DKG result is approved on the on-chain
@@ -64,8 +64,8 @@ export type DkgResultApprovedEvent = {
   /**
    * Approver's chain identifier.
    */
-  approver: Identifier
-} & Event
+  approver: ChainIdentifier
+} & ChainEvent
 
 /**
  * Represents an event emitted when a DKG result is challenged on the on-chain
@@ -79,12 +79,12 @@ export type DkgResultChallengedEvent = {
   /**
    * Challenger's chain identifier.
    */
-  challenger: Identifier
+  challenger: ChainIdentifier
   /**
    * Reason of the challenge.
    */
   reason: string
-} & Event
+} & ChainEvent
 
 /**
  * Represents a DKG on-chain result.

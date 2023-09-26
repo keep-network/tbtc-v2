@@ -1,7 +1,7 @@
 import { BitcoinTxHash } from "../bitcoin"
 import { Hex } from "../utils"
-import { Identifier } from "./chain-identifier"
-import { Event, GetEvents } from "./chain-event"
+import { ChainIdentifier } from "./chain-identifier"
+import { ChainEvent, GetChainEvents } from "./chain-event"
 import { BigNumber } from "ethers"
 
 /**
@@ -22,21 +22,21 @@ export interface TBTCVault {
    *
    * @returns Array containing identifiers of all currently registered minters.
    */
-  getMinters(): Promise<Identifier[]>
+  getMinters(): Promise<ChainIdentifier[]>
 
   /**
    * Checks if given identifier is registered as minter.
    *
    * @param identifier Chain identifier to check.
    */
-  isMinter(identifier: Identifier): Promise<boolean>
+  isMinter(identifier: ChainIdentifier): Promise<boolean>
 
   /**
    * Checks if given identifier is registered as guardian.
    *
    * @param identifier Chain identifier to check.
    */
-  isGuardian(identifier: Identifier): Promise<boolean>
+  isGuardian(identifier: ChainIdentifier): Promise<boolean>
 
   /**
    * Requests optimistic minting for a deposit in an on-chain contract.
@@ -93,19 +93,19 @@ export interface TBTCVault {
    * Get emitted OptimisticMintingRequested events.
    * @see GetEventsFunction
    */
-  getOptimisticMintingRequestedEvents: GetEvents.Function<OptimisticMintingRequestedEvent>
+  getOptimisticMintingRequestedEvents: GetChainEvents.Function<OptimisticMintingRequestedEvent>
 
   /**
    * Get emitted OptimisticMintingCancelled events.
    * @see GetEventsFunction
    */
-  getOptimisticMintingCancelledEvents: GetEvents.Function<OptimisticMintingCancelledEvent>
+  getOptimisticMintingCancelledEvents: GetChainEvents.Function<OptimisticMintingCancelledEvent>
 
   /**
    * Get emitted OptimisticMintingFinalized events.
    * @see GetEventsFunction
    */
-  getOptimisticMintingFinalizedEvents: GetEvents.Function<OptimisticMintingFinalizedEvent>
+  getOptimisticMintingFinalizedEvents: GetChainEvents.Function<OptimisticMintingFinalizedEvent>
 }
 
 /**
@@ -132,7 +132,7 @@ export type OptimisticMintingRequestedEvent = {
   /**
    * Minter's chain identifier.
    */
-  minter: Identifier
+  minter: ChainIdentifier
   /**
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
@@ -141,7 +141,7 @@ export type OptimisticMintingRequestedEvent = {
   /**
    * Depositor's chain identifier.
    */
-  depositor: Identifier
+  depositor: ChainIdentifier
   /**
    * Amount of tokens requested to mint.
    * This value is in ERC 1e18 precision, it has to be converted before using
@@ -158,7 +158,7 @@ export type OptimisticMintingRequestedEvent = {
    * Index of an output in the funding transaction made to fund the deposit.
    */
   fundingOutputIndex: number
-} & Event
+} & ChainEvent
 
 /**
  * Represents an event that is emitted when an optimistic minting request
@@ -168,13 +168,13 @@ export type OptimisticMintingCancelledEvent = {
   /**
    * Guardian's chain identifier.
    */
-  guardian: Identifier
+  guardian: ChainIdentifier
   /**
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
    */
   depositKey: Hex
-} & Event
+} & ChainEvent
 
 /**
  * Represents an event that is emitted when an optimistic minting request
@@ -184,7 +184,7 @@ export type OptimisticMintingFinalizedEvent = {
   /**
    * Minter's chain identifier.
    */
-  minter: Identifier
+  minter: ChainIdentifier
   /**
    * Unique deposit identifier.
    * @see Bridge.buildDepositKey
@@ -193,7 +193,7 @@ export type OptimisticMintingFinalizedEvent = {
   /**
    * Depositor's chain identifier.
    */
-  depositor: Identifier
+  depositor: ChainIdentifier
   /**
    * Value of the new optimistic minting debt of the depositor.
    * This value is in ERC 1e18 precision, it has to be converted before using
@@ -202,4 +202,4 @@ export type OptimisticMintingFinalizedEvent = {
   // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
   //       precision to Bitcoin in 1e8 precision (satoshi).
   optimisticMintingDebt: BigNumber
-} & Event
+} & ChainEvent

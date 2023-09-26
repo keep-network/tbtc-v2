@@ -1,6 +1,6 @@
 import { TBTCVault as ContractTBTCVault } from "../../../typechain/TBTCVault"
 import {
-  GetEvents,
+  GetChainEvents,
   TBTCVault as ChainTBTCVault,
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,
@@ -196,7 +196,7 @@ export class TBTCVault
    * @see {ChainBridge#getOptimisticMintingRequestedEvents}
    */
   async getOptimisticMintingRequestedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingRequestedEvent[]> {
     const events = await this.getEvents(
@@ -229,7 +229,7 @@ export class TBTCVault
    * @see {ChainBridge#getOptimisticMintingCancelledEvents}
    */
   async getOptimisticMintingCancelledEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingCancelledEvent[]> {
     const events = await this.getEvents(
@@ -256,7 +256,7 @@ export class TBTCVault
    * @see {ChainBridge#getOptimisticMintingFinalizedEvents}
    */
   async getOptimisticMintingFinalizedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<OptimisticMintingFinalizedEvent[]> {
     const events = await this.getEvents(

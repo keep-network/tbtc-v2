@@ -1,8 +1,8 @@
 import {
   Bridge,
   WalletRegistry,
-  GetEvents,
-  Identifier,
+  GetChainEvents,
+  ChainIdentifier,
   NewWalletRegisteredEvent,
   Wallet,
   RedemptionRequest,
@@ -50,7 +50,7 @@ interface RedemptionProofLogEntry {
 }
 
 interface NewWalletRegisteredEventsLog {
-  options?: GetEvents.Options
+  options?: GetChainEvents.Options
   filterArgs: unknown[]
 }
 
@@ -125,7 +125,7 @@ export class MockBridge implements Bridge {
   }
 
   getDepositRevealedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
     const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
@@ -158,7 +158,7 @@ export class MockBridge implements Bridge {
     sweepTx: BitcoinRawTxVectors,
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    vault?: Identifier
+    vault?: ChainIdentifier
   ): Promise<void> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
     return new Promise<void>((resolve, _) => {
@@ -340,7 +340,7 @@ export class MockBridge implements Bridge {
   }
 
   async getNewWalletRegisteredEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
     this._newWalletRegisteredEventsLog.push({ options, filterArgs })
@@ -373,7 +373,7 @@ export class MockBridge implements Bridge {
   }
 
   getRedemptionRequestedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<RedemptionRequestedEvent[]> {
     throw new Error("not implemented")

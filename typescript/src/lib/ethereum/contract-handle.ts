@@ -4,7 +4,7 @@ import {
   Event as EthersEvent,
   EventFilter as EthersEventFilter,
 } from "@ethersproject/contracts"
-import { GetEvents } from "../contracts"
+import { GetChainEvents } from "../contracts"
 import {
   backoffRetrier,
   ExecutionLoggerFn,
@@ -121,7 +121,7 @@ export class EthereumContract<T extends EthersContract> {
    */
   async getEvents(
     eventName: string,
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<EthersEvent[]> {
     // TODO: Test if we need a workaround for querying events from big range in chunks,

@@ -3,7 +3,7 @@ import { ExecutionLoggerFn, Hex } from "../utils"
 /**
  * Represents a generic chain event.
  */
-export interface Event {
+export interface ChainEvent {
   /**
    * Block number of the event emission.
    */
@@ -18,7 +18,7 @@ export interface Event {
   transactionHash: Hex
 }
 
-export namespace GetEvents {
+export namespace GetChainEvents {
   /**
    * Represents generic options used for getting events from the chain.
    */
@@ -50,7 +50,7 @@ export namespace GetEvents {
   /**
    * Represents a generic function to get events emitted on the chain.
    */
-  export interface Function<T extends Event> {
+  export interface Function<T extends ChainEvent> {
     /**
      * Get emitted events.
      * @param options Options for getting events.

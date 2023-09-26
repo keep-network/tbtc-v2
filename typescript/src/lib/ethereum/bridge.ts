@@ -6,8 +6,8 @@ import {
 } from "../../../typechain/Bridge"
 import {
   Bridge as ChainBridge,
-  GetEvents,
-  Identifier as ChainIdentifier,
+  GetChainEvents,
+  ChainIdentifier,
   WalletRegistry as ChainWalletRegistry,
   NewWalletRegisteredEvent,
   Wallet,
@@ -61,7 +61,7 @@ export class Bridge
    * @see {ChainBridge#getDepositRevealedEvents}
    */
   async getDepositRevealedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<DepositRevealedEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
@@ -478,7 +478,7 @@ export class Bridge
    * @see {ChainBridge#getNewWalletRegisteredEvents}
    */
   async getNewWalletRegisteredEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
@@ -583,7 +583,7 @@ export class Bridge
    * @see {ChainBridge#getDepositRevealedEvents}
    */
   async getRedemptionRequestedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<RedemptionRequestedEvent[]> {
     // FIXME: Filtering by indexed walletPubKeyHash field may not work

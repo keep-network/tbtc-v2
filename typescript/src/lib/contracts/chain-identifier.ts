@@ -1,7 +1,7 @@
 /**
  * Represents a generic chain identifier.
  */
-export interface Identifier {
+export interface ChainIdentifier {
   /**
    * Identifier as an un-prefixed hex string.
    */
@@ -11,5 +11,5 @@ export interface Identifier {
    *
    * @param identifier Another identifier
    */
-  equals(identifier: Identifier): boolean
+  equals(identifier: ChainIdentifier): boolean
 }

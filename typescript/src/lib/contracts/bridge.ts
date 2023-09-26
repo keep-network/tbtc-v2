@@ -6,8 +6,8 @@ import {
   BitcoinTxHash,
 } from "../bitcoin"
 import { Hex } from "../utils"
-import { Event, GetEvents } from "./chain-event"
-import { Identifier } from "./chain-identifier"
+import { ChainEvent, GetChainEvents } from "./chain-event"
+import { ChainIdentifier } from "./chain-identifier"
 import { WalletRegistry } from "./wallet-registry"
 
 /**
@@ -18,7 +18,7 @@ export interface Bridge {
    * Get emitted DepositRevealed events.
    * @see GetEventsFunction
    */
-  getDepositRevealedEvents: GetEvents.Function<DepositRevealedEvent>
+  getDepositRevealedEvents: GetChainEvents.Function<DepositRevealedEvent>
 
   /**
    * Submits a deposit sweep transaction proof to the on-chain contract.
@@ -32,7 +32,7 @@ export interface Bridge {
     sweepTx: BitcoinRawTxVectors,
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    vault?: Identifier
+    vault?: ChainIdentifier
   ): Promise<void>
 
   /**
@@ -49,7 +49,7 @@ export interface Bridge {
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
-    vault?: Identifier
+    vault?: ChainIdentifier
   ): Promise<string> // TODO: Update to Hex
 
   /**
@@ -147,7 +147,7 @@ export interface Bridge {
    * Get emitted NewWalletRegisteredEvent events.
    * @see GetEventsFunction
    */
-  getNewWalletRegisteredEvents: GetEvents.Function<NewWalletRegisteredEvent>
+  getNewWalletRegisteredEvents: GetChainEvents.Function<NewWalletRegisteredEvent>
 
   /**
    * Returns the attached WalletRegistry instance.
@@ -173,7 +173,7 @@ export interface Bridge {
    * Get emitted RedemptionRequested events.
    * @see GetEventsFunction
    */
-  getRedemptionRequestedEvents: GetEvents.Function<RedemptionRequestedEvent>
+  getRedemptionRequestedEvents: GetChainEvents.Function<RedemptionRequestedEvent>
 }
 
 // TODO: Replace all properties that are expected to be un-prefixed hexadecimal
@@ -186,7 +186,7 @@ export interface Deposit {
   /**
    * Depositor's chain identifier.
    */
-  depositor: Identifier
+  depositor: ChainIdentifier
 
   /**
    * Deposit amount in satoshis.
@@ -223,7 +223,7 @@ export interface Deposit {
   /**
    * Optional identifier of the vault the deposit should be routed in.
    */
-  vault?: Identifier
+  vault?: ChainIdentifier
 }
 
 /**
@@ -270,7 +270,7 @@ export type RevealedDeposit = Pick<
 export type DepositRevealedEvent = Deposit & {
   fundingTxHash: BitcoinTxHash
   fundingOutputIndex: number
-} & Event
+} & ChainEvent
 
 /**
  * Represents a redemption request.
@@ -279,7 +279,7 @@ export interface RedemptionRequest {
   /**
    * On-chain identifier of the redeemer.
    */
-  redeemer: Identifier
+  redeemer: ChainIdentifier
 
   /**
    * The output script the redeemed Bitcoin funds are locked to. It is un-prefixed
@@ -326,7 +326,7 @@ export type RedemptionRequestedEvent = Omit<
    * be an unprefixed hex string (without 0x prefix).
    */
   walletPublicKeyHash: string
-} & Event
+} & ChainEvent
 
 /* eslint-disable no-unused-vars */
 export enum WalletState {
@@ -439,4 +439,4 @@ export type NewWalletRegisteredEvent = {
    * hash160 on the compressed public key of the ECDSA Wallet.
    */
   walletPublicKeyHash: Hex
-} & Event
+} & ChainEvent

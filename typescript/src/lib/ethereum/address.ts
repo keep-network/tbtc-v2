@@ -1,4 +1,4 @@
-import { Identifier as ChainIdentifier } from "../contracts"
+import { ChainIdentifier } from "../contracts"
 import { utils } from "ethers"
 
 /**

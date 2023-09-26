@@ -1,6 +1,6 @@
 import { WalletRegistry as ContractWalletRegistry } from "../../../typechain/WalletRegistry"
 import {
-  GetEvents,
+  GetChainEvents,
   WalletRegistry as ChainWalletRegistry,
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
@@ -45,7 +45,7 @@ export class WalletRegistry
    * @see {ChainWalletRegistry#getDkgResultSubmittedEvents}
    */
   async getDkgResultSubmittedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<DkgResultSubmittedEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
@@ -88,7 +88,7 @@ export class WalletRegistry
    * @see {ChainWalletRegistry#getDkgResultApprovedEvents}
    */
   async getDkgResultApprovedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<DkgResultApprovedEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
@@ -113,7 +113,7 @@ export class WalletRegistry
    * @see {ChainWalletRegistry#getDkgResultChallengedEvents}
    */
   async getDkgResultChallengedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<DkgResultChallengedEvent[]> {
     const events: EthersEvent[] = await this.getEvents(
