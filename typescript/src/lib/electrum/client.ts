@@ -20,7 +20,7 @@ import { backoffRetrier, Hex, RetrierFn } from "../utils"
 /**
  * Represents a set of credentials required to establish an Electrum connection.
  */
-export interface Credentials {
+export interface ElectrumCredentials {
   /**
    * Host pointing to the Electrum server.
    */
@@ -38,7 +38,7 @@ export interface Credentials {
 /**
  * Additional options used by the Electrum server.
  */
-export type ClientOptions = object
+export type ElectrumClientOptions = object
 
 /**
  * Type for {@link Electrum} client from electrum-client-js library.
@@ -50,21 +50,21 @@ type Electrum = any
  * is supposed to take a proper Electrum connection, do the work, and return
  * a promise holding the outcome of given type.
  */
-type Action<T> = (electrum: Electrum) => Promise<T>
+type ElectrumAction<T> = (electrum: Electrum) => Promise<T>
 
 /**
  * Electrum-based implementation of the Bitcoin client.
  */
-export class Client implements BitcoinClient {
-  private credentials: Credentials[]
-  private options?: ClientOptions
+export class ElectrumClient implements BitcoinClient {
+  private credentials: ElectrumCredentials[]
+  private options?: ElectrumClientOptions
   private totalRetryAttempts: number
   private retryBackoffStep: number
   private connectionTimeout: number
 
   constructor(
-    credentials: Credentials[],
-    options?: ClientOptions,
+    credentials: ElectrumCredentials[],
+    options?: ElectrumClientOptions,
     totalRetryAttempts = 3,
     retryBackoffStep = 10000, // 10 seconds
     connectionTimeout = 20000 // 20 seconds
@@ -89,19 +89,19 @@ export class Client implements BitcoinClient {
    */
   static fromUrl(
     url: string | string[],
-    options?: ClientOptions,
+    options?: ElectrumClientOptions,
     totalRetryAttempts = 3,
     retryBackoffStep = 1000, // 10 seconds
     connectionTimeout = 20000 // 20 seconds
-  ): Client {
-    let credentials: Credentials[]
+  ): ElectrumClient {
+    let credentials: ElectrumCredentials[]
     if (Array.isArray(url)) {
       credentials = url.map(this.parseElectrumCredentials)
     } else {
       credentials = [this.parseElectrumCredentials(url)]
     }
 
-    return new Client(
+    return new ElectrumClient(
       credentials,
       options,
       totalRetryAttempts,
@@ -115,7 +115,7 @@ export class Client implements BitcoinClient {
    * @param url - URL to be parsed.
    * @returns Electrum credentials object.
    */
-  private static parseElectrumCredentials(url: string): Credentials {
+  private static parseElectrumCredentials(url: string): ElectrumCredentials {
     const urlObj = new URL(url)
 
     return {
@@ -136,8 +136,10 @@ export class Client implements BitcoinClient {
    * @param action - Action that makes use of the Electrum connection.
    * @returns Promise holding the outcome.
    */
-  private async withElectrum<T>(action: Action<T>): Promise<T> {
-    const connect = async (credentials: Credentials): Promise<Electrum> => {
+  private async withElectrum<T>(action: ElectrumAction<T>): Promise<T> {
+    const connect = async (
+      credentials: ElectrumCredentials
+    ): Promise<Electrum> => {
       const electrum: Electrum = new Electrum(
         credentials.host,
         credentials.port,
@@ -237,7 +239,7 @@ export class Client implements BitcoinClient {
       const unspentTransactions: UnspentOutput[] =
         await this.withBackoffRetrier<UnspentOutput[]>()(async () => {
           return await electrum.blockchain_scripthash_listunspent(
-            computeScriptHash(script)
+            computeElectrumScriptHash(script)
           )
         })
 
@@ -265,7 +267,7 @@ export class Client implements BitcoinClient {
         HistoryItem[]
       >()(async () => {
         return await electrum.blockchain_scripthash_getHistory(
-          computeScriptHash(script)
+          computeElectrumScriptHash(script)
         )
       })
 
@@ -547,7 +549,7 @@ export class Client implements BitcoinClient {
  * @param script - Bitcoin script as hex string
  * @returns Electrum script hash as a hex string.
  */
-export function computeScriptHash(script: string): string {
+export function computeElectrumScriptHash(script: string): string {
   const _script = Hex.from(Buffer.from(script, "hex")).toPrefixedString()
   const hash256 = utils.sha256(_script)
 
