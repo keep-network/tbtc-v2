@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import {
-  TransactionHash,
+  BitcoinTxHash,
   BitcoinNetwork,
   toBcoinNetwork,
 } from "../src/lib/bitcoin"
@@ -11,13 +11,13 @@ describe("BitcoinNetwork", () => {
       enumKey: BitcoinNetwork.Unknown,
       enumValue: "unknown",
       // any value that doesn't match other supported networks
-      genesisHash: TransactionHash.from("0x00010203"),
+      genesisHash: BitcoinTxHash.from("0x00010203"),
       expectedToBcoinResult: new Error("network not supported"),
     },
     {
       enumKey: BitcoinNetwork.Testnet,
       enumValue: "testnet",
-      genesisHash: TransactionHash.from(
+      genesisHash: BitcoinTxHash.from(
         "0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
       ),
       expectedToBcoinResult: "testnet",
@@ -25,7 +25,7 @@ describe("BitcoinNetwork", () => {
     {
       enumKey: BitcoinNetwork.Mainnet,
       enumValue: "mainnet",
-      genesisHash: TransactionHash.from(
+      genesisHash: BitcoinTxHash.from(
         "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
       ),
       expectedToBcoinResult: "main",

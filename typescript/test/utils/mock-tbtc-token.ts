@@ -1,11 +1,11 @@
 import { TBTCToken } from "../../src/lib/contracts"
 import { Hex } from "../../src/lib/utils"
 import { BigNumber } from "ethers"
-import { UnspentTransactionOutput } from "../../src/lib/bitcoin"
+import { BitcoinUtxo } from "../../src/lib/bitcoin"
 
 interface RequestRedemptionLog {
   walletPublicKey: string
-  mainUtxo: UnspentTransactionOutput
+  mainUtxo: BitcoinUtxo
   redeemerOutputScript: string
   amount: BigNumber
 }
@@ -23,7 +23,7 @@ export class MockTBTCToken implements TBTCToken {
 
   async requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<Hex> {

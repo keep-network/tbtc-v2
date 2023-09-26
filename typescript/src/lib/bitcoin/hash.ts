@@ -6,7 +6,7 @@ import { Hex } from "../utils"
  * @param text - Text the HASH160 is computed for.
  * @returns Hash as a 20-byte un-prefixed hex string.
  */
-export function computeHash160(text: string): string {
+function computeHash160(text: string): string {
   const sha256Hash = utils.sha256(
     Hex.from(Buffer.from(text, "hex")).toPrefixedString()
   )
@@ -20,7 +20,7 @@ export function computeHash160(text: string): string {
  * @param text - Text the double SHA256 is computed for.
  * @returns Hash as a 32-byte un-prefixed hex string.
  */
-export function computeHash256(text: Hex): Hex {
+function computeHash256(text: Hex): Hex {
   const firstHash = utils.sha256(text.toPrefixedString())
   const secondHash = utils.sha256(firstHash)
 
@@ -32,6 +32,15 @@ export function computeHash256(text: Hex): Hex {
  * @param hash - Hash in hex-string format.
  * @returns BigNumber representation of the hash.
  */
-export function hashLEToBigNumber(hash: Hex): BigNumber {
+function hashLEToBigNumber(hash: Hex): BigNumber {
   return BigNumber.from(hash.reverse().toPrefixedString())
+}
+
+/**
+ * Utility functions allowing to deal with Bitcoin hashes.
+ */
+export const BitcoinHashUtils = {
+  computeHash160,
+  computeHash256,
+  hashLEToBigNumber,
 }

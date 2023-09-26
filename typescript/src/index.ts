@@ -1,6 +1,6 @@
 // TODO: Consider exports refactoring as per discussion https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1084530007
 
-import { validateTransactionProof } from "./lib/bitcoin"
+import { validateBitcoinSpvProof } from "./lib/bitcoin"
 
 import {
   calculateDepositAddress,
@@ -48,14 +48,14 @@ export const OptimisticMinting = {
 }
 
 export const Bitcoin = {
-  validateTransactionProof,
+  validateBitcoinSpvProof,
 }
 
 export {
-  TransactionHash as BitcoinTransactionHash,
-  Transaction as BitcoinTransaction,
-  TransactionOutput as BitcoinTransactionOutput,
-  locktimeToNumber as BitcoinLocktimeToNumber,
+  BitcoinTxHash,
+  BitcoinTx,
+  BitcoinTxOutput,
+  BitcoinLocktimeUtils,
   BitcoinNetwork,
 } from "./lib/bitcoin"
 

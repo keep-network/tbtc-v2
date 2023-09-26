@@ -1,4 +1,4 @@
-import { TransactionHash } from "../bitcoin"
+import { BitcoinTxHash } from "../bitcoin"
 import { Hex } from "../utils"
 import { Identifier } from "./chain-identifier"
 import { Event, GetEvents } from "./chain-event"
@@ -47,7 +47,7 @@ export interface TBTCVault {
    * @returns Transaction hash of the optimistic mint request transaction.
    */
   requestOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex>
 
@@ -60,7 +60,7 @@ export interface TBTCVault {
    * @returns Transaction hash of the optimistic mint cancel transaction.
    */
   cancelOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex>
 
@@ -73,7 +73,7 @@ export interface TBTCVault {
    * @returns Transaction hash of the optimistic mint finalize transaction.
    */
   finalizeOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex>
 
@@ -85,7 +85,7 @@ export interface TBTCVault {
    * @returns Optimistic minting request.
    */
   optimisticMintingRequests(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<OptimisticMintingRequest>
 
@@ -153,7 +153,7 @@ export type OptimisticMintingRequestedEvent = {
   /**
    * Hash of a Bitcoin transaction made to fund the deposit.
    */
-  fundingTxHash: TransactionHash
+  fundingTxHash: BitcoinTxHash
   /**
    * Index of an output in the funding transaction made to fund the deposit.
    */

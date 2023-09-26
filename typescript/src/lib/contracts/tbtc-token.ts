@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers"
-import { UnspentTransactionOutput } from "../bitcoin"
+import { BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
 
 /**
@@ -36,7 +36,7 @@ export interface TBTCToken {
    */
   requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<Hex>

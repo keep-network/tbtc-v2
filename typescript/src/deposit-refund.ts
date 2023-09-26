@@ -1,13 +1,13 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
-  createKeyRing,
-  RawTransaction,
-  Client as BitcoinClient,
-  TransactionHash,
-  UnspentTransactionOutput,
-  computeHash160,
-  isCompressedPublicKey,
+  BitcoinPrivateKeyUtils,
+  BitcoinRawTx,
+  BitcoinClient,
+  BitcoinTxHash,
+  BitcoinUtxo,
+  BitcoinHashUtils,
+  BitcoinPublicKeyUtils,
 } from "./lib/bitcoin"
 import { Deposit } from "./lib/contracts"
 import {
@@ -38,11 +38,11 @@ import {
 export async function submitDepositRefundTransaction(
   bitcoinClient: BitcoinClient,
   fee: BigNumber,
-  utxo: UnspentTransactionOutput,
+  utxo: BitcoinUtxo,
   deposit: Deposit,
   refunderAddress: string,
   refunderPrivateKey: string
-): Promise<{ transactionHash: TransactionHash }> {
+): Promise<{ transactionHash: BitcoinTxHash }> {
   const utxoRawTransaction = await bitcoinClient.getRawTransaction(
     utxo.transactionHash
   )
@@ -86,17 +86,18 @@ export async function submitDepositRefundTransaction(
  */
 export async function assembleDepositRefundTransaction(
   fee: BigNumber,
-  utxo: UnspentTransactionOutput & RawTransaction,
+  utxo: BitcoinUtxo & BitcoinRawTx,
   deposit: Deposit,
   refunderAddress: string,
   refunderPrivateKey: string
 ): Promise<{
-  transactionHash: TransactionHash
-  rawTransaction: RawTransaction
+  transactionHash: BitcoinTxHash
+  rawTransaction: BitcoinRawTx
 }> {
   validateInputParameters(deposit, utxo)
 
-  const refunderKeyRing = createKeyRing(refunderPrivateKey)
+  const refunderKeyRing =
+    BitcoinPrivateKeyUtils.createKeyRing(refunderPrivateKey)
 
   const transaction = new bcoin.MTX()
 
@@ -149,7 +150,7 @@ export async function assembleDepositRefundTransaction(
     throw new Error("Transaction verification failure")
   }
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transactionHash = BitcoinTxHash.from(transaction.txid())
 
   return {
     transactionHash,
@@ -186,7 +187,7 @@ async function prepareInputSignData(
 
   const refunderPublicKey = refunderKeyRing.getPublicKey("hex")
   if (
-    computeHash160(refunderKeyRing.getPublicKey("hex")) !=
+    BitcoinHashUtils.computeHash160(refunderKeyRing.getPublicKey("hex")) !=
     deposit.refundPublicKeyHash
   ) {
     throw new Error(
@@ -194,7 +195,7 @@ async function prepareInputSignData(
     )
   }
 
-  if (!isCompressedPublicKey(refunderPublicKey)) {
+  if (!BitcoinPublicKeyUtils.isCompressedPublicKey(refunderPublicKey)) {
     throw new Error("Refunder public key must be compressed")
   }
 
@@ -315,10 +316,7 @@ function locktimeToUnixTimestamp(locktime: string): number {
  * @param utxo - UTXO that was created during depositing that needs be refunded.
  * @returns Empty return.
  */
-function validateInputParameters(
-  deposit: Deposit,
-  utxo: UnspentTransactionOutput
-) {
+function validateInputParameters(deposit: Deposit, utxo: BitcoinUtxo) {
   validateDepositScriptParameters(deposit)
 
   if (!deposit.amount.eq(utxo.value)) {

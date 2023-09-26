@@ -1,15 +1,14 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
-  Client as BitcoinClient,
+  BitcoinClient,
   BitcoinNetwork,
   toBcoinNetwork,
-  decomposeRawTransaction,
-  createKeyRing,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionHash,
-  isPublicKeyHashLength,
+  extractBitcoinRawTxVectors,
+  BitcoinPrivateKeyUtils,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxHash,
 } from "./lib/bitcoin"
 import {
   Bridge,
@@ -40,17 +39,18 @@ export async function submitDepositTransaction(
   bitcoinClient: BitcoinClient,
   witness: boolean
 ): Promise<{
-  transactionHash: TransactionHash
-  depositUtxo: UnspentTransactionOutput
+  transactionHash: BitcoinTxHash
+  depositUtxo: BitcoinUtxo
 }> {
-  const depositorKeyRing = createKeyRing(depositorPrivateKey)
+  const depositorKeyRing =
+    BitcoinPrivateKeyUtils.createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
   const utxos = await bitcoinClient.findAllUnspentTransactionOutputs(
     depositorAddress
   )
 
-  const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
+  const utxosWithRaw: (BitcoinUtxo & BitcoinRawTx)[] = []
   for (const utxo of utxos) {
     const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
@@ -92,15 +92,16 @@ export async function submitDepositTransaction(
  */
 export async function assembleDepositTransaction(
   deposit: Deposit,
-  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  utxos: (BitcoinUtxo & BitcoinRawTx)[],
   depositorPrivateKey: string,
   witness: boolean
 ): Promise<{
-  transactionHash: TransactionHash
-  depositUtxo: UnspentTransactionOutput
-  rawTransaction: RawTransaction
+  transactionHash: BitcoinTxHash
+  depositUtxo: BitcoinUtxo
+  rawTransaction: BitcoinRawTx
 }> {
-  const depositorKeyRing = createKeyRing(depositorPrivateKey)
+  const depositorKeyRing =
+    BitcoinPrivateKeyUtils.createKeyRing(depositorPrivateKey)
   const depositorAddress = depositorKeyRing.getAddress("string")
 
   const inputCoins = utxos.map((utxo) =>
@@ -130,7 +131,7 @@ export async function assembleDepositTransaction(
 
   transaction.sign(depositorKeyRing)
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transactionHash = BitcoinTxHash.from(transaction.txid())
 
   return {
     transactionHash,
@@ -198,12 +199,11 @@ export function validateDepositScriptParameters(
   if (deposit.blindingFactor.length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
-
-  if (!isPublicKeyHashLength(deposit.walletPublicKeyHash)) {
+  if (deposit.walletPublicKeyHash.length != 40) {
     throw new Error("Invalid wallet public key hash")
   }
 
-  if (!isPublicKeyHashLength(deposit.refundPublicKeyHash)) {
+  if (deposit.refundPublicKeyHash.length != 40) {
     throw new Error("Invalid refund public key hash")
   }
 
@@ -294,13 +294,13 @@ export async function calculateDepositAddress(
  *      that matches the given deposit data.
  */
 export async function revealDeposit(
-  utxo: UnspentTransactionOutput,
+  utxo: BitcoinUtxo,
   deposit: DepositScriptParameters,
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   vault?: Identifier
 ): Promise<string> {
-  const depositTx = decomposeRawTransaction(
+  const depositTx = extractBitcoinRawTxVectors(
     await bitcoinClient.getRawTransaction(utxo.transactionHash)
   )
 
@@ -314,7 +314,7 @@ export async function revealDeposit(
  * @returns Revealed deposit data.
  */
 export async function getRevealedDeposit(
-  utxo: UnspentTransactionOutput,
+  utxo: BitcoinUtxo,
   bridge: Bridge
 ): Promise<RevealedDeposit> {
   return bridge.deposits(utxo.transactionHash, utxo.outputIndex)

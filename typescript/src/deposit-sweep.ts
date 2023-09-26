@@ -1,15 +1,15 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
-  assembleTransactionProof,
-  RawTransaction,
-  UnspentTransactionOutput,
-  Client as BitcoinClient,
-  decomposeRawTransaction,
-  isCompressedPublicKey,
-  createKeyRing,
-  TransactionHash,
-  computeHash160,
+  assembleBitcoinSpvProof,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinClient,
+  extractBitcoinRawTxVectors,
+  BitcoinPublicKeyUtils,
+  BitcoinPrivateKeyUtils,
+  BitcoinTxHash,
+  BitcoinHashUtils,
 } from "./lib/bitcoin"
 import { assembleDepositScript } from "./deposit"
 import { Bridge, Identifier, Deposit } from "./lib/contracts"
@@ -41,14 +41,14 @@ export async function submitDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
-  utxos: UnspentTransactionOutput[],
+  utxos: BitcoinUtxo[],
   deposits: Deposit[],
-  mainUtxo?: UnspentTransactionOutput
+  mainUtxo?: BitcoinUtxo
 ): Promise<{
-  transactionHash: TransactionHash
-  newMainUtxo: UnspentTransactionOutput
+  transactionHash: BitcoinTxHash
+  newMainUtxo: BitcoinUtxo
 }> {
-  const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
+  const utxosWithRaw: (BitcoinUtxo & BitcoinRawTx)[] = []
   for (const utxo of utxos) {
     const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
@@ -114,13 +114,13 @@ export async function assembleDepositSweepTransaction(
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
-  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  utxos: (BitcoinUtxo & BitcoinRawTx)[],
   deposits: Deposit[],
-  mainUtxo?: UnspentTransactionOutput & RawTransaction
+  mainUtxo?: BitcoinUtxo & BitcoinRawTx
 ): Promise<{
-  transactionHash: TransactionHash
-  newMainUtxo: UnspentTransactionOutput
-  rawTransaction: RawTransaction
+  transactionHash: BitcoinTxHash
+  newMainUtxo: BitcoinUtxo
+  rawTransaction: BitcoinRawTx
 }> {
   if (utxos.length < 1) {
     throw new Error("There must be at least one deposit UTXO to sweep")
@@ -130,7 +130,10 @@ export async function assembleDepositSweepTransaction(
     throw new Error("Number of UTXOs must equal the number of deposit elements")
   }
 
-  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
+  const walletKeyRing = BitcoinPrivateKeyUtils.createKeyRing(
+    walletPrivateKey,
+    witness
+  )
   const walletAddress = walletKeyRing.getAddress("string")
 
   const inputCoins = []
@@ -177,12 +180,12 @@ export async function assembleDepositSweepTransaction(
 
   // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
   // order
-  const utxosWithDeposits: (UnspentTransactionOutput &
-    RawTransaction &
-    Deposit)[] = utxos.map((utxo, index) => ({
-    ...utxo,
-    ...deposits[index],
-  }))
+  const utxosWithDeposits: (BitcoinUtxo & BitcoinRawTx & Deposit)[] = utxos.map(
+    (utxo, index) => ({
+      ...utxo,
+      ...deposits[index],
+    })
+  )
 
   for (let i = 0; i < transaction.inputs.length; i++) {
     const previousOutpoint = transaction.inputs[i].prevout
@@ -220,7 +223,7 @@ export async function assembleDepositSweepTransaction(
     }
   }
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transactionHash = BitcoinTxHash.from(transaction.txid())
 
   return {
     transactionHash,
@@ -359,7 +362,7 @@ async function prepareInputSignData(
 
   const walletPublicKey = walletKeyRing.getPublicKey("hex")
   if (
-    computeHash160(walletKeyRing.getPublicKey("hex")) !=
+    BitcoinHashUtils.computeHash160(walletKeyRing.getPublicKey("hex")) !=
     deposit.walletPublicKeyHash
   ) {
     throw new Error(
@@ -367,7 +370,7 @@ async function prepareInputSignData(
     )
   }
 
-  if (!isCompressedPublicKey(walletPublicKey)) {
+  if (!BitcoinPublicKeyUtils.isCompressedPublicKey(walletPublicKey)) {
     throw new Error("Wallet public key must be compressed")
   }
 
@@ -396,14 +399,14 @@ async function prepareInputSignData(
  * @returns Empty promise.
  */
 export async function submitDepositSweepProof(
-  transactionHash: TransactionHash,
-  mainUtxo: UnspentTransactionOutput,
+  transactionHash: BitcoinTxHash,
+  mainUtxo: BitcoinUtxo,
   bridge: Bridge,
   bitcoinClient: BitcoinClient,
   vault?: Identifier
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
-  const proof = await assembleTransactionProof(
+  const proof = await assembleBitcoinSpvProof(
     transactionHash,
     confirmations,
     bitcoinClient
@@ -412,9 +415,9 @@ export async function submitDepositSweepProof(
   // proof to the decomposed transaction data (version, inputs, outputs, locktime).
   // Use raw transaction data for now.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
-  const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+  const rawTransactionVectors = extractBitcoinRawTxVectors(rawTransaction)
   await bridge.submitDepositSweepProof(
-    decomposedRawTransaction,
+    rawTransactionVectors,
     proof,
     mainUtxo,
     vault

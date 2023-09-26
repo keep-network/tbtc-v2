@@ -1,12 +1,11 @@
 import { Hex } from "./lib/utils"
 import { Bridge } from "./lib/contracts"
 import {
-  Client as BitcoinClient,
+  BitcoinClient,
   BitcoinNetwork,
-  createOutputScriptFromAddress,
-  encodeToBitcoinAddress,
-  TransactionOutput,
-  UnspentTransactionOutput,
+  BitcoinAddressConverter,
+  BitcoinTxOutput,
+  BitcoinUtxo,
 } from "./lib/bitcoin"
 
 /**
@@ -30,7 +29,7 @@ export async function determineWalletMainUtxo(
   bridge: Bridge,
   bitcoinClient: BitcoinClient,
   bitcoinNetwork: BitcoinNetwork
-): Promise<UnspentTransactionOutput | undefined> {
+): Promise<BitcoinUtxo | undefined> {
   const { mainUtxoHash } = await bridge.wallets(walletPublicKeyHash)
 
   // Valid case when the wallet doesn't have a main UTXO registered into
@@ -49,9 +48,9 @@ export async function determineWalletMainUtxo(
   // the given wallet address type.
   const determine = async (
     witnessAddress: boolean
-  ): Promise<UnspentTransactionOutput | undefined> => {
+  ): Promise<BitcoinUtxo | undefined> => {
     // Build the wallet Bitcoin address based on its public key hash.
-    const walletAddress = encodeToBitcoinAddress(
+    const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
       walletPublicKeyHash.toString(),
       witnessAddress,
       bitcoinNetwork
@@ -74,11 +73,9 @@ export async function determineWalletMainUtxo(
 
     // Get the wallet script based on the wallet address. This is required
     // to find transaction outputs that lock funds on the wallet.
-    const walletScript = createOutputScriptFromAddress(
-      walletAddress,
-      bitcoinNetwork
-    )
-    const isWalletOutput = (output: TransactionOutput) =>
+    const walletScript =
+      BitcoinAddressConverter.addressToOutputScript(walletAddress)
+    const isWalletOutput = (output: BitcoinTxOutput) =>
       walletScript.equals(output.scriptPubKey)
 
     // Start iterating from the latest transaction as the chance it matches
@@ -100,7 +97,7 @@ export async function determineWalletMainUtxo(
       }
 
       // Build a candidate UTXO instance based on the detected output.
-      const utxo: UnspentTransactionOutput = {
+      const utxo: BitcoinUtxo = {
         transactionHash: walletTransaction.transactionHash,
         outputIndex: outputIndex,
         value: walletTransaction.outputs[outputIndex].value,

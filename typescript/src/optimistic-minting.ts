@@ -1,4 +1,4 @@
-import { TransactionHash } from "./lib/bitcoin"
+import { BitcoinTxHash } from "./lib/bitcoin"
 import { TBTCVault, OptimisticMintingRequest } from "./lib/contracts"
 import { Hex } from "./lib/utils"
 
@@ -11,7 +11,7 @@ import { Hex } from "./lib/utils"
  * @returns Transaction hash of the optimistic mint request transaction.
  */
 export async function requestOptimisticMint(
-  depositTxHash: TransactionHash,
+  depositTxHash: BitcoinTxHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
 ): Promise<Hex> {
@@ -30,7 +30,7 @@ export async function requestOptimisticMint(
  * @returns Transaction hash of the optimistic mint cancel transaction.
  */
 export async function cancelOptimisticMint(
-  depositTxHash: TransactionHash,
+  depositTxHash: BitcoinTxHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
 ): Promise<Hex> {
@@ -46,7 +46,7 @@ export async function cancelOptimisticMint(
  * @returns Transaction hash of the optimistic mint finalize transaction.
  */
 export async function finalizeOptimisticMint(
-  depositTxHash: TransactionHash,
+  depositTxHash: BitcoinTxHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
 ): Promise<Hex> {
@@ -65,7 +65,7 @@ export async function finalizeOptimisticMint(
  * @returns Optimistic minting request.
  */
 export async function getOptimisticMintingRequest(
-  depositTxHash: TransactionHash,
+  depositTxHash: BitcoinTxHash,
   depositOutputIndex: number,
   tbtcVault: TBTCVault
 ): Promise<OptimisticMintingRequest> {

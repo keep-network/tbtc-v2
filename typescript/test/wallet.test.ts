@@ -1,9 +1,13 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import { MockBridge } from "./utils/mock-bridge"
-import { BitcoinNetwork, BitcoinTransaction, Hex } from "../src"
+import { Hex } from "../src"
 import { determineWalletMainUtxo } from "../src/wallet"
 import { expect } from "chai"
-import { encodeToBitcoinAddress } from "../src/lib/bitcoin"
+import {
+  BitcoinNetwork,
+  BitcoinAddressConverter,
+  BitcoinTx,
+} from "../src/lib/bitcoin"
 import { Wallet } from "../src/lib/contracts"
 import { BigNumber } from "ethers"
 
@@ -18,7 +22,7 @@ describe("Wallet", () => {
     const mockTransaction = (
       hash: string,
       outputs: Record<string, number> // key: locking script, value: amount of locked satoshis
-    ): BitcoinTransaction => {
+    ): BitcoinTx => {
       return {
         transactionHash: Hex.from(hash),
         inputs: [], // not relevant in this test scenario
@@ -33,7 +37,7 @@ describe("Wallet", () => {
     }
 
     // Create a fake wallet witness transaction history that consists of 6 transactions.
-    const walletWitnessTransactionHistory: BitcoinTransaction[] = [
+    const walletWitnessTransactionHistory: BitcoinTx[] = [
       mockTransaction(
         "3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1",
         {
@@ -80,7 +84,7 @@ describe("Wallet", () => {
     ]
 
     // Create a fake wallet legacy transaction history that consists of 6 transactions.
-    const walletLegacyTransactionHistory: BitcoinTransaction[] = [
+    const walletLegacyTransactionHistory: BitcoinTx[] = [
       mockTransaction(
         "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267",
         {
@@ -238,22 +242,21 @@ describe("Wallet", () => {
               beforeEach(async () => {
                 bitcoinNetwork = network
 
-                const walletWitnessAddress = encodeToBitcoinAddress(
-                  walletPublicKeyHash.toString(),
-                  true,
-                  bitcoinNetwork
-                )
-                const walletLegacyAddress = encodeToBitcoinAddress(
-                  walletPublicKeyHash.toString(),
-                  false,
-                  bitcoinNetwork
-                )
+                const walletWitnessAddress =
+                  BitcoinAddressConverter.publicKeyHashToAddress(
+                    walletPublicKeyHash.toString(),
+                    true,
+                    bitcoinNetwork
+                  )
+                const walletLegacyAddress =
+                  BitcoinAddressConverter.publicKeyHashToAddress(
+                    walletPublicKeyHash.toString(),
+                    false,
+                    bitcoinNetwork
+                  )
 
                 // Record the fake transaction history for both address types.
-                const transactionHistory = new Map<
-                  string,
-                  BitcoinTransaction[]
-                >()
+                const transactionHistory = new Map<string, BitcoinTx[]>()
                 transactionHistory.set(
                   walletWitnessAddress,
                   walletWitnessTransactionHistory

@@ -12,11 +12,11 @@ import {
   RevealedDeposit,
 } from "../../src/lib/contracts"
 import {
-  DecomposedRawTransaction,
-  Proof,
-  UnspentTransactionOutput,
-  computeHash160,
-  TransactionHash,
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinUtxo,
+  BitcoinHashUtils,
+  BitcoinTxHash,
 } from "../../src/lib/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
@@ -24,28 +24,28 @@ import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src/lib/utils"
 
 interface DepositSweepProofLogEntry {
-  sweepTx: DecomposedRawTransaction
-  sweepProof: Proof
-  mainUtxo: UnspentTransactionOutput
+  sweepTx: BitcoinRawTxVectors
+  sweepProof: BitcoinSpvProof
+  mainUtxo: BitcoinUtxo
 }
 
 interface RevealDepositLogEntry {
-  depositTx: DecomposedRawTransaction
+  depositTx: BitcoinRawTxVectors
   depositOutputIndex: number
   deposit: Deposit
 }
 
 interface RequestRedemptionLogEntry {
   walletPublicKey: string
-  mainUtxo: UnspentTransactionOutput
+  mainUtxo: BitcoinUtxo
   redeemerOutputScript: string
   amount: BigNumber
 }
 
 interface RedemptionProofLogEntry {
-  redemptionTx: DecomposedRawTransaction
-  redemptionProof: Proof
-  mainUtxo: UnspentTransactionOutput
+  redemptionTx: BitcoinRawTxVectors
+  redemptionProof: BitcoinSpvProof
+  mainUtxo: BitcoinUtxo
   walletPublicKey: string
 }
 
@@ -155,9 +155,9 @@ export class MockBridge implements Bridge {
   }
 
   submitDepositSweepProof(
-    sweepTx: DecomposedRawTransaction,
-    sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    sweepTx: BitcoinRawTxVectors,
+    sweepProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     vault?: Identifier
   ): Promise<void> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
@@ -167,7 +167,7 @@ export class MockBridge implements Bridge {
   }
 
   revealDeposit(
-    depositTx: DecomposedRawTransaction,
+    depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: Deposit
   ): Promise<string> {
@@ -181,7 +181,7 @@ export class MockBridge implements Bridge {
   }
 
   deposits(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
     return new Promise<RevealedDeposit>((resolve, _) => {
@@ -206,7 +206,7 @@ export class MockBridge implements Bridge {
   }
 
   static buildDepositKey(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): string {
     const prefixedReversedDepositTxHash = depositTxHash
@@ -220,9 +220,9 @@ export class MockBridge implements Bridge {
   }
 
   submitRedemptionProof(
-    redemptionTx: DecomposedRawTransaction,
-    redemptionProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    redemptionTx: BitcoinRawTxVectors,
+    redemptionProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     walletPublicKey: string
   ): Promise<void> {
     this._redemptionProofLog.push({
@@ -238,7 +238,7 @@ export class MockBridge implements Bridge {
 
   requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ) {
@@ -295,7 +295,7 @@ export class MockBridge implements Bridge {
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      computeHash160(walletPublicKey),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -359,7 +359,7 @@ export class MockBridge implements Bridge {
     return wallet!
   }
 
-  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+  buildUtxoHash(utxo: BitcoinUtxo): Hex {
     return Hex.from(
       utils.solidityKeccak256(
         ["bytes32", "uint32", "uint64"],

@@ -1,14 +1,14 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
-  assembleTransactionProof,
+  assembleBitcoinSpvProof,
   BitcoinNetwork,
-  createKeyRing,
-  decomposeRawTransaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  Client as BitcoinClient,
-  TransactionHash,
+  BitcoinPrivateKeyUtils,
+  extractBitcoinRawTxVectors,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinClient,
+  BitcoinTxHash,
 } from "./lib/bitcoin"
 import {
   Bridge,
@@ -34,7 +34,7 @@ import { Hex } from "./lib/utils"
  */
 export async function requestRedemption(
   walletPublicKey: string,
-  mainUtxo: UnspentTransactionOutput,
+  mainUtxo: BitcoinUtxo,
   redeemerOutputScript: string,
   amount: BigNumber,
   tBTCToken: TBTCToken
@@ -73,25 +73,27 @@ export async function submitRedemptionTransaction(
   bitcoinClient: BitcoinClient,
   bridge: Bridge,
   walletPrivateKey: string,
-  mainUtxo: UnspentTransactionOutput,
+  mainUtxo: BitcoinUtxo,
   redeemerOutputScripts: string[],
   witness: boolean
 ): Promise<{
-  transactionHash: TransactionHash
-  newMainUtxo?: UnspentTransactionOutput
+  transactionHash: BitcoinTxHash
+  newMainUtxo?: BitcoinUtxo
 }> {
   const mainUtxoRawTransaction = await bitcoinClient.getRawTransaction(
     mainUtxo.transactionHash
   )
 
-  const mainUtxoWithRaw: UnspentTransactionOutput & RawTransaction = {
+  const mainUtxoWithRaw: BitcoinUtxo & BitcoinRawTx = {
     ...mainUtxo,
     transactionHex: mainUtxoRawTransaction.transactionHex,
   }
 
   const redemptionRequests = await getWalletRedemptionRequests(
     bridge,
-    createKeyRing(walletPrivateKey).getPublicKey().toString("hex"),
+    BitcoinPrivateKeyUtils.createKeyRing(walletPrivateKey)
+      .getPublicKey()
+      .toString("hex"),
     redeemerOutputScripts,
     "pending"
   )
@@ -204,19 +206,22 @@ async function getWalletRedemptionRequests(
  */
 export async function assembleRedemptionTransaction(
   walletPrivateKey: string,
-  mainUtxo: UnspentTransactionOutput & RawTransaction,
+  mainUtxo: BitcoinUtxo & BitcoinRawTx,
   redemptionRequests: RedemptionRequest[],
   witness: boolean
 ): Promise<{
-  transactionHash: TransactionHash
-  newMainUtxo?: UnspentTransactionOutput
-  rawTransaction: RawTransaction
+  transactionHash: BitcoinTxHash
+  newMainUtxo?: BitcoinUtxo
+  rawTransaction: BitcoinRawTx
 }> {
   if (redemptionRequests.length < 1) {
     throw new Error("There must be at least one request to redeem")
   }
 
-  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
+  const walletKeyRing = BitcoinPrivateKeyUtils.createKeyRing(
+    walletPrivateKey,
+    witness
+  )
   const walletAddress = walletKeyRing.getAddress("string")
 
   // Use the main UTXO as the single transaction input
@@ -283,7 +288,7 @@ export async function assembleRedemptionTransaction(
 
   transaction.sign(walletKeyRing)
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transactionHash = BitcoinTxHash.from(transaction.txid())
   // If there is a change output, it will be the new wallet's main UTXO.
   const newMainUtxo = changeOutputValue.gt(0)
     ? {
@@ -315,14 +320,14 @@ export async function assembleRedemptionTransaction(
  * @returns Empty promise.
  */
 export async function submitRedemptionProof(
-  transactionHash: TransactionHash,
-  mainUtxo: UnspentTransactionOutput,
+  transactionHash: BitcoinTxHash,
+  mainUtxo: BitcoinUtxo,
   walletPublicKey: string,
   bridge: Bridge,
   bitcoinClient: BitcoinClient
 ): Promise<void> {
   const confirmations = await bridge.txProofDifficultyFactor()
-  const proof = await assembleTransactionProof(
+  const proof = await assembleBitcoinSpvProof(
     transactionHash,
     confirmations,
     bitcoinClient
@@ -331,10 +336,10 @@ export async function submitRedemptionProof(
   // proof to the decomposed transaction data (version, inputs, outputs, locktime).
   // Use raw transaction data for now.
   const rawTransaction = await bitcoinClient.getRawTransaction(transactionHash)
-  const decomposedRawTransaction = decomposeRawTransaction(rawTransaction)
+  const rawTransactionVectors = extractBitcoinRawTxVectors(rawTransaction)
 
   await bridge.submitRedemptionProof(
-    decomposedRawTransaction,
+    rawTransactionVectors,
     proof,
     mainUtxo,
     walletPublicKey
@@ -394,14 +399,14 @@ export async function findWalletForRedemption(
   bitcoinClient: BitcoinClient
 ): Promise<{
   walletPublicKey: string
-  mainUtxo: UnspentTransactionOutput
+  mainUtxo: BitcoinUtxo
 }> {
   const wallets = await bridge.getNewWalletRegisteredEvents()
 
   let walletData:
     | {
         walletPublicKey: string
-        mainUtxo: UnspentTransactionOutput
+        mainUtxo: BitcoinUtxo
       }
     | undefined = undefined
   let maxAmount = BigNumber.from(0)

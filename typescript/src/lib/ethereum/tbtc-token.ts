@@ -1,7 +1,7 @@
 import { TBTC as ContractTBTC } from "../../../typechain/TBTC"
 import { TBTCToken as ChainTBTCToken } from "../contracts"
 import { BigNumber, ContractTransaction, utils } from "ethers"
-import { computeHash160, UnspentTransactionOutput } from "../bitcoin"
+import { BitcoinHashUtils, BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
 import {
   ContractConfig,
@@ -38,7 +38,7 @@ export class TBTCToken
    */
   async requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<Hex> {
@@ -69,7 +69,7 @@ export class TBTCToken
   private buildRequestRedemptionData(
     redeemer: Address,
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string
   ): Hex {
     const {
@@ -99,10 +99,12 @@ export class TBTCToken
 
   private buildBridgeRequestRedemptionData(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string
   ) {
-    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+      walletPublicKey
+    )}`
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal

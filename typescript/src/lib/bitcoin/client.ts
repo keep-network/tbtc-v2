@@ -1,16 +1,11 @@
 import { BitcoinNetwork } from "./network"
-import {
-  RawTransaction,
-  Transaction,
-  TransactionHash,
-  UnspentTransactionOutput,
-} from "./transaction"
-import { TransactionMerkleBranch } from "./proof"
+import { BitcoinRawTx, BitcoinTx, BitcoinTxHash, BitcoinUtxo } from "./tx"
+import { BitcoinTxMerkleBranch } from "./spv"
 
 /**
  * Represents a Bitcoin client.
  */
-export interface Client {
+export interface BitcoinClient {
   /**
    * Gets the network supported by the server the client connected to.
    * @returns Bitcoin network.
@@ -22,9 +17,7 @@ export interface Client {
    * @param address - Bitcoin address UTXOs should be determined for.
    * @returns List of UTXOs.
    */
-  findAllUnspentTransactionOutputs(
-    address: string
-  ): Promise<UnspentTransactionOutput[]>
+  findAllUnspentTransactionOutputs(address: string): Promise<BitcoinUtxo[]>
 
   /**
    * Gets the history of confirmed transactions for given Bitcoin address.
@@ -36,21 +29,21 @@ export interface Client {
    *        a specific number of last transaction. For example, limit = 5 will
    *        return only the last 5 transactions for the given address.
    */
-  getTransactionHistory(address: string, limit?: number): Promise<Transaction[]>
+  getTransactionHistory(address: string, limit?: number): Promise<BitcoinTx[]>
 
   /**
    * Gets the full transaction object for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Transaction object.
    */
-  getTransaction(transactionHash: TransactionHash): Promise<Transaction>
+  getTransaction(transactionHash: BitcoinTxHash): Promise<BitcoinTx>
 
   /**
    * Gets the raw transaction data for given transaction hash.
    * @param transactionHash - Hash of the transaction.
    * @returns Raw transaction.
    */
-  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction>
+  getRawTransaction(transactionHash: BitcoinTxHash): Promise<BitcoinRawTx>
 
   /**
    * Gets the number of confirmations that a given transaction has accumulated
@@ -58,7 +51,7 @@ export interface Client {
    * @param transactionHash - Hash of the transaction.
    * @returns The number of confirmations.
    */
-  getTransactionConfirmations(transactionHash: TransactionHash): Promise<number>
+  getTransactionConfirmations(transactionHash: BitcoinTxHash): Promise<number>
 
   /**
    * Gets height of the latest mined block.
@@ -82,13 +75,13 @@ export interface Client {
    * @return Merkle branch.
    */
   getTransactionMerkle(
-    transactionHash: TransactionHash,
+    transactionHash: BitcoinTxHash,
     blockHeight: number
-  ): Promise<TransactionMerkleBranch>
+  ): Promise<BitcoinTxMerkleBranch>
 
   /**
    * Broadcasts the given transaction over the network.
    * @param transaction - Transaction to broadcast.
    */
-  broadcast(transaction: RawTransaction): Promise<void>
+  broadcast(transaction: BitcoinRawTx): Promise<void>
 }

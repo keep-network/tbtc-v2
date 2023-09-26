@@ -8,10 +8,10 @@ import {
   testnetUTXO,
 } from "./data/deposit"
 import {
-  decomposeRawTransaction,
-  RawTransaction,
-  TransactionHash,
-  UnspentTransactionOutput,
+  extractBitcoinRawTxVectors,
+  BitcoinRawTx,
+  BitcoinTxHash,
+  BitcoinUtxo,
 } from "../src/lib/bitcoin"
 import {
   Deposit,
@@ -70,7 +70,7 @@ describe("Deposit", () => {
 
   // Expected data of created deposit in P2WSH scenarios.
   const expectedP2WSHDeposit = {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "9eb901fc68f0d9bcaf575f23783b7d30ac5dd8d95f3c83dceaa13dce17de816a"
     ),
 
@@ -100,7 +100,7 @@ describe("Deposit", () => {
 
   // Expected data of created deposit in P2SH scenarios.
   const expectedP2SHDeposit = {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "f21a9922c0c136c6d288cf1258b732d0f84a7d50d14a01d7d81cb6cd810f3517"
     ),
 
@@ -232,20 +232,20 @@ describe("Deposit", () => {
 
       // Tie used testnetAddress with testnetUTXO to use it during deposit
       // creation.
-      const utxos = new Map<string, UnspentTransactionOutput[]>()
+      const utxos = new Map<string, BitcoinUtxo[]>()
       utxos.set(testnetAddress, [testnetUTXO])
       bitcoinClient.unspentTransactionOutputs = utxos
 
       // Tie testnetTransaction to testnetUTXO. This is needed since
       // submitDepositTransaction attach transaction data to each UTXO.
-      const rawTransactions = new Map<string, RawTransaction>()
+      const rawTransactions = new Map<string, BitcoinRawTx>()
       rawTransactions.set(testnetTransactionHash.toString(), testnetTransaction)
       bitcoinClient.rawTransactions = rawTransactions
     })
 
     context("when witness option is true", () => {
-      let transactionHash: TransactionHash
-      let depositUtxo: UnspentTransactionOutput
+      let transactionHash: BitcoinTxHash
+      let depositUtxo: BitcoinUtxo
 
       beforeEach(async () => {
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
@@ -281,8 +281,8 @@ describe("Deposit", () => {
     })
 
     context("when witness option is false", () => {
-      let transactionHash: TransactionHash
-      let depositUtxo: UnspentTransactionOutput
+      let transactionHash: BitcoinTxHash
+      let depositUtxo: BitcoinUtxo
 
       beforeEach(async () => {
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
@@ -320,9 +320,9 @@ describe("Deposit", () => {
 
   describe("assembleDepositTransaction", () => {
     context("when witness option is true", () => {
-      let transactionHash: TransactionHash
-      let depositUtxo: UnspentTransactionOutput
-      let transaction: RawTransaction
+      let transactionHash: BitcoinTxHash
+      let depositUtxo: BitcoinUtxo
+      let transaction: BitcoinRawTx
 
       beforeEach(async () => {
         ;({
@@ -417,9 +417,9 @@ describe("Deposit", () => {
     })
 
     context("when witness option is false", () => {
-      let transactionHash: TransactionHash
-      let depositUtxo: UnspentTransactionOutput
-      let transaction: RawTransaction
+      let transactionHash: BitcoinTxHash
+      let depositUtxo: BitcoinUtxo
+      let transaction: BitcoinRawTx
 
       beforeEach(async () => {
         ;({
@@ -693,8 +693,8 @@ describe("Deposit", () => {
   })
 
   describe("revealDeposit", () => {
-    let transaction: RawTransaction
-    let depositUtxo: UnspentTransactionOutput
+    let transaction: BitcoinRawTx
+    let depositUtxo: BitcoinUtxo
     let bitcoinClient: MockBitcoinClient
     let bridge: MockBridge
 
@@ -713,7 +713,7 @@ describe("Deposit", () => {
       // Initialize the mock Bitcoin client to return the raw transaction
       // data for the given deposit UTXO.
       bitcoinClient = new MockBitcoinClient()
-      const rawTransactions = new Map<string, RawTransaction>()
+      const rawTransactions = new Map<string, BitcoinRawTx>()
       rawTransactions.set(depositUtxo.transactionHash.toString(), transaction)
       bitcoinClient.rawTransactions = rawTransactions
 
@@ -728,7 +728,7 @@ describe("Deposit", () => {
 
       const revealDepositLogEntry = bridge.revealDepositLog[0]
       expect(revealDepositLogEntry.depositTx).to.be.eql(
-        decomposeRawTransaction(transaction)
+        extractBitcoinRawTxVectors(transaction)
       )
       expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
       expect(revealDepositLogEntry.deposit).to.be.eql(deposit)
@@ -736,7 +736,7 @@ describe("Deposit", () => {
   })
 
   describe("getRevealedDeposit", () => {
-    let depositUtxo: UnspentTransactionOutput
+    let depositUtxo: BitcoinUtxo
     let revealedDeposit: RevealedDeposit
     let bridge: MockBridge
 

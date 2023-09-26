@@ -1,19 +1,19 @@
-import { Transaction, TransactionHash } from "./transaction"
-import { Client } from "./client"
+import { BitcoinTx, BitcoinTxHash } from "./tx"
+import { BitcoinClient } from "./client"
 import { BigNumber } from "ethers"
 import {
-  BlockHeader,
-  splitBlockHeadersChain,
-  validateBlockHeadersChain,
-} from "./block"
+  BitcoinHeader,
+  BitcoinHeaderSerializer,
+  validateBitcoinHeadersChain,
+} from "./header"
 import { Hex } from "../utils"
-import { computeHash256 } from "./hash"
+import { BitcoinHashUtils } from "./hash"
 
 /**
  * Data required to perform a proof that a given transaction was included in
  * the Bitcoin blockchain.
  */
-export interface Proof {
+export interface BitcoinSpvProof {
   /**
    * The merkle proof of transaction inclusion in a block, as an un-prefixed
    * hex string.
@@ -35,7 +35,7 @@ export interface Proof {
 /**
  * Information about the merkle branch to a confirmed transaction.
  */
-export interface TransactionMerkleBranch {
+export interface BitcoinTxMerkleBranch {
   /**
    * The height of the block the transaction was confirmed in.
    */
@@ -62,11 +62,11 @@ export interface TransactionMerkleBranch {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @returns Bitcoin transaction along with the inclusion proof.
  */
-export async function assembleTransactionProof(
-  transactionHash: TransactionHash,
+export async function assembleBitcoinSpvProof(
+  transactionHash: BitcoinTxHash,
   requiredConfirmations: number,
-  bitcoinClient: Client
-): Promise<Transaction & Proof> {
+  bitcoinClient: BitcoinClient
+): Promise<BitcoinTx & BitcoinSpvProof> {
   const transaction = await bitcoinClient.getTransaction(transactionHash)
   const confirmations = await bitcoinClient.getTransactionConfirmations(
     transactionHash
@@ -117,7 +117,7 @@ export async function assembleTransactionProof(
  * @param txMerkleBranch - Branch of a Merkle tree leading to a transaction.
  * @returns Transaction inclusion proof in hexadecimal form.
  */
-function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
+function createMerkleProof(txMerkleBranch: BitcoinTxMerkleBranch): string {
   let proof = Buffer.from("")
   txMerkleBranch.merkle.forEach(function (item) {
     proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
@@ -143,26 +143,25 @@ function createMerkleProof(txMerkleBranch: TransactionMerkleBranch): string {
  * @dev The function should be used within a try-catch block.
  * @returns An empty return value.
  */
-export async function validateTransactionProof(
-  transactionHash: TransactionHash,
+export async function validateBitcoinSpvProof(
+  transactionHash: BitcoinTxHash,
   requiredConfirmations: number,
   previousDifficulty: BigNumber,
   currentDifficulty: BigNumber,
-  bitcoinClient: Client
+  bitcoinClient: BitcoinClient
 ) {
   if (requiredConfirmations < 1) {
     throw new Error("The number of required confirmations but at least 1")
   }
 
-  const proof = await assembleTransactionProof(
+  const proof = await assembleBitcoinSpvProof(
     transactionHash,
     requiredConfirmations,
     bitcoinClient
   )
 
-  const bitcoinHeaders: BlockHeader[] = splitBlockHeadersChain(
-    proof.bitcoinHeaders
-  )
+  const bitcoinHeaders: BitcoinHeader[] =
+    BitcoinHeaderSerializer.deserializeHeadersChain(proof.bitcoinHeaders)
   if (bitcoinHeaders.length != requiredConfirmations) {
     throw new Error("Wrong number of confirmations")
   }
@@ -177,7 +176,7 @@ export async function validateTransactionProof(
     proof.txIndexInBlock
   )
 
-  validateBlockHeadersChain(
+  validateBitcoinHeadersChain(
     bitcoinHeaders,
     previousDifficulty,
     currentDifficulty
@@ -200,7 +199,7 @@ export async function validateTransactionProof(
  * @returns An empty return value.
  */
 function validateMerkleTree(
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTxHash,
   merkleRootHash: Hex,
   intermediateNodeHashes: Hex[],
   transactionIndex: number
@@ -240,7 +239,7 @@ function validateMerkleTree(
  * @returns An empty return value.
  */
 function validateMerkleTreeHashes(
-  transactionHash: TransactionHash,
+  transactionHash: BitcoinTxHash,
   merkleRootHash: Hex,
   intermediateNodeHashes: Hex[],
   transactionIndex: number
@@ -290,13 +289,13 @@ function validateMerkleTreeHashes(
     if (idx % 2 === 1) {
       // If the current value of idx is odd the hash taken from
       // `intermediateNodeHashes` goes before the current hash.
-      currentHash = computeHash256(
+      currentHash = BitcoinHashUtils.computeHash256(
         Hex.from(intermediateNodeHashes[i].toString() + currentHash.toString())
       )
     } else {
       // If the current value of idx is even the hash taken from the current
       // hash goes before the hash taken from `intermediateNodeHashes`.
-      currentHash = computeHash256(
+      currentHash = BitcoinHashUtils.computeHash256(
         Hex.from(currentHash.toString() + intermediateNodeHashes[i].toString())
       )
     }

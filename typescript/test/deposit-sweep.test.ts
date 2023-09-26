@@ -1,9 +1,9 @@
 import { BigNumber } from "ethers"
 import {
-  RawTransaction,
-  TransactionHash,
-  UnspentTransactionOutput,
-  Transaction,
+  BitcoinRawTx,
+  BitcoinTxHash,
+  BitcoinUtxo,
+  BitcoinTx,
 } from "../src/lib/bitcoin"
 import {
   testnetDepositScripthashAddress,
@@ -46,13 +46,13 @@ describe("Sweep", () => {
 
     context("when the new main UTXO is requested to be witness", () => {
       context("when there is no main UTXO from previous deposit sweep", () => {
-        let transactionHash: TransactionHash
-        let newMainUtxo: UnspentTransactionOutput
+        let transactionHash: BitcoinTxHash
+        let newMainUtxo: BitcoinUtxo
 
         beforeEach(async () => {
           // Map transaction hashes for UTXOs to transactions in hexadecimal and
           // set the mapping in the mock Bitcoin client
-          const rawTransactions = new Map<string, RawTransaction>()
+          const rawTransactions = new Map<string, BitcoinRawTx>()
           for (const deposit of depositSweepWithNoMainUtxoAndWitnessOutput.deposits) {
             rawTransactions.set(deposit.utxo.transactionHash.toString(), {
               transactionHex: deposit.utxo.transactionHex,
@@ -60,7 +60,7 @@ describe("Sweep", () => {
           }
           bitcoinClient.rawTransactions = rawTransactions
 
-          const utxos: UnspentTransactionOutput[] =
+          const utxos: BitcoinUtxo[] =
             depositSweepWithNoMainUtxoAndWitnessOutput.deposits.map((data) => {
               return data.utxo
             })
@@ -113,13 +113,13 @@ describe("Sweep", () => {
 
       context("when there is main UTXO from previous deposit sweep", () => {
         context("when main UTXO from previous deposit sweep is witness", () => {
-          let transactionHash: TransactionHash
-          let newMainUtxo: UnspentTransactionOutput
+          let transactionHash: BitcoinTxHash
+          let newMainUtxo: BitcoinUtxo
 
           beforeEach(async () => {
             // Map transaction hashes for UTXOs to transactions in hexadecimal and
             // set the mapping in the mock Bitcoin client
-            const rawTransactions = new Map<string, RawTransaction>()
+            const rawTransactions = new Map<string, BitcoinRawTx>()
             for (const deposit of depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits) {
               rawTransactions.set(deposit.utxo.transactionHash.toString(), {
                 transactionHex: deposit.utxo.transactionHex,
@@ -134,7 +134,7 @@ describe("Sweep", () => {
             )
             bitcoinClient.rawTransactions = rawTransactions
 
-            const utxos: UnspentTransactionOutput[] =
+            const utxos: BitcoinUtxo[] =
               depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits.map(
                 (deposit) => {
                   return deposit.utxo
@@ -197,13 +197,13 @@ describe("Sweep", () => {
         context(
           "when main UTXO from previous deposit sweep is non-witness",
           () => {
-            let transactionHash: TransactionHash
-            let newMainUtxo: UnspentTransactionOutput
+            let transactionHash: BitcoinTxHash
+            let newMainUtxo: BitcoinUtxo
 
             beforeEach(async () => {
               // Map transaction hashes for UTXOs to transactions in hexadecimal and
               // set the mapping in the mock Bitcoin client
-              const rawTransactions = new Map<string, RawTransaction>()
+              const rawTransactions = new Map<string, BitcoinRawTx>()
               for (const deposit of depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits) {
                 rawTransactions.set(deposit.utxo.transactionHash.toString(), {
                   transactionHex: deposit.utxo.transactionHex,
@@ -219,7 +219,7 @@ describe("Sweep", () => {
               )
               bitcoinClient.rawTransactions = rawTransactions
 
-              const utxos: UnspentTransactionOutput[] =
+              const utxos: BitcoinUtxo[] =
                 depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits.map(
                   (deposit) => {
                     return deposit.utxo
@@ -286,13 +286,13 @@ describe("Sweep", () => {
       // The only difference between deposit sweep transactions with witness and
       // non-witness output is the output type itself.
       // Therefore only one test case was added for non-witness transactions.
-      let transactionHash: TransactionHash
-      let newMainUtxo: UnspentTransactionOutput
+      let transactionHash: BitcoinTxHash
+      let newMainUtxo: BitcoinUtxo
 
       beforeEach(async () => {
         // Map transaction hashes for UTXOs to transactions in hexadecimal and
         // set the mapping in the mock Bitcoin client
-        const rawTransactions = new Map<string, RawTransaction>()
+        const rawTransactions = new Map<string, BitcoinRawTx>()
         for (const deposit of depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits) {
           rawTransactions.set(deposit.utxo.transactionHash.toString(), {
             transactionHex: deposit.utxo.transactionHex,
@@ -356,9 +356,9 @@ describe("Sweep", () => {
   describe("assembleDepositSweepTransaction", () => {
     context("when the new main UTXO is requested to be witness", () => {
       context("when there is no main UTXO from previous deposit sweep", () => {
-        let transactionHash: TransactionHash
-        let newMainUtxo: UnspentTransactionOutput
-        let transaction: RawTransaction
+        let transactionHash: BitcoinTxHash
+        let newMainUtxo: BitcoinUtxo
+        let transaction: BitcoinRawTx
 
         const utxosWithRaw =
           depositSweepWithNoMainUtxoAndWitnessOutput.deposits.map((data) => {
@@ -477,9 +477,9 @@ describe("Sweep", () => {
 
       context("when there is main UTXO from previous deposit sweep", () => {
         context("when main UTXO prom previous deposit sweep is witness", () => {
-          let transactionHash: TransactionHash
-          let newMainUtxo: UnspentTransactionOutput
-          let transaction: RawTransaction
+          let transactionHash: BitcoinTxHash
+          let newMainUtxo: BitcoinUtxo
+          let transaction: BitcoinRawTx
 
           const utxosWithRaw =
             depositSweepWithWitnessMainUtxoAndWitnessOutput.deposits.map(
@@ -627,9 +627,9 @@ describe("Sweep", () => {
         context(
           "when main UTXO from previous deposit sweep is non-witness",
           () => {
-            let transactionHash: TransactionHash
-            let newMainUtxo: UnspentTransactionOutput
-            let transaction: RawTransaction
+            let transactionHash: BitcoinTxHash
+            let newMainUtxo: BitcoinUtxo
+            let transaction: BitcoinRawTx
 
             const utxosWithRaw =
               depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits.map(
@@ -765,9 +765,9 @@ describe("Sweep", () => {
       // The only difference between deposit sweep transactions with witness and
       // non-witness output is the output type itself.
       // Therefore only one test case was added for non-witness transactions.
-      let transactionHash: TransactionHash
-      let newMainUtxo: UnspentTransactionOutput
-      let transaction: RawTransaction
+      let transactionHash: BitcoinTxHash
+      let newMainUtxo: BitcoinUtxo
+      let transaction: BitcoinRawTx
 
       const utxosWithRaw =
         depositSweepWithNoMainUtxoAndNonWitnessOutput.deposits.map(
@@ -952,7 +952,7 @@ describe("Sweep", () => {
 
       // The UTXO below does not belong to the wallet
       const mainUtxoWithRaw = {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
         ),
         outputIndex: 1,
@@ -1010,7 +1010,7 @@ describe("Sweep", () => {
     context("when the type of UTXO is unsupported", () => {
       // Use coinbase transaction of some block
       const utxoWithRaw = {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "025de155e6f2ffbbf4851493e0d28dad54020db221a3f38bf63c1f65e3d3595b"
         ),
         outputIndex: 0,
@@ -1050,14 +1050,14 @@ describe("Sweep", () => {
 
       const transactionHash =
         depositSweepProof.bitcoinChainData.transaction.transactionHash
-      const transactions = new Map<string, Transaction>()
+      const transactions = new Map<string, BitcoinTx>()
       transactions.set(
         transactionHash.toString(),
         depositSweepProof.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
 
-      const rawTransactions = new Map<string, RawTransaction>()
+      const rawTransactions = new Map<string, BitcoinRawTx>()
       rawTransactions.set(
         transactionHash.toString(),
         depositSweepProof.bitcoinChainData.rawTransaction

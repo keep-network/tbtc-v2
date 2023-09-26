@@ -1,11 +1,11 @@
 import {
-  DecomposedRawTransaction,
-  Proof,
-  Transaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionMerkleBranch,
-  TransactionHash,
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinTx,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxMerkleBranch,
+  BitcoinTxHash,
 } from "../../src/lib/bitcoin"
 import { Deposit } from "../../src/lib/contracts"
 import { calculateDepositRefundLocktime } from "../../src/deposit"
@@ -14,7 +14,7 @@ import { Address } from "../../src/lib/ethereum"
 import { Hex } from "../../src"
 
 export const NO_MAIN_UTXO = {
-  transactionHash: TransactionHash.from(""),
+  transactionHash: BitcoinTxHash.from(""),
   outputIndex: 0,
   value: BigNumber.from(0),
   transactionHex: "",
@@ -25,14 +25,14 @@ export const NO_MAIN_UTXO = {
  */
 export interface DepositSweepTestData {
   deposits: {
-    utxo: UnspentTransactionOutput & RawTransaction
+    utxo: BitcoinUtxo & BitcoinRawTx
     data: Deposit
   }[]
-  mainUtxo: UnspentTransactionOutput & RawTransaction
+  mainUtxo: BitcoinUtxo & BitcoinRawTx
   witness: boolean
   expectedSweep: {
-    transactionHash: TransactionHash
-    transaction: RawTransaction
+    transactionHash: BitcoinTxHash
+    transaction: BitcoinRawTx
   }
 }
 
@@ -46,7 +46,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc"
           ),
           outputIndex: 0,
@@ -73,7 +73,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
       },
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc"
           ),
           outputIndex: 0,
@@ -103,7 +103,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
     mainUtxo: NO_MAIN_UTXO,
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
       ),
       transaction: {
@@ -138,7 +138,7 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "4cdd899d7133cd681bdc4e80b3af09d34da1f7450c5b19167aa8a8223c7a8426"
           ),
           outputIndex: 0,
@@ -161,7 +161,7 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
     mainUtxo: NO_MAIN_UTXO,
     witness: false,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "1c42b0568d88bb4d21ae138769fd06199dd3ec689911972792e678be8516d58d"
       ),
       transaction: {
@@ -183,7 +183,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
       {
         // P2SH deposit
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed"
           ),
           outputIndex: 0,
@@ -211,7 +211,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
       {
         // P2WSH deposit
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3"
           ),
           outputIndex: 0,
@@ -239,7 +239,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
     ],
     mainUtxo: {
       // P2WPKH
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
       ),
       outputIndex: 0,
@@ -264,7 +264,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
     },
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e"
       ),
       transaction: {
@@ -304,7 +304,7 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "fda2323b4075a0311767ae8db07f4387bb53663a304278cd8c2c7a591f203a17"
           ),
           outputIndex: 0,
@@ -332,7 +332,7 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
       },
     ],
     mainUtxo: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "c8a2c407309b9434cb73d4788ce4ac895084240eec7bb440e7f76b75be1296e1"
       ),
       outputIndex: 0,
@@ -350,24 +350,25 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     },
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
-        "1933781f01f27f086c3a31c4a53035ebc7c4688e1f4b316babefa8f6dab77dc2"
+      transactionHash: BitcoinTxHash.from(
+        "7831d0dfde7e160f3b9bb66c433710f0d3110d73ea78b9db65e81c091a6718a0"
       ),
       transaction: {
         transactionHex:
-          "01000000000102e19612be756bf7e740b47bec0e24845089ace48c78d473cb34949" +
-          "b3007c4a2c8000000006a473044022013787be70eda0620002fa55c92abfcd32257" +
-          "d64fa652dd32bac65d705162a95902203407fea1abc99a9273ead3179ce60f60a34" +
-          "33fb2e93f58569e4bee9f63c0d679012103989d253b17a6a0f41838b84ff0d20e88" +
-          "98f9d7b1a98f2564da4cc29dcf8581d9ffffffff173a201f597a2c8ccd7842303a6" +
-          "653bb87437fb08dae671731a075403b32a2fd0000000000ffffffff010884000000" +
-          "0000001600148db50eb52063ea9d98b3eac91489a90f738986f6000348304502210" +
-          "0804f0fa989d632cda99a24159e28b8d31d4033c2d5de47d8207ea2767273d10a02" +
-          "20278e82d0714867b31eb013762306e2b97c2c1cc74b8135bee78d565e72ee630e0" +
-          "12103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581" +
-          "d95c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237" +
-          "576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257ec" +
-          "cafbc07c381642ce6e7e55120fb077fbed880448f2b262b175ac6800000000",
+          "01000000000102173a201f597a2c8ccd7842303a6653bb87437fb08dae671731a0" +
+          "75403b32a2fd0000000000ffffffffe19612be756bf7e740b47bec0e24845089ac" +
+          "e48c78d473cb34949b3007c4a2c8000000006a47304402204382deb051f9f3e2b5" +
+          "39e4bac2d1a50faf8d66bc7a3a3f3d286dabd96d92b58b02207c74c6aaf48e25d0" +
+          "7e02bb4039606d77ecfd80c492c050ab2486af6027fc2d5a012103989d253b17a6" +
+          "a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9ffffffff010884" +
+          "0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f603483045" +
+          "022100c52bc876cdee80a3061ace3ffbce5e860942d444cd38e00e5f63fd8e818d" +
+          "7e7c022040a7017bb8213991697705e7092c481526c788a4731d06e582dc1c57be" +
+          "d7243b012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc2" +
+          "9dcf8581d95c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d" +
+          "000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776" +
+          "a914e257eccafbc07c381642ce6e7e55120fb077fbed880448f2b262b175ac6800" +
+          "00000000",
       },
     },
   }
@@ -377,17 +378,17 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
  */
 export interface DepositSweepProofTestData {
   bitcoinChainData: {
-    transaction: Transaction
-    rawTransaction: RawTransaction
+    transaction: BitcoinTx
+    rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
     headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedSweepProof: {
-    sweepTx: DecomposedRawTransaction
-    sweepProof: Proof
-    mainUtxo: UnspentTransactionOutput
+    sweepTx: BitcoinRawTxVectors
+    sweepProof: BitcoinSpvProof
+    mainUtxo: BitcoinUtxo
   }
 }
 
@@ -398,33 +399,33 @@ export interface DepositSweepProofTestData {
 export const depositSweepProof: DepositSweepProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
           ),
           outputIndex: 0,

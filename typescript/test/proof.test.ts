@@ -1,12 +1,11 @@
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
-  serializeBlockHeader,
-  Transaction,
-  BlockHeader,
-  Proof,
-  assembleTransactionProof,
-  validateTransactionProof,
-  splitBlockHeadersChain,
+  BitcoinHeaderSerializer,
+  BitcoinTx,
+  BitcoinHeader,
+  BitcoinSpvProof,
+  assembleBitcoinSpvProof,
+  validateBitcoinSpvProof,
 } from "../src/lib/bitcoin"
 import { Hex } from "../src/lib/utils"
 import {
@@ -32,7 +31,7 @@ describe("Proof", () => {
     })
 
     context("when the transaction has one input", () => {
-      let proof: Transaction & Proof
+      let proof: BitcoinTx & BitcoinSpvProof
 
       beforeEach(async () => {
         proof = await runProofScenario(singleInputProofTestData)
@@ -52,7 +51,7 @@ describe("Proof", () => {
     })
 
     context("when the transaction has multiple inputs", () => {
-      let proof: Transaction & Proof
+      let proof: BitcoinTx & BitcoinSpvProof
 
       beforeEach(async () => {
         proof = await runProofScenario(multipleInputsProofTestData)
@@ -90,8 +89,8 @@ describe("Proof", () => {
 
     async function runProofScenario(
       data: ProofTestData
-    ): Promise<Transaction & Proof> {
-      const transactions = new Map<string, Transaction>()
+    ): Promise<BitcoinTx & BitcoinSpvProof> {
+      const transactions = new Map<string, BitcoinTx>()
       const transactionHash = data.bitcoinChainData.transaction.transactionHash
       transactions.set(
         transactionHash.toString(),
@@ -109,7 +108,7 @@ describe("Proof", () => {
       )
       bitcoinClient.confirmations = confirmations
 
-      const proof = await assembleTransactionProof(
+      const proof = await assembleBitcoinSpvProof(
         transactionHash,
         data.requiredConfirmations,
         bitcoinClient
@@ -283,14 +282,16 @@ describe("Proof", () => {
         it("should throw", async () => {
           // Corrupt data by modifying previous block header hash of one of the
           // headers.
-          const headers: BlockHeader[] = splitBlockHeadersChain(
-            transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
-          )
+          const headers: BitcoinHeader[] =
+            BitcoinHeaderSerializer.deserializeHeadersChain(
+              transactionConfirmationsInOneEpochData.bitcoinChainData
+                .headersChain
+            )
           headers[headers.length - 1].previousBlockHeaderHash = Hex.from(
             "ff".repeat(32)
           )
           const corruptedHeadersChain: string = headers
-            .map(serializeBlockHeader)
+            .map(BitcoinHeaderSerializer.serializeHeader)
             .join("")
 
           const corruptedProofData: TransactionProofData = {
@@ -311,12 +312,14 @@ describe("Proof", () => {
         it("should throw", async () => {
           // Corrupt data by modifying the nonce of one of the headers, so that
           // the resulting hash will be above the required difficulty target.
-          const headers: BlockHeader[] = splitBlockHeadersChain(
-            transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain
-          )
+          const headers: BitcoinHeader[] =
+            BitcoinHeaderSerializer.deserializeHeadersChain(
+              transactionConfirmationsInOneEpochData.bitcoinChainData
+                .headersChain
+            )
           headers[headers.length - 1].nonce++
           const corruptedHeadersChain: string = headers
-            .map(serializeBlockHeader)
+            .map(BitcoinHeaderSerializer.serializeHeader)
             .join("")
 
           const corruptedProofData: TransactionProofData = {
@@ -361,7 +364,7 @@ describe("Proof", () => {
     })
 
     async function runProofValidationScenario(data: TransactionProofData) {
-      const transactions = new Map<string, Transaction>()
+      const transactions = new Map<string, BitcoinTx>()
       const transactionHash = data.bitcoinChainData.transaction.transactionHash
       transactions.set(
         transactionHash.toString(),
@@ -379,7 +382,7 @@ describe("Proof", () => {
       )
       bitcoinClient.confirmations = confirmations
 
-      await validateTransactionProof(
+      await validateBitcoinSpvProof(
         data.bitcoinChainData.transaction.transactionHash,
         data.requiredConfirmations,
         data.bitcoinChainData.previousDifficulty,

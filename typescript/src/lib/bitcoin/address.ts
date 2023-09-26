@@ -3,7 +3,7 @@ import { Hex } from "../utils"
 import { BitcoinNetwork, toBcoinNetwork } from "./network"
 
 /**
- * Encodes a public key hash into a P2PKH/P2WPKH address.
+ * Converts a public key hash into a P2PKH/P2WPKH address.
  * @param publicKeyHash - public key hash that will be encoded. Must be an
  *        unprefixed hex string (without 0x prefix).
  * @param witness - If true, a witness public key hash will be encoded and
@@ -12,7 +12,7 @@ import { BitcoinNetwork, toBcoinNetwork } from "./network"
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
  * @throws Throws an error if network is not supported.
  */
-export function encodeToBitcoinAddress(
+function publicKeyHashToAddress(
   publicKeyHash: string,
   witness: boolean,
   network: BitcoinNetwork
@@ -25,13 +25,13 @@ export function encodeToBitcoinAddress(
 }
 
 /**
- * Decodes P2PKH or P2WPKH address into a public key hash. Throws if the
+ * Converts a P2PKH or P2WPKH address into a public key hash. Throws if the
  * provided address is not PKH-based.
  * @param address - P2PKH or P2WPKH address that will be decoded.
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix).
  */
-export function decodeBitcoinAddress(address: string): string {
+function addressToPublicKeyHash(address: string): string {
   const addressObject = new bcoin.Address(address)
 
   const isPKH =
@@ -44,25 +44,35 @@ export function decodeBitcoinAddress(address: string): string {
 }
 
 /**
- * Creates the output script from the BTC address.
+ * Converts an address to the respective output script.
  * @param address BTC address.
  * @returns The un-prefixed and not prepended with length output script.
  */
-export function createOutputScriptFromAddress(address: string): Hex {
+function addressToOutputScript(address: string): Hex {
   return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
 }
 
 /**
- * Creates the Bitcoin address from the output script.
+ * Converts an output script to the respective network-specific address.
  * @param script The unprefixed and not prepended with length output script.
  * @param network Bitcoin network.
  * @returns The Bitcoin address.
  */
-export function createAddressFromOutputScript(
+function outputScriptToAddress(
   script: Hex,
   network: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {
   return Script.fromRaw(script.toString(), "hex")
     .getAddress()
     ?.toString(toBcoinNetwork(network))
+}
+
+/**
+ * Utility functions allowing to perform Bitcoin address conversions.
+ */
+export const BitcoinAddressConverter = {
+  publicKeyHashToAddress,
+  addressToPublicKeyHash,
+  addressToOutputScript,
+  outputScriptToAddress,
 }

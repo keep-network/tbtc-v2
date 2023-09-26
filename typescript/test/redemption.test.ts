@@ -1,9 +1,9 @@
 import {
   BitcoinNetwork,
-  Transaction,
-  RawTransaction,
-  TransactionHash,
-  UnspentTransactionOutput,
+  BitcoinTx,
+  BitcoinRawTx,
+  BitcoinTxHash,
+  BitcoinUtxo,
 } from "../src/lib/bitcoin"
 import bcoin from "bcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
@@ -38,7 +38,6 @@ import chaiAsPromised from "chai-as-promised"
 import { expect } from "chai"
 import { BigNumberish, BigNumber } from "ethers"
 import { MockTBTCToken } from "./utils/mock-tbtc-token"
-import { BitcoinTransaction } from "../src"
 
 chai.use(chaiAsPromised)
 
@@ -99,8 +98,8 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2PKHRedemptionWithWitnessChange
 
-                    let transactionHash: TransactionHash
-                    let newMainUtxo: UnspentTransactionOutput | undefined
+                    let transactionHash: BitcoinTxHash
+                    let newMainUtxo: BitcoinUtxo | undefined
 
                     beforeEach(async () => {
                       ;({ transactionHash, newMainUtxo } =
@@ -144,8 +143,8 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2WPKHRedemptionWithWitnessChange
 
-                    let transactionHash: TransactionHash
-                    let newMainUtxo: UnspentTransactionOutput | undefined
+                    let transactionHash: BitcoinTxHash
+                    let newMainUtxo: BitcoinUtxo | undefined
 
                     beforeEach(async () => {
                       ;({ transactionHash, newMainUtxo } =
@@ -189,8 +188,8 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2SHRedemptionWithWitnessChange
 
-                    let transactionHash: TransactionHash
-                    let newMainUtxo: UnspentTransactionOutput | undefined
+                    let transactionHash: BitcoinTxHash
+                    let newMainUtxo: BitcoinUtxo | undefined
 
                     beforeEach(async () => {
                       ;({ transactionHash, newMainUtxo } =
@@ -234,8 +233,8 @@ describe("Redemption", () => {
                     const data: RedemptionTestData =
                       singleP2WSHRedemptionWithWitnessChange
 
-                    let transactionHash: TransactionHash
-                    let newMainUtxo: UnspentTransactionOutput | undefined
+                    let transactionHash: BitcoinTxHash
+                    let newMainUtxo: BitcoinUtxo | undefined
 
                     beforeEach(async () => {
                       ;({ transactionHash, newMainUtxo } =
@@ -278,8 +277,8 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   multipleRedemptionsWithWitnessChange
 
-                let transactionHash: TransactionHash
-                let newMainUtxo: UnspentTransactionOutput | undefined
+                let transactionHash: BitcoinTxHash
+                let newMainUtxo: BitcoinUtxo | undefined
 
                 beforeEach(async () => {
                   ;({ transactionHash, newMainUtxo } =
@@ -323,8 +322,8 @@ describe("Redemption", () => {
               const data: RedemptionTestData =
                 singleP2SHRedemptionWithNonWitnessChange
 
-              let transactionHash: TransactionHash
-              let newMainUtxo: UnspentTransactionOutput | undefined
+              let transactionHash: BitcoinTxHash
+              let newMainUtxo: BitcoinUtxo | undefined
 
               beforeEach(async () => {
                 ;({ transactionHash, newMainUtxo } =
@@ -367,8 +366,8 @@ describe("Redemption", () => {
             // will not contain the change output.
             const data: RedemptionTestData = multipleRedemptionsWithoutChange
 
-            let transactionHash: TransactionHash
-            let newMainUtxo: UnspentTransactionOutput | undefined
+            let transactionHash: BitcoinTxHash
+            let newMainUtxo: BitcoinUtxo | undefined
 
             beforeEach(async () => {
               ;({ transactionHash, newMainUtxo } = await runRedemptionScenario(
@@ -405,7 +404,7 @@ describe("Redemption", () => {
           const data: RedemptionTestData = multipleRedemptionsWithWitnessChange
 
           beforeEach(async () => {
-            const rawTransactions = new Map<string, RawTransaction>()
+            const rawTransactions = new Map<string, BitcoinRawTx>()
             rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
               transactionHex: data.mainUtxo.transactionHex,
             })
@@ -450,7 +449,7 @@ describe("Redemption", () => {
       const data: RedemptionTestData = singleP2WPKHRedemptionWithWitnessChange
 
       beforeEach(async () => {
-        const rawTransactions = new Map<string, RawTransaction>()
+        const rawTransactions = new Map<string, BitcoinRawTx>()
         rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
           transactionHex: data.mainUtxo.transactionHex,
         })
@@ -483,9 +482,9 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   singleP2PKHRedemptionWithWitnessChange
 
-                let transactionHash: TransactionHash
-                let newMainUtxo: UnspentTransactionOutput | undefined
-                let transaction: RawTransaction
+                let transactionHash: BitcoinTxHash
+                let newMainUtxo: BitcoinUtxo | undefined
+                let transaction: BitcoinRawTx
 
                 beforeEach(async () => {
                   const redemptionRequests = data.pendingRedemptions.map(
@@ -596,9 +595,9 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   singleP2WPKHRedemptionWithWitnessChange
 
-                let transactionHash: TransactionHash
-                let newMainUtxo: UnspentTransactionOutput | undefined
-                let transaction: RawTransaction
+                let transactionHash: BitcoinTxHash
+                let newMainUtxo: BitcoinUtxo | undefined
+                let transaction: BitcoinRawTx
 
                 beforeEach(async () => {
                   const redemptionRequests = data.pendingRedemptions.map(
@@ -708,9 +707,9 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   singleP2SHRedemptionWithWitnessChange
 
-                let transactionHash: TransactionHash
-                let newMainUtxo: UnspentTransactionOutput | undefined
-                let transaction: RawTransaction
+                let transactionHash: BitcoinTxHash
+                let newMainUtxo: BitcoinUtxo | undefined
+                let transaction: BitcoinRawTx
 
                 beforeEach(async () => {
                   const redemptionRequests = data.pendingRedemptions.map(
@@ -820,9 +819,9 @@ describe("Redemption", () => {
                 const data: RedemptionTestData =
                   singleP2WSHRedemptionWithWitnessChange
 
-                let transactionHash: TransactionHash
-                let newMainUtxo: UnspentTransactionOutput | undefined
-                let transaction: RawTransaction
+                let transactionHash: BitcoinTxHash
+                let newMainUtxo: BitcoinUtxo | undefined
+                let transaction: BitcoinRawTx
 
                 beforeEach(async () => {
                   const redemptionRequests = data.pendingRedemptions.map(
@@ -931,9 +930,9 @@ describe("Redemption", () => {
             const data: RedemptionTestData =
               multipleRedemptionsWithWitnessChange
 
-            let transactionHash: TransactionHash
-            let newMainUtxo: UnspentTransactionOutput | undefined
-            let transaction: RawTransaction
+            let transactionHash: BitcoinTxHash
+            let newMainUtxo: BitcoinUtxo | undefined
+            let transaction: BitcoinRawTx
 
             beforeEach(async () => {
               const redemptionRequests = data.pendingRedemptions.map(
@@ -1088,9 +1087,9 @@ describe("Redemption", () => {
           const data: RedemptionTestData =
             singleP2SHRedemptionWithNonWitnessChange
 
-          let transactionHash: TransactionHash
-          let newMainUtxo: UnspentTransactionOutput | undefined
-          let transaction: RawTransaction
+          let transactionHash: BitcoinTxHash
+          let newMainUtxo: BitcoinUtxo | undefined
+          let transaction: BitcoinRawTx
 
           beforeEach(async () => {
             const redemptionRequests = data.pendingRedemptions.map(
@@ -1194,9 +1193,9 @@ describe("Redemption", () => {
       context("when there is no change UTXO created", () => {
         const data: RedemptionTestData = multipleRedemptionsWithoutChange
 
-        let transactionHash: TransactionHash
-        let newMainUtxo: UnspentTransactionOutput | undefined
-        let transaction: RawTransaction
+        let transactionHash: BitcoinTxHash
+        let newMainUtxo: BitcoinUtxo | undefined
+        let transaction: BitcoinRawTx
 
         beforeEach(async () => {
           const redemptionRequests = data.pendingRedemptions.map(
@@ -1309,7 +1308,7 @@ describe("Redemption", () => {
 
   describe("submitRedemptionProof", () => {
     const mainUtxo = {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
       ),
       outputIndex: 1,
@@ -1328,14 +1327,14 @@ describe("Redemption", () => {
       const transactionHash =
         redemptionProof.bitcoinChainData.transaction.transactionHash
 
-      const transactions = new Map<string, Transaction>()
+      const transactions = new Map<string, BitcoinTx>()
       transactions.set(
         transactionHash.toString(),
         redemptionProof.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
 
-      const rawTransactions = new Map<string, RawTransaction>()
+      const rawTransactions = new Map<string, BitcoinRawTx>()
       rawTransactions.set(
         transactionHash.toString(),
         redemptionProof.bitcoinChainData.rawTransaction
@@ -1490,10 +1489,7 @@ describe("Redemption", () => {
           (wallet) => wallet.event
         )
 
-        const walletsTransactionHistory = new Map<
-          string,
-          BitcoinTransaction[]
-        >()
+        const walletsTransactionHistory = new Map<string, BitcoinTx[]>()
 
         walletsOrder.forEach((wallet) => {
           const {
@@ -1740,10 +1736,10 @@ async function runRedemptionScenario(
   bridge: MockBridge,
   data: RedemptionTestData
 ): Promise<{
-  transactionHash: TransactionHash
-  newMainUtxo?: UnspentTransactionOutput
+  transactionHash: BitcoinTxHash
+  newMainUtxo?: BitcoinUtxo
 }> {
-  const rawTransactions = new Map<string, RawTransaction>()
+  const rawTransactions = new Map<string, BitcoinRawTx>()
   rawTransactions.set(data.mainUtxo.transactionHash.toString(), {
     transactionHex: data.mainUtxo.transactionHex,
   })

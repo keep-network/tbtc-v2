@@ -10,7 +10,7 @@ import { Hex } from "../utils"
  * @returns An object holding the value of the compact size uint along with the
  *          compact size uint byte length.
  */
-export function readCompactSizeUint(varLenData: Hex): {
+function read(varLenData: Hex): {
   value: number
   byteLength: number
 } {
@@ -38,4 +38,11 @@ export function readCompactSizeUint(varLenData: Hex): {
       }
     }
   }
+}
+
+/**
+ * Utility functions allowing to deal with Bitcoin compact size uints.
+ */
+export const BitcoinCompactSizeUint = {
+  read,
 }

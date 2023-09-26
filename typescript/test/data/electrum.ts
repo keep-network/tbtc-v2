@@ -1,9 +1,9 @@
 import {
-  Transaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionMerkleBranch,
-  TransactionHash,
+  BitcoinTx,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxMerkleBranch,
+  BitcoinTxHash,
 } from "../../src/lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "../../src"
@@ -17,14 +17,14 @@ export const testnetAddress: string =
 /**
  * A testnet transaction originating from {@link testnetAddress}
  */
-export const testnetTransaction: Transaction = {
-  transactionHash: TransactionHash.from(
+export const testnetTransaction: BitcoinTx = {
+  transactionHash: BitcoinTxHash.from(
     "72e7fd57c2adb1ed2305c4247486ff79aec363296f02ec65be141904f80d214e"
   ),
 
   inputs: [
     {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "c6ffe9e0f8cca057acad211023ff6b9d46604fbbcb76c6dd669c20b22985f802"
       ),
       outputIndex: 1,
@@ -49,7 +49,7 @@ export const testnetTransaction: Transaction = {
 /**
  * Raw transaction corresponding to {@link testnetTransaction}
  */
-export const testnetRawTransaction: RawTransaction = {
+export const testnetRawTransaction: BitcoinRawTx = {
   transactionHex:
     "0200000000010102f88529b2209c66ddc676cbbb4f60469d6bff231021adac57a0ccf8e" +
     "0e9ffc60100000000fdffffff0265000000000000001600144b47c798d12edd17dfb4ea" +
@@ -63,7 +63,7 @@ export const testnetRawTransaction: RawTransaction = {
 /**
  * An UTXO being result of {@link testnetTransaction}
  */
-export const testnetUTXO: UnspentTransactionOutput = {
+export const testnetUTXO: BitcoinUtxo = {
   transactionHash: testnetTransaction.transactionHash,
   outputIndex: 0,
   value: BigNumber.from(101),
@@ -97,7 +97,7 @@ export const testnetHeadersChain = {
 /**
  * Transaction merkle branch corresponding to {@link testnetTransaction}
  */
-export const testnetTransactionMerkleBranch: TransactionMerkleBranch = {
+export const testnetTransactionMerkleBranch: BitcoinTxMerkleBranch = {
   blockHeight: 1569342,
   merkle: [
     "8b5bbb5bdf6727bf70fad4f46fe4eaab04c98119ffbd2d95c29adf32d26f8452",

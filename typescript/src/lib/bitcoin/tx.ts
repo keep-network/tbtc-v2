@@ -4,18 +4,18 @@ import { BigNumber } from "ethers"
 import { Hex } from "../utils"
 
 /**
- * Represents a transaction hash (or transaction ID) as an un-prefixed hex
+ * Represents a Bitcoin transaction hash (or transaction ID) as an un-prefixed hex
  * string. This hash is supposed to have the same byte order as used by the
  * Bitcoin block explorers which is the opposite of the byte order used
  * by the Bitcoin protocol internally. That means the hash must be reversed in
  * the use cases that expect the Bitcoin internal byte order.
  */
-export class TransactionHash extends Hex {}
+export class BitcoinTxHash extends Hex {}
 
 /**
- * Represents a raw transaction.
+ * Represents a raw Bitcoin transaction.
  */
-export interface RawTransaction {
+export interface BitcoinRawTx {
   /**
    * The full transaction payload as an un-prefixed hex string.
    */
@@ -23,33 +23,33 @@ export interface RawTransaction {
 }
 
 /**
- * Data about a transaction.
+ * Data about a Bitcoin transaction.
  */
-export interface Transaction {
+export interface BitcoinTx {
   /**
    * The transaction hash (or transaction ID) as an un-prefixed hex string.
    */
-  transactionHash: TransactionHash
+  transactionHash: BitcoinTxHash
 
   /**
    * The vector of transaction inputs.
    */
-  inputs: TransactionInput[]
+  inputs: BitcoinTxInput[]
 
   /**
    * The vector of transaction outputs.
    */
-  outputs: TransactionOutput[]
+  outputs: BitcoinTxOutput[]
 }
 
 /**
- * Data about a transaction outpoint.
+ * Data about a Bitcoin transaction outpoint.
  */
-export interface TransactionOutpoint {
+export interface BitcoinTxOutpoint {
   /**
    * The hash of the transaction the outpoint belongs to.
    */
-  transactionHash: TransactionHash
+  transactionHash: BitcoinTxHash
 
   /**
    * The zero-based index of the output from the specified transaction.
@@ -58,9 +58,9 @@ export interface TransactionOutpoint {
 }
 
 /**
- * Data about a transaction input.
+ * Data about a Bitcoin transaction input.
  */
-export type TransactionInput = TransactionOutpoint & {
+export type BitcoinTxInput = BitcoinTxOutpoint & {
   /**
    * The scriptSig that unlocks the specified outpoint for spending.
    */
@@ -68,9 +68,9 @@ export type TransactionInput = TransactionOutpoint & {
 }
 
 /**
- * Data about a transaction output.
+ * Data about a Bitcoin transaction output.
  */
-export interface TransactionOutput {
+export interface BitcoinTxOutput {
   /**
    * The 0-based index of the output.
    */
@@ -88,9 +88,9 @@ export interface TransactionOutput {
 }
 
 /**
- * Data about an unspent transaction output.
+ * Data about a Bitcoin unspent transaction output.
  */
-export type UnspentTransactionOutput = TransactionOutpoint & {
+export type BitcoinUtxo = BitcoinTxOutpoint & {
   /**
    * The unspent value in satoshis.
    */
@@ -98,9 +98,9 @@ export type UnspentTransactionOutput = TransactionOutpoint & {
 }
 
 /**
- * Represents data of decomposed raw transaction.
+ * Represents a raw Bitcoin transaction decomposed into specific vectors.
  */
-export interface DecomposedRawTransaction {
+export interface BitcoinRawTxVectors {
   /**
    * Transaction version as an un-prefixed hex string.
    */
@@ -130,9 +130,9 @@ export interface DecomposedRawTransaction {
  * @param rawTransaction - Transaction in the raw format.
  * @returns Transaction data with fields represented as un-prefixed hex strings.
  */
-export function decomposeRawTransaction(
-  rawTransaction: RawTransaction
-): DecomposedRawTransaction {
+export function extractBitcoinRawTxVectors(
+  rawTransaction: BitcoinRawTx
+): BitcoinRawTxVectors {
   const toHex = (bufferWriter: any) => {
     return bufferWriter.render().toString("hex")
   }
@@ -189,7 +189,14 @@ export function decomposeRawTransaction(
  *                   hex string {@link: Deposit#refundLocktime}.
  * @returns UNIX timestamp in seconds.
  */
-export function locktimeToNumber(locktimeLE: Buffer | string): number {
+function locktimeToNumber(locktimeLE: Buffer | string): number {
   const locktimeBE: Buffer = Hex.from(locktimeLE).reverse().toBuffer()
   return BigNumber.from(locktimeBE).toNumber()
+}
+
+/**
+ * Utility functions allowing to deal with Bitcoin locktime.
+ */
+export const BitcoinLocktimeUtils = {
+  locktimeToNumber,
 }

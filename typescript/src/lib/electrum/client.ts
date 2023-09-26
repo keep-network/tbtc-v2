@@ -1,16 +1,16 @@
 import bcoin from "bcoin"
 import pTimeout from "p-timeout"
 import {
-  Client as BitcoinClient,
+  BitcoinClient,
   BitcoinNetwork,
-  createOutputScriptFromAddress,
-  RawTransaction,
-  Transaction,
-  TransactionHash,
-  TransactionInput,
-  TransactionMerkleBranch,
-  TransactionOutput,
-  UnspentTransactionOutput,
+  BitcoinAddressConverter,
+  BitcoinRawTx,
+  BitcoinTx,
+  BitcoinTxHash,
+  BitcoinTxInput,
+  BitcoinTxMerkleBranch,
+  BitcoinTxOutput,
+  BitcoinUtxo,
 } from "../bitcoin"
 import Electrum from "electrum-client-js"
 import { BigNumber, utils } from "ethers"
@@ -226,42 +226,37 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#findAllUnspentTransactionOutputs}
    */
-  findAllUnspentTransactionOutputs(
-    address: string
-  ): Promise<UnspentTransactionOutput[]> {
-    return this.withElectrum<UnspentTransactionOutput[]>(
-      async (electrum: Electrum) => {
-        const script = createOutputScriptFromAddress(address).toString()
+  findAllUnspentTransactionOutputs(address: string): Promise<BitcoinUtxo[]> {
+    return this.withElectrum<BitcoinUtxo[]>(async (electrum: Electrum) => {
+      const script =
+        BitcoinAddressConverter.addressToOutputScript(address).toString()
 
-        // eslint-disable-next-line camelcase
-        type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
+      // eslint-disable-next-line camelcase
+      type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
 
-        const unspentTransactions: UnspentOutput[] =
-          await this.withBackoffRetrier<UnspentOutput[]>()(async () => {
-            return await electrum.blockchain_scripthash_listunspent(
-              computeScriptHash(script)
-            )
-          })
+      const unspentTransactions: UnspentOutput[] =
+        await this.withBackoffRetrier<UnspentOutput[]>()(async () => {
+          return await electrum.blockchain_scripthash_listunspent(
+            computeScriptHash(script)
+          )
+        })
 
-        return unspentTransactions.reverse().map((tx: UnspentOutput) => ({
-          transactionHash: TransactionHash.from(tx.tx_hash),
-          outputIndex: tx.tx_pos,
-          value: BigNumber.from(tx.value),
-        }))
-      }
-    )
+      return unspentTransactions.reverse().map((tx: UnspentOutput) => ({
+        transactionHash: BitcoinTxHash.from(tx.tx_hash),
+        outputIndex: tx.tx_pos,
+        value: BigNumber.from(tx.value),
+      }))
+    })
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
    * @see {BitcoinClient#getTransactionHistory}
    */
-  getTransactionHistory(
-    address: string,
-    limit?: number
-  ): Promise<Transaction[]> {
-    return this.withElectrum<Transaction[]>(async (electrum: Electrum) => {
-      const script = createOutputScriptFromAddress(address).toString()
+  getTransactionHistory(address: string, limit?: number): Promise<BitcoinTx[]> {
+    return this.withElectrum<BitcoinTx[]>(async (electrum: Electrum) => {
+      const script =
+        BitcoinAddressConverter.addressToOutputScript(address).toString()
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
@@ -297,7 +292,7 @@ export class Client implements BitcoinClient {
       }
 
       const transactions = historyItems.map((item) =>
-        this.getTransaction(TransactionHash.from(item.tx_hash))
+        this.getTransaction(BitcoinTxHash.from(item.tx_hash))
       )
 
       return Promise.all(transactions)
@@ -308,8 +303,8 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransaction}
    */
-  getTransaction(transactionHash: TransactionHash): Promise<Transaction> {
-    return this.withElectrum<Transaction>(async (electrum: Electrum) => {
+  getTransaction(transactionHash: BitcoinTxHash): Promise<BitcoinTx> {
+    return this.withElectrum<BitcoinTx>(async (electrum: Electrum) => {
       // We cannot use `blockchain_transaction_get` with `verbose = true` argument
       // to get the the transaction details as Esplora/Electrs doesn't support verbose
       // transactions.
@@ -331,15 +326,15 @@ export class Client implements BitcoinClient {
       const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
 
       const inputs = transaction.inputs.map(
-        (input: any): TransactionInput => ({
-          transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
+        (input: any): BitcoinTxInput => ({
+          transactionHash: BitcoinTxHash.from(input.prevout.hash).reverse(),
           outputIndex: input.prevout.index,
           scriptSig: Hex.from(input.script.toRaw()),
         })
       )
 
       const outputs = transaction.outputs.map(
-        (output: any, i: number): TransactionOutput => ({
+        (output: any, i: number): BitcoinTxOutput => ({
           outputIndex: i,
           value: BigNumber.from(output.value),
           scriptPubKey: Hex.from(output.script.toRaw()),
@@ -347,7 +342,7 @@ export class Client implements BitcoinClient {
       )
 
       return {
-        transactionHash: TransactionHash.from(transaction.hash()).reverse(),
+        transactionHash: BitcoinTxHash.from(transaction.hash()).reverse(),
         inputs: inputs,
         outputs: outputs,
       }
@@ -358,8 +353,8 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getRawTransaction}
    */
-  getRawTransaction(transactionHash: TransactionHash): Promise<RawTransaction> {
-    return this.withElectrum<RawTransaction>(async (electrum: Electrum) => {
+  getRawTransaction(transactionHash: BitcoinTxHash): Promise<BitcoinRawTx> {
+    return this.withElectrum<BitcoinRawTx>(async (electrum: Electrum) => {
       const transaction: string = await this.withBackoffRetrier<string>()(
         async () => {
           return await electrum.blockchain_transaction_get(
@@ -379,9 +374,7 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#getTransactionConfirmations}
    */
-  getTransactionConfirmations(
-    transactionHash: TransactionHash
-  ): Promise<number> {
+  getTransactionConfirmations(transactionHash: BitcoinTxHash): Promise<number> {
     // We cannot use `blockchain_transaction_get` with `verbose = true` argument
     // to get the the transaction details as Esplora/Electrs doesn't support verbose
     // transactions.
@@ -507,10 +500,10 @@ export class Client implements BitcoinClient {
    * @see {BitcoinClient#getTransactionMerkle}
    */
   getTransactionMerkle(
-    transactionHash: TransactionHash,
+    transactionHash: BitcoinTxHash,
     blockHeight: number
-  ): Promise<TransactionMerkleBranch> {
-    return this.withElectrum<TransactionMerkleBranch>(
+  ): Promise<BitcoinTxMerkleBranch> {
+    return this.withElectrum<BitcoinTxMerkleBranch>(
       async (electrum: Electrum) => {
         const merkle = await this.withBackoffRetrier<{
           // eslint-disable-next-line camelcase
@@ -537,7 +530,7 @@ export class Client implements BitcoinClient {
   /**
    * @see {BitcoinClient#broadcast}
    */
-  broadcast(transaction: RawTransaction): Promise<void> {
+  broadcast(transaction: BitcoinRawTx): Promise<void> {
     return this.withElectrum<void>(async (electrum: Electrum) => {
       await this.withBackoffRetrier<string>()(async () => {
         return await electrum.blockchain_transaction_broadcast(

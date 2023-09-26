@@ -22,13 +22,13 @@ import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber, constants, ContractTransaction, utils } from "ethers"
 import { backoffRetrier, Hex } from "../utils"
 import {
-  compressPublicKey,
-  computeHash160,
-  DecomposedRawTransaction,
-  Proof,
-  readCompactSizeUint,
-  TransactionHash,
-  UnspentTransactionOutput,
+  BitcoinPublicKeyUtils,
+  BitcoinHashUtils,
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinCompactSizeUint,
+  BitcoinTxHash,
+  BitcoinUtxo,
 } from "../bitcoin"
 import {
   ContractConfig,
@@ -75,9 +75,7 @@ export class Bridge
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        fundingTxHash: TransactionHash.from(
-          event.args!.fundingTxHash
-        ).reverse(),
+        fundingTxHash: BitcoinTxHash.from(event.args!.fundingTxHash).reverse(),
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
@@ -104,7 +102,7 @@ export class Bridge
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = Bridge.buildRedemptionKey(
-      computeHash160(walletPublicKey),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -127,7 +125,7 @@ export class Bridge
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = Bridge.buildRedemptionKey(
-      computeHash160(walletPublicKey),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -200,7 +198,7 @@ export class Bridge
    * @see {ChainBridge#revealDeposit}
    */
   async revealDeposit(
-    depositTx: DecomposedRawTransaction,
+    depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: ChainIdentifier
@@ -238,9 +236,9 @@ export class Bridge
    * @see {ChainBridge#submitDepositSweepProof}
    */
   async submitDepositSweepProof(
-    sweepTx: DecomposedRawTransaction,
-    sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    sweepTx: BitcoinRawTxVectors,
+    sweepProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
   ): Promise<void> {
     const sweepTxParam = {
@@ -298,11 +296,13 @@ export class Bridge
    */
   async requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<void> {
-    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+      walletPublicKey
+    )}`
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
@@ -335,9 +335,9 @@ export class Bridge
    * @see {ChainBridge#submitRedemptionProof}
    */
   async submitRedemptionProof(
-    redemptionTx: DecomposedRawTransaction,
-    redemptionProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    redemptionTx: BitcoinRawTxVectors,
+    redemptionProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     walletPublicKey: string
   ): Promise<void> {
     const redemptionTxParam = {
@@ -361,7 +361,9 @@ export class Bridge
       txOutputValue: mainUtxo.value,
     }
 
-    const walletPublicKeyHash = `0x${computeHash160(walletPublicKey)}`
+    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+      walletPublicKey
+    )}`
 
     await sendWithRetry<ContractTransaction>(async () => {
       return await this._instance.submitRedemptionProof(
@@ -378,7 +380,7 @@ export class Bridge
    * @see {ChainBridge#deposits}
    */
   async deposits(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
     const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
@@ -401,7 +403,7 @@ export class Bridge
    * @returns Deposit key.
    */
   static buildDepositKey(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): string {
     const prefixedReversedDepositTxHash = depositTxHash
@@ -466,7 +468,9 @@ export class Bridge
       ecdsaWalletID
     )
 
-    return Hex.from(compressPublicKey(uncompressedPublicKey))
+    return Hex.from(
+      BitcoinPublicKeyUtils.compressPublicKey(uncompressedPublicKey)
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -561,7 +565,7 @@ export class Bridge
    *
    * @see {ChainBridge#buildUtxoHash}
    */
-  buildUtxoHash(utxo: UnspentTransactionOutput): Hex {
+  buildUtxoHash(utxo: BitcoinUtxo): Hex {
     return Hex.from(
       utils.solidityKeccak256(
         ["bytes32", "uint32", "uint64"],
@@ -600,7 +604,10 @@ export class Bridge
       )
       const redeemerOutputScript = prefixedRedeemerOutputScript
         .toString()
-        .slice(readCompactSizeUint(prefixedRedeemerOutputScript).byteLength * 2)
+        .slice(
+          BitcoinCompactSizeUint.read(prefixedRedeemerOutputScript).byteLength *
+            2
+        )
 
       return {
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),

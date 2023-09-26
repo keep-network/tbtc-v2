@@ -5,7 +5,7 @@ import chaiAsPromised from "chai-as-promised"
 chai.use(chaiAsPromised)
 import { expect } from "chai"
 import { submitDepositRefundTransaction } from "../src/deposit-refund"
-import { TransactionHash, RawTransaction } from "./lib/bitcoin"
+import { BitcoinTxHash, BitcoinRawTx } from "./lib/bitcoin"
 import {
   refunderPrivateKey,
   depositRefundOfWitnessDepositAndWitnessRefunderAddress,
@@ -25,7 +25,7 @@ describe("Refund", () => {
 
     context("when the refund transaction is requested to be witness", () => {
       context("when the refunded deposit was witness", () => {
-        let transactionHash: TransactionHash
+        let transactionHash: BitcoinTxHash
 
         beforeEach(async () => {
           const utxo =
@@ -37,7 +37,7 @@ describe("Refund", () => {
           const refunderPrivateKey =
             "cTWhf1nXc7aW8BN2qLtWcPtcgcWYKfzRXkCJNsuQ86HR8uJBYfMc"
 
-          const rawTransactions = new Map<string, RawTransaction>()
+          const rawTransactions = new Map<string, BitcoinRawTx>()
           rawTransactions.set(utxo.transactionHash.toString(), {
             transactionHex: utxo.transactionHex,
           })
@@ -69,7 +69,7 @@ describe("Refund", () => {
       })
 
       context("when the refunded deposit was non-witness", () => {
-        let transactionHash: TransactionHash
+        let transactionHash: BitcoinTxHash
 
         beforeEach(async () => {
           const utxo =
@@ -81,7 +81,7 @@ describe("Refund", () => {
           const refunderAddress =
             depositRefundOfNonWitnessDepositAndWitnessRefunderAddress.refunderAddress
 
-          const rawTransactions = new Map<string, RawTransaction>()
+          const rawTransactions = new Map<string, BitcoinRawTx>()
           rawTransactions.set(utxo.transactionHash.toString(), {
             transactionHex: utxo.transactionHex,
           })
@@ -116,7 +116,7 @@ describe("Refund", () => {
     context(
       "when the refund transaction is requested to be non-witness",
       () => {
-        let transactionHash: TransactionHash
+        let transactionHash: BitcoinTxHash
 
         beforeEach(async () => {
           const utxo =
@@ -128,7 +128,7 @@ describe("Refund", () => {
           const refunderAddress =
             depositRefundOfWitnessDepositAndNonWitnessRefunderAddress.refunderAddress
 
-          const rawTransactions = new Map<string, RawTransaction>()
+          const rawTransactions = new Map<string, BitcoinRawTx>()
           rawTransactions.set(utxo.transactionHash.toString(), {
             transactionHex: utxo.transactionHex,
           })

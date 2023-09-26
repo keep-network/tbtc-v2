@@ -1,17 +1,17 @@
 import { BigNumber, BytesLike } from "ethers"
 import {
-  DecomposedRawTransaction,
-  Proof,
-  Transaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionMerkleBranch,
-  TransactionHash,
-  createOutputScriptFromAddress,
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinTx,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxMerkleBranch,
+  BitcoinTxHash,
+  BitcoinAddressConverter,
 } from "../../src/lib/bitcoin"
 import { RedemptionRequest, WalletState } from "../../src/lib/contracts"
 import { Address } from "../../src/lib/ethereum"
-import { BitcoinTransaction, Hex } from "../../src"
+import { Hex } from "../../src"
 
 /**
  * Private key (testnet) of the wallet.
@@ -40,15 +40,15 @@ export const p2wpkhWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
  * Represents a set of data used for given sweep scenario.
  */
 export interface RedemptionTestData {
-  mainUtxo: UnspentTransactionOutput & RawTransaction
+  mainUtxo: BitcoinUtxo & BitcoinRawTx
   pendingRedemptions: {
     redemptionKey: BytesLike
     pendingRedemption: RedemptionRequest
   }[]
   witness: boolean
   expectedRedemption: {
-    transactionHash: TransactionHash
-    transaction: RawTransaction
+    transactionHash: BitcoinTxHash
+    transaction: BitcoinRawTx
   }
 }
 
@@ -59,7 +59,7 @@ export interface RedemptionTestData {
  */
 export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20"
     ),
     outputIndex: 1,
@@ -91,7 +91,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
     ),
     transaction: {
@@ -114,7 +114,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
     ),
     outputIndex: 1,
@@ -145,7 +145,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
     ),
     transaction: {
@@ -168,7 +168,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
     ),
     outputIndex: 1,
@@ -199,7 +199,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
     ),
     transaction: {
@@ -222,7 +222,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
     ),
     outputIndex: 1,
@@ -254,7 +254,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
     ),
     transaction: {
@@ -277,7 +277,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
     ),
     outputIndex: 1,
@@ -349,7 +349,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
     ),
     transaction: {
@@ -375,7 +375,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b"
     ),
     outputIndex: 1,
@@ -420,7 +420,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb"
     ),
     transaction: {
@@ -443,7 +443,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
     ),
     outputIndex: 4,
@@ -477,7 +477,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   ],
   witness: false, // False will result in a P2PKH output
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d"
     ),
     transaction: {
@@ -498,17 +498,17 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
  */
 export interface RedemptionProofTestData {
   bitcoinChainData: {
-    transaction: Transaction
-    rawTransaction: RawTransaction
+    transaction: BitcoinTx
+    rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
     headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedRedemptionProof: {
-    redemptionTx: DecomposedRawTransaction
-    redemptionProof: Proof
-    mainUtxo: UnspentTransactionOutput
+    redemptionTx: BitcoinRawTxVectors
+    redemptionProof: BitcoinSpvProof
+    mainUtxo: BitcoinUtxo
     walletPublicKey: string
   }
 }
@@ -520,12 +520,12 @@ export interface RedemptionProofTestData {
 export const redemptionProof: RedemptionProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
           ),
           outputIndex: 1,
@@ -657,7 +657,7 @@ export const redemptionProof: RedemptionProofTestData = {
         "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
     },
     mainUtxo: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
       ),
       outputIndex: 1,
@@ -674,8 +674,8 @@ interface FindWalletForRedemptionWalletData {
     mainUtxoHash: Hex
     walletPublicKey: Hex
     btcAddress: string
-    mainUtxo: UnspentTransactionOutput
-    transactions: BitcoinTransaction[]
+    mainUtxo: BitcoinUtxo
+    transactions: BitcoinTx[]
     pendingRedemptionsValue: BigNumber
   }
   event: {
@@ -721,7 +721,7 @@ export const findWalletForRedemptionData: {
             {
               outputIndex: 0,
               value: BigNumber.from("791613461"),
-              scriptPubKey: createOutputScriptFromAddress(
+              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
                 "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja"
               ),
             },
@@ -846,7 +846,7 @@ export const findWalletForRedemptionData: {
             {
               outputIndex: 0,
               value: BigNumber.from("3370000"), // 0.0337 BTC
-              scriptPubKey: createOutputScriptFromAddress(
+              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
                 "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh"
               ),
             },

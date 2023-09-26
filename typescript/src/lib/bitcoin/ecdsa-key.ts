@@ -8,7 +8,7 @@ import { Hex } from "../utils"
  * @param publicKey - Public key that should be checked.
  * @returns True if the key is a compressed Bitcoin public key, false otherwise.
  */
-export function isCompressedPublicKey(publicKey: string): boolean {
+function isCompressedPublicKey(publicKey: string): boolean {
   // Must have 33 bytes and 02 or 03 prefix.
   return (
     publicKey.length == 66 &&
@@ -21,7 +21,7 @@ export function isCompressedPublicKey(publicKey: string): boolean {
  * @param publicKey Uncompressed 64-byte public key as an unprefixed hex string.
  * @returns Compressed 33-byte public key prefixed with 02 or 03.
  */
-export function compressPublicKey(publicKey: string | Hex): string {
+function compressPublicKey(publicKey: string | Hex): string {
   if (typeof publicKey === "string") {
     publicKey = Hex.from(publicKey)
   }
@@ -51,12 +51,11 @@ export function compressPublicKey(publicKey: string | Hex): string {
 }
 
 /**
- * Checks if given public key hash has proper length (20-byte)
- * @param publicKeyHash - text that will be checked for the correct length
- * @returns true if the given string is 20-byte long, false otherwise
+ * Utility functions allowing to perform Bitcoin ECDSA public keys.
  */
-export function isPublicKeyHashLength(publicKeyHash: string): boolean {
-  return publicKeyHash.length === 40
+export const BitcoinPublicKeyUtils = {
+  isCompressedPublicKey,
+  compressPublicKey,
 }
 
 /**
@@ -66,10 +65,7 @@ export function isPublicKeyHashLength(publicKeyHash: string): boolean {
  *        or non-witness addresses
  * @returns Bitcoin key ring.
  */
-export function createKeyRing(
-  privateKey: string,
-  witness: boolean = true
-): any {
+function createKeyRing(privateKey: string, witness: boolean = true): any {
   const decodedPrivateKey = wif.decode(privateKey)
 
   return new bcoin.KeyRing({
@@ -77,4 +73,11 @@ export function createKeyRing(
     privateKey: decodedPrivateKey.privateKey,
     compressed: decodedPrivateKey.compressed,
   })
+}
+
+/**
+ * Utility functions allowing to perform Bitcoin ECDSA public keys.
+ */
+export const BitcoinPrivateKeyUtils = {
+  createKeyRing,
 }

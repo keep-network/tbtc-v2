@@ -1,9 +1,9 @@
 import { BigNumber } from "ethers"
 import {
-  Proof,
-  UnspentTransactionOutput,
-  DecomposedRawTransaction,
-  TransactionHash,
+  BitcoinSpvProof,
+  BitcoinUtxo,
+  BitcoinRawTxVectors,
+  BitcoinTxHash,
 } from "../bitcoin"
 import { Hex } from "../utils"
 import { Event, GetEvents } from "./chain-event"
@@ -29,9 +29,9 @@ export interface Bridge {
    *        be routed in.
    */
   submitDepositSweepProof(
-    sweepTx: DecomposedRawTransaction,
-    sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    sweepTx: BitcoinRawTxVectors,
+    sweepProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     vault?: Identifier
   ): Promise<void>
 
@@ -46,7 +46,7 @@ export interface Bridge {
    * @returns Transaction hash of the reveal deposit transaction as string
    */
   revealDeposit(
-    depositTx: DecomposedRawTransaction,
+    depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositScriptParameters,
     vault?: Identifier
@@ -60,7 +60,7 @@ export interface Bridge {
    * @returns Revealed deposit data.
    */
   deposits(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit>
 
@@ -77,7 +77,7 @@ export interface Bridge {
    */
   requestRedemption(
     walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
+    mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<void>
@@ -91,9 +91,9 @@ export interface Bridge {
    *        compressed form (33 bytes long with 02 or 03 prefix).
    */
   submitRedemptionProof(
-    redemptionTx: DecomposedRawTransaction,
-    redemptionProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
+    redemptionTx: BitcoinRawTxVectors,
+    redemptionProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
     walletPublicKey: string
   ): Promise<void>
 
@@ -167,7 +167,7 @@ export interface Bridge {
    * @param utxo UTXO components.
    * @returns The hash of the UTXO.
    */
-  buildUtxoHash(utxo: UnspentTransactionOutput): Hex
+  buildUtxoHash(utxo: BitcoinUtxo): Hex
 
   /**
    * Get emitted RedemptionRequested events.
@@ -268,7 +268,7 @@ export type RevealedDeposit = Pick<
  * Represents an event emitted on deposit reveal to the on-chain bridge.
  */
 export type DepositRevealedEvent = Deposit & {
-  fundingTxHash: TransactionHash
+  fundingTxHash: BitcoinTxHash
   fundingOutputIndex: number
 } & Event
 

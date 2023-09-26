@@ -8,7 +8,7 @@ import {
   OptimisticMintingRequestedEvent,
 } from "../contracts"
 import { BigNumber, ContractTransaction } from "ethers"
-import { TransactionHash } from "../bitcoin"
+import { BitcoinTxHash } from "../bitcoin"
 import { backoffRetrier, Hex } from "../utils"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 import {
@@ -88,7 +88,7 @@ export class TBTCVault
    * @see {ChainTBTCVault#requestOptimisticMint}
    */
   async requestOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await sendWithRetry<ContractTransaction>(
@@ -114,7 +114,7 @@ export class TBTCVault
    * @see {ChainTBTCVault#cancelOptimisticMint}
    */
   async cancelOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await sendWithRetry<ContractTransaction>(
@@ -137,7 +137,7 @@ export class TBTCVault
    * @see {ChainTBTCVault#finalizeOptimisticMint}
    */
   async finalizeOptimisticMint(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
     const tx = await sendWithRetry<ContractTransaction>(
@@ -163,7 +163,7 @@ export class TBTCVault
    * @see {ChainTBTCVault#optimisticMintingRequests}
    */
   async optimisticMintingRequests(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<OptimisticMintingRequest> {
     const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
@@ -216,9 +216,7 @@ export class TBTCVault
         ),
         depositor: new Address(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        fundingTxHash: TransactionHash.from(
-          event.args!.fundingTxHash
-        ).reverse(),
+        fundingTxHash: BitcoinTxHash.from(event.args!.fundingTxHash).reverse(),
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),

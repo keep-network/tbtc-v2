@@ -10,7 +10,7 @@ import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
-import { TransactionHash, computeHash160 } from "../src/lib/bitcoin"
+import { BitcoinTxHash, BitcoinHashUtils } from "../src/lib/bitcoin"
 import { Hex } from "../src/lib/utils"
 
 chai.use(waffleChai)
@@ -182,7 +182,7 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash: TransactionHash.from(
+            transactionHash: BitcoinTxHash.from(
               "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
             ),
             outputIndex: 8,
@@ -235,7 +235,7 @@ describe("Ethereum", () => {
         await bridgeHandle.requestRedemption(
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
           {
-            transactionHash: TransactionHash.from(
+            transactionHash: BitcoinTxHash.from(
               "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
             ),
             outputIndex: 8,
@@ -278,7 +278,7 @@ describe("Ethereum", () => {
             bitcoinHeaders: "66666666",
           },
           {
-            transactionHash: TransactionHash.from(
+            transactionHash: BitcoinTxHash.from(
               "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
             ),
             outputIndex: 8,
@@ -336,7 +336,7 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              TransactionHash.from(
+              BitcoinTxHash.from(
                 "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
               ),
               0
@@ -375,7 +375,7 @@ describe("Ethereum", () => {
         it("should return the revealed deposit", async () => {
           expect(
             await bridgeHandle.deposits(
-              TransactionHash.from(
+              BitcoinTxHash.from(
                 "c1082c460527079a84e39ec6481666db72e5a22e473a78db03b996d26fd1dc83"
               ),
               0
@@ -496,7 +496,7 @@ describe("Ethereum", () => {
         walletPublicKey:
           "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
         mainUtxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
           ),
           outputIndex: 8,
@@ -537,7 +537,9 @@ describe("Ethereum", () => {
           ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
           [
             redeemer.identifierHex,
-            Hex.from(computeHash160(walletPublicKey)).toPrefixedString(),
+            Hex.from(
+              BitcoinHashUtils.computeHash160(walletPublicKey)
+            ).toPrefixedString(),
             mainUtxo.transactionHash.reverse().toPrefixedString(),
             mainUtxo.outputIndex,
             mainUtxo.value,
