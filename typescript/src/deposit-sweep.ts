@@ -185,64 +185,53 @@ export async function assembleDepositSweepTransaction(
   const scriptPubKey = address.toOutputScript(walletAddress, network)
   transaction.addOutput(scriptPubKey, totalInputValue.toNumber())
 
-  // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
-  // order
-  // TODO: Most likely remove.
-  const utxosWithDeposits: (UnspentTransactionOutput &
-    RawTransaction &
-    Deposit)[] = utxos.map((utxo, index) => ({
-    ...utxo,
-    ...deposits[index],
-  }))
+  // Sign the main UTXO input if there is main UTXO.
+  if (mainUtxo) {
+    const inputIndex = 0 // Main UTXO is the first input.
+    const previousOutput = Transaction.fromHex(mainUtxo.transactionHex).outs[
+      mainUtxo.outputIndex
+    ]
 
-  for (let i = 0; i < transaction.ins.length; i++) {
-    const previousOutput = findPreviousOutput(
-      TransactionHash.from(transaction.ins[i].hash),
-      transaction.ins[i].index,
-      utxos,
-      mainUtxo
+    await signMainUtxoInput(
+      transaction,
+      inputIndex,
+      previousOutput.script,
+      previousOutput.value,
+      keyPair,
+      network
     )
-    const previousOutputScript = previousOutput.script
+  }
+
+  // Sign the deposit inputs.
+  for (let depositIndex = 0; depositIndex < deposits.length; depositIndex++) {
+    // If there is a main UTXO index, we must adjust input index as the first
+    // input is the main UTXO input.
+    const inputIndex = mainUtxo ? depositIndex + 1 : depositIndex
+
+    const utxo = utxos[depositIndex]
+    const previousOutput = Transaction.fromHex(utxo.transactionHex).outs[
+      utxo.outputIndex
+    ]
     const previousOutputValue = previousOutput.value
+    const previousOutputScript = previousOutput.script
 
-    // P2(W)PKH (main UTXO)
-    if (isP2PKH(previousOutputScript) || isP2WPKH(previousOutputScript)) {
-      await signMainUtxoInput(
-        transaction,
-        i,
-        previousOutputScript,
-        previousOutputValue,
-        keyPair,
-        network
-      )
-      continue
-    }
-
-    const utxoWithDeposit = utxosWithDeposits.find(
-      (u) =>
-        u.transactionHash.reverse().toString() ===
-          transaction.ins[i].hash.toString("hex") &&
-        u.outputIndex == transaction.ins[i].index
-    )
-    if (!utxoWithDeposit) {
-      throw new Error("Unknown input")
-    }
+    const deposit = deposits[depositIndex]
 
     if (isP2SH(previousOutputScript)) {
       // P2SH (deposit UTXO)
       await signP2SHDepositInput(
         transaction,
-        i,
-        utxoWithDeposit,
-        previousOutputValue,
+        inputIndex,
+        deposit,
+        previousOutput.value,
         keyPair
       )
     } else if (isP2WSH(previousOutputScript)) {
       // P2WSH (deposit UTXO)
       await signP2WSHDepositInput(
         transaction,
-        i,
-        utxoWithDeposit,
+        inputIndex,
+        deposit,
         previousOutputValue,
         keyPair
       )
@@ -264,34 +253,6 @@ export async function assembleDepositSweepTransaction(
       transactionHex: transaction.toHex(),
     },
   }
-}
-
-function findPreviousOutput(
-  inputHash: TransactionHash,
-  inputIndex: number,
-  utxos: (UnspentTransactionOutput & RawTransaction)[],
-  mainUtxo?: UnspentTransactionOutput & RawTransaction
-) {
-  if (
-    mainUtxo &&
-    mainUtxo.transactionHash.reverse().equals(inputHash) &&
-    mainUtxo.outputIndex === inputIndex
-  ) {
-    return Transaction.fromHex(mainUtxo.transactionHex).outs[
-      mainUtxo.outputIndex
-    ]
-  }
-
-  for (const utxo of utxos) {
-    if (
-      utxo.transactionHash.reverse().equals(inputHash) &&
-      utxo.outputIndex === inputIndex
-    ) {
-      return Transaction.fromHex(utxo.transactionHex).outs[utxo.outputIndex]
-    }
-  }
-
-  throw new Error("Could not find previous output")
 }
 
 async function signMainUtxoInput(
@@ -327,7 +288,7 @@ async function signMainUtxoInput(
     }).input!
 
     transaction.ins[inputIndex].script = scriptSig
-  } else {
+  } else if (isP2WPKH(prevOutScript)) {
     // P2WPKH
     const decompiledScript = script.decompile(prevOutScript)
     if (
@@ -356,6 +317,8 @@ async function signMainUtxoInput(
     )
 
     transaction.ins[inputIndex].witness = [signature, keyPair.publicKey]
+  } else {
+    throw new Error("Unknown type of main UTXO")
   }
 }
 
