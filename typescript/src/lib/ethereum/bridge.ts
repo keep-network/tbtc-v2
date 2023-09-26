@@ -1,14 +1,14 @@
 import {
-  Bridge as ContractBridge,
-  Deposit as ContractDeposit,
-  Redemption as ContractRedemption,
-  Wallets,
+  Bridge as BridgeTypechain,
+  Deposit as DepositTypechain,
+  Redemption as RedemptionTypechain,
+  Wallets as WalletsTypechain,
 } from "../../../typechain/Bridge"
 import {
-  Bridge as ChainBridge,
+  Bridge,
   GetChainEvents,
   ChainIdentifier,
-  WalletRegistry as ChainWalletRegistry,
+  WalletRegistry,
   NewWalletRegisteredEvent,
   Wallet,
   WalletState,
@@ -31,34 +31,34 @@ import {
   BitcoinUtxo,
 } from "../bitcoin"
 import {
-  ContractConfig,
-  EthereumContract,
-  sendWithRetry,
-} from "./contract-handle"
+  EthersContractConfig,
+  EthersContractHandle,
+  EthersTransactionUtils,
+} from "./adapter"
 import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { Address } from "./address"
-import { WalletRegistry } from "./wallet-registry"
+import { EthereumAddress } from "./address"
+import { EthereumWalletRegistry } from "./wallet-registry"
 
-type ContractDepositRequest = ContractDeposit.DepositRequestStructOutput
+type DepositRequestTypechain = DepositTypechain.DepositRequestStructOutput
 
-type ContractRedemptionRequest =
-  ContractRedemption.RedemptionRequestStructOutput
+type RedemptionRequestTypechain =
+  RedemptionTypechain.RedemptionRequestStructOutput
 
 /**
  * Implementation of the Ethereum Bridge handle.
- * @see {ChainBridge} for reference.
+ * @see {Bridge} for reference.
  */
-export class Bridge
-  extends EthereumContract<ContractBridge>
-  implements ChainBridge
+export class EthereumBridge
+  extends EthersContractHandle<BridgeTypechain>
+  implements Bridge
 {
-  constructor(config: ContractConfig) {
+  constructor(config: EthersContractConfig) {
     super(config, BridgeDeployment)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#getDepositRevealedEvents}
+   * @see {Bridge#getDepositRevealedEvents}
    */
   async getDepositRevealedEvents(
     options?: GetChainEvents.Options,
@@ -79,7 +79,7 @@ export class Bridge
         fundingOutputIndex: BigNumber.from(
           event.args!.fundingOutputIndex
         ).toNumber(),
-        depositor: new Address(event.args!.depositor),
+        depositor: EthereumAddress.from(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
         walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
@@ -88,53 +88,53 @@ export class Bridge
         vault:
           event.args!.vault === constants.AddressZero
             ? undefined
-            : new Address(event.args!.vault),
+            : EthereumAddress.from(event.args!.vault),
       }
     })
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#pendingRedemptions}
+   * @see {Bridge#pendingRedemptions}
    */
   async pendingRedemptions(
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = Bridge.buildRedemptionKey(
+    const redemptionKey = EthereumBridge.buildRedemptionKey(
       BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
-    const request: ContractRedemptionRequest =
-      await backoffRetrier<ContractRedemptionRequest>(this._totalRetryAttempts)(
-        async () => {
-          return await this._instance.pendingRedemptions(redemptionKey)
-        }
-      )
+    const request: RedemptionRequestTypechain =
+      await backoffRetrier<RedemptionRequestTypechain>(
+        this._totalRetryAttempts
+      )(async () => {
+        return await this._instance.pendingRedemptions(redemptionKey)
+      })
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#timedOutRedemptions}
+   * @see {Bridge#timedOutRedemptions}
    */
   async timedOutRedemptions(
     walletPublicKey: string,
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
-    const redemptionKey = Bridge.buildRedemptionKey(
+    const redemptionKey = EthereumBridge.buildRedemptionKey(
       BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
-    const request: ContractRedemptionRequest =
-      await backoffRetrier<ContractRedemptionRequest>(this._totalRetryAttempts)(
-        async () => {
-          return await this._instance.timedOutRedemptions(redemptionKey)
-        }
-      )
+    const request: RedemptionRequestTypechain =
+      await backoffRetrier<RedemptionRequestTypechain>(
+        this._totalRetryAttempts
+      )(async () => {
+        return await this._instance.timedOutRedemptions(redemptionKey)
+      })
 
     return this.parseRedemptionRequest(request, redeemerOutputScript)
   }
@@ -180,11 +180,11 @@ export class Bridge
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
-    request: ContractRedemptionRequest,
+    request: RedemptionRequestTypechain,
     redeemerOutputScript: string
   ): RedemptionRequest {
     return {
-      redeemer: new Address(request.redeemer),
+      redeemer: EthereumAddress.from(request.redeemer),
       redeemerOutputScript: redeemerOutputScript,
       requestedAmount: BigNumber.from(request.requestedAmount),
       treasuryFee: BigNumber.from(request.treasuryFee),
@@ -195,7 +195,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#revealDeposit}
+   * @see {Bridge#revealDeposit}
    */
   async revealDeposit(
     depositTx: BitcoinRawTxVectors,
@@ -219,7 +219,7 @@ export class Bridge
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    const tx = await sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.revealDeposit(depositTxParam, revealParam)
       },
@@ -233,7 +233,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#submitDepositSweepProof}
+   * @see {Bridge#submitDepositSweepProof}
    */
   async submitDepositSweepProof(
     sweepTx: BitcoinRawTxVectors,
@@ -266,19 +266,22 @@ export class Bridge
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.submitDepositSweepProof(
-        sweepTxParam,
-        sweepProofParam,
-        mainUtxoParam,
-        vaultParam
-      )
-    }, this._totalRetryAttempts)
+    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.submitDepositSweepProof(
+          sweepTxParam,
+          sweepProofParam,
+          mainUtxoParam,
+          vaultParam
+        )
+      },
+      this._totalRetryAttempts
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#txProofDifficultyFactor}
+   * @see {Bridge#txProofDifficultyFactor}
    */
   async txProofDifficultyFactor(): Promise<number> {
     const txProofDifficultyFactor: BigNumber = await backoffRetrier<BigNumber>(
@@ -292,7 +295,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#requestRedemption}
+   * @see {Bridge#requestRedemption}
    */
   async requestRedemption(
     walletPublicKey: string,
@@ -320,19 +323,22 @@ export class Bridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.requestRedemption(
-        walletPublicKeyHash,
-        mainUtxoParam,
-        prefixedRawRedeemerOutputScript,
-        amount
-      )
-    }, this._totalRetryAttempts)
+    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.requestRedemption(
+          walletPublicKeyHash,
+          mainUtxoParam,
+          prefixedRawRedeemerOutputScript,
+          amount
+        )
+      },
+      this._totalRetryAttempts
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#submitRedemptionProof}
+   * @see {Bridge#submitRedemptionProof}
    */
   async submitRedemptionProof(
     redemptionTx: BitcoinRawTxVectors,
@@ -365,28 +371,34 @@ export class Bridge
       walletPublicKey
     )}`
 
-    await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.submitRedemptionProof(
-        redemptionTxParam,
-        redemptionProofParam,
-        mainUtxoParam,
-        walletPublicKeyHash
-      )
-    }, this._totalRetryAttempts)
+    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.submitRedemptionProof(
+          redemptionTxParam,
+          redemptionProofParam,
+          mainUtxoParam,
+          walletPublicKeyHash
+        )
+      },
+      this._totalRetryAttempts
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#deposits}
+   * @see {Bridge#deposits}
    */
   async deposits(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<RevealedDeposit> {
-    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
+    const depositKey = EthereumBridge.buildDepositKey(
+      depositTxHash,
+      depositOutputIndex
+    )
 
-    const deposit: ContractDepositRequest =
-      await backoffRetrier<ContractDepositRequest>(this._totalRetryAttempts)(
+    const deposit: DepositRequestTypechain =
+      await backoffRetrier<DepositRequestTypechain>(this._totalRetryAttempts)(
         async () => {
           return await this._instance.deposits(depositKey)
         }
@@ -422,15 +434,15 @@ export class Bridge
    * @returns Parsed revealed deposit.
    */
   private parseRevealedDeposit(
-    deposit: ContractDepositRequest
+    deposit: DepositRequestTypechain
   ): RevealedDeposit {
     return {
-      depositor: new Address(deposit.depositor),
+      depositor: EthereumAddress.from(deposit.depositor),
       amount: BigNumber.from(deposit.amount),
       vault:
         deposit.vault === constants.AddressZero
           ? undefined
-          : new Address(deposit.vault),
+          : EthereumAddress.from(deposit.vault),
       revealedAt: BigNumber.from(deposit.revealedAt).toNumber(),
       sweptAt: BigNumber.from(deposit.sweptAt).toNumber(),
       treasuryFee: BigNumber.from(deposit.treasuryFee),
@@ -439,7 +451,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#activeWalletPublicKey}
+   * @see {Bridge#activeWalletPublicKey}
    */
   async activeWalletPublicKey(): Promise<string | undefined> {
     const activeWalletPublicKeyHash: string = await backoffRetrier<string>(
@@ -475,7 +487,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#getNewWalletRegisteredEvents}
+   * @see {Bridge#getNewWalletRegisteredEvents}
    */
   async getNewWalletRegisteredEvents(
     options?: GetChainEvents.Options,
@@ -500,16 +512,16 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#walletRegistry}
+   * @see {Bridge#walletRegistry}
    */
-  async walletRegistry(): Promise<ChainWalletRegistry> {
+  async walletRegistry(): Promise<WalletRegistry> {
     const { ecdsaWalletRegistry } = await backoffRetrier<{
       ecdsaWalletRegistry: string
     }>(this._totalRetryAttempts)(async () => {
       return await this._instance.contractReferences()
     })
 
-    return new WalletRegistry({
+    return new EthereumWalletRegistry({
       address: ecdsaWalletRegistry,
       signerOrProvider: this._instance.signer || this._instance.provider,
     })
@@ -517,10 +529,10 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#wallets}
+   * @see {Bridge#wallets}
    */
   async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
-    const wallet = await backoffRetrier<Wallets.WalletStructOutput>(
+    const wallet = await backoffRetrier<WalletsTypechain.WalletStructOutput>(
       this._totalRetryAttempts
     )(async () => {
       return await this._instance.wallets(
@@ -537,7 +549,7 @@ export class Bridge
    * @returns Parsed wallet data.
    */
   private async parseWalletDetails(
-    wallet: Wallets.WalletStructOutput
+    wallet: WalletsTypechain.WalletStructOutput
   ): Promise<Wallet> {
     const ecdsaWalletID = Hex.from(wallet.ecdsaWalletID)
 
@@ -563,7 +575,7 @@ export class Bridge
    * Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
    * `keccak256(txHash | txOutputIndex | txOutputValue)`.
    *
-   * @see {ChainBridge#buildUtxoHash}
+   * @see {Bridge#buildUtxoHash}
    */
   buildUtxoHash(utxo: BitcoinUtxo): Hex {
     return Hex.from(
@@ -580,7 +592,7 @@ export class Bridge
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainBridge#getDepositRevealedEvents}
+   * @see {Bridge#getDepositRevealedEvents}
    */
   async getRedemptionRequestedEvents(
     options?: GetChainEvents.Options,
@@ -614,7 +626,7 @@ export class Bridge
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
-        redeemer: new Address(event.args!.redeemer),
+        redeemer: EthereumAddress.from(event.args!.redeemer),
         redeemerOutputScript: redeemerOutputScript,
         requestedAmount: BigNumber.from(event.args!.requestedAmount),
         treasuryFee: BigNumber.from(event.args!.treasuryFee),

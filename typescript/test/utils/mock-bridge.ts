@@ -20,7 +20,7 @@ import {
 } from "../../src/lib/bitcoin"
 import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
-import { Address } from "../../src/lib/ethereum"
+import { EthereumAddress } from "../../src/lib/ethereum"
 import { Hex } from "../../src/lib/utils"
 
 interface DepositSweepProofLogEntry {
@@ -148,7 +148,7 @@ export class MockBridge implements Bridge {
           walletPublicKeyHash: deposit.data.walletPublicKeyHash,
           refundPublicKeyHash: deposit.data.refundPublicKeyHash,
           refundLocktime: deposit.data.refundLocktime,
-          vault: new Address(constants.AddressZero),
+          vault: EthereumAddress.from(constants.AddressZero),
         },
       ])
     })
@@ -194,9 +194,9 @@ export class MockBridge implements Bridge {
         this._deposits.has(depositKey)
           ? (this._deposits.get(depositKey) as RevealedDeposit)
           : {
-              depositor: Address.from(constants.AddressZero),
+              depositor: EthereumAddress.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: Address.from(constants.AddressZero),
+              vault: EthereumAddress.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -304,7 +304,7 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: Address.from(constants.AddressZero),
+          redeemer: EthereumAddress.from(constants.AddressZero),
           redeemerOutputScript: "",
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),

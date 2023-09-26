@@ -1,7 +1,7 @@
-import { TBTCVault as ContractTBTCVault } from "../../../typechain/TBTCVault"
+import { TBTCVault as TBTCVaultTypechain } from "../../../typechain/TBTCVault"
 import {
   GetChainEvents,
-  TBTCVault as ChainTBTCVault,
+  TBTCVault,
   OptimisticMintingCancelledEvent,
   OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
@@ -12,12 +12,12 @@ import { BitcoinTxHash } from "../bitcoin"
 import { backoffRetrier, Hex } from "../utils"
 import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 import {
-  ContractConfig,
-  EthereumContract,
-  sendWithRetry,
-} from "./contract-handle"
-import { Address } from "./address"
-import { Bridge } from "./bridge"
+  EthersContractConfig,
+  EthersContractHandle,
+  EthersTransactionUtils,
+} from "./adapter"
+import { EthereumAddress } from "./address"
+import { EthereumBridge } from "./bridge"
 
 type ContractOptimisticMintingRequest = {
   requestedAt: BigNumber
@@ -26,18 +26,19 @@ type ContractOptimisticMintingRequest = {
 
 /**
  * Implementation of the Ethereum TBTCVault handle.
+ * @see {TBTCVault} for reference.
  */
-export class TBTCVault
-  extends EthereumContract<ContractTBTCVault>
-  implements ChainTBTCVault
+export class EthereumTBTCVault
+  extends EthersContractHandle<TBTCVaultTypechain>
+  implements TBTCVault
 {
-  constructor(config: ContractConfig) {
+  constructor(config: EthersContractConfig) {
     super(config, TBTCVaultDeployment)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#optimisticMintingDelay}
+   * @see {TBTCVault#optimisticMintingDelay}
    */
   async optimisticMintingDelay(): Promise<number> {
     const delaySeconds = await backoffRetrier<number>(this._totalRetryAttempts)(
@@ -51,23 +52,23 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#getMinters}
+   * @see {TBTCVault#getMinters}
    */
-  async getMinters(): Promise<Address[]> {
+  async getMinters(): Promise<EthereumAddress[]> {
     const minters: string[] = await backoffRetrier<string[]>(
       this._totalRetryAttempts
     )(async () => {
       return await this._instance.getMinters()
     })
 
-    return minters.map(Address.from)
+    return minters.map(EthereumAddress.from)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#isMinter}
+   * @see {TBTCVault#isMinter}
    */
-  async isMinter(address: Address): Promise<boolean> {
+  async isMinter(address: EthereumAddress): Promise<boolean> {
     return await backoffRetrier<boolean>(this._totalRetryAttempts)(async () => {
       return await this._instance.isMinter(`0x${address.identifierHex}`)
     })
@@ -75,9 +76,9 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#isGuardian}
+   * @see {TBTCVault#isGuardian}
    */
-  async isGuardian(address: Address): Promise<boolean> {
+  async isGuardian(address: EthereumAddress): Promise<boolean> {
     return await backoffRetrier<boolean>(this._totalRetryAttempts)(async () => {
       return await this._instance.isGuardian(`0x${address.identifierHex}`)
     })
@@ -85,13 +86,13 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#requestOptimisticMint}
+   * @see {TBTCVault#requestOptimisticMint}
    */
   async requestOptimisticMint(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.requestOptimisticMint(
           depositTxHash.reverse().toPrefixedString(),
@@ -111,13 +112,13 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#cancelOptimisticMint}
+   * @see {TBTCVault#cancelOptimisticMint}
    */
   async cancelOptimisticMint(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.cancelOptimisticMint(
           depositTxHash.reverse().toPrefixedString(),
@@ -134,13 +135,13 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#finalizeOptimisticMint}
+   * @see {TBTCVault#finalizeOptimisticMint}
    */
   async finalizeOptimisticMint(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<Hex> {
-    const tx = await sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.finalizeOptimisticMint(
           depositTxHash.reverse().toPrefixedString(),
@@ -160,13 +161,16 @@ export class TBTCVault
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCVault#optimisticMintingRequests}
+   * @see {TBTCVault#optimisticMintingRequests}
    */
   async optimisticMintingRequests(
     depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): Promise<OptimisticMintingRequest> {
-    const depositKey = Bridge.buildDepositKey(depositTxHash, depositOutputIndex)
+    const depositKey = EthereumBridge.buildDepositKey(
+      depositTxHash,
+      depositOutputIndex
+    )
 
     const request: ContractOptimisticMintingRequest =
       await backoffRetrier<ContractOptimisticMintingRequest>(
@@ -210,11 +214,11 @@ export class TBTCVault
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        minter: new Address(event.args!.minter),
+        minter: EthereumAddress.from(event.args!.minter),
         depositKey: Hex.from(
           BigNumber.from(event.args!.depositKey).toHexString()
         ),
-        depositor: new Address(event.args!.depositor),
+        depositor: EthereumAddress.from(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
         fundingTxHash: BitcoinTxHash.from(event.args!.fundingTxHash).reverse(),
         fundingOutputIndex: BigNumber.from(
@@ -243,7 +247,7 @@ export class TBTCVault
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        guardian: new Address(event.args!.guardian),
+        guardian: EthereumAddress.from(event.args!.guardian),
         depositKey: Hex.from(
           BigNumber.from(event.args!.depositKey).toHexString()
         ),
@@ -270,11 +274,11 @@ export class TBTCVault
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        minter: new Address(event.args!.minter),
+        minter: EthereumAddress.from(event.args!.minter),
         depositKey: Hex.from(
           BigNumber.from(event.args!.depositKey).toHexString()
         ),
-        depositor: new Address(event.args!.depositor),
+        depositor: EthereumAddress.from(event.args!.depositor),
         optimisticMintingDebt: BigNumber.from(
           event.args!.optimisticMintingDebt
         ),

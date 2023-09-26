@@ -10,7 +10,7 @@ import {
   BitcoinAddressConverter,
 } from "../../src/lib/bitcoin"
 import { RedemptionRequest, WalletState } from "../../src/lib/contracts"
-import { Address } from "../../src/lib/ethereum"
+import { EthereumAddress } from "../../src/lib/ethereum"
 import { Hex } from "../../src"
 
 /**
@@ -78,7 +78,9 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -133,7 +135,9 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(15000),
@@ -187,7 +191,9 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(13000),
@@ -241,7 +247,9 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -296,7 +304,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -310,7 +320,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
         redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
         requestedAmount: BigNumber.from(13000),
@@ -323,7 +335,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -336,7 +350,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
         redeemerOutputScript:
           "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
@@ -394,7 +410,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
         redeemerOutputScript:
           "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
@@ -408,7 +426,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
         redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
         requestedAmount: BigNumber.from(4000),
@@ -465,7 +485,9 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
         redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
         requestedAmount: BigNumber.from(12000),
@@ -872,7 +894,9 @@ export const findWalletForRedemptionData: {
     },
   },
   pendingRedemption: {
-    redeemer: Address.from("0xeb9af8E66869902476347a4eFe59a527a57240ED"),
+    redeemer: EthereumAddress.from(
+      "0xeb9af8E66869902476347a4eFe59a527a57240ED"
+    ),
     // script for testnet P2PKH address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
     redeemerOutputScript: "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
     requestedAmount: BigNumber.from(1000000),

@@ -1,7 +1,7 @@
-import { WalletRegistry as ContractWalletRegistry } from "../../../typechain/WalletRegistry"
+import { WalletRegistry as WalletRegistryTypechain } from "../../../typechain/WalletRegistry"
 import {
   GetChainEvents,
-  WalletRegistry as ChainWalletRegistry,
+  WalletRegistry,
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
@@ -10,24 +10,24 @@ import { backoffRetrier, Hex } from "../utils"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber } from "ethers"
 import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { ContractConfig, EthereumContract } from "./contract-handle"
-import { Address } from "./address"
+import { EthersContractConfig, EthersContractHandle } from "./adapter"
+import { EthereumAddress } from "./address"
 
 /**
  * Implementation of the Ethereum WalletRegistry handle.
- * @see {ChainWalletRegistry} for reference.
+ * @see {WalletRegistry} for reference.
  */
-export class WalletRegistry
-  extends EthereumContract<ContractWalletRegistry>
-  implements ChainWalletRegistry
+export class EthereumWalletRegistry
+  extends EthersContractHandle<WalletRegistryTypechain>
+  implements WalletRegistry
 {
-  constructor(config: ContractConfig) {
+  constructor(config: EthersContractConfig) {
     super(config, WalletRegistryDeployment)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainWalletRegistry#getWalletPublicKey}
+   * @see {WalletRegistry#getWalletPublicKey}
    */
   async getWalletPublicKey(walletID: Hex): Promise<Hex> {
     const publicKey = await backoffRetrier<string>(this._totalRetryAttempts)(
@@ -42,7 +42,7 @@ export class WalletRegistry
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainWalletRegistry#getDkgResultSubmittedEvents}
+   * @see {WalletRegistry#getDkgResultSubmittedEvents}
    */
   async getDkgResultSubmittedEvents(
     options?: GetChainEvents.Options,
@@ -85,7 +85,7 @@ export class WalletRegistry
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainWalletRegistry#getDkgResultApprovedEvents}
+   * @see {WalletRegistry#getDkgResultApprovedEvents}
    */
   async getDkgResultApprovedEvents(
     options?: GetChainEvents.Options,
@@ -103,14 +103,14 @@ export class WalletRegistry
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         resultHash: Hex.from(event.args!.resultHash),
-        approver: Address.from(event.args!.approver),
+        approver: EthereumAddress.from(event.args!.approver),
       }
     })
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainWalletRegistry#getDkgResultChallengedEvents}
+   * @see {WalletRegistry#getDkgResultChallengedEvents}
    */
   async getDkgResultChallengedEvents(
     options?: GetChainEvents.Options,
@@ -128,7 +128,7 @@ export class WalletRegistry
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
         resultHash: Hex.from(event.args!.resultHash),
-        challenger: Address.from(event.args!.challenger),
+        challenger: EthereumAddress.from(event.args!.challenger),
         reason: event.args!.reason,
       }
     })

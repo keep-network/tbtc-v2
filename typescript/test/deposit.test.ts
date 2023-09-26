@@ -32,7 +32,7 @@ import {
   suggestDepositWallet,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
-import { Address } from "../src/lib/ethereum"
+import { EthereumAddress } from "../src/lib/ethereum"
 import { BitcoinNetwork } from "../src"
 
 describe("Deposit", () => {
@@ -40,7 +40,7 @@ describe("Deposit", () => {
   const depositRefundLocktimeDuration: number = 2592000
 
   const deposit: Deposit = {
-    depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+    depositor: EthereumAddress.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     amount: BigNumber.from(10000), // 0.0001 BTC
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
     walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",

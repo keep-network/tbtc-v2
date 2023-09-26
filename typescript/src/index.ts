@@ -62,11 +62,11 @@ export {
 export { ElectrumClient } from "./lib/electrum"
 
 export {
-  Bridge as EthereumBridge,
-  WalletRegistry as EthereumWalletRegistry,
-  Address as EthereumAddress,
-  TBTCVault as EthereumTBTCVault,
-  TBTCToken as EthereumTBTCToken,
+  EthereumBridge,
+  EthereumWalletRegistry,
+  EthereumAddress,
+  EthereumTBTCVault,
+  EthereumTBTCToken,
 } from "./lib/ethereum"
 
 export { Hex } from "./lib/utils"

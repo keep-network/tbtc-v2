@@ -5,11 +5,10 @@ import { utils } from "ethers"
  * Represents an Ethereum address.
  */
 // TODO: Make Address extends Hex
-export class Address implements ChainIdentifier {
+export class EthereumAddress implements ChainIdentifier {
   readonly identifierHex: string
 
-  // TODO: Make constructor private
-  constructor(address: string) {
+  private constructor(address: string) {
     let validAddress: string
 
     try {
@@ -21,12 +20,12 @@ export class Address implements ChainIdentifier {
     this.identifierHex = validAddress.substring(2).toLowerCase()
   }
 
-  static from(address: string): Address {
-    return new Address(address)
+  static from(address: string): EthereumAddress {
+    return new EthereumAddress(address)
   }
 
   // TODO: Remove once extends Hex
-  equals(otherValue: Address): boolean {
+  equals(otherValue: EthereumAddress): boolean {
     return this.identifierHex === otherValue.identifierHex
   }
 }

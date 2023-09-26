@@ -1,30 +1,31 @@
-import { TBTC as ContractTBTC } from "../../../typechain/TBTC"
-import { TBTCToken as ChainTBTCToken } from "../contracts"
+import { TBTC as TBTCTypechain } from "../../../typechain/TBTC"
+import { TBTCToken } from "../contracts"
 import { BigNumber, ContractTransaction, utils } from "ethers"
 import { BitcoinHashUtils, BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
 import {
-  ContractConfig,
-  EthereumContract,
-  sendWithRetry,
-} from "./contract-handle"
+  EthersContractConfig,
+  EthersContractHandle,
+  EthersTransactionUtils,
+} from "./adapter"
 import TBTCDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
-import { Address } from "./address"
+import { EthereumAddress } from "./address"
 
 /**
  * Implementation of the Ethereum TBTC v2 token handle.
+ * @see {TBTCToken} for reference.
  */
-export class TBTCToken
-  extends EthereumContract<ContractTBTC>
-  implements ChainTBTCToken
+export class EthereumTBTCToken
+  extends EthersContractHandle<TBTCTypechain>
+  implements TBTCToken
 {
-  constructor(config: ContractConfig) {
+  constructor(config: EthersContractConfig) {
     super(config, TBTCDeployment)
   }
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCToken#totalSupply}
+   * @see {TBTCToken#totalSupply}
    */
   async totalSupply(blockNumber?: number): Promise<BigNumber> {
     return this._instance.totalSupply({
@@ -34,7 +35,7 @@ export class TBTCToken
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {ChainTBTCToken#requestRedemption}
+   * @see {TBTCToken#requestRedemption}
    */
   async requestRedemption(
     walletPublicKey: string,
@@ -49,25 +50,28 @@ export class TBTCToken
 
     const vault = await this._instance.owner()
     const extraData = this.buildRequestRedemptionData(
-      Address.from(redeemer),
+      EthereumAddress.from(redeemer),
       walletPublicKey,
       mainUtxo,
       redeemerOutputScript
     )
 
-    const tx = await sendWithRetry<ContractTransaction>(async () => {
-      return await this._instance.approveAndCall(
-        vault,
-        amount,
-        extraData.toPrefixedString()
-      )
-    }, this._totalRetryAttempts)
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+      async () => {
+        return await this._instance.approveAndCall(
+          vault,
+          amount,
+          extraData.toPrefixedString()
+        )
+      },
+      this._totalRetryAttempts
+    )
 
     return Hex.from(tx.hash)
   }
 
   private buildRequestRedemptionData(
-    redeemer: Address,
+    redeemer: EthereumAddress,
     walletPublicKey: string,
     mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string

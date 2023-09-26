@@ -2,7 +2,7 @@ import { BigNumber } from "ethers"
 import { BitcoinRawTx, BitcoinUtxo, BitcoinTxHash } from "../../src/lib/bitcoin"
 import { Deposit } from "../../src/lib/contracts"
 import { calculateDepositRefundLocktime } from "../../src/deposit"
-import { Address } from "../../src/lib/ethereum"
+import { EthereumAddress } from "../../src/lib/ethereum"
 
 /**
  * Testnet private key that can be used to refund the deposits used in tests.
@@ -52,7 +52,9 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
           "00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         amount: BigNumber.from(100000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
@@ -105,7 +107,9 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
           "2eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         amount: BigNumber.from(90000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
@@ -158,7 +162,9 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
           "d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         amount: BigNumber.from(150000),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
