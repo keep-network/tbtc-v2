@@ -66,7 +66,13 @@ export function toBcoinNetwork(bitcoinNetwork: BitcoinNetwork): string {
   }
 }
 
-// TODO: Description
+/**
+ * Converts the provided {@link BitcoinNetwork} enumeration to a format expected
+ * by the `bitcoinjs-lib` library.
+ * @param bitcoinNetwork - Specified Bitcoin network.
+ * @returns Network representation compatible with the `bitcoinjs-lib` library.
+ * @throws An error if the network is not supported by `bitcoinjs-lib`.
+ */
 export function toBitcoinJsLibNetwork(
   bitcoinNetwork: BitcoinNetwork
 ): networks.Network {

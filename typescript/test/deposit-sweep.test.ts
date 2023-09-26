@@ -1052,8 +1052,6 @@ describe("Sweep", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
-      bcoin.set("testnet")
-
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
 

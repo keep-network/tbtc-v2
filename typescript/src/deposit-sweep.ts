@@ -109,24 +109,25 @@ export async function submitDepositSweepTransaction(
 }
 
 /**
- * Assembles a Bitcoin P2WPKH deposit sweep transaction.
+ * Constructs a Bitcoin deposit sweep transaction using provided UTXOs.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
- * @param fee - the value that should be subtracted from the sum of the UTXOs
- *        values and used as the transaction fee.
+ * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
+ *        values.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
- * @param witness - The parameter used to decide about the type of the new main
- *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
+ * @param witness - Determines the type of the new main UTXO output: P2WPKH if
+ *        `true`, P2PKH if `false`.
  * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
- * @param deposits - Array of deposits. Each element corresponds to UTXO.
- *        The number of UTXOs and deposit elements must equal.
- * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *        from the previous wallet transaction (optional).
- * @returns The outcome consisting of:
- *          - the sweep transaction hash,
- *          - the new wallet's main UTXO produced by this transaction.
- *          - the sweep transaction in the raw format
+ * @param deposits - Deposit data corresponding to each UTXO. The number of
+ *        UTXOs and deposits must match.
+ * @param mainUtxo - The wallet's main UTXO (optional), which is a P2(W)PKH UTXO
+ *        from a previous transaction.
+ * @returns An object containing the sweep transaction hash, new wallet's main
+ *          UTXO, and the raw deposit sweep transaction representation.
+ * @throws Error if the provided UTXOs and deposits mismatch or if an unsupported
+ *         UTXO script type is encountered.
  */
 export async function assembleDepositSweepTransaction(
   bitcoinNetwork: BitcoinNetwork,
@@ -223,7 +224,7 @@ export async function assembleDepositSweepTransaction(
         transaction,
         inputIndex,
         deposit,
-        previousOutput.value,
+        previousOutputValue,
         keyPair
       )
     } else if (isP2WSH(previousOutputScript)) {
@@ -255,6 +256,19 @@ export async function assembleDepositSweepTransaction(
   }
 }
 
+/**
+ * Signs the main UTXO transaction input and sets the appropriate script or
+ * witness data.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param prevOutScript - The previous output script for the input.
+ * @param prevOutValue - The value from the previous transaction output.
+ * @param keyPair - A Signer object with the public and private key pair.
+ * @param network - The Bitcoin network type (mainnet or testnet).
+ * @returns An empty promise upon successful signing.
+ * @throws Error if the UTXO doesn't belong to the wallet, or if the script
+ *         format is invalid or unknown.
+ */
 async function signMainUtxoInput(
   transaction: Transaction,
   inputIndex: number,
@@ -322,7 +336,15 @@ async function signMainUtxoInput(
   }
 }
 
-// TODO: Description.
+/**
+ * Signs a P2SH deposit transaction input and sets the `scriptSig`.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param deposit - Details of the deposit transaction.
+ * @param prevOutValue - The value from the previous transaction output.
+ * @param keyPair - A Signer object with the public and private key pair.
+ * @returns An empty promise upon successful signing.
+ */
 async function signP2SHDepositInput(
   transaction: Transaction,
   inputIndex: number,
@@ -330,8 +352,11 @@ async function signP2SHDepositInput(
   prevOutValue: number,
   keyPair: Signer
 ) {
-  const { walletPublicKey, depositScript } =
-    await prepareInputSignDataBitcoinIsLib(deposit, prevOutValue, keyPair)
+  const { walletPublicKey, depositScript } = await prepareInputSignData(
+    deposit,
+    prevOutValue,
+    keyPair
+  )
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -351,7 +376,15 @@ async function signP2SHDepositInput(
   transaction.ins[inputIndex].script = script.compile(scriptSig)
 }
 
-// TODO: Description.
+/**
+ * Signs a P2WSH deposit transaction input and sets the witness script.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param deposit - Details of the deposit transaction.
+ * @param prevOutValue - The value from the previous transaction output.
+ * @param keyPair - A Signer object with the public and private key pair.
+ * @returns An empty promise upon successful signing.
+ */
 async function signP2WSHDepositInput(
   transaction: Transaction,
   inputIndex: number,
@@ -360,7 +393,7 @@ async function signP2WSHDepositInput(
   keyPair: Signer
 ) {
   const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignDataBitcoinIsLib(deposit, prevOutValue, keyPair)
+    await prepareInputSignData(deposit, prevOutValue, keyPair)
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -381,7 +414,18 @@ async function signP2WSHDepositInput(
   transaction.ins[inputIndex].witness = witness
 }
 
-async function prepareInputSignDataBitcoinIsLib(
+/**
+ * Prepares data for signing a deposit transaction input.
+ * @param deposit - The deposit details.
+ * @param prevOutValue - The value from the previous transaction output.
+ * @param ecPair - A Signer object with the public and private key pair.
+ * @returns A Promise resolving to:
+ * - walletPublicKey: Hexstring representation of the wallet's public key.
+ * - depositScript: Buffer containing the assembled deposit script.
+ * - previousOutputValue: Numeric value of the prior transaction output.
+ * @throws Error if there are discrepancies in values or key formats.
+ */
+async function prepareInputSignData(
   deposit: Deposit,
   prevOutValue: number,
   ecPair: Signer
@@ -457,7 +501,20 @@ export async function submitDepositSweepProof(
   )
 }
 
-// TODO: Description and unit test.
+/**
+ * Checks if a UTXO is owned by a provided key pair based on its previous output
+ * script.
+ * @dev The function assumes previous output script comes form the P2PKH or
+ *      P2WPKH UTXO.
+ * @param keyPair - A Signer object containing the public key and private key
+ *        pair.
+ * @param prevOutScript - A Buffer containing the previous output script of the
+ *        UTXO.
+ * @param network - The Bitcoin network configuration, i.e. mainnet or testnet.
+ * @returns A boolean indicating whether the derived address from the UTXO's
+ *          previous output script matches either of the P2PKH or P2WPKH
+ *          addresses derived from the provided key pair.
+ */
 export function ownsUtxo(
   keyPair: Signer,
   prevOutScript: Buffer,

@@ -742,7 +742,16 @@ export function isP2WSH(script: Buffer): boolean {
   }
 }
 
-// TODO: Description and unit tests.
+/**
+ * Generates a Bitcoin address based on the provided key pair and network.
+ * Can produce either SegWit (P2WPKH) or Legacy (P2PKH) addresses.
+ * @param keyPair - The key pair used to derive the Bitcoin address.
+ * @param network - Specified Bitcoin network.
+ * @param witness - Boolean flag indicating if the address should be SegWit
+ *        (P2WPKH) or not (P2PKH).
+ * @returns The generated Bitcoin address as a string.
+ */
+// TODO: Unit tests.
 export function addressFromKeyPair(
   keyPair: Signer,
   network: networks.Network,
