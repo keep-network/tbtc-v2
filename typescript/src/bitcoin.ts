@@ -524,6 +524,7 @@ export function createKeyRing(
  * @param text - Text the HASH160 is computed for.
  * @returns Hash as a 20-byte un-prefixed hex string.
  */
+// TODO: Make it use Hex for input and return values.
 export function computeHash160(text: string): string {
   const sha256Hash = utils.sha256(
     Hex.from(Buffer.from(text, "hex")).toPrefixedString()
@@ -531,6 +532,17 @@ export function computeHash160(text: string): string {
   const hash160 = utils.ripemd160(sha256Hash)
 
   return Hex.from(hash160).toString()
+}
+
+/**
+ * Computes the single SHA256 for the given text.
+ * @param text - Text the single SHA256 is computed for.
+ * @returns Hash as a 32-byte un-prefixed hex string.
+ */
+// TODO: Consider adding unit tests.
+export function computeSha256(text: Hex): Hex {
+  const hash = utils.sha256(text.toPrefixedString())
+  return Hex.from(hash)
 }
 
 /**

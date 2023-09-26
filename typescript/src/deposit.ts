@@ -9,11 +9,10 @@ import {
   UnspentTransactionOutput,
   TransactionHash,
   isPublicKeyHashLength,
+  computeSha256,
+  computeHash160,
 } from "./bitcoin"
-import {
-  BitcoinNetwork,
-  toBitcoinJsLibNetwork,
-} from "./bitcoin-network"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
 
@@ -343,11 +342,13 @@ export async function calculateDepositScriptHash(
   witness: boolean
 ): Promise<Buffer> {
   const script = await assembleDepositScript(deposit)
-  // Parse the script from HEX string.
-  const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.
   // Legacy script hash needs HASH160.
-  return witness ? parsedScript.sha256() : parsedScript.hash160()
+  if (witness) {
+    return computeSha256(Hex.from(script)).toBuffer()
+  }
+
+  return Buffer.from(computeHash160(script), "hex")
 }
 
 /**
