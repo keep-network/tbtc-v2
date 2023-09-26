@@ -1,6 +1,6 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
-import { Stack, script, opcodes } from "bitcoinjs-lib"
+import { Stack, payments, script, opcodes } from "bitcoinjs-lib"
 import {
   Client as BitcoinClient,
   decomposeRawTransaction,
@@ -10,7 +10,10 @@ import {
   TransactionHash,
   isPublicKeyHashLength,
 } from "./bitcoin"
-import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
+import {
+  BitcoinNetwork,
+  toBitcoinJsLibNetwork,
+} from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
 
@@ -361,10 +364,27 @@ export async function calculateDepositAddress(
   witness: boolean
 ): Promise<string> {
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
-  const address = witness
-    ? bcoin.Address.fromWitnessScripthash(scriptHash)
-    : bcoin.Address.fromScripthash(scriptHash)
-  return address.toString(toBcoinNetwork(network))
+  const bitcoinNetwork = toBitcoinJsLibNetwork(network)
+
+  if (witness) {
+    // OP_0 <hash-length> <hash>
+    const p2wshOutput = Buffer.concat([
+      Buffer.from([opcodes.OP_0, 0x20]),
+      scriptHash,
+    ])
+
+    return payments.p2wsh({ output: p2wshOutput, network: bitcoinNetwork })
+      .address!
+  }
+
+  // OP_HASH160 <hash-length> <hash> OP_EQUAL
+  const p2shOutput = Buffer.concat([
+    Buffer.from([opcodes.OP_HASH160, 0x14]),
+    scriptHash,
+    Buffer.from([opcodes.OP_EQUAL]),
+  ])
+
+  return payments.p2sh({ output: p2shOutput, network: bitcoinNetwork }).address!
 }
 
 /**
