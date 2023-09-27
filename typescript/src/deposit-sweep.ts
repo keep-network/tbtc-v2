@@ -274,7 +274,13 @@ async function signMainUtxoInput(
   walletKeyPair: Signer,
   bitcoinNetwork: BitcoinNetwork
 ) {
-  if (!ownsUtxo(walletKeyPair, previousOutput.script, bitcoinNetwork)) {
+  if (
+    !ownsUtxo(
+      Hex.from(walletKeyPair.publicKey),
+      previousOutput.script,
+      bitcoinNetwork
+    )
+  ) {
     throw new Error("UTXO does not belong to the wallet")
   }
 
@@ -500,21 +506,17 @@ export async function submitDepositSweepProof(
 }
 
 /**
- * Checks if a UTXO is owned by a provided key pair based on its previous output
- * script.
- * @dev The function assumes previous output script comes form the P2PKH or
- *      P2WPKH UTXO.
- * @param keyPair - A Signer object containing the public key and private key
- *        pair.
- * @param outputScript - A Buffer containing the previous output script of the
- *        UTXO.
+ * Checks if the UTXO is owned by the provided public key based on its previous
+ * output script.
+ * @dev The function assumes output script comes form the P2PKH or P2WPKH UTXO.
+ * @param publicKey - Public key for UTXO ownership validation.
+ * @param outputScript - Buffer of the UTXO's previous output script.
  * @param bitcoinNetwork - The Bitcoin network type.
- * @returns A boolean indicating whether the derived address from the UTXO's
- *          previous output script matches either of the P2PKH or P2WPKH
- *          addresses derived from the provided key pair.
+ * @returns True if the UTXO's address from the output script matches P2PKH
+ *          or P2WPKH addresses derived from the key pair. False otherwise.
  */
 export function ownsUtxo(
-  keyPair: Signer,
+  publicKey: Hex,
   outputScript: Buffer,
   bitcoinNetwork: BitcoinNetwork
 ): boolean {
@@ -522,9 +524,9 @@ export function ownsUtxo(
 
   // Derive P2PKH and P2WPKH addresses from the public key.
   const p2pkhAddress =
-    payments.p2pkh({ pubkey: keyPair.publicKey, network }).address || ""
+    payments.p2pkh({ pubkey: publicKey.toBuffer(), network }).address || ""
   const p2wpkhAddress =
-    payments.p2wpkh({ pubkey: keyPair.publicKey, network }).address || ""
+    payments.p2wpkh({ pubkey: publicKey.toBuffer(), network }).address || ""
 
   // Try to extract an address from the provided output script.
   let addressFromOutput = ""
