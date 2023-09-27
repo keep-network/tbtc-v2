@@ -13,6 +13,7 @@ import {
   targetToDifficulty,
   createOutputScriptFromAddress,
   createAddressFromOutputScript,
+  createAddressFromPublicKey,
   readCompactSizeUint,
   computeHash160,
   computeHash256,
@@ -21,7 +22,7 @@ import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
-import { btcAddresses } from "./data/bitcoin"
+import { btcAddresses, btcAddressFromPublicKey } from "./data/bitcoin"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -533,6 +534,30 @@ describe("Bitcoin", () => {
         })
       })
     })
+  })
+
+  describe("createAddressFromPublicKey", () => {
+    Object.entries(btcAddressFromPublicKey).forEach(
+      ([bitcoinNetwork, addressData]) => {
+        context(`with ${bitcoinNetwork} addresses`, () => {
+          Object.entries(addressData).forEach(
+            ([addressType, { publicKey, address }]) => {
+              it(`should return correct ${addressType} address for ${bitcoinNetwork}`, () => {
+                const witness = addressType === "P2WPKH"
+                const result = createAddressFromPublicKey(
+                  publicKey,
+                  bitcoinNetwork === "mainnet"
+                    ? BitcoinNetwork.Mainnet
+                    : BitcoinNetwork.Testnet,
+                  witness
+                )
+                expect(result).to.eq(address)
+              })
+            }
+          )
+        })
+      }
+    )
   })
 
   describe("readCompactSizeUint", () => {

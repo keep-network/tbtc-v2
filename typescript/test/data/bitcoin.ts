@@ -70,3 +70,37 @@ export const btcAddresses: Record<
     },
   },
 }
+
+export const btcAddressFromPublicKey: Record<
+  Exclude<BitcoinNetwork, BitcoinNetwork.Unknown>,
+  Record<string, { publicKey: Hex; address: string }>
+> = {
+  testnet: {
+    P2PKH: {
+      publicKey: Hex.from(
+        "0304cc460f320822d17d567a9a1b1039f765ff72512758605b5962226b3d8e5329"
+      ),
+      address: "msVQ3CCdqffxc5BtxUrtHFPq6CoZSTaJTq",
+    },
+    P2WPKH: {
+      publicKey: Hex.from(
+        "0304cc460f320822d17d567a9a1b1039f765ff72512758605b5962226b3d8e5329"
+      ),
+      address: "tb1qsdtz442y5fmay39rj39vancf7jm0jrf40qkulw",
+    },
+  },
+  mainnet: {
+    P2PKH: {
+      publicKey: Hex.from(
+        "0304cc460f320822d17d567a9a1b1039f765ff72512758605b5962226b3d8e5329"
+      ),
+      address: "1CySk97f2eEhpxiHEutWTLBWEDCrZDbSCr",
+    },
+    P2WPKH: {
+      publicKey: Hex.from(
+        "0304cc460f320822d17d567a9a1b1039f765ff72512758605b5962226b3d8e5329"
+      ),
+      address: "bc1qsdtz442y5fmay39rj39vancf7jm0jrf49xd0ya",
+    },
+  },
+}

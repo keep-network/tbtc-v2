@@ -14,7 +14,7 @@ import {
   Client as BitcoinClient,
   decomposeRawTransaction,
   isCompressedPublicKey,
-  publicKeyToAddress,
+  createAddressFromPublicKey,
   TransactionHash,
   computeHash160,
   isP2PKHScript,
@@ -157,7 +157,7 @@ export async function assembleDepositSweepTransaction(
     walletPrivateKey,
     network
   )
-  const walletAddress = publicKeyToAddress(
+  const walletAddress = createAddressFromPublicKey(
     Hex.from(walletKeyPair.publicKey),
     bitcoinNetwork,
     witness
