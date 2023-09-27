@@ -160,33 +160,25 @@ export async function assembleDepositSweepTransaction(
     witness
   )
 
-  let outputValue = BigNumber.from(0)
-  if (mainUtxo) {
-    outputValue = outputValue.add(mainUtxo.value)
-  }
-  for (const utxo of utxos) {
-    outputValue = outputValue.add(utxo.value)
-  }
-  outputValue = outputValue.sub(fee)
-
-  // Create the transaction.
   const transaction = new Transaction()
 
-  // Add the transaction's inputs.
+  let outputValue = BigNumber.from(0)
   if (mainUtxo) {
     transaction.addInput(
       mainUtxo.transactionHash.reverse().toBuffer(),
       mainUtxo.outputIndex
     )
+    outputValue = outputValue.add(mainUtxo.value)
   }
   for (const utxo of utxos) {
     transaction.addInput(
       utxo.transactionHash.reverse().toBuffer(),
       utxo.outputIndex
     )
+    outputValue = outputValue.add(utxo.value)
   }
+  outputValue = outputValue.sub(fee)
 
-  // Add transaction output.
   const scriptPubKey = address.toOutputScript(walletAddress, network)
   transaction.addOutput(scriptPubKey, outputValue.toNumber())
 
