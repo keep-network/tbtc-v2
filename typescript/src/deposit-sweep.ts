@@ -17,10 +17,10 @@ import {
   addressFromKeyPair,
   TransactionHash,
   computeHash160,
-  isP2PKH,
-  isP2WPKH,
-  isP2SH,
-  isP2WSH,
+  isP2PKHScript,
+  isP2WPKHScript,
+  isP2SHScript,
+  isP2WSHScript,
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
@@ -218,7 +218,7 @@ export async function assembleDepositSweepTransaction(
 
     const deposit = deposits[depositIndex]
 
-    if (isP2SH(previousOutputScript)) {
+    if (isP2SHScript(previousOutputScript)) {
       // P2SH (deposit UTXO)
       await signP2SHDepositInput(
         transaction,
@@ -227,7 +227,7 @@ export async function assembleDepositSweepTransaction(
         previousOutputValue,
         keyPair
       )
-    } else if (isP2WSH(previousOutputScript)) {
+    } else if (isP2WSHScript(previousOutputScript)) {
       // P2WSH (deposit UTXO)
       await signP2WSHDepositInput(
         transaction,
@@ -283,7 +283,7 @@ async function signMainUtxoInput(
 
   const sigHashType = Transaction.SIGHASH_ALL
 
-  if (isP2PKH(prevOutScript)) {
+  if (isP2PKHScript(prevOutScript)) {
     // P2PKH
     const sigHash = transaction.hashForSignature(
       inputIndex,
@@ -302,7 +302,7 @@ async function signMainUtxoInput(
     }).input!
 
     transaction.ins[inputIndex].script = scriptSig
-  } else if (isP2WPKH(prevOutScript)) {
+  } else if (isP2WPKHScript(prevOutScript)) {
     // P2WPKH
     const decompiledScript = script.decompile(prevOutScript)
     if (

@@ -691,7 +691,7 @@ export function readCompactSizeUint(varLenData: Hex): {
  * @param script The script to be checked.
  * @returns True if the script is P2PKH, false otherwise.
  */
-export function isP2PKH(script: Buffer): boolean {
+export function isP2PKHScript(script: Buffer): boolean {
   try {
     payments.p2pkh({ output: script })
     return true
@@ -705,7 +705,7 @@ export function isP2PKH(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2WPKH, false otherwise.
  */
-export function isP2WPKH(script: Buffer): boolean {
+export function isP2WPKHScript(script: Buffer): boolean {
   try {
     payments.p2wpkh({ output: script })
     return true
@@ -719,7 +719,7 @@ export function isP2WPKH(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2SH, false otherwise.
  */
-export function isP2SH(script: Buffer): boolean {
+export function isP2SHScript(script: Buffer): boolean {
   try {
     payments.p2sh({ output: script })
     return true
@@ -733,7 +733,7 @@ export function isP2SH(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2WSH, false otherwise.
  */
-export function isP2WSH(script: Buffer): boolean {
+export function isP2WSHScript(script: Buffer): boolean {
   try {
     payments.p2wsh({ output: script })
     return true
