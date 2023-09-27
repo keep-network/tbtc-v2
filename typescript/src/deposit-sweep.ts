@@ -25,7 +25,7 @@ import {
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
-import { ECPairFactory as ecFactory } from "ecpair"
+import { ECPairFactory } from "ecpair"
 import * as tinysecp from "tiny-secp256k1"
 import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 
@@ -151,7 +151,8 @@ export async function assembleDepositSweepTransaction(
   }
 
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
-  const keyPair = ecFactory(tinysecp).fromWIF(walletPrivateKey, network)
+  // eslint-disable-next-line new-cap
+  const keyPair = ECPairFactory(tinysecp).fromWIF(walletPrivateKey, network)
   const walletAddress = addressFromKeyPair(keyPair, network, witness)
 
   // Calculate the value of transaction's output. Note that the value of fee
