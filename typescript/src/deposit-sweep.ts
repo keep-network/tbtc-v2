@@ -1,11 +1,4 @@
-import {
-  Transaction,
-  Stack,
-  Signer,
-  payments,
-  script,
-  networks,
-} from "bitcoinjs-lib"
+import { Transaction, Stack, Signer, payments, script } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 import {
@@ -198,7 +191,7 @@ export async function assembleDepositSweepTransaction(
       previousOutput.script,
       previousOutput.value,
       walletKeyPair,
-      network
+      bitcoinNetwork
     )
   }
 
@@ -263,7 +256,7 @@ export async function assembleDepositSweepTransaction(
  * @param prevOutScript - The previous output script for the input.
  * @param prevOutValue - The value from the previous transaction output.
  * @param walletKeyPair - A Signer object with the public and private key pair.
- * @param network - The Bitcoin network type (mainnet or testnet).
+ * @param bitcoinNetwork - The Bitcoin network type.
  * @returns An empty promise upon successful signing.
  * @throws Error if the UTXO doesn't belong to the wallet, or if the script
  *         format is invalid or unknown.
@@ -274,9 +267,9 @@ async function signMainUtxoInput(
   prevOutScript: Buffer,
   prevOutValue: number,
   walletKeyPair: Signer,
-  network: networks.Network
+  bitcoinNetwork: BitcoinNetwork
 ) {
-  if (!ownsUtxo(walletKeyPair, prevOutScript, network)) {
+  if (!ownsUtxo(walletKeyPair, prevOutScript, bitcoinNetwork)) {
     throw new Error("UTXO does not belong to the wallet")
   }
 
@@ -515,7 +508,7 @@ export async function submitDepositSweepProof(
  *        pair.
  * @param prevOutScript - A Buffer containing the previous output script of the
  *        UTXO.
- * @param network - The Bitcoin network configuration, i.e. mainnet or testnet.
+ * @param bitcoinNetwork - The Bitcoin network type.
  * @returns A boolean indicating whether the derived address from the UTXO's
  *          previous output script matches either of the P2PKH or P2WPKH
  *          addresses derived from the provided key pair.
@@ -523,8 +516,10 @@ export async function submitDepositSweepProof(
 export function ownsUtxo(
   keyPair: Signer,
   prevOutScript: Buffer,
-  network: networks.Network
+  bitcoinNetwork: BitcoinNetwork
 ): boolean {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
   // Derive P2PKH and P2WPKH addresses from the public key.
   const p2pkhAddress =
     payments.p2pkh({ pubkey: keyPair.publicKey, network }).address || ""
