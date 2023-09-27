@@ -338,7 +338,7 @@ async function signMainUtxoInput(
  * @param transaction - The transaction containing the input to be signed.
  * @param inputIndex - Index pointing to the input within the transaction.
  * @param deposit - Details of the deposit transaction.
- * @param prevOutValue - The value from the previous transaction output.
+ * @param previousOutputValue - The value from the previous transaction output.
  * @param walletKeyPair - A Signer object with the wallet's public and private
  *        key pair.
  * @returns An empty promise upon successful signing.
@@ -347,12 +347,12 @@ async function signP2SHDepositInput(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  prevOutValue: number,
+  previousOutputValue: number,
   walletKeyPair: Signer
 ) {
-  const { walletPublicKey, depositScript } = await prepareInputSignData(
+  const depositScript = await prepareDepositScript(
     deposit,
-    prevOutValue,
+    previousOutputValue,
     walletKeyPair
   )
 
@@ -371,7 +371,7 @@ async function signP2SHDepositInput(
 
   const scriptSig: Stack = []
   scriptSig.push(signature)
-  scriptSig.push(Buffer.from(walletPublicKey, "hex"))
+  scriptSig.push(walletKeyPair.publicKey)
   scriptSig.push(depositScript)
 
   transaction.ins[inputIndex].script = script.compile(scriptSig)
@@ -382,7 +382,7 @@ async function signP2SHDepositInput(
  * @param transaction - The transaction containing the input to be signed.
  * @param inputIndex - Index pointing to the input within the transaction.
  * @param deposit - Details of the deposit transaction.
- * @param prevOutValue - The value from the previous transaction output.
+ * @param previousOutputValue - The value from the previous transaction output.
  * @param walletKeyPair - A Signer object with the wallet's public and private
  *        key pair.
  * @returns An empty promise upon successful signing.
@@ -391,11 +391,14 @@ async function signP2WSHDepositInput(
   transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  prevOutValue: number,
+  previousOutputValue: number,
   walletKeyPair: Signer
 ) {
-  const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(deposit, prevOutValue, walletKeyPair)
+  const depositScript = await prepareDepositScript(
+    deposit,
+    previousOutputValue,
+    walletKeyPair
+  )
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -413,37 +416,31 @@ async function signP2WSHDepositInput(
 
   const witness: Buffer[] = []
   witness.push(signature)
-  witness.push(Buffer.from(walletPublicKey, "hex"))
+  witness.push(walletKeyPair.publicKey)
   witness.push(depositScript)
 
   transaction.ins[inputIndex].witness = witness
 }
 
 /**
- * Prepares data for signing a deposit transaction input.
+ * Assembles the deposit script based on the given deposit details. Performs
+ * validations on values and key formats.
  * @param deposit - The deposit details.
- * @param prevOutValue - The value from the previous transaction output.
- * @param ecPair - A Signer object with the public and private key pair.
- * @returns A Promise resolving to:
- * - walletPublicKey: Hexstring representation of the wallet's public key.
- * - depositScript: Buffer containing the assembled deposit script.
- * - previousOutputValue: Numeric value of the prior transaction output.
+ * @param previousOutputValue - Value from the previous transaction output.
+ * @param walletKeyPair - Signer object containing the wallet's key pair.
+ * @returns A Promise resolving to the assembled deposit script as a Buffer.
  * @throws Error if there are discrepancies in values or key formats.
  */
-async function prepareInputSignData(
+async function prepareDepositScript(
   deposit: Deposit,
-  prevOutValue: number,
-  ecPair: Signer
-): Promise<{
-  walletPublicKey: string
-  depositScript: any
-  previousOutputValue: number
-}> {
-  if (prevOutValue != deposit.amount.toNumber()) {
+  previousOutputValue: number,
+  walletKeyPair: Signer
+): Promise<Buffer> {
+  if (previousOutputValue != deposit.amount.toNumber()) {
     throw new Error("Mismatch between amount in deposit and deposit tx")
   }
 
-  const walletPublicKey = ecPair.publicKey.toString("hex")
+  const walletPublicKey = walletKeyPair.publicKey.toString("hex")
 
   if (computeHash160(walletPublicKey) != deposit.walletPublicKeyHash) {
     throw new Error(
@@ -463,11 +460,7 @@ async function prepareInputSignData(
     "hex"
   )
 
-  return {
-    walletPublicKey,
-    depositScript: depositScript,
-    previousOutputValue: deposit.amount.toNumber(),
-  }
+  return depositScript
 }
 
 /**
