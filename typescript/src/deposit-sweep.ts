@@ -8,13 +8,14 @@ import {
   networks,
 } from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
 import {
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
   decomposeRawTransaction,
   isCompressedPublicKey,
-  addressFromKeyPair,
+  publicKeyToAddress,
   TransactionHash,
   computeHash160,
   isP2PKHScript,
@@ -153,7 +154,11 @@ export async function assembleDepositSweepTransaction(
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   // eslint-disable-next-line new-cap
   const keyPair = ECPairFactory(tinysecp).fromWIF(walletPrivateKey, network)
-  const walletAddress = addressFromKeyPair(keyPair, network, witness)
+  const walletAddress = publicKeyToAddress(
+    Hex.from(keyPair.publicKey),
+    bitcoinNetwork,
+    witness
+  )
 
   // Calculate the value of transaction's output. Note that the value of fee
   // needs to be subtracted from the sum.

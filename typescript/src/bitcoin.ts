@@ -3,9 +3,12 @@ import wif from "wif"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
-import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
-import { payments, networks } from "bitcoinjs-lib"
-import { Signer } from "ecpair"
+import {
+  BitcoinNetwork,
+  toBcoinNetwork,
+  toBitcoinJsLibNetwork,
+} from "./bitcoin-network"
+import { payments } from "bitcoinjs-lib"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -743,25 +746,27 @@ export function isP2WSHScript(script: Buffer): boolean {
 }
 
 /**
- * Generates a Bitcoin address based on the provided key pair and network.
- * Can produce either SegWit (P2WPKH) or Legacy (P2PKH) addresses.
- * @param keyPair - The key pair used to derive the Bitcoin address.
- * @param network - Specified Bitcoin network.
- * @param witness - Boolean flag indicating if the address should be SegWit
- *        (P2WPKH) or not (P2PKH).
- * @returns The generated Bitcoin address as a string.
+ * Generates a Bitcoin address from a public key. Supports SegWit (P2WPKH) and
+ * Legacy (P2PKH) formats.
+ * @param publicKey - Public key used to derive the Bitcoin address.
+ * @param bitcoinNetwork - Target Bitcoin network.
+ * @param witness - Flag to determine address format: true for SegWit (P2WPKH)
+ *        and false for Legacy (P2PKH). Default is true.
+ * @returns The derived Bitcoin address.
  */
 // TODO: Unit tests.
-export function addressFromKeyPair(
-  keyPair: Signer,
-  network: networks.Network,
-  witness: boolean
+export function publicKeyToAddress(
+  publicKey: Hex,
+  bitcoinNetwork: BitcoinNetwork,
+  witness: boolean = true
 ): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
   if (witness) {
     // P2WPKH (SegWit)
-    return payments.p2wpkh({ pubkey: keyPair.publicKey, network }).address!
+    return payments.p2wpkh({ pubkey: publicKey.toBuffer(), network }).address!
   } else {
     // P2PKH (Legacy)
-    return payments.p2pkh({ pubkey: keyPair.publicKey, network }).address!
+    return payments.p2pkh({ pubkey: publicKey.toBuffer(), network }).address!
   }
 }
