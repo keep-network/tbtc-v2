@@ -3,7 +3,6 @@ import {
   Stack,
   Signer,
   payments,
-  address,
   script,
   networks,
 } from "bitcoinjs-lib"
@@ -22,6 +21,7 @@ import {
   isP2WPKHScript,
   isP2SHScript,
   isP2WSHScript,
+  createOutputScriptFromAddress,
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
@@ -179,8 +179,8 @@ export async function assembleDepositSweepTransaction(
   }
   outputValue = outputValue.sub(fee)
 
-  const scriptPubKey = address.toOutputScript(walletAddress, network)
-  transaction.addOutput(scriptPubKey, outputValue.toNumber())
+  const outputScript = createOutputScriptFromAddress(walletAddress)
+  transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
 
   // Sign the main UTXO input if there is main UTXO.
   if (mainUtxo) {
