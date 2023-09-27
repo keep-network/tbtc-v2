@@ -506,7 +506,7 @@ export async function submitDepositSweepProof(
  *      P2WPKH UTXO.
  * @param keyPair - A Signer object containing the public key and private key
  *        pair.
- * @param prevOutScript - A Buffer containing the previous output script of the
+ * @param outputScript - A Buffer containing the previous output script of the
  *        UTXO.
  * @param bitcoinNetwork - The Bitcoin network type.
  * @returns A boolean indicating whether the derived address from the UTXO's
@@ -515,7 +515,7 @@ export async function submitDepositSweepProof(
  */
 export function ownsUtxo(
   keyPair: Signer,
-  prevOutScript: Buffer,
+  outputScript: Buffer,
   bitcoinNetwork: BitcoinNetwork
 ): boolean {
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
@@ -526,19 +526,19 @@ export function ownsUtxo(
   const p2wpkhAddress =
     payments.p2wpkh({ pubkey: keyPair.publicKey, network }).address || ""
 
-  // Try to extract an address from the provided prevOutScript.
+  // Try to extract an address from the provided output script.
   let addressFromOutput = ""
   try {
     addressFromOutput =
-      payments.p2pkh({ output: prevOutScript, network }).address || ""
+      payments.p2pkh({ output: outputScript, network }).address || ""
   } catch (e) {
     // If not P2PKH, try P2WPKH.
     try {
       addressFromOutput =
-        payments.p2wpkh({ output: prevOutScript, network }).address || ""
+        payments.p2wpkh({ output: outputScript, network }).address || ""
     } catch (err) {
-      // If neither p2pkh nor p2wpkh address can be derived, assume the previous
-      // output script comes from a different UTXO type or is corrupted.
+      // If neither p2pkh nor p2wpkh address can be derived, assume the output
+      // script comes from a different UTXO type or is corrupted.
       return false
     }
   }
