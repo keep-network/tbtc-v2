@@ -153,9 +153,12 @@ export async function assembleDepositSweepTransaction(
 
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   // eslint-disable-next-line new-cap
-  const keyPair = ECPairFactory(tinysecp).fromWIF(walletPrivateKey, network)
+  const walletKeyPair = ECPairFactory(tinysecp).fromWIF(
+    walletPrivateKey,
+    network
+  )
   const walletAddress = publicKeyToAddress(
-    Hex.from(keyPair.publicKey),
+    Hex.from(walletKeyPair.publicKey),
     bitcoinNetwork,
     witness
   )
@@ -194,7 +197,7 @@ export async function assembleDepositSweepTransaction(
       inputIndex,
       previousOutput.script,
       previousOutput.value,
-      keyPair,
+      walletKeyPair,
       network
     )
   }
@@ -221,7 +224,7 @@ export async function assembleDepositSweepTransaction(
         inputIndex,
         deposit,
         previousOutputValue,
-        keyPair
+        walletKeyPair
       )
     } else if (isP2WSHScript(previousOutputScript)) {
       // P2WSH (deposit UTXO)
@@ -230,7 +233,7 @@ export async function assembleDepositSweepTransaction(
         inputIndex,
         deposit,
         previousOutputValue,
-        keyPair
+        walletKeyPair
       )
     } else {
       throw new Error("Unsupported UTXO script type")
@@ -259,7 +262,7 @@ export async function assembleDepositSweepTransaction(
  * @param inputIndex - Index pointing to the input within the transaction.
  * @param prevOutScript - The previous output script for the input.
  * @param prevOutValue - The value from the previous transaction output.
- * @param keyPair - A Signer object with the public and private key pair.
+ * @param walletKeyPair - A Signer object with the public and private key pair.
  * @param network - The Bitcoin network type (mainnet or testnet).
  * @returns An empty promise upon successful signing.
  * @throws Error if the UTXO doesn't belong to the wallet, or if the script
@@ -270,10 +273,10 @@ async function signMainUtxoInput(
   inputIndex: number,
   prevOutScript: Buffer,
   prevOutValue: number,
-  keyPair: Signer,
+  walletKeyPair: Signer,
   network: networks.Network
 ) {
-  if (!ownsUtxo(keyPair, prevOutScript, network)) {
+  if (!ownsUtxo(walletKeyPair, prevOutScript, network)) {
     throw new Error("UTXO does not belong to the wallet")
   }
 
@@ -288,13 +291,13 @@ async function signMainUtxoInput(
     )
 
     const signature = script.signature.encode(
-      keyPair.sign(sigHash),
+      walletKeyPair.sign(sigHash),
       sigHashType
     )
 
     const scriptSig = payments.p2pkh({
       signature: signature,
-      pubkey: keyPair.publicKey,
+      pubkey: walletKeyPair.publicKey,
     }).input!
 
     transaction.ins[inputIndex].script = scriptSig
@@ -322,11 +325,11 @@ async function signMainUtxoInput(
     )
 
     const signature = script.signature.encode(
-      keyPair.sign(sigHash),
+      walletKeyPair.sign(sigHash),
       sigHashType
     )
 
-    transaction.ins[inputIndex].witness = [signature, keyPair.publicKey]
+    transaction.ins[inputIndex].witness = [signature, walletKeyPair.publicKey]
   } else {
     throw new Error("Unknown type of main UTXO")
   }
@@ -338,7 +341,7 @@ async function signMainUtxoInput(
  * @param inputIndex - Index pointing to the input within the transaction.
  * @param deposit - Details of the deposit transaction.
  * @param prevOutValue - The value from the previous transaction output.
- * @param keyPair - A Signer object with the public and private key pair.
+ * @param walletKeyPair - A Signer object with the public and private key pair.
  * @returns An empty promise upon successful signing.
  */
 async function signP2SHDepositInput(
@@ -346,12 +349,12 @@ async function signP2SHDepositInput(
   inputIndex: number,
   deposit: Deposit,
   prevOutValue: number,
-  keyPair: Signer
+  walletKeyPair: Signer
 ) {
   const { walletPublicKey, depositScript } = await prepareInputSignData(
     deposit,
     prevOutValue,
-    keyPair
+    walletKeyPair
   )
 
   const sigHashType = Transaction.SIGHASH_ALL
@@ -362,7 +365,10 @@ async function signP2SHDepositInput(
     sigHashType
   )
 
-  const signature = script.signature.encode(keyPair.sign(sigHash), sigHashType)
+  const signature = script.signature.encode(
+    walletKeyPair.sign(sigHash),
+    sigHashType
+  )
 
   const scriptSig: Stack = []
   scriptSig.push(signature)
@@ -378,7 +384,7 @@ async function signP2SHDepositInput(
  * @param inputIndex - Index pointing to the input within the transaction.
  * @param deposit - Details of the deposit transaction.
  * @param prevOutValue - The value from the previous transaction output.
- * @param keyPair - A Signer object with the public and private key pair.
+ * @param walletKeyPair - A Signer object with the public and private key pair.
  * @returns An empty promise upon successful signing.
  */
 async function signP2WSHDepositInput(
@@ -386,10 +392,10 @@ async function signP2WSHDepositInput(
   inputIndex: number,
   deposit: Deposit,
   prevOutValue: number,
-  keyPair: Signer
+  walletKeyPair: Signer
 ) {
   const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(deposit, prevOutValue, keyPair)
+    await prepareInputSignData(deposit, prevOutValue, walletKeyPair)
 
   const sigHashType = Transaction.SIGHASH_ALL
 
@@ -400,7 +406,10 @@ async function signP2WSHDepositInput(
     sigHashType
   )
 
-  const signature = script.signature.encode(keyPair.sign(sigHash), sigHashType)
+  const signature = script.signature.encode(
+    walletKeyPair.sign(sigHash),
+    sigHashType
+  )
 
   const witness: Buffer[] = []
   witness.push(signature)
