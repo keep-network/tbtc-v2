@@ -301,18 +301,8 @@ async function signMainUtxoInput(
     transaction.ins[inputIndex].script = scriptSig
   } else if (isP2WPKHScript(previousOutput.script)) {
     // P2WPKH
-    const decompiledScript = script.decompile(previousOutput.script)
-    if (
-      !decompiledScript ||
-      decompiledScript.length !== 2 ||
-      decompiledScript[0] !== 0x00 ||
-      !Buffer.isBuffer(decompiledScript[1]) ||
-      decompiledScript[1].length !== 20
-    ) {
-      throw new Error("Invalid script format")
-    }
-
-    const publicKeyHash = decompiledScript[1]
+    const publicKeyHash = payments.p2wpkh({ output: previousOutput.script })
+      .hash!
     const p2pkhScript = payments.p2pkh({ hash: publicKeyHash }).output!
 
     const sigHash = transaction.hashForWitnessV0(
