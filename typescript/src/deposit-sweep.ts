@@ -196,8 +196,7 @@ export async function assembleDepositSweepTransaction(
       transaction,
       inputIndex,
       previousOutput,
-      walletKeyPair,
-      bitcoinNetwork
+      walletKeyPair
     )
   }
 
@@ -271,15 +270,10 @@ async function signMainUtxoInput(
   transaction: Transaction,
   inputIndex: number,
   previousOutput: TxOutput,
-  walletKeyPair: Signer,
-  bitcoinNetwork: BitcoinNetwork
+  walletKeyPair: Signer
 ) {
   if (
-    !ownsUtxo(
-      Hex.from(walletKeyPair.publicKey),
-      previousOutput.script,
-      bitcoinNetwork
-    )
+    !canSpendOutput(Hex.from(walletKeyPair.publicKey), previousOutput.script)
   ) {
     throw new Error("UTXO does not belong to the wallet")
   }
@@ -506,47 +500,18 @@ export async function submitDepositSweepProof(
 }
 
 /**
- * Checks if the UTXO is owned by the provided public key based on its previous
- * output script.
- * @dev The function assumes output script comes form the P2PKH or P2WPKH UTXO.
- * @param publicKey - Public key for UTXO ownership validation.
- * @param outputScript - Buffer of the UTXO's previous output script.
- * @param bitcoinNetwork - The Bitcoin network type.
- * @returns True if the UTXO's address from the output script matches P2PKH
- *          or P2WPKH addresses derived from the key pair. False otherwise.
+ * Determines if a UTXO's output script can be spent using the provided public
+ * key.
+ * @param publicKey - Public key used to derive the corresponding P2PKH and
+ *        P2WPKH output scripts.
+ * @param outputScript - The output script of the UTXO in question.
+ * @returns True if the provided output script matches the P2PKH or P2WPKH
+ *          output scripts derived from the given public key. False otherwise.
  */
-export function ownsUtxo(
-  publicKey: Hex,
-  outputScript: Buffer,
-  bitcoinNetwork: BitcoinNetwork
-): boolean {
-  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+function canSpendOutput(publicKey: Hex, outputScript: Buffer): boolean {
+  const pubkeyBuffer = publicKey.toBuffer()
+  const p2pkhOutput = payments.p2pkh({ pubkey: pubkeyBuffer }).output!
+  const p2wpkhOutput = payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
 
-  // Derive P2PKH and P2WPKH addresses from the public key.
-  const p2pkhAddress =
-    payments.p2pkh({ pubkey: publicKey.toBuffer(), network }).address || ""
-  const p2wpkhAddress =
-    payments.p2wpkh({ pubkey: publicKey.toBuffer(), network }).address || ""
-
-  // Try to extract an address from the provided output script.
-  let addressFromOutput = ""
-  try {
-    addressFromOutput =
-      payments.p2pkh({ output: outputScript, network }).address || ""
-  } catch (e) {
-    // If not P2PKH, try P2WPKH.
-    try {
-      addressFromOutput =
-        payments.p2wpkh({ output: outputScript, network }).address || ""
-    } catch (err) {
-      // If neither p2pkh nor p2wpkh address can be derived, assume the output
-      // script comes from a different UTXO type or is corrupted.
-      return false
-    }
-  }
-
-  // Check if the UTXO's address matches either of the derived addresses.
-  return (
-    addressFromOutput === p2pkhAddress || addressFromOutput === p2wpkhAddress
-  )
+  return outputScript.equals(p2pkhOutput) || outputScript.equals(p2wpkhOutput)
 }
