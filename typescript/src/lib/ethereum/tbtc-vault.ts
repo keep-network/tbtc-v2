@@ -6,6 +6,7 @@ import {
   OptimisticMintingFinalizedEvent,
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
+  ChainIdentifier,
 } from "../contracts"
 import { BigNumber, ContractTransaction } from "ethers"
 import { BitcoinTxHash } from "../bitcoin"
@@ -34,6 +35,14 @@ export class EthereumTBTCVault
 {
   constructor(config: EthersContractConfig) {
     super(config, TBTCVaultDeployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {TBTCVault#getChainIdentifier}
+   */
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from(this._instance.address)
   }
 
   // eslint-disable-next-line valid-jsdoc

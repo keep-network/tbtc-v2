@@ -1,7 +1,11 @@
 import { BigNumber } from "ethers"
-import { BitcoinRawTx, BitcoinUtxo, BitcoinTxHash } from "../../src/lib/bitcoin"
+import {
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxHash,
+  BitcoinLocktimeUtils,
+} from "../../src/lib/bitcoin"
 import { DepositReceipt } from "../../src/lib/contracts"
-import { calculateDepositRefundLocktime } from "../../src/deposit"
 import { EthereumAddress } from "../../src/lib/ethereum"
 
 /**
@@ -58,7 +62,10 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // witness address associated with the refunder's private key
@@ -112,7 +119,10 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // witness address associated with the refunder's private key
@@ -166,7 +176,10 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // non-witness address associated with the refunder's private key

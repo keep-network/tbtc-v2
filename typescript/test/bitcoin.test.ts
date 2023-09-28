@@ -10,7 +10,6 @@ import {
   BitcoinCompactSizeUint,
   BitcoinAddressConverter,
 } from "../src/lib/bitcoin"
-import { calculateDepositRefundLocktime } from "../src/deposit"
 import { Hex } from "../src/lib/utils"
 import { BigNumber } from "ethers"
 import { btcAddresses } from "./data/bitcoin"
@@ -384,32 +383,31 @@ describe("Bitcoin", () => {
   })
 
   describe("BitcoinLocktimeUtils", () => {
-    const { locktimeToNumber } = BitcoinLocktimeUtils
+    const { locktimeToNumber, calculateLocktime } = BitcoinLocktimeUtils
 
     describe("locktimeToNumber", () => {
-      const depositCreatedAt: number = 1640181600
-      const depositRefundLocktimeDuration: number = 2592000
-      const depositRefundLocktime = calculateDepositRefundLocktime(
-        depositCreatedAt,
-        depositRefundLocktimeDuration
+      const locktimeStartedAt: number = 1640181600
+      const locktimeDuration: number = 2592000
+      const locktime = BitcoinLocktimeUtils.calculateLocktime(
+        locktimeStartedAt,
+        locktimeDuration
       )
 
       const testData = [
         {
           contextName: "when locktime is a block height",
           unprefixedHex: "ede80600",
-          expectedDepositLocktime: 452845,
+          expectedLocktime: 452845,
         },
         {
           contextName: "when locktime is a timestamp",
           unprefixedHex: "06241559",
-          expectedDepositLocktime: 1494557702,
+          expectedLocktime: 1494557702,
         },
         {
-          contextName: "for deposit refund locktime",
-          unprefixedHex: depositRefundLocktime,
-          expectedDepositLocktime:
-            depositCreatedAt + depositRefundLocktimeDuration,
+          contextName: "for locktime",
+          unprefixedHex: locktime,
+          expectedLocktime: locktimeStartedAt + locktimeDuration,
         },
       ]
 
@@ -418,7 +416,7 @@ describe("Bitcoin", () => {
           context("when input is non-prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
               expect(locktimeToNumber(test.unprefixedHex)).to.be.equal(
-                test.expectedDepositLocktime
+                test.expectedLocktime
               )
             })
           })
@@ -426,7 +424,7 @@ describe("Bitcoin", () => {
           context("when input is 0x prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
               expect(locktimeToNumber("0x" + test.unprefixedHex)).to.be.equal(
-                test.expectedDepositLocktime
+                test.expectedLocktime
               )
             })
           })
@@ -435,9 +433,42 @@ describe("Bitcoin", () => {
             it("should return the locktime in seconds", async () => {
               expect(
                 locktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
-              ).to.be.equal(test.expectedDepositLocktime)
+              ).to.be.equal(test.expectedLocktime)
             })
           })
+        })
+      })
+    })
+
+    describe("calculateLocktime", () => {
+      context("when the resulting locktime is lesser than 4 bytes", () => {
+        it("should throw", () => {
+          // This will result with 2592001 as the locktime which is a 3-byte number.
+          expect(() => calculateLocktime(1, 2592000)).to.throw(
+            "Locktime must be a 4 bytes number"
+          )
+        })
+      })
+
+      context("when the resulting locktime is greater than 4 bytes", () => {
+        it("should throw", () => {
+          // This will result with 259200144444 as the locktime which is a 5-byte number.
+          expect(() => calculateLocktime(259197552444, 2592000)).to.throw(
+            "Locktime must be a 4 bytes number"
+          )
+        })
+      })
+
+      context("when the resulting locktime is a 4-byte number", () => {
+        it("should compute a proper 4-byte little-endian locktime as un-prefixed hex string", () => {
+          const locktimeStartedAt = 1652776752
+
+          const locktime = calculateLocktime(locktimeStartedAt, 2592000)
+
+          // The start timestamp is 1652776752 and locktime duration 2592000 (30 days).
+          // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
+          // is represented as 30ecaa62 hex in the little-endian format.
+          expect(locktime).to.be.equal("30ecaa62")
         })
       })
     })

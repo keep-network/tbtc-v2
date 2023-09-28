@@ -195,8 +195,36 @@ function locktimeToNumber(locktimeLE: Buffer | string): number {
 }
 
 /**
+ * Calculates locktime parameter for the given locktime start timestamp.
+ * Throws if the resulting locktime is not a 4-byte number.
+ * @param locktimeStartedAt - Unix timestamp in seconds determining the moment
+ *        of the locktime start.
+ * @param locktimeDuration Locktime duration in seconds.
+ * @returns A 4-byte little-endian locktime as an un-prefixed hex string.
+ */
+function calculateLocktime(
+  locktimeStartedAt: number,
+  locktimeDuration: number
+): string {
+  // Locktime is a Unix timestamp in seconds, computed as locktime start
+  // timestamp plus locktime duration.
+  const locktime = BigNumber.from(locktimeStartedAt + locktimeDuration)
+
+  const locktimeHex: Hex = Hex.from(locktime.toHexString())
+
+  if (locktimeHex.toString().length != 8) {
+    throw new Error("Locktime must be a 4 bytes number")
+  }
+
+  // Bitcoin locktime is interpreted as little-endian integer, so we must
+  // adhere to that convention by converting the locktime accordingly.
+  return locktimeHex.reverse().toString()
+}
+
+/**
  * Utility functions allowing to deal with Bitcoin locktime.
  */
 export const BitcoinLocktimeUtils = {
   locktimeToNumber,
+  calculateLocktime,
 }

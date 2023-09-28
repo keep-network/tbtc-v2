@@ -217,6 +217,30 @@ export interface DepositReceipt {
   refundLocktime: string
 }
 
+// eslint-disable-next-line valid-jsdoc
+/**
+ * Validates the given deposit receipt. Throws in case of a validation error.
+ * @param receipt The validated deposit receipt.
+ * @dev This function does not validate the depositor's identifier as its
+ *      validity is chain-specific. This parameter must be validated outside.
+ */
+export function validateDepositReceipt(receipt: DepositReceipt) {
+  if (receipt.blindingFactor.length != 16) {
+    throw new Error("Blinding factor must be an 8-byte number")
+  }
+  if (receipt.walletPublicKeyHash.length != 40) {
+    throw new Error("Invalid wallet public key hash")
+  }
+
+  if (receipt.refundPublicKeyHash.length != 40) {
+    throw new Error("Invalid refund public key hash")
+  }
+
+  if (receipt.refundLocktime.length != 8) {
+    throw new Error("Refund locktime must be a 4-byte number")
+  }
+}
+
 /**
  * Represents a deposit request revealed to the on-chain bridge.
  */

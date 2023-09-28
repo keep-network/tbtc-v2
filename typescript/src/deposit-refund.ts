@@ -9,8 +9,8 @@ import {
   BitcoinHashUtils,
   BitcoinPublicKeyUtils,
 } from "./lib/bitcoin"
-import { assembleDepositScript, validateDepositReceipt } from "./deposit"
-import { DepositReceipt } from "./lib/contracts"
+import { DepositReceipt, validateDepositReceipt } from "./lib/contracts"
+import { DepositScript } from "./services/deposits"
 
 /**
  * Submits a deposit refund by creating and broadcasting a Bitcoin P2(W)PKH
@@ -193,7 +193,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await assembleDepositScript(deposit), "hex")
+    Buffer.from(await DepositScript.fromReceipt(deposit).getPlainText(), "hex")
   )
 
   return {

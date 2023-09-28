@@ -9,6 +9,11 @@ import { BigNumber } from "ethers"
  */
 export interface TBTCVault {
   /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
    * Gets optimistic minting delay.
    *
    * The time that needs to pass between the moment the optimistic minting is

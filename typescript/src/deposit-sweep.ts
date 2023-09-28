@@ -11,8 +11,8 @@ import {
   BitcoinTxHash,
   BitcoinHashUtils,
 } from "./lib/bitcoin"
-import { assembleDepositScript } from "./deposit"
 import { Bridge, ChainIdentifier, DepositReceipt } from "./lib/contracts"
+import { DepositScript } from "./services/deposits"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -370,7 +370,7 @@ async function prepareInputSignData(
   }
 
   const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await assembleDepositScript(deposit), "hex")
+    Buffer.from(await DepositScript.fromReceipt(deposit).getPlainText(), "hex")
   )
 
   return {

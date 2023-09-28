@@ -2,13 +2,6 @@
 
 import { validateBitcoinSpvProof } from "./lib/bitcoin"
 
-import {
-  calculateDepositAddress,
-  getRevealedDeposit,
-  revealDeposit,
-  suggestDepositWallet,
-} from "./deposit"
-
 import { submitDepositSweepProof } from "./deposit-sweep"
 
 import {
@@ -26,10 +19,6 @@ import {
 } from "./optimistic-minting"
 
 export const TBTC = {
-  calculateDepositAddress,
-  suggestDepositWallet,
-  revealDeposit,
-  getRevealedDeposit,
   requestRedemption,
   getRedemptionRequest,
   findWalletForRedemption,
