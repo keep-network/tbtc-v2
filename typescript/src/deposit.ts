@@ -1,8 +1,10 @@
 import bcoin from "bcoin"
+import coinSelect from "coinselect"
 import { BigNumber } from "ethers"
 import { Stack, payments, script, opcodes } from "bitcoinjs-lib"
 import {
   Client as BitcoinClient,
+  createAddressFromPublicKey,
   decomposeRawTransaction,
   createKeyRing,
   RawTransaction,
@@ -15,6 +17,8 @@ import {
 import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
+import { ECPairFactory } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
 
 // TODO: Replace all properties that are expected to be un-prefixed hexadecimal
 // strings with a Hex type.
@@ -231,6 +235,80 @@ export async function assembleDepositTransaction(
     },
     rawTransaction: {
       transactionHex: transaction.toRaw().toString("hex"),
+    },
+  }
+}
+
+// TODO: Description and name change.
+export async function assembleDepositTransactionBitcoinJsLib(
+  bitcoinNetwork: BitcoinNetwork,
+  deposit: Deposit,
+  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  depositorPrivateKey: string,
+  witness: boolean
+): Promise<{
+  transactionHash: TransactionHash
+  depositUtxo: UnspentTransactionOutput
+  rawTransaction: RawTransaction
+}> {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+  // eslint-disable-next-line new-cap
+  const depositorKeyPair = ECPairFactory(tinysecp).fromWIF(
+    depositorPrivateKey,
+    network
+  )
+  const depositorAddress = createAddressFromPublicKey(
+    Hex.from(depositorKeyPair.publicKey),
+    BitcoinNetwork.Mainnet
+  )
+  console.log("depositor address", depositorAddress)
+
+  // TODO: Think what this value should be. It seems to be the default
+  //       value used by `bcoin`. Think if it should be fixed or based on the
+  //       network current conditions.
+  const feeRate = 10000
+
+  const inputUtxos = []
+  for (const utxo of utxos) {
+    inputUtxos.push({
+      txId: utxo.transactionHash.reverse().toBuffer(),
+      vout: utxo.outputIndex,
+      value: utxo.value.toNumber(),
+    })
+  }
+
+  const depositAddress = await calculateDepositAddress(
+    deposit,
+    bitcoinNetwork,
+    witness
+  )
+  const depositOutput = {
+    address: depositAddress,
+    value: deposit.amount.toNumber(),
+  }
+  const { inputs, outputs /* fee*/ } = coinSelect(
+    inputUtxos,
+    [depositOutput],
+    feeRate
+  )
+
+  if (!inputs || !outputs) {
+    throw new Error("Transaction could not be built from the provided UTXOs")
+  }
+
+  // TODO: Fill with correct values.
+  const transactionHash = Hex.from("")
+  const transactionHex = ""
+
+  return {
+    transactionHash,
+    depositUtxo: {
+      transactionHash,
+      outputIndex: 0, // The deposit is always the first output.
+      value: deposit.amount,
+    },
+    rawTransaction: {
+      transactionHex: transactionHex,
     },
   }
 }
