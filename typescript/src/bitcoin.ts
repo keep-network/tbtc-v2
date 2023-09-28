@@ -3,7 +3,12 @@ import wif from "wif"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
-import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
+import {
+  BitcoinNetwork,
+  toBcoinNetwork,
+  toBitcoinJsLibNetwork,
+} from "./bitcoin-network"
+import { payments } from "bitcoinjs-lib"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -645,6 +650,31 @@ export function createAddressFromOutputScript(
 }
 
 /**
+ * Creates the Bitcoin address from the public key. Supports SegWit (P2WPKH) and
+ * Legacy (P2PKH) formats.
+ * @param publicKey - Public key used to derive the Bitcoin address.
+ * @param bitcoinNetwork - Target Bitcoin network.
+ * @param witness - Flag to determine address format: true for SegWit (P2WPKH)
+ *        and false for Legacy (P2PKH). Default is true.
+ * @returns The derived Bitcoin address.
+ */
+export function createAddressFromPublicKey(
+  publicKey: Hex,
+  bitcoinNetwork: BitcoinNetwork,
+  witness: boolean = true
+): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
+  if (witness) {
+    // P2WPKH (SegWit)
+    return payments.p2wpkh({ pubkey: publicKey.toBuffer(), network }).address!
+  } else {
+    // P2PKH (Legacy)
+    return payments.p2pkh({ pubkey: publicKey.toBuffer(), network }).address!
+  }
+}
+
+/**
  * Reads the leading compact size uint from the provided variable length data.
  *
  * WARNING: CURRENTLY, THIS FUNCTION SUPPORTS ONLY 1-BYTE COMPACT SIZE UINTS
@@ -681,5 +711,61 @@ export function readCompactSizeUint(varLenData: Hex): {
         byteLength: 1,
       }
     }
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2PKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2PKH, false otherwise.
+ */
+export function isP2PKHScript(script: Buffer): boolean {
+  try {
+    payments.p2pkh({ output: script })
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2WPKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2WPKH, false otherwise.
+ */
+export function isP2WPKHScript(script: Buffer): boolean {
+  try {
+    payments.p2wpkh({ output: script })
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2SH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2SH, false otherwise.
+ */
+export function isP2SHScript(script: Buffer): boolean {
+  try {
+    payments.p2sh({ output: script })
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
+/**
+ * Checks if the provided script comes from a P2PKH input.
+ * @param script The script to be checked.
+ * @returns True if the script is P2WSH, false otherwise.
+ */
+export function isP2WSHScript(script: Buffer): boolean {
+  try {
+    payments.p2wsh({ output: script })
+    return true
+  } catch (err) {
+    return false
   }
 }

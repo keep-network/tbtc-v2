@@ -1,18 +1,34 @@
-import bcoin from "bcoin"
+import {
+  Transaction,
+  TxOutput,
+  Stack,
+  Signer,
+  payments,
+  script,
+} from "bitcoinjs-lib"
 import { BigNumber } from "ethers"
+import { Hex } from "./hex"
 import {
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
   decomposeRawTransaction,
   isCompressedPublicKey,
-  createKeyRing,
+  createAddressFromPublicKey,
   TransactionHash,
   computeHash160,
+  isP2PKHScript,
+  isP2WPKHScript,
+  isP2SHScript,
+  isP2WSHScript,
+  createOutputScriptFromAddress,
 } from "./bitcoin"
 import { assembleDepositScript, Deposit } from "./deposit"
 import { Bridge, Identifier } from "./chain"
 import { assembleTransactionProof } from "./proof"
+import { ECPairFactory } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 
 /**
  * Submits a deposit sweep by combining all the provided P2(W)SH UTXOs and
@@ -72,8 +88,11 @@ export async function submitDepositSweepTransaction(
     }
   }
 
+  const bitcoinNetwork = await bitcoinClient.getNetwork()
+
   const { transactionHash, newMainUtxo, rawTransaction } =
     await assembleDepositSweepTransaction(
+      bitcoinNetwork,
       fee,
       walletPrivateKey,
       witness,
@@ -91,26 +110,28 @@ export async function submitDepositSweepTransaction(
 }
 
 /**
- * Assembles a Bitcoin P2WPKH deposit sweep transaction.
+ * Constructs a Bitcoin deposit sweep transaction using provided UTXOs.
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
- * @param fee - the value that should be subtracted from the sum of the UTXOs
- *        values and used as the transaction fee.
+ * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
+ *        values.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.
- * @param witness - The parameter used to decide about the type of the new main
- *        UTXO output. P2WPKH if `true`, P2PKH if `false`.
+ * @param witness - Determines the type of the new main UTXO output: P2WPKH if
+ *        `true`, P2PKH if `false`.
  * @param utxos - UTXOs from new deposit transactions. Must be P2(W)SH.
- * @param deposits - Array of deposits. Each element corresponds to UTXO.
- *        The number of UTXOs and deposit elements must equal.
- * @param mainUtxo - main UTXO of the wallet, which is a P2WKH UTXO resulting
- *        from the previous wallet transaction (optional).
- * @returns The outcome consisting of:
- *          - the sweep transaction hash,
- *          - the new wallet's main UTXO produced by this transaction.
- *          - the sweep transaction in the raw format
+ * @param deposits - Deposit data corresponding to each UTXO. The number of
+ *        UTXOs and deposits must match.
+ * @param mainUtxo - The wallet's main UTXO (optional), which is a P2(W)PKH UTXO
+ *        from a previous transaction.
+ * @returns An object containing the sweep transaction hash, new wallet's main
+ *          UTXO, and the raw deposit sweep transaction representation.
+ * @throws Error if the provided UTXOs and deposits mismatch or if an unsupported
+ *         UTXO script type is encountered.
  */
 export async function assembleDepositSweepTransaction(
+  bitcoinNetwork: BitcoinNetwork,
   fee: BigNumber,
   walletPrivateKey: string,
   witness: boolean,
@@ -130,238 +151,288 @@ export async function assembleDepositSweepTransaction(
     throw new Error("Number of UTXOs must equal the number of deposit elements")
   }
 
-  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
-  const walletAddress = walletKeyRing.getAddress("string")
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+  // eslint-disable-next-line new-cap
+  const walletKeyPair = ECPairFactory(tinysecp).fromWIF(
+    walletPrivateKey,
+    network
+  )
+  const walletAddress = createAddressFromPublicKey(
+    Hex.from(walletKeyPair.publicKey),
+    bitcoinNetwork,
+    witness
+  )
 
-  const inputCoins = []
-  let totalInputValue = BigNumber.from(0)
+  const transaction = new Transaction()
 
+  let outputValue = BigNumber.from(0)
   if (mainUtxo) {
-    inputCoins.push(
-      bcoin.Coin.fromTX(
-        bcoin.MTX.fromRaw(mainUtxo.transactionHex, "hex"),
-        mainUtxo.outputIndex,
-        -1
-      )
+    transaction.addInput(
+      mainUtxo.transactionHash.reverse().toBuffer(),
+      mainUtxo.outputIndex
     )
-    totalInputValue = totalInputValue.add(mainUtxo.value)
+    outputValue = outputValue.add(mainUtxo.value)
   }
-
   for (const utxo of utxos) {
-    inputCoins.push(
-      bcoin.Coin.fromTX(
-        bcoin.MTX.fromRaw(utxo.transactionHex, "hex"),
-        utxo.outputIndex,
-        -1
-      )
+    transaction.addInput(
+      utxo.transactionHash.reverse().toBuffer(),
+      utxo.outputIndex
     )
-    totalInputValue = totalInputValue.add(utxo.value)
+    outputValue = outputValue.add(utxo.value)
+  }
+  outputValue = outputValue.sub(fee)
+
+  const outputScript = createOutputScriptFromAddress(walletAddress)
+  transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
+
+  // Sign the main UTXO input if there is main UTXO.
+  if (mainUtxo) {
+    const inputIndex = 0 // Main UTXO is the first input.
+    const previousOutput = Transaction.fromHex(mainUtxo.transactionHex).outs[
+      mainUtxo.outputIndex
+    ]
+
+    await signMainUtxoInput(
+      transaction,
+      inputIndex,
+      previousOutput,
+      walletKeyPair
+    )
   }
 
-  const transaction = new bcoin.MTX()
+  // Sign the deposit inputs.
+  for (let depositIndex = 0; depositIndex < deposits.length; depositIndex++) {
+    // If there is a main UTXO index, we must adjust input index as the first
+    // input is the main UTXO input.
+    const inputIndex = mainUtxo ? depositIndex + 1 : depositIndex
 
-  transaction.addOutput({
-    script: bcoin.Script.fromAddress(walletAddress),
-    value: totalInputValue.toNumber(),
-  })
+    const utxo = utxos[depositIndex]
+    const previousOutput = Transaction.fromHex(utxo.transactionHex).outs[
+      utxo.outputIndex
+    ]
+    const previousOutputValue = previousOutput.value
+    const previousOutputScript = previousOutput.script
 
-  await transaction.fund(inputCoins, {
-    changeAddress: walletAddress,
-    hardFee: fee.toNumber(),
-    subtractFee: true,
-  })
+    const deposit = deposits[depositIndex]
 
-  if (transaction.outputs.length != 1) {
-    throw new Error("Deposit sweep transaction must have only one output")
-  }
-
-  // UTXOs must be mapped to deposits, as `fund` may arrange inputs in any
-  // order
-  const utxosWithDeposits: (UnspentTransactionOutput &
-    RawTransaction &
-    Deposit)[] = utxos.map((utxo, index) => ({
-    ...utxo,
-    ...deposits[index],
-  }))
-
-  for (let i = 0; i < transaction.inputs.length; i++) {
-    const previousOutpoint = transaction.inputs[i].prevout
-    const previousOutput = transaction.view.getOutput(previousOutpoint)
-    const previousScript = previousOutput.script
-
-    // P2(W)PKH (main UTXO)
-    if (previousScript.isPubkeyhash() || previousScript.isWitnessPubkeyhash()) {
-      await signMainUtxoInput(transaction, i, walletKeyRing)
-      continue
-    }
-
-    const utxoWithDeposit = utxosWithDeposits.find(
-      (u) =>
-        u.transactionHash.toString() === previousOutpoint.txid() &&
-        u.outputIndex == previousOutpoint.index
-    )
-    if (!utxoWithDeposit) {
-      throw new Error("Unknown input")
-    }
-
-    if (previousScript.isScripthash()) {
+    if (isP2SHScript(previousOutputScript)) {
       // P2SH (deposit UTXO)
-      await signP2SHDepositInput(transaction, i, utxoWithDeposit, walletKeyRing)
-    } else if (previousScript.isWitnessScripthash()) {
+      await signP2SHDepositInput(
+        transaction,
+        inputIndex,
+        deposit,
+        previousOutputValue,
+        walletKeyPair
+      )
+    } else if (isP2WSHScript(previousOutputScript)) {
       // P2WSH (deposit UTXO)
       await signP2WSHDepositInput(
         transaction,
-        i,
-        utxoWithDeposit,
-        walletKeyRing
+        inputIndex,
+        deposit,
+        previousOutputValue,
+        walletKeyPair
       )
     } else {
       throw new Error("Unsupported UTXO script type")
     }
   }
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transactionHash = TransactionHash.from(transaction.getId())
 
   return {
     transactionHash,
     newMainUtxo: {
       transactionHash,
       outputIndex: 0, // There is only one output.
-      value: BigNumber.from(transaction.outputs[0].value),
+      value: BigNumber.from(transaction.outs[0].value),
     },
     rawTransaction: {
-      transactionHex: transaction.toRaw().toString("hex"),
+      transactionHex: transaction.toHex(),
     },
   }
 }
 
 /**
- * Creates script for the transaction input at the given index and signs the
- * input.
- * @param transaction - Mutable transaction containing the input to be signed.
- * @param inputIndex - Index that points to the input to be signed.
- * @param walletKeyRing - Key ring created using the wallet's private key.
- * @returns Empty promise.
+ * Signs the main UTXO transaction input and sets the appropriate script or
+ * witness data.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param previousOutput - The previous output for the main UTXO input.
+ * @param walletKeyPair - A Signer object with the wallet's public and private
+ *        key pair.
+ * @param bitcoinNetwork - The Bitcoin network type.
+ * @returns An empty promise upon successful signing.
+ * @throws Error if the UTXO doesn't belong to the wallet, or if the script
+ *         format is invalid or unknown.
  */
 async function signMainUtxoInput(
-  transaction: any,
+  transaction: Transaction,
   inputIndex: number,
-  walletKeyRing: any
+  previousOutput: TxOutput,
+  walletKeyPair: Signer
 ) {
-  const previousOutpoint = transaction.inputs[inputIndex].prevout
-  const previousOutput = transaction.view.getOutput(previousOutpoint)
-  if (!walletKeyRing.ownOutput(previousOutput)) {
+  if (
+    !canSpendOutput(Hex.from(walletKeyPair.publicKey), previousOutput.script)
+  ) {
     throw new Error("UTXO does not belong to the wallet")
   }
-  // Build script and set it as input's witness
-  transaction.scriptInput(inputIndex, previousOutput, walletKeyRing)
-  // Build signature and add it in front of script in input's witness
-  transaction.signInput(inputIndex, previousOutput, walletKeyRing)
+
+  const sigHashType = Transaction.SIGHASH_ALL
+
+  if (isP2PKHScript(previousOutput.script)) {
+    // P2PKH
+    const sigHash = transaction.hashForSignature(
+      inputIndex,
+      previousOutput.script,
+      sigHashType
+    )
+
+    const signature = script.signature.encode(
+      walletKeyPair.sign(sigHash),
+      sigHashType
+    )
+
+    const scriptSig = payments.p2pkh({
+      signature: signature,
+      pubkey: walletKeyPair.publicKey,
+    }).input!
+
+    transaction.ins[inputIndex].script = scriptSig
+  } else if (isP2WPKHScript(previousOutput.script)) {
+    // P2WPKH
+    const publicKeyHash = payments.p2wpkh({ output: previousOutput.script })
+      .hash!
+    const p2pkhScript = payments.p2pkh({ hash: publicKeyHash }).output!
+
+    const sigHash = transaction.hashForWitnessV0(
+      inputIndex,
+      p2pkhScript,
+      previousOutput.value,
+      sigHashType
+    )
+
+    const signature = script.signature.encode(
+      walletKeyPair.sign(sigHash),
+      sigHashType
+    )
+
+    transaction.ins[inputIndex].witness = [signature, walletKeyPair.publicKey]
+  } else {
+    throw new Error("Unknown type of main UTXO")
+  }
 }
 
 /**
- * Creates and sets `scriptSig` for the transaction input at the given index by
- * combining signature, wallet public key and deposit script.
- * @param transaction - Mutable transaction containing the input to be signed.
- * @param inputIndex - Index that points to the input to be signed.
- * @param deposit - Data of the deposit.
- * @param walletKeyRing - Key ring created using the wallet's private key.
- * @returns Empty promise.
+ * Signs a P2SH deposit transaction input and sets the `scriptSig`.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param deposit - Details of the deposit transaction.
+ * @param previousOutputValue - The value from the previous transaction output.
+ * @param walletKeyPair - A Signer object with the wallet's public and private
+ *        key pair.
+ * @returns An empty promise upon successful signing.
  */
 async function signP2SHDepositInput(
-  transaction: any,
+  transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: any
-): Promise<void> {
-  const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
+  previousOutputValue: number,
+  walletKeyPair: Signer
+) {
+  const depositScript = await prepareDepositScript(
+    deposit,
+    previousOutputValue,
+    walletKeyPair
+  )
 
-  const signature: Buffer = transaction.signature(
+  const sigHashType = Transaction.SIGHASH_ALL
+
+  const sigHash = transaction.hashForSignature(
     inputIndex,
     depositScript,
-    previousOutputValue,
-    walletKeyRing.privateKey,
-    bcoin.Script.hashType.ALL,
-    0 // legacy sighash version
+    sigHashType
   )
-  const scriptSig = new bcoin.Script()
-  scriptSig.clear()
-  scriptSig.pushData(signature)
-  scriptSig.pushData(Buffer.from(walletPublicKey, "hex"))
-  scriptSig.pushData(depositScript.toRaw())
-  scriptSig.compile()
 
-  transaction.inputs[inputIndex].script = scriptSig
+  const signature = script.signature.encode(
+    walletKeyPair.sign(sigHash),
+    sigHashType
+  )
+
+  const scriptSig: Stack = []
+  scriptSig.push(signature)
+  scriptSig.push(walletKeyPair.publicKey)
+  scriptSig.push(depositScript)
+
+  transaction.ins[inputIndex].script = script.compile(scriptSig)
 }
 
 /**
- * Creates and sets witness script for the transaction input at the given index
- * by combining signature, wallet public key and deposit script.
- * @param transaction - Mutable transaction containing the input to be signed.
- * @param inputIndex - Index that points to the input to be signed.
- * @param deposit - Data of the deposit.
- * @param walletKeyRing - Key ring created using the wallet's private key.
- * @returns Empty promise.
+ * Signs a P2WSH deposit transaction input and sets the witness script.
+ * @param transaction - The transaction containing the input to be signed.
+ * @param inputIndex - Index pointing to the input within the transaction.
+ * @param deposit - Details of the deposit transaction.
+ * @param previousOutputValue - The value from the previous transaction output.
+ * @param walletKeyPair - A Signer object with the wallet's public and private
+ *        key pair.
+ * @returns An empty promise upon successful signing.
  */
 async function signP2WSHDepositInput(
-  transaction: any,
+  transaction: Transaction,
   inputIndex: number,
   deposit: Deposit,
-  walletKeyRing: any
-): Promise<void> {
-  const { walletPublicKey, depositScript, previousOutputValue } =
-    await prepareInputSignData(transaction, inputIndex, deposit, walletKeyRing)
+  previousOutputValue: number,
+  walletKeyPair: Signer
+) {
+  const depositScript = await prepareDepositScript(
+    deposit,
+    previousOutputValue,
+    walletKeyPair
+  )
 
-  const signature: Buffer = transaction.signature(
+  const sigHashType = Transaction.SIGHASH_ALL
+
+  const sigHash = transaction.hashForWitnessV0(
     inputIndex,
     depositScript,
     previousOutputValue,
-    walletKeyRing.privateKey,
-    bcoin.Script.hashType.ALL,
-    1 // segwit sighash version
+    sigHashType
   )
 
-  const witness = new bcoin.Witness()
-  witness.clear()
-  witness.pushData(signature)
-  witness.pushData(Buffer.from(walletPublicKey, "hex"))
-  witness.pushData(depositScript.toRaw())
-  witness.compile()
+  const signature = script.signature.encode(
+    walletKeyPair.sign(sigHash),
+    sigHashType
+  )
 
-  transaction.inputs[inputIndex].witness = witness
+  const witness: Buffer[] = []
+  witness.push(signature)
+  witness.push(walletKeyPair.publicKey)
+  witness.push(depositScript)
+
+  transaction.ins[inputIndex].witness = witness
 }
 
 /**
- * Creates data needed to sign a deposit input.
- * @param transaction - Mutable transaction containing the input.
- * @param inputIndex - Index that points to the input.
- * @param deposit - Data of the deposit.
- * @param walletKeyRing - Key ring created using the wallet's private key.
- * @returns Data needed to sign the input.
+ * Assembles the deposit script based on the given deposit details. Performs
+ * validations on values and key formats.
+ * @param deposit - The deposit details.
+ * @param previousOutputValue - Value from the previous transaction output.
+ * @param walletKeyPair - Signer object containing the wallet's key pair.
+ * @returns A Promise resolving to the assembled deposit script as a Buffer.
+ * @throws Error if there are discrepancies in values or key formats.
  */
-async function prepareInputSignData(
-  transaction: any,
-  inputIndex: number,
+async function prepareDepositScript(
   deposit: Deposit,
-  walletKeyRing: any
-): Promise<{
-  walletPublicKey: string
-  depositScript: any
-  previousOutputValue: number
-}> {
-  const previousOutpoint = transaction.inputs[inputIndex].prevout
-  const previousOutput = transaction.view.getOutput(previousOutpoint)
-
-  if (previousOutput.value != deposit.amount.toNumber()) {
+  previousOutputValue: number,
+  walletKeyPair: Signer
+): Promise<Buffer> {
+  if (previousOutputValue != deposit.amount.toNumber()) {
     throw new Error("Mismatch between amount in deposit and deposit tx")
   }
 
-  const walletPublicKey = walletKeyRing.getPublicKey("hex")
-  if (
-    computeHash160(walletKeyRing.getPublicKey("hex")) !=
-    deposit.walletPublicKeyHash
-  ) {
+  const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+
+  if (computeHash160(walletPublicKey) != deposit.walletPublicKeyHash) {
     throw new Error(
       "Wallet public key does not correspond to wallet private key"
     )
@@ -374,15 +445,12 @@ async function prepareInputSignData(
   // eslint-disable-next-line no-unused-vars
   const { amount, vault, ...depositScriptParameters } = deposit
 
-  const depositScript = bcoin.Script.fromRaw(
-    Buffer.from(await assembleDepositScript(depositScriptParameters), "hex")
+  const depositScript = Buffer.from(
+    await assembleDepositScript(depositScriptParameters),
+    "hex"
   )
 
-  return {
-    walletPublicKey,
-    depositScript: depositScript,
-    previousOutputValue: previousOutput.value,
-  }
+  return depositScript
 }
 
 /**
@@ -419,4 +487,21 @@ export async function submitDepositSweepProof(
     mainUtxo,
     vault
   )
+}
+
+/**
+ * Determines if a UTXO's output script can be spent using the provided public
+ * key.
+ * @param publicKey - Public key used to derive the corresponding P2PKH and
+ *        P2WPKH output scripts.
+ * @param outputScript - The output script of the UTXO in question.
+ * @returns True if the provided output script matches the P2PKH or P2WPKH
+ *          output scripts derived from the given public key. False otherwise.
+ */
+function canSpendOutput(publicKey: Hex, outputScript: Buffer): boolean {
+  const pubkeyBuffer = publicKey.toBuffer()
+  const p2pkhOutput = payments.p2pkh({ pubkey: pubkeyBuffer }).output!
+  const p2wpkhOutput = payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
+
+  return outputScript.equals(p2pkhOutput) || outputScript.equals(p2wpkhOutput)
 }

@@ -1,5 +1,6 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
+import { Stack, script, opcodes } from "bitcoinjs-lib"
 import {
   Client as BitcoinClient,
   decomposeRawTransaction,
@@ -12,8 +13,6 @@ import {
 import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
-
-const { opcodes } = bcoin.script.common
 
 // TODO: Replace all properties that are expected to be un-prefixed hexadecimal
 // strings with a Hex type.
@@ -244,33 +243,31 @@ export async function assembleDepositScript(
 ): Promise<string> {
   validateDepositScriptParameters(deposit)
 
-  // All HEXes pushed to the script must be un-prefixed.
-  const script = new bcoin.Script()
-  script.clear()
-  script.pushData(Buffer.from(deposit.depositor.identifierHex, "hex"))
-  script.pushOp(opcodes.OP_DROP)
-  script.pushData(Buffer.from(deposit.blindingFactor, "hex"))
-  script.pushOp(opcodes.OP_DROP)
-  script.pushOp(opcodes.OP_DUP)
-  script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(deposit.walletPublicKeyHash, "hex"))
-  script.pushOp(opcodes.OP_EQUAL)
-  script.pushOp(opcodes.OP_IF)
-  script.pushOp(opcodes.OP_CHECKSIG)
-  script.pushOp(opcodes.OP_ELSE)
-  script.pushOp(opcodes.OP_DUP)
-  script.pushOp(opcodes.OP_HASH160)
-  script.pushData(Buffer.from(deposit.refundPublicKeyHash, "hex"))
-  script.pushOp(opcodes.OP_EQUALVERIFY)
-  script.pushData(Buffer.from(deposit.refundLocktime, "hex"))
-  script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
-  script.pushOp(opcodes.OP_DROP)
-  script.pushOp(opcodes.OP_CHECKSIG)
-  script.pushOp(opcodes.OP_ENDIF)
-  script.compile()
+  const chunks: Stack = []
 
-  // Return script as HEX string.
-  return script.toRaw().toString("hex")
+  // All HEXes pushed to the script must be un-prefixed
+  chunks.push(Buffer.from(deposit.depositor.identifierHex, "hex"))
+  chunks.push(opcodes.OP_DROP)
+  chunks.push(Buffer.from(deposit.blindingFactor, "hex"))
+  chunks.push(opcodes.OP_DROP)
+  chunks.push(opcodes.OP_DUP)
+  chunks.push(opcodes.OP_HASH160)
+  chunks.push(Buffer.from(deposit.walletPublicKeyHash, "hex"))
+  chunks.push(opcodes.OP_EQUAL)
+  chunks.push(opcodes.OP_IF)
+  chunks.push(opcodes.OP_CHECKSIG)
+  chunks.push(opcodes.OP_ELSE)
+  chunks.push(opcodes.OP_DUP)
+  chunks.push(opcodes.OP_HASH160)
+  chunks.push(Buffer.from(deposit.refundPublicKeyHash, "hex"))
+  chunks.push(opcodes.OP_EQUALVERIFY)
+  chunks.push(Buffer.from(deposit.refundLocktime, "hex"))
+  chunks.push(opcodes.OP_CHECKLOCKTIMEVERIFY)
+  chunks.push(opcodes.OP_DROP)
+  chunks.push(opcodes.OP_CHECKSIG)
+  chunks.push(opcodes.OP_ENDIF)
+
+  return script.compile(chunks).toString("hex")
 }
 
 // eslint-disable-next-line valid-jsdoc

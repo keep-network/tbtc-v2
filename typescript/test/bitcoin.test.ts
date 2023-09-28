@@ -13,15 +13,20 @@ import {
   targetToDifficulty,
   createOutputScriptFromAddress,
   createAddressFromOutputScript,
+  createAddressFromPublicKey,
   readCompactSizeUint,
   computeHash160,
   computeHash256,
+  isP2PKHScript,
+  isP2WPKHScript,
+  isP2SHScript,
+  isP2WSHScript,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
-import { btcAddresses } from "./data/bitcoin"
+import { btcAddresses, btcAddressFromPublicKey } from "./data/bitcoin"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -535,6 +540,30 @@ describe("Bitcoin", () => {
     })
   })
 
+  describe("createAddressFromPublicKey", () => {
+    Object.entries(btcAddressFromPublicKey).forEach(
+      ([bitcoinNetwork, addressData]) => {
+        context(`with ${bitcoinNetwork} addresses`, () => {
+          Object.entries(addressData).forEach(
+            ([addressType, { publicKey, address }]) => {
+              it(`should return correct ${addressType} address for ${bitcoinNetwork}`, () => {
+                const witness = addressType === "P2WPKH"
+                const result = createAddressFromPublicKey(
+                  publicKey,
+                  bitcoinNetwork === "mainnet"
+                    ? BitcoinNetwork.Mainnet
+                    : BitcoinNetwork.Testnet,
+                  witness
+                )
+                expect(result).to.eq(address)
+              })
+            }
+          )
+        })
+      }
+    )
+  })
+
   describe("readCompactSizeUint", () => {
     context("when the compact size uint is 1-byte", () => {
       it("should return the the uint value and byte length", () => {
@@ -568,6 +597,59 @@ describe("Bitcoin", () => {
         }).to.throw(
           "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
         )
+      })
+    })
+  })
+
+  describe("Bitcoin Script Type", () => {
+    const testData = [
+      {
+        testFunction: isP2PKHScript,
+        validScript: Buffer.from(
+          "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac",
+          "hex"
+        ),
+        name: "P2PKH",
+      },
+      {
+        testFunction: isP2WPKHScript,
+        validScript: Buffer.from(
+          "00148db50eb52063ea9d98b3eac91489a90f738986f6",
+          "hex"
+        ),
+        name: "P2WPKH",
+      },
+      {
+        testFunction: isP2SHScript,
+        validScript: Buffer.from(
+          "a914a9a5f97d5d3c4687a52e90718168270005b369c487",
+          "hex"
+        ),
+        name: "P2SH",
+      },
+      {
+        testFunction: isP2WSHScript,
+        validScript: Buffer.from(
+          "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7",
+          "hex"
+        ),
+        name: "P2WSH",
+      },
+    ]
+
+    testData.forEach(({ testFunction, validScript, name }) => {
+      describe(`is${name}Script`, () => {
+        it(`should return true for a valid ${name} script`, () => {
+          expect(testFunction(validScript)).to.be.true
+        })
+
+        it("should return false for other scripts", () => {
+          testData.forEach((data) => {
+            if (data.name !== name) {
+              expect(testFunction(data.validScript)).to.be.false
+            }
+          })
+        })
       })
     })
   })

@@ -30,9 +30,11 @@
     "bcoin": "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8",
     "bitcoinjs-lib": "6.0.2",
     "bufio": "^1.0.6",
+    "ecpair": "^2.1.0",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
     "ethers": "^5.5.2",
     "p-timeout": "^4.1.0",
+    "tiny-secp256k1": "^2.2.3",
     "wif": "2.0.6"
   },
   "devDependencies": {
