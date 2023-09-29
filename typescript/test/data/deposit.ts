@@ -1,4 +1,4 @@
-import { BitcoinRawTx, BitcoinTxHash, BitcoinUtxo } from "../../src/lib/bitcoin"
+import { BitcoinRawTx, BitcoinTxHash, BitcoinUtxo } from "../../src"
 import { BigNumber } from "ethers"
 
 /**

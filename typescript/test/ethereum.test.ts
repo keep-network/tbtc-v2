@@ -1,8 +1,11 @@
 import {
+  BitcoinTxHash,
+  BitcoinHashUtils,
   EthereumAddress,
   EthereumBridge,
   EthereumTBTCToken,
-} from "../src/lib/ethereum"
+  Hex,
+} from "../src"
 import {
   deployMockContract,
   MockContract,
@@ -14,8 +17,6 @@ import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
-import { BitcoinTxHash, BitcoinHashUtils } from "../src/lib/bitcoin"
-import { Hex } from "../src/lib/utils"
 
 chai.use(waffleChai)
 

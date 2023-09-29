@@ -6,8 +6,8 @@ import {
   BitcoinSpvProof,
   assembleBitcoinSpvProof,
   validateBitcoinSpvProof,
-} from "../src/lib/bitcoin"
-import { Hex } from "../src/lib/utils"
+  Hex,
+} from "../src"
 import {
   singleInputProofTestData,
   multipleInputsProofTestData,

@@ -4,9 +4,9 @@ import {
   BitcoinUtxo,
   BitcoinTxHash,
   BitcoinLocktimeUtils,
-} from "../../src/lib/bitcoin"
-import { DepositReceipt } from "../../src/lib/contracts"
-import { EthereumAddress } from "../../src/lib/ethereum"
+  DepositReceipt,
+  EthereumAddress,
+} from "../../src"
 
 /**
  * Testnet private key that can be used to refund the deposits used in tests.

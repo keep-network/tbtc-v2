@@ -1,9 +1,9 @@
 import {
+  BitcoinNetwork,
   ElectrumCredentials,
   ElectrumClient,
   computeElectrumScriptHash,
-} from "../src/lib/electrum"
-import { BitcoinNetwork } from "../src/lib/bitcoin"
+} from "../src"
 import {
   testnetAddress,
   testnetHeadersChain,

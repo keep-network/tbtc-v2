@@ -8,10 +8,11 @@ import {
   BitcoinTxMerkleBranch,
   BitcoinTxHash,
   BitcoinAddressConverter,
-} from "../../src/lib/bitcoin"
-import { RedemptionRequest, WalletState } from "../../src/lib/contracts"
-import { EthereumAddress } from "../../src/lib/ethereum"
-import { Hex } from "../../src"
+  RedemptionRequest,
+  WalletState,
+  EthereumAddress,
+  Hex,
+} from "../../src"
 
 /**
  * Private key (testnet) of the wallet.

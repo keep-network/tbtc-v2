@@ -4,9 +4,9 @@ import {
   BitcoinTx,
   BitcoinTxHash,
   BitcoinTxMerkleBranch,
-} from "../../src/lib/bitcoin"
+  Hex,
+} from "../../src"
 import { BigNumber } from "ethers"
-import { Hex } from "../../src"
 
 /**
  * Represents a set of data used for given proof scenario.

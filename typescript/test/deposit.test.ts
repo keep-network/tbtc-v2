@@ -13,17 +13,15 @@ import {
   BitcoinTxHash,
   BitcoinUtxo,
   extractBitcoinRawTxVectors,
-} from "../src/lib/bitcoin"
-import { DepositReceipt } from "../src/lib/contracts"
-import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import bcoin from "bcoin"
-import { EthereumAddress } from "../src/lib/ethereum"
-import { BitcoinNetwork } from "../src"
-import {
+  DepositReceipt,
+  EthereumAddress,
+  BitcoinNetwork,
   DepositFunding,
   DepositScript,
   Deposit,
-} from "../src/services/deposits"
+} from "../src"
+import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
+import bcoin from "bcoin"
 import { MockTBTCContracts } from "./utils/mock-tbtc-contracts"
 
 describe("Deposit", () => {

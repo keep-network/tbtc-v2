@@ -7,11 +7,11 @@ import {
   BitcoinTxMerkleBranch,
   BitcoinTxHash,
   BitcoinLocktimeUtils,
-} from "../../src/lib/bitcoin"
-import { DepositReceipt } from "../../src/lib/contracts"
+  DepositReceipt,
+  EthereumAddress,
+  Hex,
+} from "../../src"
 import { BigNumber } from "ethers"
-import { EthereumAddress } from "../../src/lib/ethereum"
-import { Hex } from "../../src"
 
 export const NO_MAIN_UTXO = {
   transactionHash: BitcoinTxHash.from(""),

@@ -1,55 +1,9 @@
-// TODO: Consider exports refactoring as per discussion https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1084530007
+export * from "./lib/bitcoin"
+export * from "./lib/contracts"
+export * from "./lib/electrum"
+export * from "./lib/ethereum"
+export * from "./lib/utils"
 
-import { validateBitcoinSpvProof } from "./lib/bitcoin"
-
-import { submitDepositSweepProof } from "./deposit-sweep"
-
-import { submitRedemptionProof } from "./redemption"
-
-import {
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
-} from "./optimistic-minting"
-
-export const SpvMaintainer = {
-  submitDepositSweepProof,
-  submitRedemptionProof,
-}
-
-export const OptimisticMinting = {
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
-}
-
-export const Bitcoin = {
-  validateBitcoinSpvProof,
-}
-
-export {
-  BitcoinTxHash,
-  BitcoinTx,
-  BitcoinTxOutput,
-  BitcoinLocktimeUtils,
-  BitcoinNetwork,
-} from "./lib/bitcoin"
-
-export { ElectrumClient } from "./lib/electrum"
-
-export {
-  EthereumBridge,
-  EthereumWalletRegistry,
-  EthereumAddress,
-  EthereumTBTCVault,
-  EthereumTBTCToken,
-} from "./lib/ethereum"
-
-export { Hex } from "./lib/utils"
-
-export {
-  OptimisticMintingRequest,
-  OptimisticMintingRequestedEvent,
-} from "./lib/contracts"
+export * from "./services/deposits"
+export * from "./services/maintenance"
+export * from "./services/redemptions"

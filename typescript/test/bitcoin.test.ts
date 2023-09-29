@@ -9,8 +9,8 @@ import {
   BitcoinTargetConverter,
   BitcoinCompactSizeUint,
   BitcoinAddressConverter,
-} from "../src/lib/bitcoin"
-import { Hex } from "../src/lib/utils"
+  Hex,
+} from "../src"
 import { BigNumber } from "ethers"
 import { btcAddresses } from "./data/bitcoin"
 

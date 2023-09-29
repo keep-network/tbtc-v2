@@ -1,9 +1,5 @@
 import { expect } from "chai"
-import {
-  BitcoinTxHash,
-  BitcoinNetwork,
-  toBcoinNetwork,
-} from "../src/lib/bitcoin"
+import { BitcoinTxHash, BitcoinNetwork, toBcoinNetwork } from "../src"
 
 describe("BitcoinNetwork", () => {
   const testData = [

@@ -4,9 +4,9 @@ import {
   BitcoinUtxo,
   BitcoinTxMerkleBranch,
   BitcoinTxHash,
-} from "../../src/lib/bitcoin"
+  Hex,
+} from "../../src"
 import { BigNumber } from "ethers"
-import { Hex } from "../../src"
 
 /**
  * Bitcoin testnet address used for Electrum client tests.
