@@ -75,6 +75,9 @@ export class DepositsService {
 
     const walletPublicKeyHash = BitcoinHashUtils.computeHash160(walletPublicKey)
 
+    // TODO: Only P2(W)PKH addresses can be used for recovery. The below conversion
+    //       function ensures that but it would be good to check it here as well
+    //       in case the converter implementation changes.
     const refundPublicKeyHash = BitcoinAddressConverter.addressToPublicKeyHash(
       bitcoinRecoveryAddress
     )
