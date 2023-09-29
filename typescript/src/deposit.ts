@@ -216,6 +216,7 @@ export async function assembleDepositTransaction(
   const psbt = new Psbt({ network })
   psbt.setVersion(1)
 
+  const totalExpenses = deposit.amount.add(fee)
   let totalInputValue = BigNumber.from(0)
 
   for (const utxo of utxos) {
@@ -238,13 +239,15 @@ export async function assembleDepositTransaction(
       })
 
       totalInputValue = totalInputValue.add(utxo.value)
+      if (totalInputValue.gte(totalExpenses)) {
+        break
+      }
     }
     // Skip UTXO if the type is unsupported.
   }
 
   // Sum of the selected UTXOs must be equal to or grater than the deposit
   // amount plus fee.
-  const totalExpenses = deposit.amount.add(fee)
   if (totalInputValue.lt(totalExpenses)) {
     throw new Error("Not enough funds in selected UTXOs to fund transaction")
   }
