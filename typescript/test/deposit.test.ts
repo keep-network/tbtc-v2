@@ -17,7 +17,7 @@ import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
 import {
   assembleDepositScript,
-  assembleDepositTransactionBitcoinJsLib,
+  assembleDepositTransaction,
   calculateDepositAddress,
   calculateDepositRefundLocktime,
   calculateDepositScriptHash,
@@ -327,7 +327,7 @@ describe("Deposit", () => {
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
-        } = await assembleDepositTransactionBitcoinJsLib(
+        } = await assembleDepositTransaction(
           BitcoinNetwork.Testnet,
           deposit,
           testnetPrivateKey,
@@ -427,7 +427,7 @@ describe("Deposit", () => {
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
-        } = await assembleDepositTransactionBitcoinJsLib(
+        } = await assembleDepositTransaction(
           BitcoinNetwork.Testnet,
           deposit,
           testnetPrivateKey,
@@ -704,7 +704,7 @@ describe("Deposit", () => {
     beforeEach(async () => {
       // Create a deposit transaction.
       const fee = BigNumber.from(1520)
-      const result = await assembleDepositTransactionBitcoinJsLib(
+      const result = await assembleDepositTransaction(
         BitcoinNetwork.Testnet,
         deposit,
         testnetPrivateKey,
@@ -749,7 +749,7 @@ describe("Deposit", () => {
     beforeEach(async () => {
       // Create a deposit transaction.
       const fee = BigNumber.from(1520)
-      ;({ depositUtxo } = await assembleDepositTransactionBitcoinJsLib(
+      ;({ depositUtxo } = await assembleDepositTransaction(
         BitcoinNetwork.Testnet,
         deposit,
         testnetPrivateKey,

@@ -162,7 +162,7 @@ export async function submitDepositTransaction(
   const bitcoinNetwork = await bitcoinClient.getNetwork()
 
   const { transactionHash, depositUtxo, rawTransaction } =
-    await assembleDepositTransactionBitcoinJsLib(
+    await assembleDepositTransaction(
       bitcoinNetwork,
       deposit,
       depositorPrivateKey,
@@ -179,8 +179,22 @@ export async function submitDepositTransaction(
   }
 }
 
-// TODO: Description and name change.
-export async function assembleDepositTransactionBitcoinJsLib(
+/**
+ * Assembles a Bitcoin P2(W)SH deposit transaction.
+ * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param deposit - Details of the deposit.
+ * @param depositorPrivateKey - Bitcoin private key of the depositor.
+ * @param witness - If true, a witness (P2WSH) transaction will be created.
+ *        Otherwise, a legacy P2SH transaction will be made.
+ * @param utxos - UTXOs that should be used as transaction inputs.
+ * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
+ *        values.
+ * @returns The outcome consisting of:
+ *          - the deposit transaction hash,
+ *          - the deposit UTXO produced by this transaction.
+ *          - the deposit transaction in the raw format
+ */
+export async function assembleDepositTransaction(
   bitcoinNetwork: BitcoinNetwork,
   deposit: Deposit,
   depositorPrivateKey: string,
