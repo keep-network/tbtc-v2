@@ -32,12 +32,16 @@ import {
 } from "../bitcoin"
 import {
   EthersContractConfig,
+  EthersContractDeployment,
   EthersContractHandle,
   EthersTransactionUtils,
 } from "./adapter"
-import BridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { EthereumAddress } from "./address"
 import { EthereumWalletRegistry } from "./wallet-registry"
+
+import MainnetBridgeDeployment from "./artifacts/mainnet/Bridge.json"
+import GoerliBridgeDeployment from "./artifacts/goerli/Bridge.json"
+import LocalBridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 
 type DepositRequestTypechain = DepositTypechain.DepositRequestStructOutput
 
@@ -52,8 +56,35 @@ export class EthereumBridge
   extends EthersContractHandle<BridgeTypechain>
   implements Bridge
 {
-  constructor(config: EthersContractConfig) {
-    super(config, BridgeDeployment)
+  constructor(
+    config: EthersContractConfig,
+    deploymentType: "local" | "goerli" | "mainnet" = "local"
+  ) {
+    let deployment: EthersContractDeployment
+
+    switch (deploymentType) {
+      case "local":
+        deployment = LocalBridgeDeployment
+        break
+      case "goerli":
+        deployment = GoerliBridgeDeployment
+        break
+      case "mainnet":
+        deployment = MainnetBridgeDeployment
+        break
+      default:
+        throw new Error("Unsupported deployment type")
+    }
+
+    super(config, deployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {Bridge#getChainIdentifier}
+   */
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from(this._instance.address)
   }
 
   // eslint-disable-next-line valid-jsdoc

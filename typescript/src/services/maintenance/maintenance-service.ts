@@ -2,7 +2,6 @@ import { TBTCContracts } from "../../lib/contracts"
 import { BitcoinClient } from "../../lib/bitcoin"
 import { OptimisticMinting } from "./optimistic-minting"
 import { Spv } from "./spv"
-import {WalletTx} from "./wallet-tx";
 
 /**
  * Service exposing features relevant to authorized maintainers and

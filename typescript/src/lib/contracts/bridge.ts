@@ -15,6 +15,11 @@ import { WalletRegistry } from "./wallet-registry"
  */
 export interface Bridge {
   /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
    * Get emitted DepositRevealed events.
    * @see GetEventsFunction
    */

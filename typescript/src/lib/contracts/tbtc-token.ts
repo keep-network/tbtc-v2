@@ -1,11 +1,17 @@
 import { BigNumber } from "ethers"
 import { BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
+import { ChainIdentifier } from "./chain-identifier"
 
 /**
  * Interface for communication with the TBTC v2 token on-chain contract.
  */
 export interface TBTCToken {
+  /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
   /**
    * Gets the total supply of the TBTC v2 token. The returned value is in
    * ERC 1e18 precision, it has to be converted before using as Bitcoin value

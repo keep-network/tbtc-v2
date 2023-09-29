@@ -378,4 +378,8 @@ export class MockBridge implements Bridge {
   ): Promise<RedemptionRequestedEvent[]> {
     throw new Error("not implemented")
   }
+
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from("0x894cfd89700040163727828AE20B52099C58F02C")
+  }
 }

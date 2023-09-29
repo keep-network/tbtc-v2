@@ -11,14 +11,18 @@ import {
 import { BigNumber, ContractTransaction } from "ethers"
 import { BitcoinTxHash } from "../bitcoin"
 import { backoffRetrier, Hex } from "../utils"
-import TBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 import {
   EthersContractConfig,
+  EthersContractDeployment,
   EthersContractHandle,
   EthersTransactionUtils,
 } from "./adapter"
 import { EthereumAddress } from "./address"
 import { EthereumBridge } from "./bridge"
+
+import MainnetTBTCVaultDeployment from "./artifacts/mainnet/TBTCVault.json"
+import GoerliTBTCVaultDeployment from "./artifacts/goerli/TBTCVault.json"
+import LocalTBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 
 type ContractOptimisticMintingRequest = {
   requestedAt: BigNumber
@@ -33,8 +37,27 @@ export class EthereumTBTCVault
   extends EthersContractHandle<TBTCVaultTypechain>
   implements TBTCVault
 {
-  constructor(config: EthersContractConfig) {
-    super(config, TBTCVaultDeployment)
+  constructor(
+    config: EthersContractConfig,
+    deploymentType: "local" | "goerli" | "mainnet" = "local"
+  ) {
+    let deployment: EthersContractDeployment
+
+    switch (deploymentType) {
+      case "local":
+        deployment = LocalTBTCVaultDeployment
+        break
+      case "goerli":
+        deployment = GoerliTBTCVaultDeployment
+        break
+      case "mainnet":
+        deployment = MainnetTBTCVaultDeployment
+        break
+      default:
+        throw new Error("Unsupported deployment type")
+    }
+
+    super(config, deployment)
   }
 
   // eslint-disable-next-line valid-jsdoc

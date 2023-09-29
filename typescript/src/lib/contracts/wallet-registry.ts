@@ -8,6 +8,11 @@ import { ChainIdentifier } from "./chain-identifier"
  */
 export interface WalletRegistry {
   /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
    * Gets the public key for the given wallet.
    * @param walletID ID of the wallet.
    * @returns Uncompressed public key without the 04 prefix.

@@ -5,13 +5,21 @@ import {
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
+  ChainIdentifier,
 } from "../contracts"
 import { backoffRetrier, Hex } from "../utils"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber } from "ethers"
-import WalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
-import { EthersContractConfig, EthersContractHandle } from "./adapter"
+import {
+  EthersContractConfig,
+  EthersContractDeployment,
+  EthersContractHandle,
+} from "./adapter"
 import { EthereumAddress } from "./address"
+
+import MainnetWalletRegistryDeployment from "./artifacts/mainnet/WalletRegistry.json"
+import GoerliWalletRegistryDeployment from "./artifacts/goerli/WalletRegistry.json"
+import LocalWalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 
 /**
  * Implementation of the Ethereum WalletRegistry handle.
@@ -21,8 +29,35 @@ export class EthereumWalletRegistry
   extends EthersContractHandle<WalletRegistryTypechain>
   implements WalletRegistry
 {
-  constructor(config: EthersContractConfig) {
-    super(config, WalletRegistryDeployment)
+  constructor(
+    config: EthersContractConfig,
+    deploymentType: "local" | "goerli" | "mainnet" = "local"
+  ) {
+    let deployment: EthersContractDeployment
+
+    switch (deploymentType) {
+      case "local":
+        deployment = LocalWalletRegistryDeployment
+        break
+      case "goerli":
+        deployment = GoerliWalletRegistryDeployment
+        break
+      case "mainnet":
+        deployment = MainnetWalletRegistryDeployment
+        break
+      default:
+        throw new Error("Unsupported deployment type")
+    }
+
+    super(config, deployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {WalletRegistry#getChainIdentifier}
+   */
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from(this._instance.address)
   }
 
   // eslint-disable-next-line valid-jsdoc

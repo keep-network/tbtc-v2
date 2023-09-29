@@ -17,6 +17,9 @@ import { BigNumber, utils } from "ethers"
 import { URL } from "url"
 import { backoffRetrier, Hex, RetrierFn } from "../utils"
 
+import MainnetElectrumUrls from "./urls/mainnet.json"
+import TestnetElectrumUrls from "./urls/testnet.json"
+
 /**
  * Represents a set of credentials required to establish an Electrum connection.
  */
@@ -108,6 +111,28 @@ export class ElectrumClient implements BitcoinClient {
       retryBackoffStep,
       connectionTimeout
     )
+  }
+
+  /**
+   * Creates an Electrum client instance using a default config for the given
+   * Bitcoin network.
+   * @param network Bitcoin network the instance should be created for.
+   * @returns Electrum client instance.
+   */
+  static fromDefaultConfig(network: BitcoinNetwork): ElectrumClient {
+    let file
+    switch (network) {
+      case BitcoinNetwork.Mainnet:
+        file = MainnetElectrumUrls
+        break
+      case BitcoinNetwork.Testnet:
+        file = TestnetElectrumUrls
+        break
+      default:
+        throw new Error("No default Electrum for given network")
+    }
+
+    return ElectrumClient.fromUrl(file.urls)
   }
 
   /**

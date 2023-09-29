@@ -4,8 +4,10 @@ import {
   DkgResultApprovedEvent,
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
+  ChainIdentifier,
 } from "../../src/lib/contracts"
 import { Hex } from "../../src/lib/utils"
+import { EthereumAddress } from "../../src"
 
 export class MockWalletRegistry implements WalletRegistry {
   getDkgResultApprovedEvents(
@@ -31,5 +33,9 @@ export class MockWalletRegistry implements WalletRegistry {
 
   getWalletPublicKey(walletID: Hex): Promise<Hex> {
     throw new Error("not implemented")
+  }
+
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from("0x794cfd89700040163727828AE20B52099C58F02C")
   }
 }

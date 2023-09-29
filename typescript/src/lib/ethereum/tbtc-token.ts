@@ -1,15 +1,19 @@
 import { TBTC as TBTCTypechain } from "../../../typechain/TBTC"
-import { TBTCToken } from "../contracts"
+import { ChainIdentifier, TBTCToken } from "../contracts"
 import { BigNumber, ContractTransaction, utils } from "ethers"
 import { BitcoinHashUtils, BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
 import {
   EthersContractConfig,
+  EthersContractDeployment,
   EthersContractHandle,
   EthersTransactionUtils,
 } from "./adapter"
-import TBTCDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { EthereumAddress } from "./address"
+
+import MainnetTBTCTokenDeployment from "./artifacts/mainnet/TBTCToken.json"
+import GoerliTBTCTokenDeployment from "./artifacts/goerli/TBTCToken.json"
+import LocalTBTCTokenDeployment from "@keep-network/tbtc-v2/artifacts/TBTCToken.json"
 
 /**
  * Implementation of the Ethereum TBTC v2 token handle.
@@ -19,8 +23,35 @@ export class EthereumTBTCToken
   extends EthersContractHandle<TBTCTypechain>
   implements TBTCToken
 {
-  constructor(config: EthersContractConfig) {
-    super(config, TBTCDeployment)
+  constructor(
+    config: EthersContractConfig,
+    deploymentType: "local" | "goerli" | "mainnet" = "local"
+  ) {
+    let deployment: EthersContractDeployment
+
+    switch (deploymentType) {
+      case "local":
+        deployment = LocalTBTCTokenDeployment
+        break
+      case "goerli":
+        deployment = GoerliTBTCTokenDeployment
+        break
+      case "mainnet":
+        deployment = MainnetTBTCTokenDeployment
+        break
+      default:
+        throw new Error("Unsupported deployment type")
+    }
+
+    super(config, deployment)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {TBTCToken#getChainIdentifier}
+   */
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from(this._instance.address)
   }
 
   // eslint-disable-next-line valid-jsdoc
