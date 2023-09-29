@@ -4,6 +4,5 @@
  */
 declare module "bcoin"
 declare module "bufio"
-declare module "coinselect"
 declare module "electrum-client-js"
 declare module "wif"
