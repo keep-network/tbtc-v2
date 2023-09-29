@@ -1,17 +1,22 @@
-import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
   createKeyRing,
+  createAddressFromPublicKey,
   decomposeRawTransaction,
   RawTransaction,
   UnspentTransactionOutput,
   Client as BitcoinClient,
   TransactionHash,
+  isP2PKHScript,
+  isP2WPKHScript,
 } from "./bitcoin"
 import { Bridge, Event, Identifier, TBTCToken } from "./chain"
 import { assembleTransactionProof } from "./proof"
 import { determineWalletMainUtxo, WalletState } from "./wallet"
-import { BitcoinNetwork } from "./bitcoin-network"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
+import { Psbt, Transaction } from "bitcoinjs-lib"
+import { ECPairFactory } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
 import { Hex } from "./hex"
 
 /**
@@ -147,8 +152,11 @@ export async function submitRedemptionTransaction(
     "pending"
   )
 
+  const bitcoinNetwork = await bitcoinClient.getNetwork()
+
   const { transactionHash, newMainUtxo, rawTransaction } =
-    await assembleRedemptionTransaction(
+    await assembleRedemptionTransactionBitcoinJsLib(
+      bitcoinNetwork,
       walletPrivateKey,
       mainUtxoWithRaw,
       redemptionRequests,
@@ -231,29 +239,9 @@ async function getWalletRedemptionRequests(
   return redemptionRequests
 }
 
-/**
- * Assembles a Bitcoin redemption transaction.
- * The transaction will have a single input (main UTXO of the wallet making
- * the redemption), an output for each redemption request provided, and a change
- * output if the redemption requests do not consume the entire amount of the
- * single input.
- * @dev The caller is responsible for ensuring the redemption request list is
- *      correctly formed:
- *        - there is at least one redemption
- *        - the `requestedAmount` in each redemption request is greater than
- *          the sum of its `txFee` and `treasuryFee`
- * @param walletPrivateKey - The private key of the wallet in the WIF format
- * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
- *        by the on-chain Bridge contract
- * @param redemptionRequests - The list of redemption requests
- * @param witness - The parameter used to decide the type of the change output.
- *        P2WPKH if `true`, P2PKH if `false`
- * @returns The outcome consisting of:
- *          - the redemption transaction hash,
- *          - the optional new wallet's main UTXO produced by this transaction.
- *          - the redemption transaction in the raw format
- */
-export async function assembleRedemptionTransaction(
+// TODO: Description.
+export async function assembleRedemptionTransactionBitcoinJsLib(
+  bitcoinNetwork: BitcoinNetwork,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,
   redemptionRequests: RedemptionRequest[],
@@ -267,19 +255,46 @@ export async function assembleRedemptionTransaction(
     throw new Error("There must be at least one request to redeem")
   }
 
-  const walletKeyRing = createKeyRing(walletPrivateKey, witness)
-  const walletAddress = walletKeyRing.getAddress("string")
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+  // eslint-disable-next-line new-cap
+  const walletKeyPair = ECPairFactory(tinysecp).fromWIF(
+    walletPrivateKey,
+    network
+  )
+  const walletAddress = createAddressFromPublicKey(
+    Hex.from(walletKeyPair.publicKey),
+    bitcoinNetwork,
+    witness
+  )
 
-  // Use the main UTXO as the single transaction input
-  const inputCoins = [
-    bcoin.Coin.fromTX(
-      bcoin.MTX.fromRaw(mainUtxo.transactionHex, "hex"),
-      mainUtxo.outputIndex,
-      -1
-    ),
+  const psbt = new Psbt({ network })
+  psbt.setVersion(1)
+
+  // Add input (current main UTXO).
+  const previousOutput = Transaction.fromHex(mainUtxo.transactionHex).outs[
+    mainUtxo.outputIndex
   ]
+  const previousOutputScript = previousOutput.script
+  const previousOutputValue = previousOutput.value
 
-  const transaction = new bcoin.MTX()
+  if (isP2PKHScript(previousOutputScript)) {
+    psbt.addInput({
+      hash: mainUtxo.transactionHash.reverse().toBuffer(),
+      index: mainUtxo.outputIndex,
+      nonWitnessUtxo: Buffer.from(mainUtxo.transactionHex),
+    })
+  } else if (isP2WPKHScript(previousOutputScript)) {
+    psbt.addInput({
+      hash: mainUtxo.transactionHash.reverse().toBuffer(),
+      index: mainUtxo.outputIndex,
+      witnessUtxo: {
+        script: previousOutputScript,
+        value: previousOutputValue,
+      },
+    })
+  } else {
+    throw new Error("Unexpected main UTXO type")
+  }
 
   let txTotalFee = BigNumber.from(0)
   let totalOutputsValue = BigNumber.from(0)
@@ -303,44 +318,34 @@ export async function assembleRedemptionTransaction(
     //       use the proposed fee and add the difference to outputs proportionally.
     txTotalFee = txTotalFee.add(request.txMaxFee)
 
-    transaction.addOutput({
-      script: bcoin.Script.fromRaw(
-        Buffer.from(request.redeemerOutputScript, "hex")
-      ),
+    psbt.addOutput({
+      script: Buffer.from(request.redeemerOutputScript, "hex"),
       value: outputValue.toNumber(),
     })
   }
 
-  // If there is a change output, add it explicitly to the transaction.
-  // If we did not add this output explicitly, the bcoin library would add it
-  // anyway during funding, but if the value of the change output was very low,
-  // the library would consider it "dust" and add it to the fee rather than
-  // create a new output.
+  // If there is a change output, add it to the transaction.
   const changeOutputValue = mainUtxo.value
     .sub(totalOutputsValue)
     .sub(txTotalFee)
   if (changeOutputValue.gt(0)) {
-    transaction.addOutput({
-      script: bcoin.Script.fromAddress(walletAddress),
+    psbt.addOutput({
+      address: walletAddress,
       value: changeOutputValue.toNumber(),
     })
   }
 
-  await transaction.fund(inputCoins, {
-    changeAddress: walletAddress,
-    hardFee: txTotalFee.toNumber(),
-    subtractFee: false,
-  })
+  psbt.signAllInputs(walletKeyPair)
+  psbt.finalizeAllInputs()
 
-  transaction.sign(walletKeyRing)
-
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transaction = psbt.extractTransaction()
+  const transactionHash = TransactionHash.from(transaction.getId())
   // If there is a change output, it will be the new wallet's main UTXO.
   const newMainUtxo = changeOutputValue.gt(0)
     ? {
         transactionHash,
         // It was the last output added to the transaction.
-        outputIndex: transaction.outputs.length - 1,
+        outputIndex: transaction.outs.length - 1,
         value: changeOutputValue,
       }
     : undefined
@@ -349,7 +354,7 @@ export async function assembleRedemptionTransaction(
     transactionHash,
     newMainUtxo,
     rawTransaction: {
-      transactionHex: transaction.toRaw().toString("hex"),
+      transactionHex: transaction.toHex(),
     },
   }
 }
