@@ -124,6 +124,9 @@ export type DepositRevealedEvent = Deposit & {
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *      with unsupported types are skipped. The selection process stops once
+ *      the sum of the chosen UTXOs meets the required funding amount.
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
@@ -135,6 +138,8 @@ export type DepositRevealedEvent = Deposit & {
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
+ *  @throws {Error} When the sum of the selected UTXOs is insufficient to cover
+ *        the deposit amount and transaction fee.
  */
 export async function submitDepositTransaction(
   deposit: Deposit,
@@ -181,6 +186,9 @@ export async function submitDepositTransaction(
 
 /**
  * Assembles a Bitcoin P2(W)SH deposit transaction.
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *      with unsupported types are skipped. The selection process stops once
+ *      the sum of the chosen UTXOs meets the required funding amount.
  * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
@@ -193,6 +201,8 @@ export async function submitDepositTransaction(
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
  *          - the deposit transaction in the raw format
+ * @throws {Error} When the sum of the selected UTXOs is insufficient to cover
+ *        the deposit amount and transaction fee.
  */
 export async function assembleDepositTransaction(
   bitcoinNetwork: BitcoinNetwork,
@@ -226,7 +236,7 @@ export async function assembleDepositTransaction(
     const previousOutputValue = previousOutput.value
     const previousOutputScript = previousOutput.script
 
-    // TODO: add support for other utxo types along with unit tests for the
+    // TODO: Add support for other utxo types along with unit tests for the
     //       given type.
     if (isP2WPKHScript(previousOutputScript)) {
       psbt.addInput({
@@ -246,7 +256,7 @@ export async function assembleDepositTransaction(
     // Skip UTXO if the type is unsupported.
   }
 
-  // Sum of the selected UTXOs must be equal to or grater than the deposit
+  // Sum of the selected UTXOs must be equal to or greater than the deposit
   // amount plus fee.
   if (totalInputValue.lt(totalExpenses)) {
     throw new Error("Not enough funds in selected UTXOs to fund transaction")
