@@ -155,7 +155,7 @@ export async function submitRedemptionTransaction(
   const bitcoinNetwork = await bitcoinClient.getNetwork()
 
   const { transactionHash, newMainUtxo, rawTransaction } =
-    await assembleRedemptionTransactionBitcoinJsLib(
+    await assembleRedemptionTransaction(
       bitcoinNetwork,
       walletPrivateKey,
       mainUtxoWithRaw,
@@ -239,8 +239,30 @@ async function getWalletRedemptionRequests(
   return redemptionRequests
 }
 
-// TODO: Description.
-export async function assembleRedemptionTransactionBitcoinJsLib(
+/**
+ * Assembles a Bitcoin redemption transaction.
+ * The transaction will have a single input (main UTXO of the wallet making
+ * the redemption), an output for each redemption request provided, and a change
+ * output if the redemption requests do not consume the entire amount of the
+ * single input.
+ * @dev The caller is responsible for ensuring the redemption request list is
+ *      correctly formed:
+ *        - there is at least one redemption
+ *        - the `requestedAmount` in each redemption request is greater than
+ *          the sum of its `txFee` and `treasuryFee`
+ * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param walletPrivateKey - The private key of the wallet in the WIF format
+ * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
+ *        by the on-chain Bridge contract
+ * @param redemptionRequests - The list of redemption requests
+ * @param witness - The parameter used to decide the type of the change output.
+ *        P2WPKH if `true`, P2PKH if `false`
+ * @returns The outcome consisting of:
+ *          - the redemption transaction hash,
+ *          - the optional new wallet's main UTXO produced by this transaction.
+ *          - the redemption transaction in the raw format
+ */
+export async function assembleRedemptionTransaction(
   bitcoinNetwork: BitcoinNetwork,
   walletPrivateKey: string,
   mainUtxo: UnspentTransactionOutput & RawTransaction,

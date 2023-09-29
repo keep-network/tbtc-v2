@@ -23,7 +23,7 @@ import {
   findWalletForRedemptionData,
 } from "./data/redemption"
 import {
-  assembleRedemptionTransactionBitcoinJsLib,
+  assembleRedemptionTransaction,
   findWalletForRedemption,
   getRedemptionRequest,
   RedemptionRequest,
@@ -494,7 +494,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await assembleRedemptionTransactionBitcoinJsLib(
+                  } = await assembleRedemptionTransaction(
                     BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
@@ -608,7 +608,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await assembleRedemptionTransactionBitcoinJsLib(
+                  } = await assembleRedemptionTransaction(
                     BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
@@ -721,7 +721,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await assembleRedemptionTransactionBitcoinJsLib(
+                  } = await assembleRedemptionTransaction(
                     BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
@@ -834,7 +834,7 @@ describe("Redemption", () => {
                     transactionHash,
                     newMainUtxo,
                     rawTransaction: transaction,
-                  } = await assembleRedemptionTransactionBitcoinJsLib(
+                  } = await assembleRedemptionTransaction(
                     BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
@@ -946,7 +946,7 @@ describe("Redemption", () => {
                 transactionHash,
                 newMainUtxo,
                 rawTransaction: transaction,
-              } = await assembleRedemptionTransactionBitcoinJsLib(
+              } = await assembleRedemptionTransaction(
                 BitcoinNetwork.Testnet,
                 walletPrivateKey,
                 data.mainUtxo,
@@ -1104,7 +1104,7 @@ describe("Redemption", () => {
               transactionHash,
               newMainUtxo,
               rawTransaction: transaction,
-            } = await assembleRedemptionTransactionBitcoinJsLib(
+            } = await assembleRedemptionTransaction(
               BitcoinNetwork.Testnet,
               walletPrivateKey,
               data.mainUtxo,
@@ -1211,7 +1211,7 @@ describe("Redemption", () => {
             transactionHash,
             newMainUtxo,
             rawTransaction: transaction,
-          } = await assembleRedemptionTransactionBitcoinJsLib(
+          } = await assembleRedemptionTransaction(
             BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
@@ -1301,7 +1301,7 @@ describe("Redemption", () => {
 
       it("should revert", async () => {
         await expect(
-          assembleRedemptionTransactionBitcoinJsLib(
+          assembleRedemptionTransaction(
             BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
