@@ -2,7 +2,6 @@ import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
   assembleBitcoinSpvProof,
-  BitcoinNetwork,
   BitcoinPrivateKeyUtils,
   extractBitcoinRawTxVectors,
   BitcoinRawTx,
@@ -10,42 +9,7 @@ import {
   BitcoinClient,
   BitcoinTxHash,
 } from "./lib/bitcoin"
-import {
-  Bridge,
-  RedemptionRequest,
-  TBTCToken,
-  WalletState,
-} from "./lib/contracts"
-import { determineWalletMainUtxo } from "./wallet"
-import { Hex } from "./lib/utils"
-
-/**
- * Requests a redemption of tBTC into BTC.
- * @param walletPublicKey - The Bitcoin public key of the wallet. Must be in the
- *        compressed form (33 bytes long with 02 or 03 prefix).
- * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
- *        by the on-chain Bridge contract.
- * @param redeemerOutputScript - The output script that the redeemed funds will
- *        be locked to. Must be un-prefixed and not prepended with length.
- * @param amount - The amount to be redeemed with the precision of the tBTC
- *        on-chain token contract.
- * @param tBTCToken - Handle to the TBTCToken on-chain contract.
- * @returns Transaction hash of the request redemption transaction.
- */
-export async function requestRedemption(
-  walletPublicKey: string,
-  mainUtxo: BitcoinUtxo,
-  redeemerOutputScript: string,
-  amount: BigNumber,
-  tBTCToken: TBTCToken
-): Promise<Hex> {
-  return await tBTCToken.requestRedemption(
-    walletPublicKey,
-    mainUtxo,
-    redeemerOutputScript,
-    amount
-  )
-}
+import { Bridge, RedemptionRequest } from "./lib/contracts"
 
 /**
  * Handles pending redemption requests by creating a redemption transaction
@@ -89,14 +53,27 @@ export async function submitRedemptionTransaction(
     transactionHex: mainUtxoRawTransaction.transactionHex,
   }
 
-  const redemptionRequests = await getWalletRedemptionRequests(
-    bridge,
-    BitcoinPrivateKeyUtils.createKeyRing(walletPrivateKey)
-      .getPublicKey()
-      .toString("hex"),
-    redeemerOutputScripts,
-    "pending"
-  )
+  const walletPublicKey = BitcoinPrivateKeyUtils.createKeyRing(walletPrivateKey)
+    .getPublicKey()
+    .toString("hex")
+
+  const redemptionRequests: RedemptionRequest[] = []
+
+  for (const redeemerOutputScript of redeemerOutputScripts) {
+    const redemptionRequest = await bridge.pendingRedemptions(
+      walletPublicKey,
+      redeemerOutputScript
+    )
+
+    if (redemptionRequest.requestedAt == 0) {
+      throw new Error("Redemption request does not exist")
+    }
+
+    redemptionRequests.push({
+      ...redemptionRequest,
+      redeemerOutputScript: redeemerOutputScript,
+    })
+  }
 
   const { transactionHash, newMainUtxo, rawTransaction } =
     await assembleRedemptionTransaction(
@@ -112,74 +89,6 @@ export async function submitRedemptionTransaction(
   await bitcoinClient.broadcast(rawTransaction)
 
   return { transactionHash, newMainUtxo }
-}
-
-/**
- * Gets a list of wallet's redemption requests from the provided Bridge
- * on-chain contract handle.
- * @dev It is up to the caller of this function to ensure that each of the
- *      redeemer output scripts represents a valid redemption request
- *      in the Bridge on-chain contract. An exception will be thrown if any of
- *      the redeemer output scripts (along with the wallet public key
- *      corresponding to the provided private key) does not represent a valid
- *      redemption request.
- * @param bridge - The handle to the Bridge on-chain contract
- * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
- *        compressed form (33 bytes long with 02 or 03 prefix).
- * @param redeemerOutputScripts - The list of output scripts that the redeemed
- *        funds are locked to. The output scripts must be un-prefixed and
- *        not prepended with length
- * @param type Type of redemption requests the function will look for. Can be
- *        either `pending` or `timedOut`.
- * @returns The list of redemption requests.
- */
-async function getWalletRedemptionRequests(
-  bridge: Bridge,
-  walletPublicKey: string,
-  redeemerOutputScripts: string[],
-  type: "pending" | "timedOut"
-): Promise<RedemptionRequest[]> {
-  const redemptionRequests: RedemptionRequest[] = []
-
-  for (const redeemerOutputScript of redeemerOutputScripts) {
-    let redemptionRequest: RedemptionRequest
-
-    switch (type) {
-      case "pending": {
-        redemptionRequest = await bridge.pendingRedemptions(
-          walletPublicKey,
-          redeemerOutputScript
-        )
-        break
-      }
-      case "timedOut": {
-        redemptionRequest = await bridge.timedOutRedemptions(
-          walletPublicKey,
-          redeemerOutputScript
-        )
-        break
-      }
-      default: {
-        throw new Error("Unsupported redemption request type")
-      }
-    }
-
-    if (redemptionRequest.requestedAt == 0) {
-      // The requested redemption does not exist among `pendingRedemptions`
-      // in the Bridge.
-      throw new Error(
-        "Provided redeemer output script and wallet public key do not identify a redemption request"
-      )
-    }
-
-    // Redemption exists in the Bridge. Add it to the list.
-    redemptionRequests.push({
-      ...redemptionRequest,
-      redeemerOutputScript: redeemerOutputScript,
-    })
-  }
-
-  return redemptionRequests
 }
 
 /**
@@ -344,160 +253,4 @@ export async function submitRedemptionProof(
     mainUtxo,
     walletPublicKey
   )
-}
-
-/**
- * Gets a redemption request from the bridge.
- * @param walletPublicKey Bitcoin public key of the wallet the request is
- *        targeted to. Must be in the compressed form (33 bytes long with 02
- *        or 03 prefix).
- * @param redeemerOutputScript The redeemer output script the redeemed funds
- *        are supposed to be locked on. Must be un-prefixed and not prepended
- *        with length.
- * @param type Type of the redemption request the function will look for. Can be
- *        either `pending` or `timedOut`.
- * @param bridge The handle to the Bridge on-chain contract
- * @returns The resulting redemption request.
- */
-export async function getRedemptionRequest(
-  walletPublicKey: string,
-  redeemerOutputScript: string,
-  type: "pending" | "timedOut",
-  bridge: Bridge
-): Promise<RedemptionRequest> {
-  const redemptionRequests = await getWalletRedemptionRequests(
-    bridge,
-    walletPublicKey,
-    [redeemerOutputScript],
-    type
-  )
-
-  if (redemptionRequests.length != 1) {
-    throw new Error(`Returned an incorrect number of redemption requests`)
-  }
-
-  return redemptionRequests[0]
-}
-
-/**
- * Finds the oldest live wallet that has enough BTC to handle a redemption
- * request.
- * @param amount The amount to be redeemed in satoshis.
- * @param redeemerOutputScript The redeemer output script the redeemed funds are
- *        supposed to be locked on. Must be un-prefixed and not prepended with
- *        length.
- * @param bitcoinNetwork Bitcoin network.
- * @param bridge The handle to the Bridge on-chain contract.
- * @param bitcoinClient Bitcoin client used to interact with the network.
- * @returns Promise with the wallet details needed to request a redemption.
- */
-export async function findWalletForRedemption(
-  amount: BigNumber,
-  redeemerOutputScript: string,
-  bitcoinNetwork: BitcoinNetwork,
-  bridge: Bridge,
-  bitcoinClient: BitcoinClient
-): Promise<{
-  walletPublicKey: string
-  mainUtxo: BitcoinUtxo
-}> {
-  const wallets = await bridge.getNewWalletRegisteredEvents()
-
-  let walletData:
-    | {
-        walletPublicKey: string
-        mainUtxo: BitcoinUtxo
-      }
-    | undefined = undefined
-  let maxAmount = BigNumber.from(0)
-  let liveWalletsCounter = 0
-
-  for (const wallet of wallets) {
-    const { walletPublicKeyHash } = wallet
-    const { state, walletPublicKey, pendingRedemptionsValue } =
-      await bridge.wallets(walletPublicKeyHash)
-
-    // Wallet must be in Live state.
-    if (state !== WalletState.Live) {
-      console.debug(
-        `Wallet is not in Live state ` +
-          `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
-          `Continue the loop execution to the next wallet...`
-      )
-      continue
-    }
-    liveWalletsCounter++
-
-    // Wallet must have a main UTXO that can be determined.
-    const mainUtxo = await determineWalletMainUtxo(
-      walletPublicKeyHash,
-      bridge,
-      bitcoinClient,
-      bitcoinNetwork
-    )
-    if (!mainUtxo) {
-      console.debug(
-        `Could not find matching UTXO on chains ` +
-          `for wallet public key hash (${walletPublicKeyHash.toString()}). ` +
-          `Continue the loop execution to the next wallet...`
-      )
-      continue
-    }
-
-    const pendingRedemption = await bridge.pendingRedemptions(
-      walletPublicKey.toString(),
-      redeemerOutputScript
-    )
-
-    if (pendingRedemption.requestedAt != 0) {
-      console.debug(
-        `There is a pending redemption request from this wallet to the ` +
-          `same Bitcoin address. Given wallet public key hash` +
-          `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
-          `(${redeemerOutputScript}) pair can be used for only one ` +
-          `pending request at the same time. ` +
-          `Continue the loop execution to the next wallet...`
-      )
-      continue
-    }
-
-    const walletBTCBalance = mainUtxo.value.sub(pendingRedemptionsValue)
-
-    // Save the max possible redemption amount.
-    maxAmount = walletBTCBalance.gt(maxAmount) ? walletBTCBalance : maxAmount
-
-    if (walletBTCBalance.gte(amount)) {
-      walletData = {
-        walletPublicKey: walletPublicKey.toString(),
-        mainUtxo,
-      }
-
-      break
-    }
-
-    console.debug(
-      `The wallet (${walletPublicKeyHash.toString()})` +
-        `cannot handle the redemption request. ` +
-        `Continue the loop execution to the next wallet...`
-    )
-  }
-
-  if (liveWalletsCounter === 0) {
-    throw new Error("Currently, there are no live wallets in the network.")
-  }
-
-  // Cover a corner case when the user requested redemption for all live wallets
-  // in the network using the same Bitcoin address.
-  if (!walletData && liveWalletsCounter > 0 && maxAmount.eq(0)) {
-    throw new Error(
-      "All live wallets in the network have the pending redemption for a given Bitcoin address. Please use another Bitcoin address."
-    )
-  }
-
-  if (!walletData)
-    throw new Error(
-      `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi.`
-    )
-
-  return walletData
 }

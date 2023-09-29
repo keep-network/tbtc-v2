@@ -4,12 +4,7 @@ import { validateBitcoinSpvProof } from "./lib/bitcoin"
 
 import { submitDepositSweepProof } from "./deposit-sweep"
 
-import {
-  requestRedemption,
-  submitRedemptionProof,
-  getRedemptionRequest,
-  findWalletForRedemption,
-} from "./redemption"
+import { submitRedemptionProof } from "./redemption"
 
 import {
   requestOptimisticMint,
@@ -17,12 +12,6 @@ import {
   finalizeOptimisticMint,
   getOptimisticMintingRequest,
 } from "./optimistic-minting"
-
-export const TBTC = {
-  requestRedemption,
-  getRedemptionRequest,
-  findWalletForRedemption,
-}
 
 export const SpvMaintainer = {
   submitDepositSweepProof,
