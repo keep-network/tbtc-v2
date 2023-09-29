@@ -1,6 +1,5 @@
 import { BigNumber } from "ethers"
 import {
-  createKeyRing,
   createAddressFromPublicKey,
   decomposeRawTransaction,
   RawTransaction,
@@ -145,14 +144,21 @@ export async function submitRedemptionTransaction(
     transactionHex: mainUtxoRawTransaction.transactionHex,
   }
 
+  const bitcoinNetwork = await bitcoinClient.getNetwork()
+
+  // eslint-disable-next-line new-cap
+  const walletKeyPair = ECPairFactory(tinysecp).fromWIF(
+    walletPrivateKey,
+    toBitcoinJsLibNetwork(bitcoinNetwork)
+  )
+  const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+
   const redemptionRequests = await getWalletRedemptionRequests(
     bridge,
-    createKeyRing(walletPrivateKey).getPublicKey().toString("hex"),
+    walletPublicKey,
     redeemerOutputScripts,
     "pending"
   )
-
-  const bitcoinNetwork = await bitcoinClient.getNetwork()
 
   const { transactionHash, newMainUtxo, rawTransaction } =
     await assembleRedemptionTransaction(
