@@ -79,7 +79,7 @@ export async function submitDepositRefundTransaction(
 
 /**
  * Assembles a Bitcoin P2(W)PKH deposit refund transaction.
- * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param bitcoinNetwork - The target Bitcoin network.
  * @param fee - the value that will be subtracted from the deposit UTXO being
  *        refunded and used as the transaction fee.
  * @param utxo - UTXO that was created during depositing that needs be refunded.
