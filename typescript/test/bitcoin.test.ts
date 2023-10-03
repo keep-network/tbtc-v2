@@ -16,6 +16,7 @@ import {
   createAddressFromPublicKey,
   readCompactSizeUint,
   computeHash160,
+  computeSha256,
   computeHash256,
   isP2PKHScript,
   isP2WPKHScript,
@@ -94,6 +95,21 @@ describe("Bitcoin", () => {
 
       expect(computeHash256(hexValue).toString()).to.be.equal(
         expectedHash256.toString()
+      )
+    })
+  })
+
+  describe("computeSha256", () => {
+    it("should compute hash256 correctly", () => {
+      const hexValue = Hex.from(
+        "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+      )
+      const expectedSha256 = Hex.from(
+        "c62e5cb26c97cb52fea7f9965e9ea1f8d41c97773688aa88674e64629fc02901"
+      )
+
+      expect(computeSha256(hexValue).toString()).to.be.equal(
+        expectedSha256.toString()
       )
     })
   })

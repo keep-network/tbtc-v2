@@ -537,6 +537,16 @@ export function computeHash160(text: string): string {
 }
 
 /**
+ * Computes the single SHA256 for the given text.
+ * @param text - Text the single SHA256 is computed for.
+ * @returns Hash as a 32-byte un-prefixed hex string.
+ */
+export function computeSha256(text: Hex): Hex {
+  const hash = utils.sha256(text.toPrefixedString())
+  return Hex.from(hash)
+}
+
+/**
  * Computes the double SHA256 for the given text.
  * @param text - Text the double SHA256 is computed for.
  * @returns Hash as a 32-byte un-prefixed hex string.

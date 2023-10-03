@@ -1,18 +1,29 @@
-import bcoin from "bcoin"
 import { BigNumber } from "ethers"
-import { Stack, script, opcodes } from "bitcoinjs-lib"
+import {
+  Psbt,
+  Stack,
+  Transaction,
+  payments,
+  script,
+  opcodes,
+} from "bitcoinjs-lib"
 import {
   Client as BitcoinClient,
+  createAddressFromPublicKey,
   decomposeRawTransaction,
-  createKeyRing,
   RawTransaction,
   UnspentTransactionOutput,
   TransactionHash,
   isPublicKeyHashLength,
+  computeSha256,
+  computeHash160,
+  isP2WPKHScript,
 } from "./bitcoin"
-import { BitcoinNetwork, toBcoinNetwork } from "./bitcoin-network"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
 import { Bridge, Event, Identifier } from "./chain"
 import { Hex } from "./hex"
+import { ECPairFactory } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
 
 // TODO: Replace all properties that are expected to be un-prefixed hexadecimal
 // strings with a Hex type.
@@ -118,28 +129,34 @@ export type DepositRevealedEvent = Deposit & {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
+ * @param inputUtxos - UTXOs to be used for funding the deposit transaction. So
+ *        far only P2WPKH UTXO inputs are supported.
+ * @param fee - the value that should be subtracted from the sum of the UTXOs
+ *        values and used as the transaction fee.
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *       with unsupported types are skipped. The selection process stops once
+ *       the sum of the chosen UTXOs meets the required funding amount.
+ *       Be aware that the function will attempt to broadcast the transaction,
+ *       although successful broadcast is not guaranteed.
+ *  @throws {Error} When the sum of the selected UTXOs is insufficient to cover
+ *        the deposit amount and transaction fee.
  */
 export async function submitDepositTransaction(
   deposit: Deposit,
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
-  witness: boolean
+  witness: boolean,
+  inputUtxos: UnspentTransactionOutput[],
+  fee: BigNumber
 ): Promise<{
   transactionHash: TransactionHash
   depositUtxo: UnspentTransactionOutput
 }> {
-  const depositorKeyRing = createKeyRing(depositorPrivateKey)
-  const depositorAddress = depositorKeyRing.getAddress("string")
-
-  const utxos = await bitcoinClient.findAllUnspentTransactionOutputs(
-    depositorAddress
-  )
-
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
-  for (const utxo of utxos) {
+  for (const utxo of inputUtxos) {
     const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
     )
@@ -150,14 +167,21 @@ export async function submitDepositTransaction(
     })
   }
 
+  const bitcoinNetwork = await bitcoinClient.getNetwork()
+
   const { transactionHash, depositUtxo, rawTransaction } =
     await assembleDepositTransaction(
+      bitcoinNetwork,
       deposit,
-      utxosWithRaw,
       depositorPrivateKey,
-      witness
+      witness,
+      utxosWithRaw,
+      fee
     )
 
+  // Note that `broadcast` may fail silently (i.e. no error will be returned,
+  // even if the transaction is rejected by other nodes and does not enter the
+  // mempool, for example due to an UTXO being already spent).
   await bitcoinClient.broadcast(rawTransaction)
 
   return {
@@ -168,57 +192,107 @@ export async function submitDepositTransaction(
 
 /**
  * Assembles a Bitcoin P2(W)SH deposit transaction.
+ * @param bitcoinNetwork - The target Bitcoin network.
  * @param deposit - Details of the deposit.
- * @param utxos - UTXOs that should be used as transaction inputs.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
+ * @param inputUtxos - UTXOs to be used for funding the deposit transaction. So
+ *        far only P2WPKH UTXO inputs are supported.
+ * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
+ *        values.
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
  *          - the deposit transaction in the raw format
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *     with unsupported types are skipped. The selection process stops once
+ *     the sum of the chosen UTXOs meets the required funding amount.
+ * @throws {Error} When the sum of the selected UTXOs is insufficient to cover
+ *        the deposit amount and transaction fee.
  */
 export async function assembleDepositTransaction(
+  bitcoinNetwork: BitcoinNetwork,
   deposit: Deposit,
-  utxos: (UnspentTransactionOutput & RawTransaction)[],
   depositorPrivateKey: string,
-  witness: boolean
+  witness: boolean,
+  inputUtxos: (UnspentTransactionOutput & RawTransaction)[],
+  fee: BigNumber
 ): Promise<{
   transactionHash: TransactionHash
   depositUtxo: UnspentTransactionOutput
   rawTransaction: RawTransaction
 }> {
-  const depositorKeyRing = createKeyRing(depositorPrivateKey)
-  const depositorAddress = depositorKeyRing.getAddress("string")
-
-  const inputCoins = utxos.map((utxo) =>
-    bcoin.Coin.fromTX(
-      bcoin.MTX.fromRaw(utxo.transactionHex, "hex"),
-      utxo.outputIndex,
-      -1
-    )
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+  // eslint-disable-next-line new-cap
+  const depositorKeyPair = ECPairFactory(tinysecp).fromWIF(
+    depositorPrivateKey,
+    network
   )
 
-  const transaction = new bcoin.MTX()
+  const psbt = new Psbt({ network })
+  psbt.setVersion(1)
 
-  const scriptHash = await calculateDepositScriptHash(deposit, witness)
+  const totalExpenses = deposit.amount.add(fee)
+  let totalInputValue = BigNumber.from(0)
 
-  transaction.addOutput({
-    script: witness
-      ? bcoin.Script.fromProgram(0, scriptHash)
-      : bcoin.Script.fromScripthash(scriptHash),
+  for (const utxo of inputUtxos) {
+    const previousOutput = Transaction.fromHex(utxo.transactionHex).outs[
+      utxo.outputIndex
+    ]
+    const previousOutputValue = previousOutput.value
+    const previousOutputScript = previousOutput.script
+
+    // TODO: Add support for other utxo types along with unit tests for the
+    //       given type.
+    if (isP2WPKHScript(previousOutputScript)) {
+      psbt.addInput({
+        hash: utxo.transactionHash.reverse().toBuffer(),
+        index: utxo.outputIndex,
+        witnessUtxo: {
+          script: previousOutputScript,
+          value: previousOutputValue,
+        },
+      })
+
+      totalInputValue = totalInputValue.add(utxo.value)
+      if (totalInputValue.gte(totalExpenses)) {
+        break
+      }
+    }
+    // Skip UTXO if the type is unsupported.
+  }
+
+  // Sum of the selected UTXOs must be equal to or greater than the deposit
+  // amount plus fee.
+  if (totalInputValue.lt(totalExpenses)) {
+    throw new Error("Not enough funds in selected UTXOs to fund transaction")
+  }
+
+  // Add deposit output.
+  psbt.addOutput({
+    address: await calculateDepositAddress(deposit, bitcoinNetwork, witness),
     value: deposit.amount.toNumber(),
   })
 
-  await transaction.fund(inputCoins, {
-    rate: null, // set null explicitly to always use the default value
-    changeAddress: depositorAddress,
-    subtractFee: false, // do not subtract the fee from outputs
-  })
+  // Add change output if needed.
+  const changeValue = totalInputValue.sub(totalExpenses)
+  if (changeValue.gt(0)) {
+    const depositorAddress = createAddressFromPublicKey(
+      Hex.from(depositorKeyPair.publicKey),
+      bitcoinNetwork
+    )
+    psbt.addOutput({
+      address: depositorAddress,
+      value: changeValue.toNumber(),
+    })
+  }
 
-  transaction.sign(depositorKeyRing)
+  psbt.signAllInputs(depositorKeyPair)
+  psbt.finalizeAllInputs()
 
-  const transactionHash = TransactionHash.from(transaction.txid())
+  const transaction = psbt.extractTransaction()
+  const transactionHash = TransactionHash.from(transaction.getId())
 
   return {
     transactionHash,
@@ -228,7 +302,7 @@ export async function assembleDepositTransaction(
       value: deposit.amount,
     },
     rawTransaction: {
-      transactionHex: transaction.toRaw().toString("hex"),
+      transactionHex: transaction.toHex(),
     },
   }
 }
@@ -340,11 +414,11 @@ export async function calculateDepositScriptHash(
   witness: boolean
 ): Promise<Buffer> {
   const script = await assembleDepositScript(deposit)
-  // Parse the script from HEX string.
-  const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
   // If witness script hash should be produced, SHA256 should be used.
   // Legacy script hash needs HASH160.
-  return witness ? parsedScript.sha256() : parsedScript.hash160()
+  return witness
+    ? computeSha256(Hex.from(script)).toBuffer()
+    : Buffer.from(computeHash160(script), "hex")
 }
 
 /**
@@ -361,10 +435,28 @@ export async function calculateDepositAddress(
   witness: boolean
 ): Promise<string> {
   const scriptHash = await calculateDepositScriptHash(deposit, witness)
-  const address = witness
-    ? bcoin.Address.fromWitnessScripthash(scriptHash)
-    : bcoin.Address.fromScripthash(scriptHash)
-  return address.toString(toBcoinNetwork(network))
+  const bitcoinNetwork = toBitcoinJsLibNetwork(network)
+
+  if (witness) {
+    // OP_0 <hash-length> <hash>
+    const p2wshOutput = Buffer.concat([
+      Buffer.from([opcodes.OP_0, 0x20]),
+      scriptHash,
+    ])
+
+    return payments.p2wsh({ output: p2wshOutput, network: bitcoinNetwork })
+      .address!
+  } else {
+    // OP_HASH160 <hash-length> <hash> OP_EQUAL
+    const p2shOutput = Buffer.concat([
+      Buffer.from([opcodes.OP_HASH160, 0x14]),
+      scriptHash,
+      Buffer.from([opcodes.OP_EQUAL]),
+    ])
+
+    return payments.p2sh({ output: p2shOutput, network: bitcoinNetwork })
+      .address!
+  }
 }
 
 /**

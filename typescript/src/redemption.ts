@@ -256,7 +256,7 @@ async function getWalletRedemptionRequests(
  *        - there is at least one redemption
  *        - the `requestedAmount` in each redemption request is greater than
  *          the sum of its `txFee` and `treasuryFee`
- * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param bitcoinNetwork - The target Bitcoin network.
  * @param walletPrivateKey - The private key of the wallet in the WIF format
  * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO held
  *        by the on-chain Bridge contract
