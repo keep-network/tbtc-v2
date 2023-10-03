@@ -53,8 +53,6 @@ describe("Redemption", () => {
     const token: MockTBTCToken = new MockTBTCToken()
 
     beforeEach(async () => {
-      bcoin.set("testnet")
-
       await requestRedemption(
         walletPublicKey,
         mainUtxo,
@@ -82,7 +80,6 @@ describe("Redemption", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
-      bcoin.set("testnet")
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
     })
@@ -498,6 +495,7 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
+                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -611,6 +609,7 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
+                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -723,6 +722,7 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
+                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -835,6 +835,7 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await assembleRedemptionTransaction(
+                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests,
@@ -946,6 +947,7 @@ describe("Redemption", () => {
                 newMainUtxo,
                 rawTransaction: transaction,
               } = await assembleRedemptionTransaction(
+                BitcoinNetwork.Testnet,
                 walletPrivateKey,
                 data.mainUtxo,
                 redemptionRequests,
@@ -1103,6 +1105,7 @@ describe("Redemption", () => {
               newMainUtxo,
               rawTransaction: transaction,
             } = await assembleRedemptionTransaction(
+              BitcoinNetwork.Testnet,
               walletPrivateKey,
               data.mainUtxo,
               redemptionRequests,
@@ -1209,6 +1212,7 @@ describe("Redemption", () => {
             newMainUtxo,
             rawTransaction: transaction,
           } = await assembleRedemptionTransaction(
+            BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
             redemptionRequests,
@@ -1298,6 +1302,7 @@ describe("Redemption", () => {
       it("should revert", async () => {
         await expect(
           assembleRedemptionTransaction(
+            BitcoinNetwork.Testnet,
             walletPrivateKey,
             data.mainUtxo,
             [], // empty list of redemption requests
@@ -1321,8 +1326,6 @@ describe("Redemption", () => {
     let bridge: MockBridge
 
     beforeEach(async () => {
-      bcoin.set("testnet")
-
       bitcoinClient = new MockBitcoinClient()
       bridge = new MockBridge()
 
