@@ -132,7 +132,8 @@ export type DepositRevealedEvent = Deposit & {
  * @param bitcoinClient - Bitcoin client used to interact with the network.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @param utxos - UTXOs to be used for funding the deposit transaction.
+ * @param inputUtxos - UTXOs to be used for funding the deposit transaction. So
+ *        far only P2WPKH UTXO inputs are supported.
  * @param fee - the value that should be subtracted from the sum of the UTXOs
  *        values and used as the transaction fee.
  * @returns The outcome consisting of:
@@ -146,14 +147,14 @@ export async function submitDepositTransaction(
   depositorPrivateKey: string,
   bitcoinClient: BitcoinClient,
   witness: boolean,
-  utxos: UnspentTransactionOutput[],
+  inputUtxos: UnspentTransactionOutput[],
   fee: BigNumber
 ): Promise<{
   transactionHash: TransactionHash
   depositUtxo: UnspentTransactionOutput
 }> {
   const utxosWithRaw: (UnspentTransactionOutput & RawTransaction)[] = []
-  for (const utxo of utxos) {
+  for (const utxo of inputUtxos) {
     const utxoRawTransaction = await bitcoinClient.getRawTransaction(
       utxo.transactionHash
     )
