@@ -146,7 +146,10 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw("P2WPKH must be 20 bytes")
+              ).to.throw(
+                'Expected property "hash" of type Buffer(Length: 20), got ' +
+                  "Buffer(Length: 21)"
+              )
             })
           })
         })
@@ -174,7 +177,10 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw("P2PKH must be 20 bytes")
+              ).to.throw(
+                'Expected property "hash" of type Buffer(Length: 20), got ' +
+                  "Buffer(Length: 21)"
+              )
             })
           })
         })
@@ -204,7 +210,10 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw("P2WPKH must be 20 bytes")
+              ).to.throw(
+                'Expected property "hash" of type Buffer(Length: 20), got ' +
+                  "Buffer(Length: 21)"
+              )
             })
           })
         })
@@ -232,7 +241,10 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw("P2PKH must be 20 bytes")
+              ).to.throw(
+                'Expected property "hash" of type Buffer(Length: 20), got ' +
+                  "Buffer(Length: 21)"
+              )
             })
           })
         })

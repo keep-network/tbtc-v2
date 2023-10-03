@@ -1,5 +1,4 @@
 import bcoin, { TX, Script } from "bcoin"
-import wif from "wif"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
@@ -503,26 +502,6 @@ export function compressPublicKey(publicKey: string | Hex): string {
 }
 
 /**
- * Creates a Bitcoin key ring based on the given private key.
- * @param privateKey Private key that should be used to create the key ring
- * @param witness Flag indicating whether the key ring will create witness
- *        or non-witness addresses
- * @returns Bitcoin key ring.
- */
-export function createKeyRing(
-  privateKey: string,
-  witness: boolean = true
-): any {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  return new bcoin.KeyRing({
-    witness: witness,
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
-}
-
-/**
  * Computes the HASH160 for the given text.
  * @param text - Text the HASH160 is computed for.
  * @returns Hash as a 20-byte un-prefixed hex string.
@@ -580,13 +559,13 @@ export function hashLEToBigNumber(hash: Hex): BigNumber {
 export function encodeToBitcoinAddress(
   publicKeyHash: string,
   witness: boolean,
-  network: BitcoinNetwork
+  bitcoinNetwork: BitcoinNetwork
 ): string {
-  const buffer = Buffer.from(publicKeyHash, "hex")
-  const bcoinNetwork = toBcoinNetwork(network)
+  const hash = Buffer.from(publicKeyHash, "hex")
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   return witness
-    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(bcoinNetwork)
-    : bcoin.Address.fromPubkeyhash(buffer).toString(bcoinNetwork)
+    ? payments.p2wpkh({ hash, network }).address!
+    : payments.p2pkh({ hash, network }).address!
 }
 
 /**
