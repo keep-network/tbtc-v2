@@ -114,7 +114,7 @@ export async function submitDepositSweepTransaction(
  * @dev The caller is responsible for ensuring the provided UTXOs are correctly
  *      formed, can be spent by the wallet and their combined value is greater
  *      then the fee.
- * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param bitcoinNetwork - The target Bitcoin network.
  * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
  *        values.
  * @param walletPrivateKey - Bitcoin private key of the wallet in WIF format.

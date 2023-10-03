@@ -136,7 +136,7 @@ export type DepositRevealedEvent = Deposit & {
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
-  * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
  *       with unsupported types are skipped. The selection process stops once
  *       the sum of the chosen UTXOs meets the required funding amount.
  *       Be aware that the function will attempt to broadcast the transaction,
@@ -192,19 +192,20 @@ export async function submitDepositTransaction(
 
 /**
  * Assembles a Bitcoin P2(W)SH deposit transaction.
- * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
+ * @param bitcoinNetwork - The target Bitcoin network.
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param witness - If true, a witness (P2WSH) transaction will be created.
  *        Otherwise, a legacy P2SH transaction will be made.
- * @param utxos - UTXOs that should be used as transaction inputs.
+ * @param inputUtxos - UTXOs to be used for funding the deposit transaction. So
+ *        far only P2WPKH UTXO inputs are supported.
  * @param fee - Transaction fee to be subtracted from the sum of the UTXOs'
  *        values.
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
  *          - the deposit transaction in the raw format
-* @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ * @dev UTXOs are selected for transaction funding based on their types. UTXOs
  *     with unsupported types are skipped. The selection process stops once
  *     the sum of the chosen UTXOs meets the required funding amount.
  * @throws {Error} When the sum of the selected UTXOs is insufficient to cover
@@ -215,7 +216,7 @@ export async function assembleDepositTransaction(
   deposit: Deposit,
   depositorPrivateKey: string,
   witness: boolean,
-  utxos: (UnspentTransactionOutput & RawTransaction)[],
+  inputUtxos: (UnspentTransactionOutput & RawTransaction)[],
   fee: BigNumber
 ): Promise<{
   transactionHash: TransactionHash
@@ -235,7 +236,7 @@ export async function assembleDepositTransaction(
   const totalExpenses = deposit.amount.add(fee)
   let totalInputValue = BigNumber.from(0)
 
-  for (const utxo of utxos) {
+  for (const utxo of inputUtxos) {
     const previousOutput = Transaction.fromHex(utxo.transactionHex).outs[
       utxo.outputIndex
     ]
