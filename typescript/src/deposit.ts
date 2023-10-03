@@ -124,9 +124,6 @@ export type DepositRevealedEvent = Deposit & {
 /**
  * Submits a deposit by creating and broadcasting a Bitcoin P2(W)SH
  * deposit transaction.
- * @dev UTXOs are selected for transaction funding based on their types. UTXOs
- *      with unsupported types are skipped. The selection process stops once
- *      the sum of the chosen UTXOs meets the required funding amount.
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
  * @param bitcoinClient - Bitcoin client used to interact with the network.
@@ -139,6 +136,11 @@ export type DepositRevealedEvent = Deposit & {
  * @returns The outcome consisting of:
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
+  * @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *       with unsupported types are skipped. The selection process stops once
+ *       the sum of the chosen UTXOs meets the required funding amount.
+ *       Be aware that the function will attempt to broadcast the transaction,
+ *       although successful broadcast is not guaranteed.
  *  @throws {Error} When the sum of the selected UTXOs is insufficient to cover
  *        the deposit amount and transaction fee.
  */
@@ -177,6 +179,9 @@ export async function submitDepositTransaction(
       fee
     )
 
+  // Note that `broadcast` may fail silently (i.e. no error will be returned,
+  // even if the transaction is rejected by other nodes and does not enter the
+  // mempool, for example due to an UTXO being already spent).
   await bitcoinClient.broadcast(rawTransaction)
 
   return {
@@ -187,9 +192,6 @@ export async function submitDepositTransaction(
 
 /**
  * Assembles a Bitcoin P2(W)SH deposit transaction.
- * @dev UTXOs are selected for transaction funding based on their types. UTXOs
- *      with unsupported types are skipped. The selection process stops once
- *      the sum of the chosen UTXOs meets the required funding amount.
  * @param bitcoinNetwork - The target Bitcoin network (mainnet or testnet).
  * @param deposit - Details of the deposit.
  * @param depositorPrivateKey - Bitcoin private key of the depositor.
@@ -202,6 +204,9 @@ export async function submitDepositTransaction(
  *          - the deposit transaction hash,
  *          - the deposit UTXO produced by this transaction.
  *          - the deposit transaction in the raw format
+* @dev UTXOs are selected for transaction funding based on their types. UTXOs
+ *     with unsupported types are skipped. The selection process stops once
+ *     the sum of the chosen UTXOs meets the required funding amount.
  * @throws {Error} When the sum of the selected UTXOs is insufficient to cover
  *        the deposit amount and transaction fee.
  */
