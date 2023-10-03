@@ -2,12 +2,8 @@ import bcoin, { TX, Script } from "bcoin"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
-import {
-  BitcoinNetwork,
-  toBcoinNetwork,
-  toBitcoinJsLibNetwork,
-} from "./bitcoin-network"
-import { payments } from "bitcoinjs-lib"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
+import { address, payments } from "bitcoinjs-lib"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -552,7 +548,7 @@ export function hashLEToBigNumber(hash: Hex): BigNumber {
  *        unprefixed hex string (without 0x prefix).
  * @param witness - If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
- * @param network - Network the address should be encoded for.
+ * @param bitcoinNetwork - Network the address should be encoded for.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
  * @throws Throws an error if network is not supported.
  */
@@ -626,16 +622,17 @@ export function createOutputScriptFromAddress(address: string): Hex {
 /**
  * Creates the Bitcoin address from the output script.
  * @param script The unprefixed and not prepended with length output script.
- * @param network Bitcoin network.
+ * @param bitcoinNetwork Bitcoin network.
  * @returns The Bitcoin address.
  */
 export function createAddressFromOutputScript(
   script: Hex,
-  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+  bitcoinNetwork: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {
-  return Script.fromRaw(script.toString(), "hex")
-    .getAddress()
-    ?.toString(toBcoinNetwork(network))
+  return address.fromOutputScript(
+    script.toBuffer(),
+    toBitcoinJsLibNetwork(bitcoinNetwork)
+  )
 }
 
 /**
