@@ -416,11 +416,9 @@ export async function calculateDepositScriptHash(
   const script = await assembleDepositScript(deposit)
   // If witness script hash should be produced, SHA256 should be used.
   // Legacy script hash needs HASH160.
-  if (witness) {
-    return computeSha256(Hex.from(script)).toBuffer()
-  }
-
-  return Buffer.from(computeHash160(script), "hex")
+  return witness
+    ? computeSha256(Hex.from(script)).toBuffer()
+    : Buffer.from(computeHash160(script), "hex")
 }
 
 /**
@@ -448,16 +446,17 @@ export async function calculateDepositAddress(
 
     return payments.p2wsh({ output: p2wshOutput, network: bitcoinNetwork })
       .address!
+  } else {
+    // OP_HASH160 <hash-length> <hash> OP_EQUAL
+    const p2shOutput = Buffer.concat([
+      Buffer.from([opcodes.OP_HASH160, 0x14]),
+      scriptHash,
+      Buffer.from([opcodes.OP_EQUAL]),
+    ])
+
+    return payments.p2sh({ output: p2shOutput, network: bitcoinNetwork })
+      .address!
   }
-
-  // OP_HASH160 <hash-length> <hash> OP_EQUAL
-  const p2shOutput = Buffer.concat([
-    Buffer.from([opcodes.OP_HASH160, 0x14]),
-    scriptHash,
-    Buffer.from([opcodes.OP_EQUAL]),
-  ])
-
-  return payments.p2sh({ output: p2shOutput, network: bitcoinNetwork }).address!
 }
 
 /**
