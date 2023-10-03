@@ -309,7 +309,7 @@ export async function assembleRedemptionTransaction(
     psbt.addInput({
       hash: mainUtxo.transactionHash.reverse().toBuffer(),
       index: mainUtxo.outputIndex,
-      nonWitnessUtxo: Buffer.from(mainUtxo.transactionHex),
+      nonWitnessUtxo: Buffer.from(mainUtxo.transactionHex, "hex"),
     })
   } else if (isP2WPKHScript(previousOutputScript)) {
     psbt.addInput({
