@@ -1,6 +1,5 @@
 import { BigNumber } from "ethers"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import bcoin from "bcoin"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
 chai.use(chaiAsPromised)
@@ -21,8 +20,6 @@ describe("Refund", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
-      bcoin.set("testnet")
-
       bitcoinClient = new MockBitcoinClient()
     })
 
