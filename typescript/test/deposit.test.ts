@@ -224,15 +224,7 @@ describe("Deposit", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
-      bcoin.set("testnet")
-
       bitcoinClient = new MockBitcoinClient()
-
-      // Tie used testnetAddress with testnetUTXO to use it during deposit
-      // creation.
-      const utxos = new Map<string, UnspentTransactionOutput[]>()
-      utxos.set(testnetAddress, [testnetUTXO])
-      bitcoinClient.unspentTransactionOutputs = utxos
 
       // Tie testnetTransaction to testnetUTXO. This is needed since
       // submitDepositTransaction attach transaction data to each UTXO.
@@ -246,11 +238,14 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
+        const fee = BigNumber.from(1520)
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
-          true
+          true,
+          [testnetUTXO],
+          fee
         ))
       })
 
@@ -283,11 +278,15 @@ describe("Deposit", () => {
       let depositUtxo: UnspentTransactionOutput
 
       beforeEach(async () => {
+        const fee = BigNumber.from(1410)
+
         ;({ transactionHash, depositUtxo } = await submitDepositTransaction(
           deposit,
           testnetPrivateKey,
           bitcoinClient,
-          false
+          false,
+          [testnetUTXO],
+          fee
         ))
       })
 
@@ -323,15 +322,18 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
+        const fee = BigNumber.from(1520)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
+          BitcoinNetwork.Testnet,
           deposit,
-          [testnetUTXO],
           testnetPrivateKey,
-          true
+          true,
+          [testnetUTXO],
+          fee
         ))
       })
 
@@ -420,15 +422,18 @@ describe("Deposit", () => {
       let transaction: RawTransaction
 
       beforeEach(async () => {
+        const fee = BigNumber.from(1410)
         ;({
           transactionHash,
           depositUtxo,
           rawTransaction: transaction,
         } = await assembleDepositTransaction(
+          BitcoinNetwork.Testnet,
           deposit,
-          [testnetUTXO],
           testnetPrivateKey,
-          false
+          false,
+          [testnetUTXO],
+          fee
         ))
       })
 
@@ -698,11 +703,14 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
+      const fee = BigNumber.from(1520)
       const result = await assembleDepositTransaction(
+        BitcoinNetwork.Testnet,
         deposit,
-        [testnetUTXO],
         testnetPrivateKey,
-        true
+        true,
+        [testnetUTXO],
+        fee
       )
 
       transaction = result.rawTransaction
@@ -740,11 +748,14 @@ describe("Deposit", () => {
 
     beforeEach(async () => {
       // Create a deposit transaction.
+      const fee = BigNumber.from(1520)
       ;({ depositUtxo } = await assembleDepositTransaction(
+        BitcoinNetwork.Testnet,
         deposit,
-        [testnetUTXO],
         testnetPrivateKey,
-        true
+        true,
+        [testnetUTXO],
+        fee
       ))
 
       revealedDeposit = {
