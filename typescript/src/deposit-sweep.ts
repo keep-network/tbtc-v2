@@ -182,7 +182,10 @@ export async function assembleDepositSweepTransaction(
   }
   outputValue = outputValue.sub(fee)
 
-  const outputScript = createOutputScriptFromAddress(walletAddress)
+  const outputScript = createOutputScriptFromAddress(
+    walletAddress,
+    bitcoinNetwork
+  )
   transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
 
   // Sign the main UTXO input if there is main UTXO.

@@ -283,7 +283,10 @@ export async function determineWalletMainUtxo(
 
     // Get the wallet script based on the wallet address. This is required
     // to find transaction outputs that lock funds on the wallet.
-    const walletScript = createOutputScriptFromAddress(walletAddress)
+    const walletScript = createOutputScriptFromAddress(
+      walletAddress,
+      bitcoinNetwork
+    )
     const isWalletOutput = (output: TransactionOutput) =>
       walletScript.equals(output.scriptPubKey)
 

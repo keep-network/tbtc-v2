@@ -537,7 +537,11 @@ describe("Bitcoin", () => {
         ).forEach(
           ([addressType, { address, scriptPubKey: expectedOutputScript }]) => {
             it(`should create correct output script for ${addressType} address type`, () => {
-              const result = createOutputScriptFromAddress(address)
+              const network =
+                bitcoinNetwork === "mainnet"
+                  ? BitcoinNetwork.Mainnet
+                  : BitcoinNetwork.Testnet
+              const result = createOutputScriptFromAddress(address, network)
 
               expect(result.toString()).to.eq(expectedOutputScript.toString())
             })
@@ -547,7 +551,7 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("getAddressFromScriptPubKey", () => {
+  describe("createAddressFromOutputScript", () => {
     Object.keys(btcAddresses).forEach((bitcoinNetwork) => {
       context(`with ${bitcoinNetwork} addresses`, () => {
         Object.entries(

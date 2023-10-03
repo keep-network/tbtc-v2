@@ -1,4 +1,4 @@
-import bcoin, { TX, Script } from "bcoin"
+import bcoin, { TX } from "bcoin"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
@@ -612,11 +612,20 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
 
 /**
  * Creates the output script from the BTC address.
- * @param address BTC address.
+ * @param bitcoinAddress Bitcoin address.
+ * @param bitcoinNetwork Bitcoin network.
  * @returns The un-prefixed and not prepended with length output script.
  */
-export function createOutputScriptFromAddress(address: string): Hex {
-  return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
+export function createOutputScriptFromAddress(
+  bitcoinAddress: string,
+  bitcoinNetwork: BitcoinNetwork = BitcoinNetwork.Mainnet
+): Hex {
+  return Hex.from(
+    address.toOutputScript(
+      bitcoinAddress,
+      toBitcoinJsLibNetwork(bitcoinNetwork)
+    )
+  )
 }
 
 /**
