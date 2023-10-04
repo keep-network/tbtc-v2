@@ -1,7 +1,8 @@
-import bcoin from "bcoin"
+import { Transaction as Tx, TxInput, TxOutput } from "bitcoinjs-lib"
 import pTimeout from "p-timeout"
 import {
   Client as BitcoinClient,
+  computeSha256,
   createOutputScriptFromAddress,
   RawTransaction,
   Transaction,
@@ -337,26 +338,26 @@ export class Client implements BitcoinClient {
       }
 
       // Decode the raw transaction.
-      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+      const transaction = Tx.fromHex(rawTransaction)
 
-      const inputs = transaction.inputs.map(
-        (input: any): TransactionInput => ({
-          transactionHash: TransactionHash.from(input.prevout.hash).reverse(),
-          outputIndex: input.prevout.index,
-          scriptSig: Hex.from(input.script.toRaw()),
+      const inputs = transaction.ins.map(
+        (input: TxInput): TransactionInput => ({
+          transactionHash: TransactionHash.from(input.hash).reverse(),
+          outputIndex: input.index,
+          scriptSig: Hex.from(input.script),
         })
       )
 
-      const outputs = transaction.outputs.map(
-        (output: any, i: number): TransactionOutput => ({
+      const outputs = transaction.outs.map(
+        (output: TxOutput, i: number): TransactionOutput => ({
           outputIndex: i,
           value: BigNumber.from(output.value),
-          scriptPubKey: Hex.from(output.script.toRaw()),
+          scriptPubKey: Hex.from(output.script),
         })
       )
 
       return {
-        transactionHash: TransactionHash.from(transaction.hash()).reverse(),
+        transactionHash: TransactionHash.from(transaction.getId()),
         inputs: inputs,
         outputs: outputs,
       }
@@ -407,7 +408,7 @@ export class Client implements BitcoinClient {
       )
 
       // Decode the raw transaction.
-      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+      const transaction = Tx.fromHex(rawTransaction)
 
       // As a workaround for the problem described in https://github.com/Blockstream/electrs/pull/36
       // we need to calculate the number of confirmations based on the latest
@@ -425,8 +426,10 @@ export class Client implements BitcoinClient {
       // If a transaction is unconfirmed (is still in the mempool) the height will
       // have a value of `0` or `-1`.
       let txBlockHeight: number = Math.min()
-      for (const output of transaction.outputs) {
-        const scriptHash: Buffer = output.script.sha256()
+      for (const output of transaction.outs) {
+        const scriptHash: Buffer = computeSha256(
+          Hex.from(output.script)
+        ).toBuffer()
 
         type HistoryEntry = {
           // eslint-disable-next-line camelcase
