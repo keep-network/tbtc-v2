@@ -4,6 +4,7 @@ import { EthereumBridge } from "./bridge"
 import { EthereumWalletRegistry } from "./wallet-registry"
 import { EthereumTBTCToken } from "./tbtc-token"
 import { EthereumTBTCVault } from "./tbtc-vault"
+import { EthereumAddress } from "./address"
 
 export * from "./address"
 export * from "./bridge"
@@ -24,7 +25,7 @@ export { EthersContractConfig as EthereumContractConfig } from "./adapter"
 export type EthereumSigner = Signer | providers.Provider
 
 /**
- * Resolves the Ethereum network the given Signer is tied to.
+ * Resolves the Ethereum network the given signer is tied to.
  * @param signer The signer whose network should be resolved.
  * @returns Ethereum network.
  */
@@ -46,6 +47,24 @@ export async function ethereumNetworkFromSigner(
       return "goerli"
     default:
       return "local"
+  }
+}
+
+/**
+ * Resolves the Ethereum address tied to the given signer. The address
+ * cannot be resolved for signers that works in the read-only mode
+ * @param signer The signer whose address should be resolved.
+ * @returns Ethereum address or undefined for read-only signers.
+ * @throws Throws an error if the address of the signer is not a proper
+ *         Ethereum address.
+ */
+export async function ethereumAddressFromSigner(
+  signer: EthereumSigner
+): Promise<EthereumAddress | undefined> {
+  if (signer instanceof Signer) {
+    return EthereumAddress.from(await signer.getAddress())
+  } else {
+    return undefined
   }
 }
 

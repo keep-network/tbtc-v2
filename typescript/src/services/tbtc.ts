@@ -3,7 +3,12 @@ import { MaintenanceService } from "./maintenance"
 import { RedemptionsService } from "./redemptions"
 import { TBTCContracts } from "../lib/contracts"
 import { BitcoinClient, BitcoinNetwork } from "../lib/bitcoin"
-import { EthereumSigner, loadEthereumContracts } from "../lib/ethereum"
+import {
+  ethereumAddressFromSigner,
+  EthereumNetwork,
+  EthereumSigner,
+  loadEthereumContracts,
+} from "../lib/ethereum"
 import { ElectrumClient } from "../lib/electrum"
 
 /**
@@ -53,11 +58,7 @@ export class TBTC {
    *         Ethereum mainnet.
    */
   static async initializeMainnet(signer: EthereumSigner): Promise<TBTC> {
-    const tbtcContracts = await loadEthereumContracts(signer, "mainnet")
-    const bitcoinClient = ElectrumClient.fromDefaultConfig(
-      BitcoinNetwork.Mainnet
-    )
-    return new TBTC(tbtcContracts, bitcoinClient)
+    return TBTC.initializeEthereum(signer, "mainnet", BitcoinNetwork.Mainnet)
   }
 
   /**
@@ -70,11 +71,37 @@ export class TBTC {
    *         Ethereum mainnet.
    */
   static async initializeGoerli(signer: EthereumSigner): Promise<TBTC> {
-    const tbtcContracts = await loadEthereumContracts(signer, "goerli")
-    const bitcoinClient = ElectrumClient.fromDefaultConfig(
-      BitcoinNetwork.Testnet
-    )
-    return new TBTC(tbtcContracts, bitcoinClient)
+    return TBTC.initializeEthereum(signer, "goerli", BitcoinNetwork.Testnet)
+  }
+
+  /**
+   * Initializes the tBTC v2 SDK entrypoint for the given Ethereum network and Bitcoin network.
+   * The initialized instance uses default Electrum servers to interact
+   * with Bitcoin network.
+   * @param signer Ethereum signer.
+   * @param ethereumNetwork Ethereum network.
+   * @param bitcoinNetwork Bitcoin network.
+   * @returns Initialized tBTC v2 SDK entrypoint.
+   * @throws Throws an error if the underlying signer's Ethereum network is
+   *         other than the given Ethereum network.
+   */
+  private static async initializeEthereum(
+    signer: EthereumSigner,
+    ethereumNetwork: EthereumNetwork,
+    bitcoinNetwork: BitcoinNetwork
+  ): Promise<TBTC> {
+    const signerAddress = await ethereumAddressFromSigner(signer)
+    const tbtcContracts = await loadEthereumContracts(signer, ethereumNetwork)
+    const bitcoinClient = ElectrumClient.fromDefaultConfig(bitcoinNetwork)
+
+    const tbtc = new TBTC(tbtcContracts, bitcoinClient)
+
+    // If signer address can be resolved, set it as default depositor.
+    if (signerAddress !== undefined) {
+      tbtc.deposits.setDefaultDepositor(signerAddress)
+    }
+
+    return tbtc
   }
 
   /**
