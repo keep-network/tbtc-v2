@@ -259,21 +259,21 @@ describe("Bitcoin", () => {
       })
     })
 
-    describe("decodeAddress", () => {
+    describe("decodeBitcoinAddress", () => {
       context("when network is mainnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(decodeBitcoinAddress(P2WPKHAddress)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              decodeBitcoinAddress(P2WPKHAddress, BitcoinNetwork.Mainnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(decodeBitcoinAddress(P2PKHAddress)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              decodeBitcoinAddress(P2PKHAddress, BitcoinNetwork.Mainnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
@@ -281,8 +281,10 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddress
 
-            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
-              "Address is too long"
+            expect(() =>
+              decodeBitcoinAddress(bitcoinAddress, BitcoinNetwork.Mainnet)
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
             )
           })
         })
@@ -290,8 +292,13 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              decodeBitcoinAddress("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX")
-            ).to.throw("Address must be P2PKH or P2WPKH")
+              decodeBitcoinAddress(
+                "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX",
+                BitcoinNetwork.Mainnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
 
@@ -299,9 +306,25 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress(
-                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m"
+                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
+                BitcoinNetwork.Mainnet
               )
-            ).to.throw("Address must be P2PKH or P2WPKH")
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
+          })
+        })
+
+        context("when address from testnet network is provided", () => {
+          it("should throw", () => {
+            expect(() =>
+              decodeBitcoinAddress(
+                "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw",
+                BitcoinNetwork.Mainnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
       })
@@ -309,17 +332,17 @@ describe("Bitcoin", () => {
       context("when network is testnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(decodeBitcoinAddress(P2WPKHAddressTestnet)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              decodeBitcoinAddress(P2WPKHAddressTestnet, BitcoinNetwork.Testnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(decodeBitcoinAddress(P2PKHAddressTestnet)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              decodeBitcoinAddress(P2PKHAddressTestnet, BitcoinNetwork.Testnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
@@ -327,8 +350,10 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddressTestnet
 
-            expect(() => decodeBitcoinAddress(bitcoinAddress)).to.throw(
-              "Address is too long"
+            expect(() =>
+              decodeBitcoinAddress(bitcoinAddress, BitcoinNetwork.Testnet)
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
             )
           })
         })
@@ -336,8 +361,13 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              decodeBitcoinAddress("2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5")
-            ).to.throw("Address must be P2PKH or P2WPKH")
+              decodeBitcoinAddress(
+                "2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5",
+                BitcoinNetwork.Testnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
 
@@ -345,9 +375,25 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               decodeBitcoinAddress(
-                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
+                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
+                BitcoinNetwork.Testnet
               )
-            ).to.throw("Address must be P2PKH or P2WPKH")
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
+          })
+        })
+
+        context("when address from mainnet network is provided", () => {
+          it("should throw", () => {
+            expect(() =>
+              decodeBitcoinAddress(
+                "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy",
+                BitcoinNetwork.Testnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
       })

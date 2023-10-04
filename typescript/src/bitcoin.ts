@@ -1,4 +1,3 @@
-import bcoin from "bcoin"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
@@ -574,20 +573,30 @@ export function encodeToBitcoinAddress(
 /**
  * Decodes P2PKH or P2WPKH address into a public key hash. Throws if the
  * provided address is not PKH-based.
- * @param address - P2PKH or P2WPKH address that will be decoded.
+ * @param bitcoinAddress - P2PKH or P2WPKH address that will be decoded.
+ * @param bitcoinNetwork - Bitcoin network.
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix).
  */
-export function decodeBitcoinAddress(address: string): string {
-  const addressObject = new bcoin.Address(address)
+export function decodeBitcoinAddress(
+  bitcoinAddress: string,
+  bitcoinNetwork: BitcoinNetwork
+): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
 
-  const isPKH =
-    addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
-  if (!isPKH) {
-    throw new Error("Address must be P2PKH or P2WPKH")
-  }
+  try {
+    // Try extracting hash from P2PKH address.
+    const hash = payments.p2pkh({ address: bitcoinAddress, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
 
-  return addressObject.getHash("hex")
+  try {
+    // Try extracting hash from P2WPKH address.
+    const hash = payments.p2wpkh({ address: bitcoinAddress, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
+
+  throw new Error("Address must be P2PKH or P2WPKH valid for given network")
 }
 
 /**
@@ -625,7 +634,7 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
  */
 export function createOutputScriptFromAddress(
   bitcoinAddress: string,
-  bitcoinNetwork: BitcoinNetwork = BitcoinNetwork.Mainnet
+  bitcoinNetwork: BitcoinNetwork
 ): Hex {
   return Hex.from(
     address.toOutputScript(
