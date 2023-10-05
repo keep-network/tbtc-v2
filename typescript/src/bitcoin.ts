@@ -780,3 +780,49 @@ export function isP2WSHScript(script: Buffer): boolean {
     return false
   }
 }
+
+interface TxJSON {
+  hash: string
+  version: number
+  locktime: number
+  inputs: {
+    hash: string
+    index: number
+    sequence: number
+    script: string
+    witness: string[]
+  }[]
+  outputs: {
+    value: number
+    script: string
+    address: string
+  }[]
+}
+
+export function txToJSON(
+  rawTransaction: string,
+  bitcoinNetwork: BitcoinNetwork
+): TxJSON {
+  const transaction = Tx.fromHex(rawTransaction)
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
+  const txJSON: TxJSON = {
+    hash: transaction.getId(),
+    version: transaction.version,
+    locktime: transaction.locktime,
+    inputs: transaction.ins.map((input) => ({
+      hash: Hex.from(input.hash).reverse().toString(),
+      index: input.index,
+      sequence: input.sequence,
+      script: input.script.toString("hex"),
+      witness: input.witness.map((w) => w.toString("hex")),
+    })),
+    outputs: transaction.outs.map((output) => ({
+      value: output.value,
+      script: output.script.toString("hex"),
+      address: address.fromOutputScript(output.script, network),
+    })),
+  }
+
+  return txJSON
+}

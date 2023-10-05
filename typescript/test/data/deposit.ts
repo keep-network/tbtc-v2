@@ -60,15 +60,3 @@ export const testnetWalletPrivateKey =
  * Address corresponding to testnetWalletPrivateKey.
  */
 export const testnetWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
-
-/**
- * Address generated from deposit script hash during deposit creation
- */
-export const testnetDepositScripthashAddress =
-  "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"
-
-/**
- * Address generated from deposit witness script hash during deposit creation
- */
-export const testnetDepositWitnessScripthashAddress =
-  "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y"
