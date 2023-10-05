@@ -23,6 +23,7 @@ import {
   isP2SHScript,
   isP2WSHScript,
   txToJSON,
+  decomposeRawTransaction,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
@@ -34,6 +35,7 @@ import {
   mainnetTransaction,
   testnetTransaction,
 } from "./data/bitcoin"
+import { depositSweepWithNoMainUtxoAndWitnessOutput } from "./data/deposit-sweep"
 
 describe("Bitcoin", () => {
   describe("compressPublicKey", () => {
@@ -822,5 +824,30 @@ describe("txToJSON", () => {
         "msLBvgMp45BN9CaQCoZ4ewjm71Fix7RgB2"
       )
     })
+  })
+})
+
+describe("decomposeRawTransaction", () => {
+  it("should return correctly decomposed transaction", () => {
+    const rawTransaction =
+      depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
+    const decomposedTransaction = decomposeRawTransaction(rawTransaction)
+
+    expect(decomposedTransaction.version).to.be.equal("01000000")
+    expect(decomposedTransaction.inputs).to.be.equal(
+      "02bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699bacd53e3d07400" +
+        "000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f0cb3ef852a468153" +
+        "e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f816bf27991c2b73211e" +
+        "227db27ec200bc0a012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f25" +
+        "64da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508" +
+        "f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763" +
+        "ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac" +
+        "68ffffffffdc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa826394df" +
+        "ec545c0000000000ffffffff"
+    )
+    expect(decomposedTransaction.outputs).to.be.equal(
+      "01488a0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
+    )
+    expect(decomposedTransaction.locktime).to.be.equal("00000000")
   })
 })
