@@ -781,6 +781,11 @@ export function isP2WSHScript(script: Buffer): boolean {
   }
 }
 
+/**
+ * Represents a structured JSON format for a Bitcoin transaction. It includes
+ * detailed information about its inputs and outputs, as well as the transaction
+ * itself.
+ */
 interface TxJSON {
   hash: string
   version: number
@@ -799,6 +804,12 @@ interface TxJSON {
   }[]
 }
 
+/**
+ * Converts a raw Bitcoin transaction into a structured JSON format.
+ * @param rawTransaction - A raw Bitcoin transaction in hexadecimal string format.
+ * @param bitcoinNetwork - Bitcoin network.
+ * @returns A structured JSON object representing the transaction.
+ */
 export function txToJSON(
   rawTransaction: string,
   bitcoinNetwork: BitcoinNetwork
