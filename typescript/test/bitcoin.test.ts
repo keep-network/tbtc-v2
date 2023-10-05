@@ -22,19 +22,13 @@ import {
   isP2WPKHScript,
   isP2SHScript,
   isP2WSHScript,
-  txToJSON,
   decomposeRawTransaction,
 } from "../src/bitcoin"
 import { calculateDepositRefundLocktime } from "../src/deposit"
 import { BitcoinNetwork } from "../src/bitcoin-network"
 import { Hex } from "../src/hex"
 import { BigNumber } from "ethers"
-import {
-  btcAddresses,
-  btcAddressFromPublicKey,
-  mainnetTransaction,
-  testnetTransaction,
-} from "./data/bitcoin"
+import { btcAddresses, btcAddressFromPublicKey } from "./data/bitcoin"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "./data/deposit-sweep"
 
 describe("Bitcoin", () => {
@@ -737,92 +731,6 @@ describe("Bitcoin", () => {
           })
         })
       })
-    })
-  })
-})
-
-describe("txToJSON", () => {
-  context("when network is mainnet", () => {
-    it("should return correct transaction JSON", () => {
-      const txJSON = txToJSON(mainnetTransaction, BitcoinNetwork.Mainnet)
-
-      expect(txJSON.hash).to.be.equal(
-        "bb20b27fef136ab1e5ee866a73bc9b33a038c3e258162e6c03e94f6e22941e0e"
-      )
-      expect(txJSON.version).to.be.equal(1)
-      expect(txJSON.locktime).to.be.equal(0)
-
-      expect(txJSON.inputs.length).to.be.equal(1)
-      expect(txJSON.inputs[0].hash).to.be.equal(
-        "a4082d137ab5c5264efb9f616ca4ac1673015c1e0817cd5cdc1b0379161be95e"
-      )
-      expect(txJSON.inputs[0].index).to.be.equal(5)
-      expect(txJSON.inputs[0].sequence).to.be.equal(4294967295)
-      expect(txJSON.inputs[0].script).to.be.equal("")
-      expect(txJSON.inputs[0].witness).to.deep.equal([
-        "",
-        "3044022022c7d7546fc0bb96a26c04823d97f0aa4bbe5d9af54acc8f4bd898e88" +
-          "b86956002206b126720f42b2f200434c6ae770b78aded9b32da4f020aba37f099" +
-          "d804eab02701",
-        "304402202b60c2ef3ba68eb473b65564e0fd038884407dc684c98309e3141bb53" +
-          "233dfd7022078d14fb2e433c71c6c62bd2019dd83859173a3b6973c62444930c1" +
-          "5d86d4bd1601",
-        "52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd929" +
-          "76b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff0187" +
-          "4496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c01" +
-          "1a32cf9f88053ae",
-      ])
-
-      expect(txJSON.outputs.length).to.be.equal(2)
-      expect(txJSON.outputs[0].value).to.be.equal(11991850)
-      expect(txJSON.outputs[0].script).to.be.equal(
-        "76a914ee4b7569e9063064323332ad07dd18bc32402a0c88ac"
-      )
-      expect(txJSON.outputs[0].address).to.be.equal(
-        "1NizDcdk2mWE45yZr98JJ2dyi2W2zeZUn5"
-      )
-      expect(txJSON.outputs[1].value).to.be.equal(1805173)
-      expect(txJSON.outputs[1].script).to.be.equal(
-        "0020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d"
-      )
-      expect(txJSON.outputs[1].address).to.be.equal(
-        "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
-      )
-    })
-  })
-
-  context("when network is testnet", () => {
-    it("should return correct transaction JSON", () => {
-      const txJSON = txToJSON(testnetTransaction, BitcoinNetwork.Testnet)
-
-      expect(txJSON.hash).to.be.equal(
-        "873effe868161e09ab65e1a23c7cecdc2792995c90ec94973f2fdbc59728ba89"
-      )
-      expect(txJSON.version).to.be.equal(1)
-      expect(txJSON.locktime).to.be.equal(0)
-
-      expect(txJSON.inputs.length).to.be.equal(1)
-      expect(txJSON.inputs[0].hash).to.be.equal(
-        "c0a5ed42f574b4b969ef0df16a70edb60d4a464739c5011bc051a8dedbaab730"
-      )
-      expect(txJSON.inputs[0].index).to.be.equal(0)
-      expect(txJSON.inputs[0].sequence).to.be.equal(4294967295)
-      expect(txJSON.inputs[0].script).to.be.equal(
-        "4830450221009ab9ba3a4c9d81c4ac4431c05eac57388c8332bb191507926a3424" +
-          "ec697ac23802203369c91742a7d5168ba3af429aed4f2d1022749a4ba5052b172b" +
-          "b6776d9a07c1012103548c7fe1d7a66f8e705a4299153b87f4874c80aaed2cf828" +
-          "cd552d6975a01b80"
-      )
-      expect(txJSON.inputs[0].witness).to.deep.equal([])
-
-      expect(txJSON.outputs.length).to.be.equal(1)
-      expect(txJSON.outputs[0].value).to.be.equal(270150)
-      expect(txJSON.outputs[0].script).to.be.equal(
-        "76a914819850140920deeacfee3a63193807daea8fc5d288ac"
-      )
-      expect(txJSON.outputs[0].address).to.be.equal(
-        "msLBvgMp45BN9CaQCoZ4ewjm71Fix7RgB2"
-      )
     })
   })
 })
