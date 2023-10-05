@@ -129,8 +129,6 @@ export class EthersContractHandle<T extends EthersContract> {
     options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<EthersEvent[]> {
-    // TODO: Test if we need a workaround for querying events from big range in chunks,
-    // see: https://github.com/keep-network/tbtc-monitoring/blob/e169357d7b8c638d4eaf73d52aa8f53ee4aebc1d/src/lib/ethereum-helper.js#L44-L73
     return backoffRetrier<EthersEvent[]>(
       options?.retries ?? this._totalRetryAttempts
     )(async () => {

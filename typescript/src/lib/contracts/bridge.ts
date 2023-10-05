@@ -55,7 +55,7 @@ export interface Bridge {
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<string> // TODO: Update to Hex
+  ): Promise<string>
 
   /**
    * Gets a revealed deposit from the on-chain contract.
@@ -180,9 +180,6 @@ export interface Bridge {
    */
   getRedemptionRequestedEvents: GetChainEvents.Function<RedemptionRequestedEvent>
 }
-
-// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
-// strings with a Hex type.
 
 /**
  * Represents a deposit receipt. The receipt holds all information required

@@ -4,7 +4,8 @@ import { utils } from "ethers"
 /**
  * Represents an Ethereum address.
  */
-// TODO: Make Address extends Hex
+// TODO: Make EthereumAddress extends Hex. Remember about keeping the address
+//       validation while creating EthereumAddress instance.
 export class EthereumAddress implements ChainIdentifier {
   readonly identifierHex: string
 
@@ -24,7 +25,6 @@ export class EthereumAddress implements ChainIdentifier {
     return new EthereumAddress(address)
   }
 
-  // TODO: Remove once extends Hex
   equals(otherValue: EthereumAddress): boolean {
     return this.identifierHex === otherValue.identifierHex
   }

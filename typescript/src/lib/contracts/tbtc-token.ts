@@ -20,8 +20,6 @@ export interface TBTCToken {
    *        supply should be fetched for. If this parameter is not set, the
    *        total supply is taken for the latest block.
    */
-  // TODO: Consider adding a custom type to handle conversion from ERC with 1e18
-  //       precision to Bitcoin in 1e8 precision (satoshi).
   totalSupply(blockNumber?: number): Promise<BigNumber>
 
   /**

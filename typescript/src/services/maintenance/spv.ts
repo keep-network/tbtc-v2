@@ -42,9 +42,6 @@ export class Spv {
       confirmations,
       this.bitcoinClient
     )
-    // TODO: Write a converter and use it to convert the transaction part of the
-    // proof to the decomposed transaction data (version, inputs, outputs, locktime).
-    // Use raw transaction data for now.
     const rawTransaction = await this.bitcoinClient.getRawTransaction(
       transactionHash
     )
@@ -78,9 +75,6 @@ export class Spv {
       confirmations,
       this.bitcoinClient
     )
-    // TODO: Write a converter and use it to convert the transaction part of the
-    // proof to the decomposed transaction data (version, inputs, outputs, locktime).
-    // Use raw transaction data for now.
     const rawTransaction = await this.bitcoinClient.getRawTransaction(
       transactionHash
     )

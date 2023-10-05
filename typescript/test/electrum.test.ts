@@ -18,7 +18,7 @@ import https from "https"
 const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
 const testnetCredentials: ElectrumCredentials[] = [
-  // TODO: Enable all protocols test for test.tbtc.network servers once they are
+  // FIXME: Enable all protocols test for test.tbtc.network servers once they are
   // publicly exposed.
   // // electrumx tcp
   // {
@@ -138,7 +138,8 @@ describe.skip("Electrum", () => {
           )
           expect(result).to.be.eql(testnetTransaction)
         })
-        // TODO: Add case when transaction doesn't exist
+
+        // TODO: Add case when transaction doesn't exist.
       })
 
       describe("getRawTransaction", () => {

@@ -650,7 +650,9 @@ describe("Deposit", () => {
   })
 
   describe("Deposit", () => {
-    describe("", () => {
+    // TODO: Implement unit tests for other functions.
+
+    describe("initiateMinting", () => {
       describe("auto funding outpoint detection mode", () => {
         // TODO: Unit test for this case.
       })

@@ -603,11 +603,6 @@ class Redemption {
       totalOutputsValue = totalOutputsValue.add(outputValue)
 
       // Add the fee for this particular request to the overall transaction fee
-      // TODO: Using the maximum allowed transaction fee for the request (`txMaxFee`)
-      //       as the transaction fee for now. In the future allow the caller to
-      //       propose the value of the transaction fee. If the proposed transaction
-      //       fee is smaller than the sum of fee shares from all the outputs then
-      //       use the proposed fee and add the difference to outputs proportionally.
       txTotalFee = txTotalFee.add(request.txMaxFee)
 
       transaction.addOutput({
