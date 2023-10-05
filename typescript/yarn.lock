@@ -2496,79 +2496,12 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-"bcfg@git+https://github.com/bcoin-org/bcfg.git#semver:~0.1.7":
-  version "0.1.7"
-  resolved "git+https://github.com/bcoin-org/bcfg.git#05122154b35baa82cd01dc9478ebee7346386ba1"
-  dependencies:
-    bsert "~0.0.10"
-
-"bcoin@git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8":
-  version "2.2.0"
-  resolved "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8"
-  dependencies:
-    bcfg "git+https://github.com/bcoin-org/bcfg.git#semver:~0.1.7"
-    bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
-    bcurl "git+https://github.com/bcoin-org/bcurl.git#semver:^0.1.6"
-    bdb "git+https://github.com/bcoin-org/bdb.git#semver:~1.2.1"
-    bdns "git+https://github.com/bcoin-org/bdns.git#semver:~0.1.5"
-    bevent "git+https://github.com/bcoin-org/bevent.git#semver:~0.1.5"
-    bfile "git+https://github.com/bcoin-org/bfile.git#semver:~0.2.1"
-    bfilter "git+https://github.com/bcoin-org/bfilter.git#semver:~2.3.0"
-    bheep "git+https://github.com/bcoin-org/bheep.git#semver:~0.1.5"
-    binet "git+https://github.com/bcoin-org/binet.git#semver:~0.3.5"
-    blgr "git+https://github.com/bcoin-org/blgr.git#semver:~0.2.0"
-    blru "git+https://github.com/bcoin-org/blru.git#semver:~0.1.6"
-    blst "git+https://github.com/bcoin-org/blst.git#semver:~0.1.5"
-    bmutex "git+https://github.com/bcoin-org/bmutex.git#semver:~0.1.6"
-    brq "git+https://github.com/bcoin-org/brq.git#semver:~0.1.7"
-    bs32 "git+https://github.com/bcoin-org/bs32.git#semver:=0.1.6"
-    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
-    bsock "git+https://github.com/bcoin-org/bsock.git#semver:~0.1.9"
-    bsocks "git+https://github.com/bcoin-org/bsocks.git#semver:~0.2.6"
-    btcp "git+https://github.com/bcoin-org/btcp.git#semver:~0.1.5"
-    buffer-map "git+https://github.com/chjj/buffer-map.git#semver:~0.0.7"
-    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
-    bupnp "git+https://github.com/bcoin-org/bupnp.git#semver:~0.2.6"
-    bval "git+https://github.com/bcoin-org/bval.git#semver:~0.1.6"
-    bweb "git+https://github.com/bcoin-org/bweb.git#semver:=0.1.9"
-    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
-    n64 "git+https://github.com/chjj/n64.git#semver:~0.2.10"
-    nan "git+https://github.com/braydonf/nan.git#semver:=2.14.0"
-
 bcrypt-pbkdf@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/bcrypt-pbkdf/-/bcrypt-pbkdf-1.0.2.tgz#a4301d389b6a43f9b67ff3ca11a3f6637e360e9e"
   integrity sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==
   dependencies:
     tweetnacl "^0.14.3"
-
-"bcrypto@git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0":
-  version "5.5.0"
-  resolved "git+https://github.com/bcoin-org/bcrypto.git#34738cf15033e3bce91a4f6f41ec1ebee3c2fdc8"
-  dependencies:
-    bufio "~1.0.7"
-    loady "~0.0.5"
-
-"bcurl@git+https://github.com/bcoin-org/bcurl.git#semver:^0.1.6":
-  version "0.1.10"
-  resolved "git+https://github.com/bcoin-org/bcurl.git#d7e088fad4c284fb5d6fd7205c6b903bd3e6bf83"
-  dependencies:
-    brq "~0.1.8"
-    bsert "~0.0.10"
-    bsock "~0.1.9"
-
-"bdb@git+https://github.com/bcoin-org/bdb.git#semver:~1.2.1":
-  version "1.2.2"
-  resolved "git+https://github.com/bcoin-org/bdb.git#2c8d48c8adca4b11260263472766cd4b7ae74ef7"
-  dependencies:
-    bsert "~0.0.10"
-    loady "~0.0.1"
-
-"bdns@git+https://github.com/bcoin-org/bdns.git#semver:~0.1.5":
-  version "0.1.5"
-  resolved "git+https://github.com/bcoin-org/bdns.git#cb0b62a0075f7e1259fc50fa723ba644e9a07d14"
-  dependencies:
-    bsert "~0.0.10"
 
 bech32@1.1.4:
   version "1.1.4"
@@ -2579,31 +2512,6 @@ bech32@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/bech32/-/bech32-2.0.0.tgz#078d3686535075c8c79709f054b1b226a133b355"
   integrity sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==
-
-"bevent@git+https://github.com/bcoin-org/bevent.git#semver:~0.1.5":
-  version "0.1.5"
-  resolved "git+https://github.com/bcoin-org/bevent.git#60fb503de3ea1292d29ce438bfba80f0bc5ccb60"
-  dependencies:
-    bsert "~0.0.10"
-
-"bfile@git+https://github.com/bcoin-org/bfile.git#semver:~0.2.1":
-  version "0.2.2"
-  resolved "git+https://github.com/bcoin-org/bfile.git#c3075133a02830dc384f8353d8275d4499b8bff9"
-
-"bfilter@git+https://github.com/bcoin-org/bfilter.git#semver:~2.3.0":
-  version "2.3.0"
-  resolved "git+https://github.com/bcoin-org/bfilter.git#70e42125f877191d340e8838a1a90fabb750e680"
-  dependencies:
-    bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
-    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
-    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
-    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
-
-"bheep@git+https://github.com/bcoin-org/bheep.git#semver:~0.1.5":
-  version "0.1.5"
-  resolved "git+https://github.com/bcoin-org/bheep.git#e59329d0a776ae71b2fb7a2876ee5b9fd3030fa2"
-  dependencies:
-    bsert "~0.0.10"
 
 big-integer@^1.6.44:
   version "1.6.51"
@@ -2636,13 +2544,6 @@ bindings@^1.3.0:
   integrity sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==
   dependencies:
     file-uri-to-path "1.0.0"
-
-"binet@git+https://github.com/bcoin-org/binet.git#semver:~0.3.5", binet@~0.3.5:
-  version "0.3.6"
-  resolved "git+https://github.com/bcoin-org/binet.git#d3decfb7a7257abdfb03c3a9c091499b2ebff0e1"
-  dependencies:
-    bs32 "~0.1.5"
-    bsert "~0.0.10"
 
 bip174@^2.0.1:
   version "2.1.1"
@@ -2718,18 +2619,6 @@ blakejs@^1.1.0:
   resolved "https://registry.yarnpkg.com/blakejs/-/blakejs-1.2.1.tgz#5057e4206eadb4a97f7c0b6e197a505042fc3814"
   integrity sha512-QXUSXI3QVc/gJME0dBpXrag1kbzOqCjCX8/b54ntNyW6sjtoqxqRk3LTmXzaJoh71zMsDCjM+47jS7XiwN/+fQ==
 
-"blgr@git+https://github.com/bcoin-org/blgr.git#semver:~0.2.0":
-  version "0.2.0"
-  resolved "git+https://github.com/bcoin-org/blgr.git#050cbb587a1654a078468dbb92606330fdc4d120"
-  dependencies:
-    bsert "~0.0.10"
-
-"blru@git+https://github.com/bcoin-org/blru.git#semver:~0.1.6":
-  version "0.1.6"
-  resolved "git+https://github.com/bcoin-org/blru.git#c2c093e9475439333dfb87bfb2fdc3be6c98b080"
-  dependencies:
-    bsert "~0.0.10"
-
 "bls12377js@https://github.com/celo-org/bls12377js#400bcaeec9e7620b040bfad833268f5289699cac":
   version "0.1.0"
   resolved "https://github.com/celo-org/bls12377js#400bcaeec9e7620b040bfad833268f5289699cac"
@@ -2754,22 +2643,10 @@ blakejs@^1.1.0:
     ts-node "^8.4.1"
     typescript "^3.6.4"
 
-"blst@git+https://github.com/bcoin-org/blst.git#semver:~0.1.5":
-  version "0.1.5"
-  resolved "git+https://github.com/bcoin-org/blst.git#d588403edb18e628899e05aeba8c3a98a5cdedff"
-  dependencies:
-    bsert "~0.0.10"
-
 bluebird@^3.5.0, bluebird@^3.5.2:
   version "3.7.2"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
-
-"bmutex@git+https://github.com/bcoin-org/bmutex.git#semver:~0.1.6":
-  version "0.1.6"
-  resolved "git+https://github.com/bcoin-org/bmutex.git#e50782323932a4946ecc05a74c6d45861adc2c25"
-  dependencies:
-    bsert "~0.0.10"
 
 bn.js@4.11.6:
   version "4.11.6"
@@ -2893,18 +2770,6 @@ browserify-sign@^4.0.0:
     readable-stream "^3.6.0"
     safe-buffer "^5.2.0"
 
-"brq@git+https://github.com/bcoin-org/brq.git#semver:~0.1.7", brq@~0.1.7, brq@~0.1.8:
-  version "0.1.8"
-  resolved "git+https://github.com/bcoin-org/brq.git#534bb2c83fb366ba40ad80bc3de796a174503294"
-  dependencies:
-    bsert "~0.0.10"
-
-"bs32@git+https://github.com/bcoin-org/bs32.git#semver:=0.1.6", bs32@~0.1.5:
-  version "0.1.6"
-  resolved "git+https://github.com/bcoin-org/bs32.git#21cf9c724659dc15df722d2410548828c142f265"
-  dependencies:
-    bsert "~0.0.10"
-
 bs58@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/bs58/-/bs58-4.0.1.tgz#be161e76c354f6f788ae4071f63f34e8c4f0a42a"
@@ -2920,27 +2785,6 @@ bs58check@<3.0.0, bs58check@^2.1.1, bs58check@^2.1.2:
     bs58 "^4.0.0"
     create-hash "^1.1.0"
     safe-buffer "^5.1.2"
-
-"bsert@git+https://github.com/chjj/bsert.git#semver:~0.0.10", bsert@~0.0.10:
-  version "0.0.10"
-  resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
-
-"bsock@git+https://github.com/bcoin-org/bsock.git#semver:~0.1.9", bsock@~0.1.8, bsock@~0.1.9:
-  version "0.1.9"
-  resolved "git+https://github.com/bcoin-org/bsock.git#7cf76b3021ae7929c023d1170f789811e91ae528"
-  dependencies:
-    bsert "~0.0.10"
-
-"bsocks@git+https://github.com/bcoin-org/bsocks.git#semver:~0.2.6":
-  version "0.2.6"
-  resolved "git+https://github.com/bcoin-org/bsocks.git#6a8eb764dc4408e7f47da4f84e1afb1b393117e8"
-  dependencies:
-    binet "~0.3.5"
-    bsert "~0.0.10"
-
-"btcp@git+https://github.com/bcoin-org/btcp.git#semver:~0.1.5":
-  version "0.1.5"
-  resolved "git+https://github.com/bcoin-org/btcp.git#4ea7e1ce5a43cd5348152c007aff76a419190a3a"
 
 buffer-alloc-unsafe@^1.1.0:
   version "1.1.0"
@@ -2969,10 +2813,6 @@ buffer-from@^1.0.0:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-1.1.2.tgz#2b146a6fd72e80b4f55d255f35ed59a3a9a41bd5"
   integrity sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==
-
-"buffer-map@git+https://github.com/chjj/buffer-map.git#semver:~0.0.7":
-  version "0.0.7"
-  resolved "git+https://github.com/chjj/buffer-map.git#bad5863af9a520701937a17fc8fa2bd8ca8e73f3"
 
 buffer-reverse@^1.0.1:
   version "1.0.1"
@@ -3026,30 +2866,9 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "^4.3.0"
 
-bufio@^1.0.6, "bufio@git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6", bufio@~1.0.7:
+bufio@^1.0.6:
   version "1.0.7"
   resolved "git+https://github.com/bcoin-org/bufio.git#91ae6c93899ff9fad7d7cee9afd2a1c4933ca984"
-
-"bupnp@git+https://github.com/bcoin-org/bupnp.git#semver:~0.2.6":
-  version "0.2.6"
-  resolved "git+https://github.com/bcoin-org/bupnp.git#c44fa7356aa297c9de96e8ad094a6816939cd688"
-  dependencies:
-    binet "~0.3.5"
-    brq "~0.1.7"
-    bsert "~0.0.10"
-
-"bval@git+https://github.com/bcoin-org/bval.git#semver:~0.1.6":
-  version "0.1.6"
-  resolved "git+https://github.com/bcoin-org/bval.git#c8cd14419ca46f63610dc48b797b076835e86f48"
-  dependencies:
-    bsert "~0.0.10"
-
-"bweb@git+https://github.com/bcoin-org/bweb.git#semver:=0.1.9":
-  version "0.1.9"
-  resolved "git+https://github.com/bcoin-org/bweb.git#31ae94ec9e97079610394e91928fe070d312c39d"
-  dependencies:
-    bsert "~0.0.10"
-    bsock "~0.1.8"
 
 bytes@3.1.2:
   version "3.1.2"
@@ -5726,10 +5545,6 @@ load-json-file@^1.0.0:
     pinkie-promise "^2.0.0"
     strip-bom "^2.0.0"
 
-"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1", loady@~0.0.1, loady@~0.0.5:
-  version "0.0.5"
-  resolved "git+https://github.com/chjj/loady.git#b94958b7ee061518f4b85ea6da380e7ee93222d5"
-
 locate-path@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/locate-path/-/locate-path-2.0.0.tgz#2b568b265eec944c6d9c0de9c3dbbbca0354cd8e"
@@ -6148,18 +5963,10 @@ multihashes@^0.4.15, multihashes@~0.4.15:
     multibase "^0.7.0"
     varint "^5.0.0"
 
-"n64@git+https://github.com/chjj/n64.git#semver:~0.2.10":
-  version "0.2.10"
-  resolved "git+https://github.com/chjj/n64.git#34f981f1441f569821d97a31f8cf21a3fc11b8f6"
-
 nan@^2.13.2, nan@^2.14.0:
   version "2.15.0"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.15.0.tgz#3f34a473ff18e15c1b5626b62903b5ad6e665fee"
   integrity sha512-8ZtvEnA2c5aYCZYd1cvgdnU6cqwixRoYg70xPLWUws5ORTa/lnw+u4amixRS/Ac5U5mQVgp9pnlSUnbNWFaWZQ==
-
-"nan@git+https://github.com/braydonf/nan.git#semver:=2.14.0":
-  version "2.14.0"
-  resolved "git+https://github.com/braydonf/nan.git#1dcc61bd06d84e389bfd5311b2b1492a14c74201"
 
 nano-json-stream-parser@^0.1.2:
   version "0.1.2"
