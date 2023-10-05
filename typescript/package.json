@@ -26,7 +26,7 @@
   "dependencies": {
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
-    "bitcoinjs-lib": "6.0.2",
+    "bitcoinjs-lib": "^6.1.5",
     "bufio": "^1.0.6",
     "ecpair": "^2.1.0",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
@@ -58,6 +58,6 @@
     "typescript": "^4.3.5"
   },
   "engines": {
-    "node": ">=14 <15"
+    "node": ">=16"
   }
 }
