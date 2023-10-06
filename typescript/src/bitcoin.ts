@@ -1,14 +1,8 @@
-import bcoin, { TX, Script } from "bcoin"
-import wif from "wif"
 import bufio from "bufio"
 import { BigNumber, utils } from "ethers"
 import { Hex } from "./hex"
-import {
-  BitcoinNetwork,
-  toBcoinNetwork,
-  toBitcoinJsLibNetwork,
-} from "./bitcoin-network"
-import { payments } from "bitcoinjs-lib"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./bitcoin-network"
+import { Transaction as Tx, address, payments } from "bitcoinjs-lib"
 
 /**
  * Represents a transaction hash (or transaction ID) as an un-prefixed hex
@@ -412,46 +406,53 @@ export interface Client {
 export function decomposeRawTransaction(
   rawTransaction: RawTransaction
 ): DecomposedRawTransaction {
-  const toHex = (bufferWriter: any) => {
+  const toHex = (bufferWriter: any): string => {
     return bufferWriter.render().toString("hex")
   }
 
-  const vectorToRaw = (elements: any[]) => {
+  const getTxInputVector = (tx: Tx): string => {
     const buffer = bufio.write()
-    buffer.writeVarint(elements.length)
-    for (const element of elements) {
-      element.toWriter(buffer)
-    }
+    buffer.writeVarint(tx.ins.length)
+    tx.ins.forEach((input) => {
+      buffer.writeHash(input.hash)
+      buffer.writeU32(input.index)
+      buffer.writeVarBytes(input.script)
+      buffer.writeU32(input.sequence)
+    })
     return toHex(buffer)
   }
 
-  const getTxInputVector = (tx: any) => {
-    return vectorToRaw(tx.inputs)
+  const getTxOutputVector = (tx: Tx): string => {
+    const buffer = bufio.write()
+    buffer.writeVarint(tx.outs.length)
+    tx.outs.forEach((output) => {
+      buffer.writeI64(output.value)
+      buffer.writeVarBytes(output.script)
+    })
+    return toHex(buffer)
   }
 
-  const getTxOutputVector = (tx: any) => {
-    return vectorToRaw(tx.outputs)
-  }
-
-  const getTxVersion = (tx: any) => {
+  const getTxVersion = (tx: Tx): string => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: any) => {
+  const getTxLocktime = (tx: Tx): string => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
   }
 
-  const tx = TX.fromRaw(Buffer.from(rawTransaction.transactionHex, "hex"), null)
+  const transaction = Tx.fromBuffer(
+    Buffer.from(rawTransaction.transactionHex, "hex")
+  )
 
   return {
-    version: getTxVersion(tx),
-    inputs: getTxInputVector(tx),
-    outputs: getTxOutputVector(tx),
-    locktime: getTxLocktime(tx),
+    version: getTxVersion(transaction),
+    inputs: getTxInputVector(transaction),
+    outputs: getTxOutputVector(transaction),
+    locktime: getTxLocktime(transaction),
   }
 }
 
@@ -500,26 +501,6 @@ export function compressPublicKey(publicKey: string | Hex): string {
   }
 
   return `${prefix}${publicKeyX}`
-}
-
-/**
- * Creates a Bitcoin key ring based on the given private key.
- * @param privateKey Private key that should be used to create the key ring
- * @param witness Flag indicating whether the key ring will create witness
- *        or non-witness addresses
- * @returns Bitcoin key ring.
- */
-export function createKeyRing(
-  privateKey: string,
-  witness: boolean = true
-): any {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  return new bcoin.KeyRing({
-    witness: witness,
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
 }
 
 /**
@@ -573,39 +554,49 @@ export function hashLEToBigNumber(hash: Hex): BigNumber {
  *        unprefixed hex string (without 0x prefix).
  * @param witness - If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
- * @param network - Network the address should be encoded for.
+ * @param bitcoinNetwork - Network the address should be encoded for.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
  * @throws Throws an error if network is not supported.
  */
 export function encodeToBitcoinAddress(
   publicKeyHash: string,
   witness: boolean,
-  network: BitcoinNetwork
+  bitcoinNetwork: BitcoinNetwork
 ): string {
-  const buffer = Buffer.from(publicKeyHash, "hex")
-  const bcoinNetwork = toBcoinNetwork(network)
+  const hash = Buffer.from(publicKeyHash, "hex")
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   return witness
-    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(bcoinNetwork)
-    : bcoin.Address.fromPubkeyhash(buffer).toString(bcoinNetwork)
+    ? payments.p2wpkh({ hash, network }).address!
+    : payments.p2pkh({ hash, network }).address!
 }
 
 /**
  * Decodes P2PKH or P2WPKH address into a public key hash. Throws if the
  * provided address is not PKH-based.
- * @param address - P2PKH or P2WPKH address that will be decoded.
+ * @param bitcoinAddress - P2PKH or P2WPKH address that will be decoded.
+ * @param bitcoinNetwork - Bitcoin network.
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix).
  */
-export function decodeBitcoinAddress(address: string): string {
-  const addressObject = new bcoin.Address(address)
+export function decodeBitcoinAddress(
+  bitcoinAddress: string,
+  bitcoinNetwork: BitcoinNetwork
+): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
 
-  const isPKH =
-    addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
-  if (!isPKH) {
-    throw new Error("Address must be P2PKH or P2WPKH")
-  }
+  try {
+    // Try extracting hash from P2PKH address.
+    const hash = payments.p2pkh({ address: bitcoinAddress, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
 
-  return addressObject.getHash("hex")
+  try {
+    // Try extracting hash from P2WPKH address.
+    const hash = payments.p2wpkh({ address: bitcoinAddress, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
+
+  throw new Error("Address must be P2PKH or P2WPKH valid for given network")
 }
 
 /**
@@ -637,26 +628,36 @@ export function locktimeToNumber(locktimeLE: Buffer | string): number {
 
 /**
  * Creates the output script from the BTC address.
- * @param address BTC address.
+ * @param bitcoinAddress Bitcoin address.
+ * @param bitcoinNetwork Bitcoin network.
  * @returns The un-prefixed and not prepended with length output script.
  */
-export function createOutputScriptFromAddress(address: string): Hex {
-  return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
+export function createOutputScriptFromAddress(
+  bitcoinAddress: string,
+  bitcoinNetwork: BitcoinNetwork
+): Hex {
+  return Hex.from(
+    address.toOutputScript(
+      bitcoinAddress,
+      toBitcoinJsLibNetwork(bitcoinNetwork)
+    )
+  )
 }
 
 /**
  * Creates the Bitcoin address from the output script.
  * @param script The unprefixed and not prepended with length output script.
- * @param network Bitcoin network.
+ * @param bitcoinNetwork Bitcoin network.
  * @returns The Bitcoin address.
  */
 export function createAddressFromOutputScript(
   script: Hex,
-  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+  bitcoinNetwork: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {
-  return Script.fromRaw(script.toString(), "hex")
-    .getAddress()
-    ?.toString(toBcoinNetwork(network))
+  return address.fromOutputScript(
+    script.toBuffer(),
+    toBitcoinJsLibNetwork(bitcoinNetwork)
+  )
 }
 
 /**

@@ -122,7 +122,10 @@ export async function assembleDepositRefundTransaction(
     utxo.outputIndex
   )
 
-  const outputScript = createOutputScriptFromAddress(refunderAddress)
+  const outputScript = createOutputScriptFromAddress(
+    refunderAddress,
+    bitcoinNetwork
+  )
   transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
 
   // In order to be able to spend the UTXO being refunded the transaction's

@@ -11,7 +11,7 @@ import {
 } from "../../src/bitcoin"
 import { RedemptionRequest } from "../../src/redemption"
 import { Address } from "../../src/ethereum"
-import { BitcoinTransaction, Hex } from "../../src"
+import { BitcoinNetwork, BitcoinTransaction, Hex } from "../../src"
 import { WalletState } from "../../src/wallet"
 
 /**
@@ -723,7 +723,8 @@ export const findWalletForRedemptionData: {
               outputIndex: 0,
               value: BigNumber.from("791613461"),
               scriptPubKey: createOutputScriptFromAddress(
-                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja"
+                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
+                BitcoinNetwork.Testnet
               ),
             },
           ],
@@ -848,7 +849,8 @@ export const findWalletForRedemptionData: {
               outputIndex: 0,
               value: BigNumber.from("3370000"), // 0.0337 BTC
               scriptPubKey: createOutputScriptFromAddress(
-                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh"
+                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
+                BitcoinNetwork.Testnet
               ),
             },
           ],

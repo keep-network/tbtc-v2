@@ -13,8 +13,7 @@
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts",
     "build": "npm run typechain && tsc --project tsconfig.build.json",
-    "dev": "tsc --project tsconfig.build.json --watch",
-    "postinstall": "npm rebuild bcrypto"
+    "dev": "tsc --project tsconfig.build.json --watch"
   },
   "files": [
     "dist/",
@@ -27,7 +26,6 @@
   "dependencies": {
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
-    "bcoin": "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8",
     "bitcoinjs-lib": "6.0.2",
     "bufio": "^1.0.6",
     "ecpair": "^2.1.0",
@@ -61,8 +59,5 @@
   },
   "engines": {
     "node": ">=14 <15"
-  },
-  "browser": {
-    "bcoin": "bcoin/lib/bcoin-browser"
   }
 }
