@@ -3,7 +3,6 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-  txToJSON,
 } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
@@ -31,6 +30,7 @@ import {
   submitRedemptionProof,
   submitRedemptionTransaction,
 } from "../src/redemption"
+import { txToJSON } from "./utils/helpers"
 import { MockBridge } from "./utils/mock-bridge"
 import * as chai from "chai"
 import chaiAsPromised from "chai-as-promised"
