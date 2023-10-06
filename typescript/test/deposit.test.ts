@@ -12,7 +12,6 @@ import {
   RawTransaction,
   TransactionHash,
   UnspentTransactionOutput,
-  txToJSON,
 } from "../src/bitcoin"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import {
@@ -30,6 +29,7 @@ import {
   suggestDepositWallet,
 } from "../src/deposit"
 import { MockBridge } from "./utils/mock-bridge"
+import { txToJSON } from "./utils/helpers"
 import { Address } from "../src/ethereum"
 import { BitcoinNetwork } from "../src"
 
