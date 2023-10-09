@@ -281,6 +281,7 @@ contract L2WormholeGateway is
     ///      - The receiver of the canonical tBTC should be abi-encoded in the
     ///        payload.
     ///      - The receiver of the canonical tBTC must not be the zero address.
+    ///
     ///      The Wormhole Token Bridge contract has protection against redeeming
     ///      the same VAA again. When a Token Bridge VAA is redeemed, its
     ///      message body hash is stored in a map. This map is used to check
@@ -320,15 +321,13 @@ contract L2WormholeGateway is
         if (mintedAmount + amount > mintingLimit) {
             bridgeToken.safeTransfer(receiver, amount);
         } else {
-            // The function is non-reentrant given bridge.completeTransferWithPayload
-            // call that does not allow to use the same VAA again.
+            // The function is non-reentrant.
             // slither-disable-next-line reentrancy-benign
             mintedAmount += amount;
             tbtc.mint(receiver, amount);
         }
 
-        // The function is non-reentrant given bridge.completeTransferWithPayload
-        // call that does not allow to use the same VAA again.
+        // The function is non-reentrant.
         // slither-disable-next-line reentrancy-events
         emit WormholeTbtcReceived(receiver, amount);
     }
