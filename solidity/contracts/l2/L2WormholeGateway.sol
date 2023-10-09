@@ -331,27 +331,6 @@ contract L2WormholeGateway is
         emit WormholeTbtcReceived(receiver, amount);
     }
 
-    /// @notice Allows to deposit Wormhole tBTC token in exchange for canonical
-    ///         tBTC. Useful in a situation when user received wormhole tBTC
-    ///         instead of canonical tBTC. One example of such situation is
-    ///         when the minting limit was exceeded but the user minted anyway.
-    /// @dev Requirements:
-    ///      - The sender must have at least `amount` of the Wormhole tBTC and
-    ///        it has to be approved for L2WormholeGateway.
-    ///      - The minting limit must allow for minting the given amount.
-    /// @param amount The amount of Wormhole tBTC to deposit.
-    function depositWormholeTbtc(uint256 amount) external {
-        require(
-            mintedAmount + amount <= mintingLimit,
-            "Minting limit exceeded"
-        );
-
-        emit WormholeTbtcDeposited(msg.sender, amount);
-        mintedAmount += amount;
-        bridgeToken.safeTransferFrom(msg.sender, address(this), amount);
-        tbtc.mint(msg.sender, amount);
-    }
-
     /// @notice Lets the governance to update the tBTC gateway address on the
     ///         chain with the given Wormhole ID.
     /// @dev Use toWormholeAddress function to convert between Ethereum and
