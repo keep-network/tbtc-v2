@@ -285,10 +285,12 @@ contract L2WormholeGateway is
     ///      the same VAA again. When a Token Bridge VAA is redeemed, its
     ///      message body hash is stored in a map. This map is used to check
     ///      whether the hash has already been set in this map. For this reason,
-    ///      this function does not have to be nonReentrant.
+    ///      this function does not have to be nonReentrant in theory. However,
+    ///      to make this function non-dependent on Wormhole Bridge implementation,
+    ///      we are making it nonReentrant anyway.
     /// @param encodedVm A byte array containing a Wormhole VAA signed by the
     ///        guardians.
-    function receiveTbtc(bytes calldata encodedVm) external {
+    function receiveTbtc(bytes calldata encodedVm) external nonReentrant {
         // ITokenBridge.completeTransferWithPayload completes a contract-controlled
         // transfer of an ERC20 token. Calling this function is not enough to
         // ensure L2WormholeGateway received Wormhole tBTC representation.
