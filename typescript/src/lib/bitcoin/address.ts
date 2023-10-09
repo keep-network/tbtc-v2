@@ -1,6 +1,36 @@
 import bcoin, { Script } from "bcoin"
 import { Hex } from "../utils"
-import { BitcoinNetwork, toBcoinNetwork } from "./network"
+import {
+  BitcoinNetwork,
+  toBcoinNetwork,
+  toBitcoinJsLibNetwork,
+} from "./network"
+import { payments } from "bitcoinjs-lib"
+
+/**
+ * Creates the Bitcoin address from the public key. Supports SegWit (P2WPKH) and
+ * Legacy (P2PKH) formats.
+ * @param publicKey - Public key used to derive the Bitcoin address.
+ * @param bitcoinNetwork - Target Bitcoin network.
+ * @param witness - Flag to determine address format: true for SegWit (P2WPKH)
+ *        and false for Legacy (P2PKH). Default is true.
+ * @returns The derived Bitcoin address.
+ */
+export function publicKeyToAddress(
+  publicKey: Hex,
+  bitcoinNetwork: BitcoinNetwork,
+  witness: boolean = true
+): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
+
+  if (witness) {
+    // P2WPKH (SegWit)
+    return payments.p2wpkh({ pubkey: publicKey.toBuffer(), network }).address!
+  } else {
+    // P2PKH (Legacy)
+    return payments.p2pkh({ pubkey: publicKey.toBuffer(), network }).address!
+  }
+}
 
 /**
  * Converts a public key hash into a P2PKH/P2WPKH address.
@@ -71,6 +101,7 @@ function outputScriptToAddress(
  * Utility functions allowing to perform Bitcoin address conversions.
  */
 export const BitcoinAddressConverter = {
+  publicKeyToAddress,
   publicKeyHashToAddress,
   addressToPublicKeyHash,
   addressToOutputScript,

@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers"
 import {
+  BitcoinNetwork,
   BitcoinRawTx,
   BitcoinTxHash,
   BitcoinUtxo,
@@ -39,8 +40,6 @@ describe("Sweep", () => {
         let bitcoinClient: MockBitcoinClient
 
         beforeEach(async () => {
-          bcoin.set("testnet")
-
           tbtcContracts = new MockTBTCContracts()
           bitcoinClient = new MockBitcoinClient()
         })
@@ -430,6 +429,7 @@ describe("Sweep", () => {
                   newMainUtxo,
                   rawTransaction: transaction,
                 } = await walletTx.depositSweep.assembleTransaction(
+                  BitcoinNetwork.Testnet,
                   fee,
                   testnetWalletPrivateKey,
                   utxosWithRaw,
@@ -570,6 +570,7 @@ describe("Sweep", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await walletTx.depositSweep.assembleTransaction(
+                    BitcoinNetwork.Testnet,
                     fee,
                     testnetWalletPrivateKey,
                     utxosWithRaw,
@@ -726,6 +727,7 @@ describe("Sweep", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await walletTx.depositSweep.assembleTransaction(
+                    BitcoinNetwork.Testnet,
                     fee,
                     testnetWalletPrivateKey,
                     utxosWithRaw,
@@ -753,25 +755,7 @@ describe("Sweep", () => {
                   // Validate inputs.
                   expect(txJSON.inputs.length).to.be.equal(2)
 
-                  const p2wshInput = txJSON.inputs[0]
-                  expect(p2wshInput.prevout.hash).to.be.equal(
-                    depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits[0].utxo.transactionHash.toString()
-                  )
-                  expect(p2wshInput.prevout.index).to.be.equal(
-                    depositSweepWithNonWitnessMainUtxoAndWitnessOutput
-                      .deposits[0].utxo.outputIndex
-                  )
-                  // Transaction should be signed. As it's a SegWit input, the `witness`
-                  // field should be filled, while the `script` field should be empty.
-                  expect(p2wshInput.witness.length).to.be.greaterThan(0)
-                  expect(p2wshInput.script.length).to.be.equal(0)
-                  // Input's address should be set to the address generated from deposit
-                  // script hash
-                  expect(p2wshInput.address).to.be.equal(
-                    "tb1qk8urugnf08wfle6wslmdxq7mkz9z0gw8e6gkvspn7dx87tfpfntshdm7qr"
-                  )
-
-                  const p2pkhInput = txJSON.inputs[1] // main UTXO
+                  const p2pkhInput = txJSON.inputs[0] // main UTXO
                   expect(p2pkhInput.prevout.hash).to.be.equal(
                     depositSweepWithNonWitnessMainUtxoAndWitnessOutput.mainUtxo.transactionHash.toString()
                   )
@@ -787,6 +771,24 @@ describe("Sweep", () => {
                   // wallet's address
                   expect(p2pkhInput.address).to.be.equal(
                     "mtSEUCE7G8om9zJttG9twtjoiSsUz7QnY9"
+                  )
+
+                  const p2wshInput = txJSON.inputs[1]
+                  expect(p2wshInput.prevout.hash).to.be.equal(
+                    depositSweepWithNonWitnessMainUtxoAndWitnessOutput.deposits[0].utxo.transactionHash.toString()
+                  )
+                  expect(p2wshInput.prevout.index).to.be.equal(
+                    depositSweepWithNonWitnessMainUtxoAndWitnessOutput
+                      .deposits[0].utxo.outputIndex
+                  )
+                  // Transaction should be signed. As it's a SegWit input, the `witness`
+                  // field should be filled, while the `script` field should be empty.
+                  expect(p2wshInput.witness.length).to.be.greaterThan(0)
+                  expect(p2wshInput.script.length).to.be.equal(0)
+                  // Input's address should be set to the address generated from deposit
+                  // script hash
+                  expect(p2wshInput.address).to.be.equal(
+                    "tb1qk8urugnf08wfle6wslmdxq7mkz9z0gw8e6gkvspn7dx87tfpfntshdm7qr"
                   )
 
                   // Validate outputs.
@@ -860,6 +862,7 @@ describe("Sweep", () => {
               newMainUtxo,
               rawTransaction: transaction,
             } = await walletTx.depositSweep.assembleTransaction(
+              BitcoinNetwork.Testnet,
               fee,
               testnetWalletPrivateKey,
               utxosWithRaw,
@@ -948,6 +951,7 @@ describe("Sweep", () => {
 
             await expect(
               walletTx.depositSweep.assembleTransaction(
+                BitcoinNetwork.Testnet,
                 fee,
                 testnetWalletPrivateKey,
                 [],
@@ -985,6 +989,7 @@ describe("Sweep", () => {
 
               await expect(
                 walletTx.depositSweep.assembleTransaction(
+                  BitcoinNetwork.Testnet,
                   fee,
                   testnetWalletPrivateKey,
                   utxosWithRaw,
@@ -1025,6 +1030,7 @@ describe("Sweep", () => {
 
             await expect(
               walletTx.depositSweep.assembleTransaction(
+                BitcoinNetwork.Testnet,
                 fee,
                 testnetWalletPrivateKey,
                 [utxoWithRaw],
@@ -1050,6 +1056,7 @@ describe("Sweep", () => {
 
               await expect(
                 walletTx.depositSweep.assembleTransaction(
+                  BitcoinNetwork.Testnet,
                   fee,
                   anotherPrivateKey,
                   [utxoWithRaw],
@@ -1084,6 +1091,7 @@ describe("Sweep", () => {
 
             await expect(
               walletTx.depositSweep.assembleTransaction(
+                BitcoinNetwork.Testnet,
                 fee,
                 testnetWalletPrivateKey,
                 [utxoWithRaw],
@@ -1103,8 +1111,6 @@ describe("Sweep", () => {
       let maintenanceService: MaintenanceService
 
       beforeEach(async () => {
-        bcoin.set("testnet")
-
         bitcoinClient = new MockBitcoinClient()
         tbtcContracts = new MockTBTCContracts()
 

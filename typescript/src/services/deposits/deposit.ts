@@ -12,8 +12,7 @@ import {
   extractBitcoinRawTxVectors,
   toBcoinNetwork,
 } from "../../lib/bitcoin"
-
-const { opcodes } = bcoin.script.common
+import { Stack, script, opcodes } from "bitcoinjs-lib"
 
 /**
  * Component representing an instance of the tBTC v2 deposit process.
@@ -193,33 +192,31 @@ export class DepositScript {
    * @returns Plain-text deposit script as an un-prefixed hex string.
    */
   async getPlainText(): Promise<string> {
-    // All HEXes pushed to the script must be un-prefixed.
-    const script = new bcoin.Script()
-    script.clear()
-    script.pushData(Buffer.from(this.receipt.depositor.identifierHex, "hex"))
-    script.pushOp(opcodes.OP_DROP)
-    script.pushData(Buffer.from(this.receipt.blindingFactor, "hex"))
-    script.pushOp(opcodes.OP_DROP)
-    script.pushOp(opcodes.OP_DUP)
-    script.pushOp(opcodes.OP_HASH160)
-    script.pushData(Buffer.from(this.receipt.walletPublicKeyHash, "hex"))
-    script.pushOp(opcodes.OP_EQUAL)
-    script.pushOp(opcodes.OP_IF)
-    script.pushOp(opcodes.OP_CHECKSIG)
-    script.pushOp(opcodes.OP_ELSE)
-    script.pushOp(opcodes.OP_DUP)
-    script.pushOp(opcodes.OP_HASH160)
-    script.pushData(Buffer.from(this.receipt.refundPublicKeyHash, "hex"))
-    script.pushOp(opcodes.OP_EQUALVERIFY)
-    script.pushData(Buffer.from(this.receipt.refundLocktime, "hex"))
-    script.pushOp(opcodes.OP_CHECKLOCKTIMEVERIFY)
-    script.pushOp(opcodes.OP_DROP)
-    script.pushOp(opcodes.OP_CHECKSIG)
-    script.pushOp(opcodes.OP_ENDIF)
-    script.compile()
+    const chunks: Stack = []
 
-    // Return script as HEX string.
-    return script.toRaw().toString("hex")
+    // All HEXes pushed to the script must be un-prefixed
+    chunks.push(Buffer.from(this.receipt.depositor.identifierHex, "hex"))
+    chunks.push(opcodes.OP_DROP)
+    chunks.push(Buffer.from(this.receipt.blindingFactor, "hex"))
+    chunks.push(opcodes.OP_DROP)
+    chunks.push(opcodes.OP_DUP)
+    chunks.push(opcodes.OP_HASH160)
+    chunks.push(Buffer.from(this.receipt.walletPublicKeyHash, "hex"))
+    chunks.push(opcodes.OP_EQUAL)
+    chunks.push(opcodes.OP_IF)
+    chunks.push(opcodes.OP_CHECKSIG)
+    chunks.push(opcodes.OP_ELSE)
+    chunks.push(opcodes.OP_DUP)
+    chunks.push(opcodes.OP_HASH160)
+    chunks.push(Buffer.from(this.receipt.refundPublicKeyHash, "hex"))
+    chunks.push(opcodes.OP_EQUALVERIFY)
+    chunks.push(Buffer.from(this.receipt.refundLocktime, "hex"))
+    chunks.push(opcodes.OP_CHECKLOCKTIMEVERIFY)
+    chunks.push(opcodes.OP_DROP)
+    chunks.push(opcodes.OP_CHECKSIG)
+    chunks.push(opcodes.OP_ENDIF)
+
+    return script.compile(chunks).toString("hex")
   }
 
   /**
