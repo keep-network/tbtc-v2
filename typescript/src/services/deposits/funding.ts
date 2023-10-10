@@ -3,6 +3,7 @@ import {
   BitcoinAddressConverter,
   BitcoinClient,
   BitcoinNetwork,
+  BitcoinPrivateKeyUtils,
   BitcoinRawTx,
   BitcoinScriptUtils,
   BitcoinTxHash,
@@ -11,8 +12,6 @@ import {
 } from "../../lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Psbt, Transaction } from "bitcoinjs-lib"
-import { ECPairFactory } from "ecpair"
-import * as tinysecp from "tiny-secp256k1"
 import { Hex } from "../../lib/utils"
 
 /**
@@ -72,10 +71,10 @@ export class DepositFunding {
     rawTransaction: BitcoinRawTx
   }> {
     const network = toBitcoinJsLibNetwork(bitcoinNetwork)
-    // eslint-disable-next-line new-cap
-    const depositorKeyPair = ECPairFactory(tinysecp).fromWIF(
+
+    const depositorKeyPair = BitcoinPrivateKeyUtils.createKeyPair(
       depositorPrivateKey,
-      network
+      bitcoinNetwork
     )
 
     const psbt = new Psbt({ network })

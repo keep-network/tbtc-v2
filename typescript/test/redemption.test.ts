@@ -61,8 +61,6 @@ describe("Redemption", () => {
       let bitcoinClient: MockBitcoinClient
 
       beforeEach(async () => {
-        bcoin.set("testnet")
-
         tbtcContracts = new MockTBTCContracts()
         bitcoinClient = new MockBitcoinClient()
 
@@ -818,8 +816,6 @@ describe("Redemption", () => {
         let bitcoinClient: MockBitcoinClient
 
         beforeEach(async () => {
-          bcoin.set("testnet")
-
           tbtcContracts = new MockTBTCContracts()
           bitcoinClient = new MockBitcoinClient()
         })
@@ -1272,6 +1268,7 @@ describe("Redemption", () => {
                         newMainUtxo,
                         rawTransaction: transaction,
                       } = await walletTx.redemption.assembleTransaction(
+                        BitcoinNetwork.Testnet,
                         walletPrivateKey,
                         data.mainUtxo,
                         redemptionRequests
@@ -1396,6 +1393,7 @@ describe("Redemption", () => {
                         newMainUtxo,
                         rawTransaction: transaction,
                       } = await walletTx.redemption.assembleTransaction(
+                        BitcoinNetwork.Testnet,
                         walletPrivateKey,
                         data.mainUtxo,
                         redemptionRequests
@@ -1519,6 +1517,7 @@ describe("Redemption", () => {
                         newMainUtxo,
                         rawTransaction: transaction,
                       } = await walletTx.redemption.assembleTransaction(
+                        BitcoinNetwork.Testnet,
                         walletPrivateKey,
                         data.mainUtxo,
                         redemptionRequests
@@ -1642,6 +1641,7 @@ describe("Redemption", () => {
                         newMainUtxo,
                         rawTransaction: transaction,
                       } = await walletTx.redemption.assembleTransaction(
+                        BitcoinNetwork.Testnet,
                         walletPrivateKey,
                         data.mainUtxo,
                         redemptionRequests
@@ -1764,6 +1764,7 @@ describe("Redemption", () => {
                     newMainUtxo,
                     rawTransaction: transaction,
                   } = await walletTx.redemption.assembleTransaction(
+                    BitcoinNetwork.Testnet,
                     walletPrivateKey,
                     data.mainUtxo,
                     redemptionRequests
@@ -1930,6 +1931,7 @@ describe("Redemption", () => {
                   newMainUtxo,
                   rawTransaction: transaction,
                 } = await walletTx.redemption.assembleTransaction(
+                  BitcoinNetwork.Testnet,
                   walletPrivateKey,
                   data.mainUtxo,
                   redemptionRequests
@@ -2045,6 +2047,7 @@ describe("Redemption", () => {
                 newMainUtxo,
                 rawTransaction: transaction,
               } = await walletTx.redemption.assembleTransaction(
+                BitcoinNetwork.Testnet,
                 walletPrivateKey,
                 data.mainUtxo,
                 redemptionRequests
@@ -2140,6 +2143,7 @@ describe("Redemption", () => {
 
             await expect(
               walletTx.redemption.assembleTransaction(
+                BitcoinNetwork.Testnet,
                 walletPrivateKey,
                 data.mainUtxo,
                 [] // empty list of redemption requests
@@ -2166,8 +2170,6 @@ describe("Redemption", () => {
       let maintenanceService: MaintenanceService
 
       beforeEach(async () => {
-        bcoin.set("testnet")
-
         bitcoinClient = new MockBitcoinClient()
         tbtcContracts = new MockTBTCContracts()
 

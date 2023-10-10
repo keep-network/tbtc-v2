@@ -1,7 +1,8 @@
-import bcoin from "bcoin"
-import wif from "wif"
 import { BigNumber } from "ethers"
 import { Hex } from "../utils"
+import { ECPairFactory, ECPairInterface } from "ecpair"
+import * as tinysecp from "tiny-secp256k1"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
 
 /**
  * Checks whether given public key is a compressed Bitcoin public key.
@@ -59,25 +60,25 @@ export const BitcoinPublicKeyUtils = {
 }
 
 /**
- * Creates a Bitcoin key ring based on the given private key.
- * @param privateKey Private key that should be used to create the key ring
- * @param witness Flag indicating whether the key ring will create witness
- *        or non-witness addresses
+ * Creates a Bitcoin key pair based on the given private key.
+ * @param privateKey Private key that should be used to create the key pair.
+ * @param bitcoinNetwork Bitcoin network the given key pair is relevant for.
  * @returns Bitcoin key ring.
  */
-function createKeyRing(privateKey: string, witness: boolean = true): any {
-  const decodedPrivateKey = wif.decode(privateKey)
-
-  return new bcoin.KeyRing({
-    witness: witness,
-    privateKey: decodedPrivateKey.privateKey,
-    compressed: decodedPrivateKey.compressed,
-  })
+function createKeyPair(
+  privateKey: string,
+  bitcoinNetwork: BitcoinNetwork
+): ECPairInterface {
+  // eslint-disable-next-line new-cap
+  return ECPairFactory(tinysecp).fromWIF(
+    privateKey,
+    toBitcoinJsLibNetwork(bitcoinNetwork)
+  )
 }
 
 /**
  * Utility functions allowing to perform Bitcoin ECDSA public keys.
  */
 export const BitcoinPrivateKeyUtils = {
-  createKeyRing,
+  createKeyPair,
 }

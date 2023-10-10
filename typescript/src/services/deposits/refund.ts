@@ -1,7 +1,6 @@
 import bcoin from "bcoin"
 import { BigNumber } from "ethers"
 import {
-  BitcoinPrivateKeyUtils,
   BitcoinRawTx,
   BitcoinClient,
   BitcoinTxHash,
@@ -11,6 +10,7 @@ import {
 } from "../../lib/bitcoin"
 import { validateDepositReceipt } from "../../lib/contracts"
 import { DepositScript } from "./"
+import wif from "wif"
 
 /**
  * Component allowing to craft and submit the Bitcoin refund transaction using
@@ -106,8 +106,13 @@ export class DepositRefund {
   }> {
     validateDepositReceipt(this.script.receipt)
 
-    const refunderKeyRing =
-      BitcoinPrivateKeyUtils.createKeyRing(refunderPrivateKey)
+    const decodedPrivateKey = wif.decode(refunderPrivateKey)
+
+    const refunderKeyRing = new bcoin.KeyRing({
+      witness: true,
+      privateKey: decodedPrivateKey.privateKey,
+      compressed: decodedPrivateKey.compressed,
+    })
 
     const transaction = new bcoin.MTX()
 
