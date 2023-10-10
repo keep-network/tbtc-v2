@@ -1,17 +1,18 @@
 import { BigNumber, BytesLike } from "ethers"
 import {
+  BitcoinAddressConverter,
+  BitcoinNetwork,
+  BitcoinRawTx,
   BitcoinRawTxVectors,
   BitcoinSpvProof,
   BitcoinTx,
-  BitcoinRawTx,
-  BitcoinUtxo,
-  BitcoinTxMerkleBranch,
   BitcoinTxHash,
-  BitcoinAddressConverter,
-  RedemptionRequest,
-  WalletState,
+  BitcoinTxMerkleBranch,
+  BitcoinUtxo,
   EthereumAddress,
   Hex,
+  RedemptionRequest,
+  WalletState,
 } from "../../src"
 
 /**
@@ -745,7 +746,8 @@ export const findWalletForRedemptionData: {
               outputIndex: 0,
               value: BigNumber.from("791613461"),
               scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
-                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja"
+                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
+                BitcoinNetwork.Testnet
               ),
             },
           ],
@@ -870,7 +872,8 @@ export const findWalletForRedemptionData: {
               outputIndex: 0,
               value: BigNumber.from("3370000"), // 0.0337 BTC
               scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
-                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh"
+                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
+                BitcoinNetwork.Testnet
               ),
             },
           ],

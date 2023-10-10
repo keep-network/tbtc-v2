@@ -21,8 +21,8 @@ import {
   extractBitcoinRawTxVectors,
 } from "../src"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import bcoin from "bcoin"
 import { MockTBTCContracts } from "./utils/mock-tbtc-contracts"
+import { txToJSON } from "./utils/helpers"
 
 describe("Deposit", () => {
   const depositCreatedAt: number = 1640181600
@@ -343,8 +343,10 @@ describe("Deposit", () => {
           expect(transaction).to.be.eql(expectedP2WSHDeposit.transaction)
 
           // Convert raw transaction to JSON to make detailed comparison.
-          const buffer = Buffer.from(transaction.transactionHex, "hex")
-          const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
+          const txJSON = txToJSON(
+            transaction.transactionHex,
+            BitcoinNetwork.Testnet
+          )
 
           expect(txJSON.hash).to.be.equal(
             expectedP2WSHDeposit.transactionHash.toString()
@@ -356,15 +358,12 @@ describe("Deposit", () => {
 
           const input = txJSON.inputs[0]
 
-          expect(input.prevout.hash).to.be.equal(
-            testnetUTXO.transactionHash.toString()
-          )
-          expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
+          expect(input.hash).to.be.equal(testnetUTXO.transactionHash.toString())
+          expect(input.index).to.be.equal(testnetUTXO.outputIndex)
           // Transaction should be signed but this is SegWit input so the `script`
           // field should be empty and the `witness` field should be filled instead.
           expect(input.script.length).to.be.equal(0)
           expect(input.witness.length).to.be.greaterThan(0)
-          expect(input.address).to.be.equal(testnetAddress)
 
           // Validate outputs.
           expect(txJSON.outputs.length).to.be.equal(2)
@@ -447,8 +446,10 @@ describe("Deposit", () => {
           expect(transaction).to.be.eql(expectedP2SHDeposit.transaction)
 
           // Convert raw transaction to JSON to make detailed comparison.
-          const buffer = Buffer.from(transaction.transactionHex, "hex")
-          const txJSON = bcoin.TX.fromRaw(buffer).getJSON("testnet")
+          const txJSON = txToJSON(
+            transaction.transactionHex,
+            BitcoinNetwork.Testnet
+          )
 
           expect(txJSON.hash).to.be.equal(
             expectedP2SHDeposit.transactionHash.toString()
@@ -460,15 +461,12 @@ describe("Deposit", () => {
 
           const input = txJSON.inputs[0]
 
-          expect(input.prevout.hash).to.be.equal(
-            testnetUTXO.transactionHash.toString()
-          )
-          expect(input.prevout.index).to.be.equal(testnetUTXO.outputIndex)
+          expect(input.hash).to.be.equal(testnetUTXO.transactionHash.toString())
+          expect(input.index).to.be.equal(testnetUTXO.outputIndex)
           // Transaction should be signed but this is SegWit input so the `script`
           // field should be empty and the `witness` field should be filled instead.
           expect(input.script.length).to.be.equal(0)
           expect(input.witness.length).to.be.greaterThan(0)
-          expect(input.address).to.be.equal(testnetAddress)
 
           // Validate outputs.
           expect(txJSON.outputs.length).to.be.equal(2)

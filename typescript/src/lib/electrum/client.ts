@@ -1,4 +1,4 @@
-import bcoin from "bcoin"
+import { Transaction as Tx, TxInput, TxOutput } from "bitcoinjs-lib"
 import pTimeout from "p-timeout"
 import {
   BitcoinClient,
@@ -11,6 +11,7 @@ import {
   BitcoinTxMerkleBranch,
   BitcoinTxOutput,
   BitcoinUtxo,
+  BitcoinHashUtils,
 } from "../bitcoin"
 import Electrum from "electrum-client-js"
 import { BigNumber, utils } from "ethers"
@@ -255,8 +256,12 @@ export class ElectrumClient implements BitcoinClient {
    */
   findAllUnspentTransactionOutputs(address: string): Promise<BitcoinUtxo[]> {
     return this.withElectrum<BitcoinUtxo[]>(async (electrum: Electrum) => {
-      const script =
-        BitcoinAddressConverter.addressToOutputScript(address).toString()
+      const bitcoinNetwork = await this.getNetwork()
+
+      const script = BitcoinAddressConverter.addressToOutputScript(
+        address,
+        bitcoinNetwork
+      ).toString()
 
       // eslint-disable-next-line camelcase
       type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -282,8 +287,12 @@ export class ElectrumClient implements BitcoinClient {
    */
   getTransactionHistory(address: string, limit?: number): Promise<BitcoinTx[]> {
     return this.withElectrum<BitcoinTx[]>(async (electrum: Electrum) => {
-      const script =
-        BitcoinAddressConverter.addressToOutputScript(address).toString()
+      const bitcoinNetwork = await this.getNetwork()
+
+      const script = BitcoinAddressConverter.addressToOutputScript(
+        address,
+        bitcoinNetwork
+      ).toString()
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
@@ -350,26 +359,26 @@ export class ElectrumClient implements BitcoinClient {
       }
 
       // Decode the raw transaction.
-      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+      const transaction = Tx.fromHex(rawTransaction)
 
-      const inputs = transaction.inputs.map(
-        (input: any): BitcoinTxInput => ({
-          transactionHash: BitcoinTxHash.from(input.prevout.hash).reverse(),
-          outputIndex: input.prevout.index,
-          scriptSig: Hex.from(input.script.toRaw()),
+      const inputs = transaction.ins.map(
+        (input: TxInput): BitcoinTxInput => ({
+          transactionHash: BitcoinTxHash.from(input.hash).reverse(),
+          outputIndex: input.index,
+          scriptSig: Hex.from(input.script),
         })
       )
 
-      const outputs = transaction.outputs.map(
-        (output: any, i: number): BitcoinTxOutput => ({
+      const outputs = transaction.outs.map(
+        (output: TxOutput, i: number): BitcoinTxOutput => ({
           outputIndex: i,
           value: BigNumber.from(output.value),
-          scriptPubKey: Hex.from(output.script.toRaw()),
+          scriptPubKey: Hex.from(output.script),
         })
       )
 
       return {
-        transactionHash: BitcoinTxHash.from(transaction.hash()).reverse(),
+        transactionHash: BitcoinTxHash.from(transaction.getId()),
         inputs: inputs,
         outputs: outputs,
       }
@@ -418,7 +427,7 @@ export class ElectrumClient implements BitcoinClient {
       )
 
       // Decode the raw transaction.
-      const transaction = bcoin.TX.fromRaw(rawTransaction, "hex")
+      const transaction = Tx.fromHex(rawTransaction)
 
       // As a workaround for the problem described in https://github.com/Blockstream/electrs/pull/36
       // we need to calculate the number of confirmations based on the latest
@@ -436,8 +445,10 @@ export class ElectrumClient implements BitcoinClient {
       // If a transaction is unconfirmed (is still in the mempool) the height will
       // have a value of `0` or `-1`.
       let txBlockHeight: number = Math.min()
-      for (const output of transaction.outputs) {
-        const scriptHash: Buffer = output.script.sha256()
+      for (const output of transaction.outs) {
+        const scriptHash: Buffer = BitcoinHashUtils.computeSha256(
+          Hex.from(output.script)
+        ).toBuffer()
 
         type HistoryEntry = {
           // eslint-disable-next-line camelcase

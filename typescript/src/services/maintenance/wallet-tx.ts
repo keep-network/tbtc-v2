@@ -216,8 +216,10 @@ class DepositSweep {
     }
     outputValue = outputValue.sub(fee)
 
-    const outputScript =
-      BitcoinAddressConverter.addressToOutputScript(walletAddress)
+    const outputScript = BitcoinAddressConverter.addressToOutputScript(
+      walletAddress,
+      bitcoinNetwork
+    )
 
     transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
 

@@ -51,8 +51,11 @@ export class RedemptionsService {
     targetChainTxHash: Hex
     walletPublicKey: string
   }> {
+    const bitcoinNetwork = await this.bitcoinClient.getNetwork()
+
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
-      bitcoinRedeemerAddress
+      bitcoinRedeemerAddress,
+      bitcoinNetwork
     ).toString()
 
     // TODO: Validate the given script is supported for redemption.
@@ -258,8 +261,10 @@ export class RedemptionsService {
 
       // Get the wallet script based on the wallet address. This is required
       // to find transaction outputs that lock funds on the wallet.
-      const walletScript =
-        BitcoinAddressConverter.addressToOutputScript(walletAddress)
+      const walletScript = BitcoinAddressConverter.addressToOutputScript(
+        walletAddress,
+        bitcoinNetwork
+      )
       const isWalletOutput = (output: BitcoinTxOutput) =>
         walletScript.equals(output.scriptPubKey)
 
@@ -328,8 +333,11 @@ export class RedemptionsService {
     walletPublicKey: string,
     type: "pending" | "timedOut" = "pending"
   ): Promise<RedemptionRequest> {
+    const bitcoinNetwork = await this.bitcoinClient.getNetwork()
+
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
-      bitcoinRedeemerAddress
+      bitcoinRedeemerAddress,
+      bitcoinNetwork
     ).toString()
 
     let redemptionRequest: RedemptionRequest | undefined = undefined

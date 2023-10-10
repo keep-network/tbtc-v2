@@ -1,11 +1,6 @@
-import bcoin, { Script } from "bcoin"
+import { address as btcjsaddress, payments } from "bitcoinjs-lib"
 import { Hex } from "../utils"
-import {
-  BitcoinNetwork,
-  toBcoinNetwork,
-  toBitcoinJsLibNetwork,
-} from "./network"
-import { payments } from "bitcoinjs-lib"
+import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
 
 /**
  * Creates the Bitcoin address from the public key. Supports SegWit (P2WPKH) and
@@ -34,67 +29,84 @@ export function publicKeyToAddress(
 
 /**
  * Converts a public key hash into a P2PKH/P2WPKH address.
- * @param publicKeyHash - public key hash that will be encoded. Must be an
+ * @param publicKeyHash Public key hash that will be encoded. Must be an
  *        unprefixed hex string (without 0x prefix).
- * @param witness - If true, a witness public key hash will be encoded and
+ * @param witness If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
- * @param network - Network the address should be encoded for.
+ * @param bitcoinNetwork Network the address should be encoded for.
  * @returns P2PKH or P2WPKH address encoded from the given public key hash
  * @throws Throws an error if network is not supported.
  */
 function publicKeyHashToAddress(
   publicKeyHash: string,
   witness: boolean,
-  network: BitcoinNetwork
+  bitcoinNetwork: BitcoinNetwork
 ): string {
-  const buffer = Buffer.from(publicKeyHash, "hex")
-  const bcoinNetwork = toBcoinNetwork(network)
+  const hash = Buffer.from(publicKeyHash, "hex")
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   return witness
-    ? bcoin.Address.fromWitnessPubkeyhash(buffer).toString(bcoinNetwork)
-    : bcoin.Address.fromPubkeyhash(buffer).toString(bcoinNetwork)
+    ? payments.p2wpkh({ hash, network }).address!
+    : payments.p2pkh({ hash, network }).address!
 }
 
 /**
  * Converts a P2PKH or P2WPKH address into a public key hash. Throws if the
  * provided address is not PKH-based.
- * @param address - P2PKH or P2WPKH address that will be decoded.
+ * @param address P2PKH or P2WPKH address that will be decoded.
+ * @param bitcoinNetwork Network the address should be decoded for.
  * @returns Public key hash decoded from the address. This will be an unprefixed
  *        hex string (without 0x prefix).
  */
-function addressToPublicKeyHash(address: string): string {
-  const addressObject = new bcoin.Address(address)
+function addressToPublicKeyHash(
+  address: string,
+  bitcoinNetwork: BitcoinNetwork
+): string {
+  const network = toBitcoinJsLibNetwork(bitcoinNetwork)
 
-  const isPKH =
-    addressObject.isPubkeyhash() || addressObject.isWitnessPubkeyhash()
-  if (!isPKH) {
-    throw new Error("Address must be P2PKH or P2WPKH")
-  }
+  try {
+    // Try extracting hash from P2PKH address.
+    const hash = payments.p2pkh({ address: address, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
 
-  return addressObject.getHash("hex")
+  try {
+    // Try extracting hash from P2WPKH address.
+    const hash = payments.p2wpkh({ address: address, network }).hash!
+    return hash.toString("hex")
+  } catch (err) {}
+
+  throw new Error("Address must be P2PKH or P2WPKH valid for given network")
 }
 
 /**
  * Converts an address to the respective output script.
  * @param address BTC address.
+ * @param bitcoinNetwork Bitcoin network corresponding to the address.
  * @returns The un-prefixed and not prepended with length output script.
  */
-function addressToOutputScript(address: string): Hex {
-  return Hex.from(Script.fromAddress(address).toRaw().toString("hex"))
+function addressToOutputScript(
+  address: string,
+  bitcoinNetwork: BitcoinNetwork
+): Hex {
+  return Hex.from(
+    btcjsaddress.toOutputScript(address, toBitcoinJsLibNetwork(bitcoinNetwork))
+  )
 }
 
 /**
  * Converts an output script to the respective network-specific address.
  * @param script The unprefixed and not prepended with length output script.
- * @param network Bitcoin network.
+ * @param bitcoinNetwork Bitcoin network the address should be produced for.
  * @returns The Bitcoin address.
  */
 function outputScriptToAddress(
   script: Hex,
-  network: BitcoinNetwork = BitcoinNetwork.Mainnet
+  bitcoinNetwork: BitcoinNetwork = BitcoinNetwork.Mainnet
 ): string {
-  return Script.fromRaw(script.toString(), "hex")
-    .getAddress()
-    ?.toString(toBcoinNetwork(network))
+  return btcjsaddress.fromOutputScript(
+    script.toBuffer(),
+    toBitcoinJsLibNetwork(bitcoinNetwork)
+  )
 }
 
 /**

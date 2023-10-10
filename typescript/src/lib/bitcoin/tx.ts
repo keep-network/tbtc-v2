@@ -1,4 +1,4 @@
-import { TX } from "bcoin"
+import { Transaction as Tx } from "bitcoinjs-lib"
 import bufio from "bufio"
 import { BigNumber } from "ethers"
 import { Hex } from "../utils"
@@ -133,46 +133,53 @@ export interface BitcoinRawTxVectors {
 export function extractBitcoinRawTxVectors(
   rawTransaction: BitcoinRawTx
 ): BitcoinRawTxVectors {
-  const toHex = (bufferWriter: any) => {
+  const toHex = (bufferWriter: any): string => {
     return bufferWriter.render().toString("hex")
   }
 
-  const vectorToRaw = (elements: any[]) => {
+  const getTxInputVector = (tx: Tx): string => {
     const buffer = bufio.write()
-    buffer.writeVarint(elements.length)
-    for (const element of elements) {
-      element.toWriter(buffer)
-    }
+    buffer.writeVarint(tx.ins.length)
+    tx.ins.forEach((input) => {
+      buffer.writeHash(input.hash)
+      buffer.writeU32(input.index)
+      buffer.writeVarBytes(input.script)
+      buffer.writeU32(input.sequence)
+    })
     return toHex(buffer)
   }
 
-  const getTxInputVector = (tx: any) => {
-    return vectorToRaw(tx.inputs)
+  const getTxOutputVector = (tx: Tx): string => {
+    const buffer = bufio.write()
+    buffer.writeVarint(tx.outs.length)
+    tx.outs.forEach((output) => {
+      buffer.writeI64(output.value)
+      buffer.writeVarBytes(output.script)
+    })
+    return toHex(buffer)
   }
 
-  const getTxOutputVector = (tx: any) => {
-    return vectorToRaw(tx.outputs)
-  }
-
-  const getTxVersion = (tx: any) => {
+  const getTxVersion = (tx: Tx): string => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: any) => {
+  const getTxLocktime = (tx: Tx): string => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
   }
 
-  const tx = TX.fromRaw(Buffer.from(rawTransaction.transactionHex, "hex"), null)
+  const transaction = Tx.fromBuffer(
+    Buffer.from(rawTransaction.transactionHex, "hex")
+  )
 
   return {
-    version: getTxVersion(tx),
-    inputs: getTxInputVector(tx),
-    outputs: getTxOutputVector(tx),
-    locktime: getTxLocktime(tx),
+    version: getTxVersion(transaction),
+    inputs: getTxInputVector(transaction),
+    outputs: getTxOutputVector(transaction),
+    locktime: getTxLocktime(transaction),
   }
 }
 

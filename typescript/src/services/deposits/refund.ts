@@ -133,8 +133,10 @@ export class DepositRefund {
       utxo.outputIndex
     )
 
-    const outputScript =
-      BitcoinAddressConverter.addressToOutputScript(refunderAddress)
+    const outputScript = BitcoinAddressConverter.addressToOutputScript(
+      refunderAddress,
+      bitcoinNetwork
+    )
     transaction.addOutput(outputScript.toBuffer(), outputValue.toNumber())
 
     // In order to be able to spend the UTXO being refunded the transaction's

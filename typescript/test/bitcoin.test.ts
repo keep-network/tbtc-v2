@@ -1,19 +1,21 @@
 import { expect } from "chai"
 import {
-  BitcoinNetwork,
-  BitcoinPublicKeyUtils,
-  BitcoinLocktimeUtils,
+  BitcoinAddressConverter,
+  BitcoinCompactSizeUint,
+  BitcoinHashUtils,
   BitcoinHeader,
   BitcoinHeaderSerializer,
-  BitcoinHashUtils,
-  BitcoinTargetConverter,
-  BitcoinCompactSizeUint,
-  BitcoinAddressConverter,
-  Hex,
+  BitcoinLocktimeUtils,
+  BitcoinNetwork,
+  BitcoinPublicKeyUtils,
   BitcoinScriptUtils,
+  BitcoinTargetConverter,
+  extractBitcoinRawTxVectors,
+  Hex,
 } from "../src"
 import { BigNumber } from "ethers"
 import { btcAddresses, btcAddressFromPublicKey } from "./data/bitcoin"
+import { depositSweepWithNoMainUtxoAndWitnessOutput } from "./data/deposit-sweep"
 
 describe("Bitcoin", () => {
   describe("BitcoinPublicKeyUtils", () => {
@@ -185,7 +187,9 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw("P2WPKH must be 20 bytes")
+              ).to.throw(
+                `Expected property "hash" of type Buffer(Length: 20), got Buffer(Length: 21)`
+              )
             })
           })
         })
@@ -213,7 +217,9 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Mainnet
                 )
-              ).to.throw("P2PKH must be 20 bytes")
+              ).to.throw(
+                `Expected property "hash" of type Buffer(Length: 20), got Buffer(Length: 21)`
+              )
             })
           })
         })
@@ -243,7 +249,9 @@ describe("Bitcoin", () => {
                   true,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw("P2WPKH must be 20 bytes")
+              ).to.throw(
+                `Expected property "hash" of type Buffer(Length: 20), got Buffer(Length: 21)`
+              )
             })
           })
         })
@@ -271,7 +279,9 @@ describe("Bitcoin", () => {
                   false,
                   BitcoinNetwork.Testnet
                 )
-              ).to.throw("P2PKH must be 20 bytes")
+              ).to.throw(
+                `Expected property "hash" of type Buffer(Length: 20), got Buffer(Length: 21)`
+              )
             })
           })
         })
@@ -290,17 +300,17 @@ describe("Bitcoin", () => {
       context("when network is mainnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(addressToPublicKeyHash(P2WPKHAddress)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              addressToPublicKeyHash(P2WPKHAddress, BitcoinNetwork.Mainnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(addressToPublicKeyHash(P2PKHAddress)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              addressToPublicKeyHash(P2PKHAddress, BitcoinNetwork.Mainnet)
+            ).to.be.equal(publicKeyHash)
           })
         })
 
@@ -308,8 +318,10 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddress
 
-            expect(() => addressToPublicKeyHash(bitcoinAddress)).to.throw(
-              "Address is too long"
+            expect(() =>
+              addressToPublicKeyHash(bitcoinAddress, BitcoinNetwork.Mainnet)
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
             )
           })
         })
@@ -317,8 +329,13 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              addressToPublicKeyHash("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX")
-            ).to.throw("Address must be P2PKH or P2WPKH")
+              addressToPublicKeyHash(
+                "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX",
+                BitcoinNetwork.Mainnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
 
@@ -326,9 +343,25 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               addressToPublicKeyHash(
-                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m"
+                "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
+                BitcoinNetwork.Mainnet
               )
-            ).to.throw("Address must be P2PKH or P2WPKH")
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
+          })
+        })
+
+        context("when address from testnet network is provided", () => {
+          it("should throw", () => {
+            expect(() =>
+              addressToPublicKeyHash(
+                "mkpoZkRvtd3SDGWgUDuXK1aEXZfHRM2gKw",
+                BitcoinNetwork.Mainnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
       })
@@ -336,17 +369,23 @@ describe("Bitcoin", () => {
       context("when network is testnet", () => {
         context("when proper P2WPKH address is provided", () => {
           it("should decode P2WPKH adress correctly", () => {
-            expect(addressToPublicKeyHash(P2WPKHAddressTestnet)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              addressToPublicKeyHash(
+                P2WPKHAddressTestnet,
+                BitcoinNetwork.Testnet
+              )
+            ).to.be.equal(publicKeyHash)
           })
         })
 
         context("when proper P2PKH address is provided", () => {
           it("should decode P2PKH address correctly", () => {
-            expect(addressToPublicKeyHash(P2PKHAddressTestnet)).to.be.equal(
-              publicKeyHash
-            )
+            expect(
+              addressToPublicKeyHash(
+                P2PKHAddressTestnet,
+                BitcoinNetwork.Testnet
+              )
+            ).to.be.equal(publicKeyHash)
           })
         })
 
@@ -354,8 +393,10 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             const bitcoinAddress = "123" + P2PKHAddressTestnet
 
-            expect(() => addressToPublicKeyHash(bitcoinAddress)).to.throw(
-              "Address is too long"
+            expect(() =>
+              addressToPublicKeyHash(bitcoinAddress, BitcoinNetwork.Testnet)
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
             )
           })
         })
@@ -363,8 +404,13 @@ describe("Bitcoin", () => {
         context("when unsupported P2SH address is provided", () => {
           it("should throw", () => {
             expect(() =>
-              addressToPublicKeyHash("2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5")
-            ).to.throw("Address must be P2PKH or P2WPKH")
+              addressToPublicKeyHash(
+                "2MyxShnGQ5NifGb8CHYrtmzosRySxZ9pZo5",
+                BitcoinNetwork.Testnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
 
@@ -372,9 +418,25 @@ describe("Bitcoin", () => {
           it("should throw", () => {
             expect(() =>
               addressToPublicKeyHash(
-                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
+                "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
+                BitcoinNetwork.Testnet
               )
-            ).to.throw("Address must be P2PKH or P2WPKH")
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
+          })
+        })
+
+        context("when address from mainnet network is provided", () => {
+          it("should throw", () => {
+            expect(() =>
+              addressToPublicKeyHash(
+                "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy",
+                BitcoinNetwork.Testnet
+              )
+            ).to.throw(
+              "Address must be P2PKH or P2WPKH valid for given network"
+            )
           })
         })
       })
@@ -391,7 +453,12 @@ describe("Bitcoin", () => {
               { address, scriptPubKey: expectedOutputScript },
             ]) => {
               it(`should create correct output script for ${addressType} address type`, () => {
-                const result = addressToOutputScript(address)
+                const network =
+                  bitcoinNetwork === "mainnet"
+                    ? BitcoinNetwork.Mainnet
+                    : BitcoinNetwork.Testnet
+
+                const result = addressToOutputScript(address, network)
 
                 expect(result.toString()).to.eq(expectedOutputScript.toString())
               })
@@ -709,6 +776,31 @@ describe("Bitcoin", () => {
           })
         })
       })
+    })
+  })
+
+  describe("extractBitcoinRawTxVectors", () => {
+    it("should return correct transaction vectors", () => {
+      const rawTransaction =
+        depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
+      const decomposedTransaction = extractBitcoinRawTxVectors(rawTransaction)
+
+      expect(decomposedTransaction.version).to.be.equal("01000000")
+      expect(decomposedTransaction.inputs).to.be.equal(
+        "02bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699bacd53e3d07400" +
+          "000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f0cb3ef852a468153" +
+          "e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f816bf27991c2b73211e" +
+          "227db27ec200bc0a012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f25" +
+          "64da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508" +
+          "f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763" +
+          "ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e0250162b175ac" +
+          "68ffffffffdc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa826394df" +
+          "ec545c0000000000ffffffff"
+      )
+      expect(decomposedTransaction.outputs).to.be.equal(
+        "01488a0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
+      )
+      expect(decomposedTransaction.locktime).to.be.equal("00000000")
     })
   })
 })
