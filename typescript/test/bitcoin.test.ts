@@ -65,7 +65,7 @@ describe("Bitcoin", () => {
   })
 
   describe("BitcoinHashUtils", () => {
-    const { computeHash160, computeHash256, hashLEToBigNumber } =
+    const { computeHash160, computeHash256, hashLEToBigNumber, computeSha256 } =
       BitcoinHashUtils
 
     describe("computeHash160", () => {
@@ -102,6 +102,21 @@ describe("Bitcoin", () => {
           "992983769452983078390935942095592601503357651673709518345521"
         )
         expect(hashLEToBigNumber(hash)).to.equal(expectedBigNumber)
+      })
+    })
+
+    describe("computeSha256", () => {
+      it("should compute hash256 correctly", () => {
+        const hexValue = Hex.from(
+          "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+        )
+        const expectedSha256 = Hex.from(
+          "c62e5cb26c97cb52fea7f9965e9ea1f8d41c97773688aa88674e64629fc02901"
+        )
+
+        expect(computeSha256(hexValue).toString()).to.be.equal(
+          expectedSha256.toString()
+        )
       })
     })
   })

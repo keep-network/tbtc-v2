@@ -19,6 +19,7 @@ function computeHash160(text: string): string {
  * Computes the double SHA256 for the given text.
  * @param text - Text the double SHA256 is computed for.
  * @returns Hash as a 32-byte un-prefixed hex string.
+ * @dev Do not confuse it with computeSha256 which computes single SHA256.
  */
 function computeHash256(text: Hex): Hex {
   const firstHash = utils.sha256(text.toPrefixedString())
@@ -37,10 +38,22 @@ function hashLEToBigNumber(hash: Hex): BigNumber {
 }
 
 /**
+ * Computes the single SHA256 for the given text.
+ * @param text - Text the single SHA256 is computed for.
+ * @returns Hash as a 32-byte un-prefixed hex string.
+ * @dev Do not confuse it with computeHash256 which computes double SHA256.
+ */
+function computeSha256(text: Hex): Hex {
+  const hash = utils.sha256(text.toPrefixedString())
+  return Hex.from(hash)
+}
+
+/**
  * Utility functions allowing to deal with Bitcoin hashes.
  */
 export const BitcoinHashUtils = {
   computeHash160,
   computeHash256,
   hashLEToBigNumber,
+  computeSha256,
 }

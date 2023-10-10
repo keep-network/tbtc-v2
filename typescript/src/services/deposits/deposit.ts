@@ -3,16 +3,17 @@ import {
   TBTCContracts,
   validateDepositReceipt,
 } from "../../lib/contracts"
-import bcoin from "bcoin"
 import {
   BitcoinClient,
+  BitcoinHashUtils,
   BitcoinNetwork,
   BitcoinTxOutpoint,
   BitcoinUtxo,
   extractBitcoinRawTxVectors,
-  toBcoinNetwork,
+  toBitcoinJsLibNetwork,
 } from "../../lib/bitcoin"
-import { Stack, script, opcodes } from "bitcoinjs-lib"
+import { payments, Stack, script, opcodes } from "bitcoinjs-lib"
+import { Hex } from "../../lib/utils"
 
 /**
  * Component representing an instance of the tBTC v2 deposit process.
@@ -181,11 +182,11 @@ export class DepositScript {
    */
   async getHash(): Promise<Buffer> {
     const script = await this.getPlainText()
-    // Parse the script from HEX string.
-    const parsedScript = bcoin.Script.fromRaw(Buffer.from(script, "hex"))
     // If witness script hash should be produced, SHA256 should be used.
     // Legacy script hash needs HASH160.
-    return this.witness ? parsedScript.sha256() : parsedScript.hash160()
+    return this.witness
+      ? BitcoinHashUtils.computeSha256(Hex.from(script)).toBuffer()
+      : Buffer.from(BitcoinHashUtils.computeHash160(script), "hex")
   }
 
   /**
@@ -226,9 +227,30 @@ export class DepositScript {
    */
   async deriveAddress(bitcoinNetwork: BitcoinNetwork): Promise<string> {
     const scriptHash = await this.getHash()
-    const address = this.witness
-      ? bcoin.Address.fromWitnessScripthash(scriptHash)
-      : bcoin.Address.fromScripthash(scriptHash)
-    return address.toString(toBcoinNetwork(bitcoinNetwork))
+
+    const bitcoinJsLibNetwork = toBitcoinJsLibNetwork(bitcoinNetwork)
+
+    if (this.witness) {
+      // OP_0 <hash-length> <hash>
+      const p2wshOutput = Buffer.concat([
+        Buffer.from([opcodes.OP_0, 0x20]),
+        scriptHash,
+      ])
+
+      return payments.p2wsh({
+        output: p2wshOutput,
+        network: bitcoinJsLibNetwork,
+      }).address!
+    } else {
+      // OP_HASH160 <hash-length> <hash> OP_EQUAL
+      const p2shOutput = Buffer.concat([
+        Buffer.from([opcodes.OP_HASH160, 0x14]),
+        scriptHash,
+        Buffer.from([opcodes.OP_EQUAL]),
+      ])
+
+      return payments.p2sh({ output: p2shOutput, network: bitcoinJsLibNetwork })
+        .address!
+    }
   }
 }

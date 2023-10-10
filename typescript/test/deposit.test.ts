@@ -9,16 +9,16 @@ import {
 } from "./data/deposit"
 import {
   BitcoinLocktimeUtils,
+  BitcoinNetwork,
   BitcoinRawTx,
   BitcoinTxHash,
   BitcoinUtxo,
-  extractBitcoinRawTxVectors,
-  DepositReceipt,
-  EthereumAddress,
-  BitcoinNetwork,
-  DepositFunding,
-  DepositScript,
   Deposit,
+  DepositFunding,
+  DepositReceipt,
+  DepositScript,
+  EthereumAddress,
+  extractBitcoinRawTxVectors,
 } from "../src"
 import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
 import bcoin from "bcoin"
@@ -209,15 +209,7 @@ describe("Deposit", () => {
       let bitcoinClient: MockBitcoinClient
 
       beforeEach(async () => {
-        bcoin.set("testnet")
-
         bitcoinClient = new MockBitcoinClient()
-
-        // Tie used testnetAddress with testnetUTXO to use it during deposit
-        // creation.
-        const utxos = new Map<string, BitcoinUtxo[]>()
-        utxos.set(testnetAddress, [testnetUTXO])
-        bitcoinClient.unspentTransactionOutputs = utxos
 
         // Tie testnetTransaction to testnetUTXO. This is needed since
         // submitDepositTransaction attach transaction data to each UTXO.
@@ -234,6 +226,8 @@ describe("Deposit", () => {
         let depositUtxo: BitcoinUtxo
 
         beforeEach(async () => {
+          const fee = BigNumber.from(1520)
+
           const depositFunding = DepositFunding.fromScript(
             DepositScript.fromReceipt(deposit, true)
           )
@@ -241,6 +235,8 @@ describe("Deposit", () => {
           ;({ transactionHash, depositUtxo } =
             await depositFunding.submitTransaction(
               depositAmount,
+              [testnetUTXO],
+              fee,
               testnetPrivateKey,
               bitcoinClient
             ))
@@ -275,6 +271,8 @@ describe("Deposit", () => {
         let depositUtxo: BitcoinUtxo
 
         beforeEach(async () => {
+          const fee = BigNumber.from(1410)
+
           const depositFunding = DepositFunding.fromScript(
             DepositScript.fromReceipt(deposit, false)
           )
@@ -282,6 +280,8 @@ describe("Deposit", () => {
           ;({ transactionHash, depositUtxo } =
             await depositFunding.submitTransaction(
               depositAmount,
+              [testnetUTXO],
+              fee,
               testnetPrivateKey,
               bitcoinClient
             ))
@@ -319,6 +319,8 @@ describe("Deposit", () => {
         let transaction: BitcoinRawTx
 
         beforeEach(async () => {
+          const fee = BigNumber.from(1520)
+
           const depositFunding = DepositFunding.fromScript(
             DepositScript.fromReceipt(deposit, true)
           )
@@ -328,8 +330,10 @@ describe("Deposit", () => {
             depositUtxo,
             rawTransaction: transaction,
           } = await depositFunding.assembleTransaction(
+            BitcoinNetwork.Testnet,
             depositAmount,
             [testnetUTXO],
+            fee,
             testnetPrivateKey
           ))
         })
@@ -419,6 +423,8 @@ describe("Deposit", () => {
         let transaction: BitcoinRawTx
 
         beforeEach(async () => {
+          const fee = BigNumber.from(1410)
+
           const depositFunding = DepositFunding.fromScript(
             DepositScript.fromReceipt(deposit, false)
           )
@@ -428,8 +434,10 @@ describe("Deposit", () => {
             depositUtxo,
             rawTransaction: transaction,
           } = await depositFunding.assembleTransaction(
+            BitcoinNetwork.Testnet,
             depositAmount,
             [testnetUTXO],
+            fee,
             testnetPrivateKey
           ))
         })
@@ -664,14 +672,18 @@ describe("Deposit", () => {
         let bitcoinClient: MockBitcoinClient
 
         beforeEach(async () => {
+          const fee = BigNumber.from(1520)
+
           const depositFunding = DepositFunding.fromScript(
             DepositScript.fromReceipt(deposit)
           )
 
           // Create a deposit transaction.
           const result = await depositFunding.assembleTransaction(
+            BitcoinNetwork.Testnet,
             depositAmount,
             [testnetUTXO],
+            fee,
             testnetPrivateKey
           )
 
