@@ -5,7 +5,7 @@ import {
   EthereumBridge,
   EthereumTBTCToken,
   Hex,
-} from "../src"
+} from "../../src"
 import {
   deployMockContract,
   MockContract,
@@ -21,7 +21,7 @@ import { waffleChai } from "@ethereum-waffle/chai"
 chai.use(waffleChai)
 
 describe("Ethereum", () => {
-  describe("Bridge", () => {
+  describe("EthereumBridge", () => {
     let walletRegistry: MockContract
     let bridgeContract: MockContract
     let bridgeHandle: EthereumBridge
@@ -490,7 +490,7 @@ describe("Ethereum", () => {
     )
   }
 
-  describe("TBTCToken", () => {
+  describe("EthereumTBTCToken", () => {
     let tbtcToken: MockContract
     let tokenHandle: EthereumTBTCToken
     const signer: Wallet = new MockProvider().getWallets()[0]

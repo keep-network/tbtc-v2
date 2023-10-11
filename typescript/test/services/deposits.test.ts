@@ -6,7 +6,7 @@ import {
   testnetTransaction,
   testnetTransactionHash,
   testnetUTXO,
-} from "./data/deposit"
+} from "../data/deposit"
 import {
   BitcoinLocktimeUtils,
   BitcoinNetwork,
@@ -16,15 +16,22 @@ import {
   Deposit,
   DepositFunding,
   DepositReceipt,
+  DepositRefund,
   DepositScript,
   EthereumAddress,
   extractBitcoinRawTxVectors,
-} from "../src"
-import { MockBitcoinClient } from "./utils/mock-bitcoin-client"
-import { MockTBTCContracts } from "./utils/mock-tbtc-contracts"
-import { txToJSON } from "./utils/helpers"
+} from "../../src"
+import { MockBitcoinClient } from "../utils/mock-bitcoin-client"
+import { MockTBTCContracts } from "../utils/mock-tbtc-contracts"
+import { txToJSON } from "../utils/helpers"
+import {
+  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress,
+  depositRefundOfWitnessDepositAndNonWitnessRefunderAddress,
+  depositRefundOfWitnessDepositAndWitnessRefunderAddress,
+  refunderPrivateKey,
+} from "../data/deposit-refund"
 
-describe("Deposit", () => {
+describe("Deposits", () => {
   const depositCreatedAt: number = 1640181600
   const depositRefundLocktimeDuration: number = 2592000
 
@@ -722,5 +729,173 @@ describe("Deposit", () => {
 
   describe("DepositsService", () => {
     // TODO: Implement unit tests.
+  })
+
+  describe("DepositRefund", () => {
+    const fee = BigNumber.from(1520)
+
+    describe("DepositRefund", () => {
+      describe("submitTransaction", () => {
+        let bitcoinClient: MockBitcoinClient
+
+        beforeEach(async () => {
+          bitcoinClient = new MockBitcoinClient()
+        })
+
+        context(
+          "when the refund transaction is requested to be witness",
+          () => {
+            context("when the refunded deposit was witness", () => {
+              let transactionHash: BitcoinTxHash
+
+              beforeEach(async () => {
+                const utxo =
+                  depositRefundOfWitnessDepositAndWitnessRefunderAddress.deposit
+                    .utxo
+                const deposit =
+                  depositRefundOfWitnessDepositAndWitnessRefunderAddress.deposit
+                    .data
+                const refunderAddress =
+                  depositRefundOfWitnessDepositAndWitnessRefunderAddress.refunderAddress
+                const refunderPrivateKey =
+                  "cTWhf1nXc7aW8BN2qLtWcPtcgcWYKfzRXkCJNsuQ86HR8uJBYfMc"
+
+                const rawTransactions = new Map<string, BitcoinRawTx>()
+                rawTransactions.set(utxo.transactionHash.toString(), {
+                  transactionHex: utxo.transactionHex,
+                })
+                bitcoinClient.rawTransactions = rawTransactions
+
+                const depositRefund = DepositRefund.fromScript(
+                  DepositScript.fromReceipt(deposit)
+                )
+
+                ;({ transactionHash } = await depositRefund.submitTransaction(
+                  bitcoinClient,
+                  fee,
+                  utxo,
+                  refunderAddress,
+                  refunderPrivateKey
+                ))
+              })
+
+              it("should broadcast refund transaction with proper structure", async () => {
+                expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                  depositRefundOfWitnessDepositAndWitnessRefunderAddress
+                    .expectedRefund.transaction
+                )
+              })
+
+              it("should return the proper transaction hash", async () => {
+                expect(transactionHash).to.be.deep.equal(
+                  depositRefundOfWitnessDepositAndWitnessRefunderAddress
+                    .expectedRefund.transactionHash
+                )
+              })
+            })
+
+            context("when the refunded deposit was non-witness", () => {
+              let transactionHash: BitcoinTxHash
+
+              beforeEach(async () => {
+                const utxo =
+                  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+                    .deposit.utxo
+                const deposit =
+                  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+                    .deposit.data
+                const refunderAddress =
+                  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress.refunderAddress
+
+                const rawTransactions = new Map<string, BitcoinRawTx>()
+                rawTransactions.set(utxo.transactionHash.toString(), {
+                  transactionHex: utxo.transactionHex,
+                })
+                bitcoinClient.rawTransactions = rawTransactions
+
+                const depositRefund = DepositRefund.fromScript(
+                  DepositScript.fromReceipt(deposit)
+                )
+
+                ;({ transactionHash } = await depositRefund.submitTransaction(
+                  bitcoinClient,
+                  fee,
+                  utxo,
+                  refunderAddress,
+                  refunderPrivateKey
+                ))
+              })
+
+              it("should broadcast refund transaction with proper structure", async () => {
+                expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+                expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+                    .expectedRefund.transaction
+                )
+              })
+
+              it("should return the proper transaction hash", async () => {
+                expect(transactionHash).to.be.deep.equal(
+                  depositRefundOfNonWitnessDepositAndWitnessRefunderAddress
+                    .expectedRefund.transactionHash
+                )
+              })
+            })
+          }
+        )
+
+        context(
+          "when the refund transaction is requested to be non-witness",
+          () => {
+            let transactionHash: BitcoinTxHash
+
+            beforeEach(async () => {
+              const utxo =
+                depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+                  .deposit.utxo
+              const deposit =
+                depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+                  .deposit.data
+              const refunderAddress =
+                depositRefundOfWitnessDepositAndNonWitnessRefunderAddress.refunderAddress
+
+              const rawTransactions = new Map<string, BitcoinRawTx>()
+              rawTransactions.set(utxo.transactionHash.toString(), {
+                transactionHex: utxo.transactionHex,
+              })
+
+              const depositRefund = DepositRefund.fromScript(
+                DepositScript.fromReceipt(deposit)
+              )
+
+              bitcoinClient.rawTransactions = rawTransactions
+              ;({ transactionHash } = await depositRefund.submitTransaction(
+                bitcoinClient,
+                fee,
+                utxo,
+                refunderAddress,
+                refunderPrivateKey
+              ))
+            })
+
+            it("should broadcast refund transaction with proper structure", async () => {
+              expect(bitcoinClient.broadcastLog.length).to.be.equal(1)
+              expect(bitcoinClient.broadcastLog[0]).to.be.eql(
+                depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+                  .expectedRefund.transaction
+              )
+            })
+
+            it("should return the proper transaction hash", async () => {
+              expect(transactionHash).to.be.deep.equal(
+                depositRefundOfWitnessDepositAndNonWitnessRefunderAddress
+                  .expectedRefund.transactionHash
+              )
+            })
+          }
+        )
+      })
+    })
   })
 })
