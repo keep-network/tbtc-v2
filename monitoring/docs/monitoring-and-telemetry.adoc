@@ -23,7 +23,7 @@ flowchart TD
 
 There are several sources of monitoring and telemetry data:
 
-* https://github.com/threshold-network/token-dashboard[Threshold dashboard] + https://github.com/keep-network/v2-end-to-end[second track deposit verifier]
+* https://github.com/threshold-network/dapp[Threshold dashboard] + https://github.com/keep-network/v2-end-to-end[second track deposit verifier]
 * https://github.com/keep-network/optimistic-minting[TBTCv2 minters and guardians]
 * https://github.com/keep-network/tbtc-v2/tree/main/monitoring[TBTCv2 monitoring]
 
