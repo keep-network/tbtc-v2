@@ -63,16 +63,15 @@ function addressToPublicKeyHash(
 
   try {
     // Try extracting hash from P2PKH address.
-    const hash = payments.p2pkh({ address: address, network }).hash!
-    return Hex.from(hash)
+    return Hex.from(payments.p2pkh({ address: address, network }).hash!)
   } catch (err) {}
 
   try {
     // Try extracting hash from P2WPKH address.
-    const hash = payments.p2wpkh({ address: address, network }).hash!
-    return Hex.from(hash)
+    return Hex.from(payments.p2wpkh({ address: address, network }).hash!)
   } catch (err) {}
 
+  // If neither of them succeeded, throw an error.
   throw new Error("Address must be P2PKH or P2WPKH valid for given network")
 }
 
