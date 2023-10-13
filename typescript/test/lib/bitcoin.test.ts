@@ -205,7 +205,7 @@ describe("Bitcoin", () => {
   })
 
   describe("BitcoinAddressConverter", () => {
-    const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
+    const publicKeyHash = Hex.from("3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e")
     const P2WPKHAddress = "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy"
     const P2PKHAddress = "16JrGhLx5bcBSA34kew9V6Mufa4aXhFe9X"
     const P2WPKHAddressTestnet = "tb1q8gudgnt2pjxshwzwqgevccet0eyvwtswpf2q8h"
@@ -260,7 +260,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -290,7 +292,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -322,7 +326,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -352,7 +358,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -383,7 +391,7 @@ describe("Bitcoin", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(
               addressToPublicKeyHash(P2WPKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            ).to.be.equal(publicKeyHash.toString())
           })
         })
 
@@ -391,7 +399,7 @@ describe("Bitcoin", () => {
           it("should decode P2PKH address correctly", () => {
             expect(
               addressToPublicKeyHash(P2PKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            ).to.be.equal(publicKeyHash.toString())
           })
         })
 
@@ -455,7 +463,7 @@ describe("Bitcoin", () => {
                 P2WPKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash)
+            ).to.be.equal(publicKeyHash.toString())
           })
         })
 
@@ -466,7 +474,7 @@ describe("Bitcoin", () => {
                 P2PKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash)
+            ).to.be.equal(publicKeyHash.toString())
           })
         })
 

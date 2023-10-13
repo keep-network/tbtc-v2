@@ -239,7 +239,7 @@ export class RedemptionsService {
     ): Promise<BitcoinUtxo | undefined> => {
       // Build the wallet Bitcoin address based on its public key hash.
       const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
-        walletPublicKeyHash.toString(),
+        walletPublicKeyHash,
         witnessAddress,
         bitcoinNetwork
       )

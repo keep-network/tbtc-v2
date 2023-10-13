@@ -73,7 +73,7 @@ describe("Redemptions", () => {
         } as Wallet)
 
         const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
-          walletPublicKeyHash.toString(),
+          walletPublicKeyHash,
           true,
           BitcoinNetwork.Testnet
         )
@@ -751,13 +751,13 @@ describe("Redemptions", () => {
 
                   const walletWitnessAddress =
                     BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash.toString(),
+                      walletPublicKeyHash,
                       true,
                       bitcoinNetwork
                     )
                   const walletLegacyAddress =
                     BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash.toString(),
+                      walletPublicKeyHash,
                       false,
                       bitcoinNetwork
                     )

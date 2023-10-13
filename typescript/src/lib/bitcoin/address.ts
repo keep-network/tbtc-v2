@@ -29,20 +29,19 @@ export function publicKeyToAddress(
 
 /**
  * Converts a public key hash into a P2PKH/P2WPKH address.
- * @param publicKeyHash Public key hash that will be encoded. Must be an
- *        unprefixed hex string (without 0x prefix).
+ * @param publicKeyHash Public key hash that will be encoded.
  * @param witness If true, a witness public key hash will be encoded and
  *        P2WPKH address will be returned. Returns P2PKH address otherwise
  * @param bitcoinNetwork Network the address should be encoded for.
- * @returns P2PKH or P2WPKH address encoded from the given public key hash
+ * @returns P2PKH or P2WPKH address encoded from the given public key hash.
  * @throws Throws an error if network is not supported.
  */
 function publicKeyHashToAddress(
-  publicKeyHash: string,
+  publicKeyHash: Hex,
   witness: boolean,
   bitcoinNetwork: BitcoinNetwork
 ): string {
-  const hash = Buffer.from(publicKeyHash, "hex")
+  const hash = publicKeyHash.toBuffer()
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
   return witness
     ? payments.p2wpkh({ hash, network }).address!
