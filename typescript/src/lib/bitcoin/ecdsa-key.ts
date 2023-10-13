@@ -61,9 +61,10 @@ export const BitcoinPublicKeyUtils = {
 
 /**
  * Creates a Bitcoin key pair based on the given private key.
- * @param privateKey Private key that should be used to create the key pair.
+ * @param privateKey Private key in the WIF format that should be used to create
+ *        the key pair.
  * @param bitcoinNetwork Bitcoin network the given key pair is relevant for.
- * @returns Bitcoin key ring.
+ * @returns Bitcoin key pair.
  */
 function createKeyPair(
   privateKey: string,
