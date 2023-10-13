@@ -295,7 +295,7 @@ export class MockBridge implements Bridge {
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(walletPublicKey),
+      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)),
       redeemerOutputScript
     )
 

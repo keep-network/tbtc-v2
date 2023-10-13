@@ -153,8 +153,9 @@ describe("Bitcoin", () => {
 
     describe("computeHash160", () => {
       it("should compute hash160 correctly", () => {
-        const compressedPublicKey =
+        const compressedPublicKey = Hex.from(
           "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+        )
         const expectedHash160 = "3e1dfbd72483fb3964ca828ee71cf3270cafdc65"
 
         expect(computeHash160(compressedPublicKey)).to.be.equal(expectedHash160)

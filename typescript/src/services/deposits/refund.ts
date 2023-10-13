@@ -12,6 +12,7 @@ import {
   BitcoinUtxo,
 } from "../../lib/bitcoin"
 import { validateDepositReceipt } from "../../lib/contracts"
+import { Hex } from "../../lib/utils"
 import { DepositScript } from "./"
 import {
   Signer,
@@ -191,7 +192,7 @@ export class DepositRefund {
     const refunderPublicKey = refunderKeyPair.publicKey.toString("hex")
 
     if (
-      BitcoinHashUtils.computeHash160(refunderPublicKey) !=
+      BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)) !=
       this.script.receipt.refundPublicKeyHash
     ) {
       throw new Error(

@@ -6,10 +6,8 @@ import { Hex } from "../utils"
  * @param text - Text the HASH160 is computed for.
  * @returns Hash as a 20-byte un-prefixed hex string.
  */
-function computeHash160(text: string): string {
-  const sha256Hash = utils.sha256(
-    Hex.from(Buffer.from(text, "hex")).toPrefixedString()
-  )
+function computeHash160(text: Hex): string {
+  const sha256Hash = utils.sha256(text.toPrefixedString())
   const hash160 = utils.ripemd160(sha256Hash)
 
   return Hex.from(hash160).toString()

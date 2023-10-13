@@ -138,7 +138,7 @@ export class EthereumTBTCToken
     redeemerOutputScript: string
   ) {
     const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
-      walletPublicKey
+      Hex.from(walletPublicKey)
     )}`
 
     const mainUtxoParam = {

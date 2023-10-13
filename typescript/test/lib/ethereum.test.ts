@@ -557,7 +557,7 @@ describe("Ethereum", () => {
           [
             redeemer.identifierHex,
             Hex.from(
-              BitcoinHashUtils.computeHash160(walletPublicKey)
+              BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey))
             ).toPrefixedString(),
             mainUtxo.transactionHash.reverse().toPrefixedString(),
             mainUtxo.outputIndex,
