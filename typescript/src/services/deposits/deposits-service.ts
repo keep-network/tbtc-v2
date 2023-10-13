@@ -78,7 +78,7 @@ export class DepositsService {
 
     const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
       Hex.from(walletPublicKey)
-    )
+    ).toString()
 
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 

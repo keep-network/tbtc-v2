@@ -556,8 +556,8 @@ describe("Ethereum", () => {
           ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
           [
             redeemer.identifierHex,
-            Hex.from(
-              BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey))
+            BitcoinHashUtils.computeHash160(
+              Hex.from(walletPublicKey)
             ).toPrefixedString(),
             mainUtxo.transactionHash.reverse().toPrefixedString(),
             mainUtxo.outputIndex,

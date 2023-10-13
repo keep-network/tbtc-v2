@@ -133,7 +133,7 @@ export class EthereumBridge
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)),
+      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString(),
       redeemerOutputScript
     )
 
@@ -156,7 +156,7 @@ export class EthereumBridge
     redeemerOutputScript: string
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)),
+      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString(),
       redeemerOutputScript
     )
 
@@ -334,9 +334,9 @@ export class EthereumBridge
     redeemerOutputScript: string,
     amount: BigNumber
   ): Promise<void> {
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
       Hex.from(walletPublicKey)
-    )}`
+    ).toPrefixedString()
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
@@ -398,9 +398,9 @@ export class EthereumBridge
       txOutputValue: mainUtxo.value,
     }
 
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
       Hex.from(walletPublicKey)
-    )}`
+    ).toPrefixedString()
 
     await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {

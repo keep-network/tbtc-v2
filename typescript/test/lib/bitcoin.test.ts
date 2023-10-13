@@ -158,7 +158,9 @@ describe("Bitcoin", () => {
         )
         const expectedHash160 = "3e1dfbd72483fb3964ca828ee71cf3270cafdc65"
 
-        expect(computeHash160(compressedPublicKey)).to.be.equal(expectedHash160)
+        expect(computeHash160(compressedPublicKey).toString()).to.be.equal(
+          expectedHash160
+        )
       })
     })
 

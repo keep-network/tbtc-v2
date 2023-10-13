@@ -469,7 +469,7 @@ class DepositSweep {
     const walletPublicKey = walletKeyPair.publicKey.toString("hex")
 
     if (
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)) !=
+      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString() !=
       deposit.walletPublicKeyHash
     ) {
       throw new Error(

@@ -137,9 +137,9 @@ export class EthereumTBTCToken
     mainUtxo: BitcoinUtxo,
     redeemerOutputScript: string
   ) {
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
+    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
       Hex.from(walletPublicKey)
-    )}`
+    ).toPrefixedString()
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal

@@ -192,7 +192,7 @@ export class DepositRefund {
     const refunderPublicKey = refunderKeyPair.publicKey.toString("hex")
 
     if (
-      BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)) !=
+      BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)).toString() !=
       this.script.receipt.refundPublicKeyHash
     ) {
       throw new Error(

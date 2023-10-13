@@ -186,7 +186,7 @@ export class DepositScript {
     // Legacy script hash needs HASH160.
     return this.witness
       ? BitcoinHashUtils.computeSha256(Hex.from(script)).toBuffer()
-      : Buffer.from(BitcoinHashUtils.computeHash160(Hex.from(script)), "hex")
+      : BitcoinHashUtils.computeHash160(Hex.from(script)).toBuffer()
   }
 
   /**

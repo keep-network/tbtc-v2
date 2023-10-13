@@ -53,8 +53,8 @@ describe("Redemptions", () => {
         tbtcContracts = new MockTBTCContracts()
         bitcoinClient = new MockBitcoinClient()
 
-        const walletPublicKeyHash = Hex.from(
-          BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey))
+        const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
+          Hex.from(walletPublicKey)
         )
 
         // Prepare NewWalletRegisteredEvent history. Set only relevant fields.
