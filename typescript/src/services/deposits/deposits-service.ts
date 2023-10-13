@@ -85,7 +85,7 @@ export class DepositsService {
     const refundPublicKeyHash = BitcoinAddressConverter.addressToPublicKeyHash(
       bitcoinRecoveryAddress,
       bitcoinNetwork
-    )
+    ).toString()
 
     const currentTimestamp = Math.floor(new Date().getTime() / 1000)
 

@@ -53,25 +53,24 @@ function publicKeyHashToAddress(
  * provided address is not PKH-based.
  * @param address P2PKH or P2WPKH address that will be decoded.
  * @param bitcoinNetwork Network the address should be decoded for.
- * @returns Public key hash decoded from the address. This will be an unprefixed
- *        hex string (without 0x prefix).
+ * @returns Public key hash decoded from the address.
  */
 function addressToPublicKeyHash(
   address: string,
   bitcoinNetwork: BitcoinNetwork
-): string {
+): Hex {
   const network = toBitcoinJsLibNetwork(bitcoinNetwork)
 
   try {
     // Try extracting hash from P2PKH address.
     const hash = payments.p2pkh({ address: address, network }).hash!
-    return hash.toString("hex")
+    return Hex.from(hash)
   } catch (err) {}
 
   try {
     // Try extracting hash from P2WPKH address.
     const hash = payments.p2wpkh({ address: address, network }).hash!
-    return hash.toString("hex")
+    return Hex.from(hash)
   } catch (err) {}
 
   throw new Error("Address must be P2PKH or P2WPKH valid for given network")

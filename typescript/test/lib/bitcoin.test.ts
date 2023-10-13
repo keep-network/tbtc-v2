@@ -391,7 +391,7 @@ describe("Bitcoin", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(
               addressToPublicKeyHash(P2WPKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash.toString())
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -399,7 +399,7 @@ describe("Bitcoin", () => {
           it("should decode P2PKH address correctly", () => {
             expect(
               addressToPublicKeyHash(P2PKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash.toString())
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -463,7 +463,7 @@ describe("Bitcoin", () => {
                 P2WPKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash.toString())
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -474,7 +474,7 @@ describe("Bitcoin", () => {
                 P2PKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash.toString())
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
