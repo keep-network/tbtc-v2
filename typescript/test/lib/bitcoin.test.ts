@@ -821,33 +821,27 @@ describe("Bitcoin", () => {
       const testData = [
         {
           testFunction: isP2PKHScript,
-          validScript: Buffer.from(
-            "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac",
-            "hex"
+          validScript: Hex.from(
+            "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac"
           ),
           name: "P2PKH",
         },
         {
           testFunction: isP2WPKHScript,
-          validScript: Buffer.from(
-            "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            "hex"
-          ),
+          validScript: Hex.from("00148db50eb52063ea9d98b3eac91489a90f738986f6"),
           name: "P2WPKH",
         },
         {
           testFunction: isP2SHScript,
-          validScript: Buffer.from(
-            "a914a9a5f97d5d3c4687a52e90718168270005b369c487",
-            "hex"
+          validScript: Hex.from(
+            "a914a9a5f97d5d3c4687a52e90718168270005b369c487"
           ),
           name: "P2SH",
         },
         {
           testFunction: isP2WSHScript,
-          validScript: Buffer.from(
-            "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7",
-            "hex"
+          validScript: Hex.from(
+            "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7"
           ),
           name: "P2WSH",
         },

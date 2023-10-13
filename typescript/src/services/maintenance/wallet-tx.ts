@@ -249,7 +249,7 @@ class DepositSweep {
         utxo.outputIndex
       ]
       const previousOutputValue = previousOutput.value
-      const previousOutputScript = previousOutput.script
+      const previousOutputScript = Hex.from(previousOutput.script)
 
       const deposit = deposits[depositIndex]
 
@@ -309,10 +309,13 @@ class DepositSweep {
     previousOutput: TxOutput,
     walletKeyPair: Signer
   ) {
+    const previousOutputScript = Hex.from(previousOutput.script)
+    const previousOutputValue = previousOutput.value
+
     if (
       !this.canSpendOutput(
         Hex.from(walletKeyPair.publicKey),
-        previousOutput.script
+        previousOutputScript
       )
     ) {
       throw new Error("UTXO does not belong to the wallet")
@@ -320,11 +323,11 @@ class DepositSweep {
 
     const sigHashType = Transaction.SIGHASH_ALL
 
-    if (BitcoinScriptUtils.isP2PKHScript(previousOutput.script)) {
+    if (BitcoinScriptUtils.isP2PKHScript(previousOutputScript)) {
       // P2PKH
       const sigHash = transaction.hashForSignature(
         inputIndex,
-        previousOutput.script,
+        previousOutputScript.toBuffer(),
         sigHashType
       )
 
@@ -339,16 +342,17 @@ class DepositSweep {
       }).input!
 
       transaction.ins[inputIndex].script = scriptSig
-    } else if (BitcoinScriptUtils.isP2WPKHScript(previousOutput.script)) {
+    } else if (BitcoinScriptUtils.isP2WPKHScript(previousOutputScript)) {
       // P2WPKH
-      const publicKeyHash = payments.p2wpkh({ output: previousOutput.script })
-        .hash!
+      const publicKeyHash = payments.p2wpkh({
+        output: previousOutputScript.toBuffer(),
+      }).hash!
       const p2pkhScript = payments.p2pkh({ hash: publicKeyHash }).output!
 
       const sigHash = transaction.hashForWitnessV0(
         inputIndex,
         p2pkhScript,
-        previousOutput.value,
+        previousOutputValue,
         sigHashType
       )
 
@@ -496,10 +500,14 @@ class DepositSweep {
    * @returns True if the provided output script matches the P2PKH or P2WPKH
    *          output scripts derived from the given public key. False otherwise.
    */
-  private canSpendOutput(publicKey: Hex, outputScript: Buffer): boolean {
+  private canSpendOutput(publicKey: Hex, outputScript: Hex): boolean {
     const pubkeyBuffer = publicKey.toBuffer()
-    const p2pkhOutput = payments.p2pkh({ pubkey: pubkeyBuffer }).output!
-    const p2wpkhOutput = payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
+    const p2pkhOutput = Hex.from(
+      payments.p2pkh({ pubkey: pubkeyBuffer }).output!
+    )
+    const p2wpkhOutput = Hex.from(
+      payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
+    )
 
     return outputScript.equals(p2pkhOutput) || outputScript.equals(p2wpkhOutput)
   }
@@ -661,7 +669,7 @@ class Redemption {
     const previousOutput = Transaction.fromHex(mainUtxo.transactionHex).outs[
       mainUtxo.outputIndex
     ]
-    const previousOutputScript = previousOutput.script
+    const previousOutputScript = Hex.from(previousOutput.script)
     const previousOutputValue = previousOutput.value
 
     if (BitcoinScriptUtils.isP2PKHScript(previousOutputScript)) {
@@ -675,7 +683,7 @@ class Redemption {
         hash: mainUtxo.transactionHash.reverse().toBuffer(),
         index: mainUtxo.outputIndex,
         witnessUtxo: {
-          script: previousOutputScript,
+          script: previousOutputScript.toBuffer(),
           value: previousOutputValue,
         },
       })

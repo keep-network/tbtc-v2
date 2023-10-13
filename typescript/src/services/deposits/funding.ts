@@ -92,7 +92,7 @@ export class DepositFunding {
 
       // TODO: Add support for other utxo types along with unit tests for the
       //       given type.
-      if (BitcoinScriptUtils.isP2WPKHScript(previousOutputScript)) {
+      if (BitcoinScriptUtils.isP2WPKHScript(Hex.from(previousOutputScript))) {
         psbt.addInput({
           hash: utxo.transactionHash.reverse().toBuffer(),
           index: utxo.outputIndex,

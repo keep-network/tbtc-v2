@@ -154,7 +154,7 @@ export class DepositRefund {
       utxo.outputIndex
     ]
     const previousOutputValue = previousOutput.value
-    const previousOutputScript = previousOutput.script
+    const previousOutputScript = Hex.from(previousOutput.script)
 
     if (BitcoinScriptUtils.isP2SHScript(previousOutputScript)) {
       // P2SH deposit UTXO
