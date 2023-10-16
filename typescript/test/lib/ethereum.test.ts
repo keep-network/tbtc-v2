@@ -151,10 +151,14 @@ describe("Ethereum", () => {
             depositor: EthereumAddress.from(
               "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
             ),
-            walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
-            blindingFactor: "f9f0c90d00039523",
-            refundLocktime: "60bcea61",
+            walletPublicKeyHash: Hex.from(
+              "8db50eb52063ea9d98b3eac91489a90f738986f6"
+            ),
+            refundPublicKeyHash: Hex.from(
+              "28e081f285138ccbe389c1eb8985716230129f89"
+            ),
+            blindingFactor: Hex.from("f9f0c90d00039523"),
+            refundLocktime: Hex.from("60bcea61"),
           },
           EthereumAddress.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
