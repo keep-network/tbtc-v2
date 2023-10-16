@@ -9,6 +9,7 @@ import {
   BitcoinHashUtils,
   BitcoinLocktimeUtils,
 } from "../../lib/bitcoin"
+import { Hex } from "../../lib/utils"
 import { Deposit } from "./deposit"
 import * as crypto from "crypto"
 
@@ -66,7 +67,7 @@ export class DepositsService {
       )
     }
 
-    const blindingFactor = crypto.randomBytes(8).toString("hex")
+    const blindingFactor = Hex.from(crypto.randomBytes(8))
 
     const walletPublicKey =
       await this.tbtcContracts.bridge.activeWalletPublicKey()
@@ -75,8 +76,7 @@ export class DepositsService {
       throw new Error("Could not get active wallet public key")
     }
 
-    const walletPublicKeyHash =
-      BitcoinHashUtils.computeHash160(walletPublicKey).toString()
+    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(walletPublicKey)
 
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
@@ -86,7 +86,7 @@ export class DepositsService {
     const refundPublicKeyHash = BitcoinAddressConverter.addressToPublicKeyHash(
       bitcoinRecoveryAddress,
       bitcoinNetwork
-    ).toString()
+    )
 
     const currentTimestamp = Math.floor(new Date().getTime() / 1000)
 

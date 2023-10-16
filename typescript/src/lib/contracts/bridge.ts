@@ -190,31 +190,30 @@ export interface DepositReceipt {
   depositor: ChainIdentifier
 
   /**
-   * An 8-byte blinding factor as an un-prefixed hex string. Must be unique
-   * for the given depositor, wallet public key and refund public key.
+   * An 8-byte blinding factor. Must be unique for the given depositor, wallet
+   * public key and refund public key.
    */
-  blindingFactor: string
+  blindingFactor: Hex
 
   /**
-   * Public key hash of the wallet that is meant to receive the deposit. Must
-   * be an unprefixed hex string (without 0x prefix).
+   * Public key hash of the wallet that is meant to receive the deposit.
    *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
+   * You can use `computeHash160` function to get the hash from a public key.
    */
-  walletPublicKeyHash: string
+  walletPublicKeyHash: Hex
 
   /**
    * Public key hash that is meant to be used during deposit refund after the
-   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
+   * locktime passes.
    *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
+   * You can use `computeHash160` function to get the hash from a public key.
    */
-  refundPublicKeyHash: string
+  refundPublicKeyHash: Hex
 
   /**
-   * A 4-byte little-endian refund locktime as an un-prefixed hex string.
+   * A 4-byte little-endian refund locktime.
    */
-  refundLocktime: string
+  refundLocktime: Hex
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -225,18 +224,18 @@ export interface DepositReceipt {
  *      validity is chain-specific. This parameter must be validated outside.
  */
 export function validateDepositReceipt(receipt: DepositReceipt) {
-  if (receipt.blindingFactor.length != 16) {
+  if (receipt.blindingFactor.toString().length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
-  if (receipt.walletPublicKeyHash.length != 40) {
+  if (receipt.walletPublicKeyHash.toString().length != 40) {
     throw new Error("Invalid wallet public key hash")
   }
 
-  if (receipt.refundPublicKeyHash.length != 40) {
+  if (receipt.refundPublicKeyHash.toString().length != 40) {
     throw new Error("Invalid refund public key hash")
   }
 
-  if (receipt.refundLocktime.length != 8) {
+  if (receipt.refundLocktime.toString().length != 8) {
     throw new Error("Refund locktime must be a 4-byte number")
   }
 }
