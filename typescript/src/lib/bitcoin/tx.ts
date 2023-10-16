@@ -185,7 +185,7 @@ export function extractBitcoinRawTxVectors(
 
 /**
  * Converts Bitcoin specific locktime value to a number. The number represents
- * either a block height or an Unix timestamp depending on the value.
+ * either a block height or a Unix timestamp, depending on the value.
  *
  * If the number is less than 500 000 000 it is a block height.
  * If the number is greater or equal 500 000 000 it is a Unix timestamp.
