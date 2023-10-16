@@ -11,7 +11,7 @@ import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
  *        and false for Legacy (P2PKH). Default is true.
  * @returns The derived Bitcoin address.
  */
-export function publicKeyToAddress(
+function publicKeyToAddress(
   publicKey: Hex,
   bitcoinNetwork: BitcoinNetwork,
   witness: boolean = true
