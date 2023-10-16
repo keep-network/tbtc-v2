@@ -129,11 +129,11 @@ export class EthereumBridge
    * @see {Bridge#pendingRedemptions}
    */
   async pendingRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString(),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -152,11 +152,11 @@ export class EthereumBridge
    * @see {Bridge#timedOutRedemptions}
    */
   async timedOutRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString(),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -173,19 +173,18 @@ export class EthereumBridge
   /**
    * Builds a redemption key required to refer a redemption request.
    * @param walletPublicKeyHash The wallet public key hash that identifies the
-   *        pending redemption (along with the redeemer output script). Must be
-   *        unprefixed.
+   *        pending redemption (along with the redeemer output script).
    * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length.
+   *        pending redemption (along with the wallet public key hash). Must not
+   *        be prepended with length.
    * @returns The redemption key.
    */
   static buildRedemptionKey(
-    walletPublicKeyHash: string,
-    redeemerOutputScript: string
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
   ): string {
     // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
     // Prefix the output script bytes buffer with 0x and its own length.
     const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
       Buffer.from([rawRedeemerOutputScript.length]),
@@ -206,17 +205,17 @@ export class EthereumBridge
    * Parses a redemption request using data fetched from the on-chain contract.
    * @param request Data of the request.
    * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length.
+   *        pending redemption (along with the wallet public key hash). Must not
+   *        be prepended with length.
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
     request: RedemptionRequestTypechain,
-    redeemerOutputScript: string
+    redeemerOutputScript: Hex
   ): RedemptionRequest {
     return {
       redeemer: EthereumAddress.from(request.redeemer),
-      redeemerOutputScript: redeemerOutputScript,
+      redeemerOutputScript: redeemerOutputScript.toString(),
       requestedAmount: BigNumber.from(request.requestedAmount),
       treasuryFee: BigNumber.from(request.treasuryFee),
       txMaxFee: BigNumber.from(request.txMaxFee),
@@ -329,14 +328,13 @@ export class EthereumBridge
    * @see {Bridge#requestRedemption}
    */
   async requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<void> {
-    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
-      Hex.from(walletPublicKey)
-    ).toPrefixedString()
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
@@ -347,7 +345,7 @@ export class EthereumBridge
     }
 
     // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
     // Prefix the output script bytes buffer with 0x and its own length.
     const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
       Buffer.from([rawRedeemerOutputScript.length]),
@@ -375,7 +373,7 @@ export class EthereumBridge
     redemptionTx: BitcoinRawTxVectors,
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
+    walletPublicKey: Hex
   ): Promise<void> {
     const redemptionTxParam = {
       version: `0x${redemptionTx.version}`,
@@ -398,9 +396,8 @@ export class EthereumBridge
       txOutputValue: mainUtxo.value,
     }
 
-    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
-      Hex.from(walletPublicKey)
-    ).toPrefixedString()
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
     await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
@@ -484,7 +481,7 @@ export class EthereumBridge
   /**
    * @see {Bridge#activeWalletPublicKey}
    */
-  async activeWalletPublicKey(): Promise<string | undefined> {
+  async activeWalletPublicKey(): Promise<Hex | undefined> {
     const activeWalletPublicKeyHash: string = await backoffRetrier<string>(
       this._totalRetryAttempts
     )(async () => {
@@ -502,7 +499,7 @@ export class EthereumBridge
       Hex.from(activeWalletPublicKeyHash)
     )
 
-    return walletPublicKey.toString()
+    return walletPublicKey
   }
 
   private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {

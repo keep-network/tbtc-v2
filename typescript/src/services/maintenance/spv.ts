@@ -5,6 +5,7 @@ import {
   BitcoinUtxo,
   extractBitcoinRawTxVectors,
 } from "../../lib/bitcoin"
+import { Hex } from "../../lib/utils"
 import { ChainIdentifier, TBTCContracts } from "../../lib/contracts"
 
 export class Spv {
@@ -84,7 +85,7 @@ export class Spv {
       rawTransactionVectors,
       proof,
       mainUtxo,
-      walletPublicKey
+      Hex.from(walletPublicKey)
     )
   }
 }

@@ -10,7 +10,6 @@ import {
   BitcoinLocktimeUtils,
 } from "../../lib/bitcoin"
 import { Deposit } from "./deposit"
-import { Hex } from "../../lib/utils"
 import * as crypto from "crypto"
 
 /**
@@ -76,9 +75,8 @@ export class DepositsService {
       throw new Error("Could not get active wallet public key")
     }
 
-    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
-      Hex.from(walletPublicKey)
-    ).toString()
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toString()
 
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 

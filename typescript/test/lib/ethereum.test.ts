@@ -74,8 +74,10 @@ describe("Ethereum", () => {
       it("should return the pending redemption", async () => {
         expect(
           await bridgeHandle.pendingRedemptions(
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+            Hex.from(
+              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+            ),
+            Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87")
           )
         ).to.be.eql({
           redeemer: EthereumAddress.from(
@@ -113,8 +115,10 @@ describe("Ethereum", () => {
       it("should return the timed-out redemption", async () => {
         expect(
           await bridgeHandle.timedOutRedemptions(
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+            Hex.from(
+              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+            ),
+            Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87")
           )
         ).to.be.eql({
           redeemer: EthereumAddress.from(
@@ -244,7 +248,9 @@ describe("Ethereum", () => {
         await bridgeContract.mock.requestRedemption.returns()
 
         await bridgeHandle.requestRedemption(
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+          Hex.from(
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          ),
           {
             transactionHash: BitcoinTxHash.from(
               "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
@@ -252,7 +258,7 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"),
           BigNumber.from(10000)
         )
       })
@@ -295,7 +301,9 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          Hex.from(
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          )
         )
       })
 
@@ -441,7 +449,9 @@ describe("Ethereum", () => {
         })
 
         it("should return the active wallet's public key", async () => {
-          expect(await bridgeHandle.activeWalletPublicKey()).to.be.equal(
+          expect(
+            (await bridgeHandle.activeWalletPublicKey())?.toString()
+          ).to.be.equal(
             "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
           )
         })
