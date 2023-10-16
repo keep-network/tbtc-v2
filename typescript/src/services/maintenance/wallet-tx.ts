@@ -473,8 +473,9 @@ class DepositSweep {
     const walletPublicKey = walletKeyPair.publicKey.toString("hex")
 
     if (
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString() !=
-      deposit.walletPublicKeyHash
+      !BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).equals(
+        deposit.walletPublicKeyHash
+      )
     ) {
       throw new Error(
         "Wallet public key does not correspond to wallet private key"

@@ -596,12 +596,12 @@ describe("Bitcoin", () => {
       const testData = [
         {
           contextName: "when locktime is a block height",
-          unprefixedHex: "ede80600",
+          unprefixedHex: Hex.from("ede80600"),
           expectedLocktime: 452845,
         },
         {
           contextName: "when locktime is a timestamp",
-          unprefixedHex: "06241559",
+          unprefixedHex: Hex.from("06241559"),
           expectedLocktime: 1494557702,
         },
         {
@@ -615,24 +615,24 @@ describe("Bitcoin", () => {
         context(test.contextName, () => {
           context("when input is non-prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
-              expect(locktimeToNumber(test.unprefixedHex)).to.be.equal(
-                test.expectedLocktime
-              )
+              expect(
+                locktimeToNumber(test.unprefixedHex.toString())
+              ).to.be.equal(test.expectedLocktime)
             })
           })
 
           context("when input is 0x prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
-              expect(locktimeToNumber("0x" + test.unprefixedHex)).to.be.equal(
-                test.expectedLocktime
-              )
+              expect(
+                locktimeToNumber(test.unprefixedHex.toPrefixedString())
+              ).to.be.equal(test.expectedLocktime)
             })
           })
 
           context("when input is Buffer object", () => {
             it("should return the locktime in seconds", async () => {
               expect(
-                locktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
+                locktimeToNumber(test.unprefixedHex.toBuffer())
               ).to.be.equal(test.expectedLocktime)
             })
           })
@@ -668,7 +668,7 @@ describe("Bitcoin", () => {
           // The start timestamp is 1652776752 and locktime duration 2592000 (30 days).
           // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
           // is represented as 30ecaa62 hex in the little-endian format.
-          expect(locktime).to.be.equal("30ecaa62")
+          expect(locktime.toString()).to.be.equal("30ecaa62")
         })
       })
     })

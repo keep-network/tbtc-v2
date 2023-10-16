@@ -192,8 +192,9 @@ export class DepositRefund {
     const refunderPublicKey = refunderKeyPair.publicKey.toString("hex")
 
     if (
-      BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)).toString() !=
-      this.script.receipt.refundPublicKeyHash
+      !BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)).equals(
+        this.script.receipt.refundPublicKeyHash
+      )
     ) {
       throw new Error(
         "Refund public key does not correspond to wallet private key"
@@ -289,10 +290,7 @@ export class DepositRefund {
  * @param locktime - Locktime as a little endian hexstring.
  * @returns Locktime as a Unix timestamp.
  */
-function locktimeToUnixTimestamp(locktime: string): number {
-  const bigEndianLocktime = Buffer.from(locktime, "hex")
-    .reverse()
-    .toString("hex")
-
+function locktimeToUnixTimestamp(locktime: Hex): number {
+  const bigEndianLocktime = locktime.reverse().toString()
   return parseInt(bigEndianLocktime, 16)
 }

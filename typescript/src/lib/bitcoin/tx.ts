@@ -207,12 +207,12 @@ function locktimeToNumber(locktimeLE: Buffer | string): number {
  * @param locktimeStartedAt - Unix timestamp in seconds determining the moment
  *        of the locktime start.
  * @param locktimeDuration Locktime duration in seconds.
- * @returns A 4-byte little-endian locktime as an un-prefixed hex string.
+ * @returns A 4-byte little-endian locktime.
  */
 function calculateLocktime(
   locktimeStartedAt: number,
   locktimeDuration: number
-): string {
+): Hex {
   // Locktime is a Unix timestamp in seconds, computed as locktime start
   // timestamp plus locktime duration.
   const locktime = BigNumber.from(locktimeStartedAt + locktimeDuration)
@@ -225,7 +225,7 @@ function calculateLocktime(
 
   // Bitcoin locktime is interpreted as little-endian integer, so we must
   // adhere to that convention by converting the locktime accordingly.
-  return locktimeHex.reverse().toString()
+  return locktimeHex.reverse()
 }
 
 /**
