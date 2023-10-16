@@ -586,8 +586,8 @@ class Redemption {
     for (const redeemerOutputScript of redeemerOutputScripts) {
       const redemptionRequest =
         await this.tbtcContracts.bridge.pendingRedemptions(
-          walletPublicKey,
-          redeemerOutputScript
+          Hex.from(walletPublicKey),
+          Hex.from(redeemerOutputScript)
         )
 
       if (redemptionRequest.requestedAt == 0) {
