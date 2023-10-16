@@ -776,6 +776,14 @@ describe("Bitcoin", () => {
     const { read } = BitcoinCompactSizeUint
 
     describe("read", () => {
+      context("when the compact size uint is empty", () => {
+        it("should throw", () => {
+          expect(() => {
+            return read(Hex.from(""))
+          }).to.throw("Empty variable length data argument")
+        })
+      })
+
       context("when the compact size uint is 1-byte", () => {
         it("should return the the uint value and byte length", () => {
           expect(read(Hex.from("bb"))).to.be.eql({
@@ -788,7 +796,7 @@ describe("Bitcoin", () => {
       context("when the compact size uint is 3-byte", () => {
         it("should throw", () => {
           expect(() => read(Hex.from("fd0302"))).to.throw(
-            "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+            "Support for 3, 5 and 9 bytes compact size uints is not implemented yet"
           )
         })
       })
@@ -796,7 +804,7 @@ describe("Bitcoin", () => {
       context("when the compact size uint is 5-byte", () => {
         it("should throw", () => {
           expect(() => read(Hex.from("fe703a0f00"))).to.throw(
-            "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+            "Support for 3, 5 and 9 bytes compact size uints is not implemented yet"
           )
         })
       })
@@ -806,7 +814,7 @@ describe("Bitcoin", () => {
           expect(() => {
             return read(Hex.from("ff57284e56dab40000"))
           }).to.throw(
-            "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+            "Support for 3, 5 and 9 bytes compact size uints is not implemented yet"
           )
         })
       })

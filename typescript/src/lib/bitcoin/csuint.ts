@@ -14,6 +14,10 @@ function read(varLenData: Hex): {
   value: number
   byteLength: number
 } {
+  if (varLenData.toString().length == 0) {
+    throw new Error("Empty variable length data argument")
+  }
+
   // The varLenData is prefixed with the compact size uint. According to the docs
   // (https://developer.bitcoin.org/reference/transactions.html#compactsize-unsigned-integers)
   // a compact size uint can be 1, 3, 5 or 9 bytes. To determine the exact length,
@@ -26,7 +30,7 @@ function read(varLenData: Hex): {
     case "fe":
     case "fd": {
       throw new Error(
-        "support for 3, 5 and 9 bytes compact size uints is not implemented yet"
+        "Support for 3, 5 and 9 bytes compact size uints is not implemented yet"
       )
     }
     default: {
