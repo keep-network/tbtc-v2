@@ -147,7 +147,9 @@ export function validateBitcoinHeadersChain(
       if (
         !previousBlockHeaderHash.equals(currentHeader.previousBlockHeaderHash)
       ) {
-        throw new Error("Invalid headers chain")
+        throw new Error(
+          `Invalid headers chain; problem with header index: ${index}`
+        )
       }
     }
 
