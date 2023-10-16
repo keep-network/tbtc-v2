@@ -1,8 +1,4 @@
-import { Hex } from "../../src/hex"
-import {
-  BitcoinNetwork,
-  toBitcoinJsLibNetwork,
-} from "../../src/bitcoin-network"
+import { BitcoinNetwork, toBitcoinJsLibNetwork, Hex } from "../../src"
 import { Transaction, address } from "bitcoinjs-lib"
 
 /**
