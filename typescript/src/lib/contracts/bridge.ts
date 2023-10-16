@@ -76,14 +76,14 @@ export interface Bridge {
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
    *        held by the on-chain contract.
    * @param redeemerOutputScript - The output script that the redeemed funds will
-   *        be locked to. Must be un-prefixed and not prepended with length.
+   *        be locked to. Must not be prepended with length.
    * @param amount - The amount to be redeemed in satoshis.
    * @returns Empty promise.
    */
   requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<void>
 
@@ -99,7 +99,7 @@ export interface Bridge {
     redemptionTx: BitcoinRawTxVectors,
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
+    walletPublicKey: Hex
   ): Promise<void>
 
   /**
@@ -116,13 +116,12 @@ export interface Bridge {
    *        targeted to. Must be in the compressed form (33 bytes long with 02
    *        or 03 prefix).
    * @param redeemerOutputScript The redeemer output script the redeemed funds
-   *        are supposed to be locked on. Must be un-prefixed and not prepended
-   *        with length.
+   *        are supposed to be locked on. Must not be prepended with length.
    * @returns Promise with the pending redemption.
    */
   pendingRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest>
 
   /**
@@ -131,13 +130,12 @@ export interface Bridge {
    *        targeted to. Must be in the compressed form (33 bytes long with 02
    *        or 03 prefix).
    * @param redeemerOutputScript The redeemer output script the redeemed funds
-   *        are supposed to be locked on. Must be un-prefixed and not prepended
-   *        with length.
+   *        are supposed to be locked on. Must not be prepended with length.
    * @returns Promise with the pending redemption.
    */
   timedOutRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest>
 
   /**
@@ -146,7 +144,7 @@ export interface Bridge {
    *          public key. If there is no active wallet at the moment, undefined
    *          is returned.
    */
-  activeWalletPublicKey(): Promise<string | undefined>
+  activeWalletPublicKey(): Promise<Hex | undefined>
 
   /**
    * Get emitted NewWalletRegisteredEvent events.
