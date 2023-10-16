@@ -41,12 +41,7 @@ function compressPublicKey(publicKey: string | Hex): string {
   // The Y coordinate is the next 32 bytes.
   const publicKeyY = publicKey.substring(64)
 
-  let prefix: string
-  if (BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0)) {
-    prefix = "02"
-  } else {
-    prefix = "03"
-  }
+  const prefix = BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0) ? "02" : "03"
 
   return `${prefix}${publicKeyX}`
 }
