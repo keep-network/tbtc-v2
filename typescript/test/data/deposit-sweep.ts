@@ -65,10 +65,14 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -96,10 +100,14 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -158,10 +166,14 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1653302600,
             2592000
@@ -213,10 +225,14 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -245,10 +261,14 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -343,10 +363,14 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1653302600,
             2592000

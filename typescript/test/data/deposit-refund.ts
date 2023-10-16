@@ -1,4 +1,5 @@
 import { BigNumber } from "ethers"
+import { Hex } from "../../src/lib/utils"
 import {
   BitcoinRawTx,
   BitcoinUtxo,
@@ -59,9 +60,13 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-        refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
-        blindingFactor: "f9f0c90d00039523",
+        walletPublicKeyHash: Hex.from(
+          "8db50eb52063ea9d98b3eac91489a90f738986f6"
+        ),
+        refundPublicKeyHash: Hex.from(
+          "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1"
+        ),
+        blindingFactor: Hex.from("f9f0c90d00039523"),
         refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
           1674820800,
           3600
@@ -116,9 +121,13 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-        refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
-        blindingFactor: "f9f0c90d00039523",
+        walletPublicKeyHash: Hex.from(
+          "8db50eb52063ea9d98b3eac91489a90f738986f6"
+        ),
+        refundPublicKeyHash: Hex.from(
+          "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1"
+        ),
+        blindingFactor: Hex.from("f9f0c90d00039523"),
         refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
           1674820800,
           3600
@@ -173,9 +182,13 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
         depositor: EthereumAddress.from(
           "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
         ),
-        walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-        refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
-        blindingFactor: "f9f0c90d00039523",
+        walletPublicKeyHash: Hex.from(
+          "8db50eb52063ea9d98b3eac91489a90f738986f6"
+        ),
+        refundPublicKeyHash: Hex.from(
+          "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1"
+        ),
+        blindingFactor: Hex.from("f9f0c90d00039523"),
         refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
           1674820800,
           3600

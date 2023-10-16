@@ -112,10 +112,10 @@ export class EthereumBridge
         ).toNumber(),
         depositor: EthereumAddress.from(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
-        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
-        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
-        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
+        blindingFactor: Hex.from(event.args!.blindingFactor),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash),
+        refundLocktime: Hex.from(event.args!.refundLocktime),
         vault:
           event.args!.vault === constants.AddressZero
             ? undefined
