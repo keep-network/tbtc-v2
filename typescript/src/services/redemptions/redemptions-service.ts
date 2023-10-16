@@ -140,8 +140,8 @@ export class RedemptionsService {
 
       const pendingRedemption =
         await this.tbtcContracts.bridge.pendingRedemptions(
-          walletPublicKey.toString(),
-          redeemerOutputScript
+          walletPublicKey,
+          Hex.from(redeemerOutputScript)
         )
 
       if (pendingRedemption.requestedAt != 0) {
@@ -338,21 +338,21 @@ export class RedemptionsService {
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
       bitcoinRedeemerAddress,
       bitcoinNetwork
-    ).toString()
+    )
 
     let redemptionRequest: RedemptionRequest | undefined = undefined
 
     switch (type) {
       case "pending": {
         redemptionRequest = await this.tbtcContracts.bridge.pendingRedemptions(
-          walletPublicKey,
+          Hex.from(walletPublicKey),
           redeemerOutputScript
         )
         break
       }
       case "timedOut": {
         redemptionRequest = await this.tbtcContracts.bridge.timedOutRedemptions(
-          walletPublicKey,
+          Hex.from(walletPublicKey),
           redeemerOutputScript
         )
         break
