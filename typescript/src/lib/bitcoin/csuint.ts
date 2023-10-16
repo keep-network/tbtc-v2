@@ -35,7 +35,7 @@ function read(varLenData: Hex): {
     }
     default: {
       // The discriminant tells the compact size uint is 1 byte. That means
-      // the discriminant represent the value itself.
+      // the discriminant represents the value itself.
       return {
         value: parseInt(discriminant, 16),
         byteLength: 1,
