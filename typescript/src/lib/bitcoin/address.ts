@@ -5,9 +5,9 @@ import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
 /**
  * Creates the Bitcoin address from the public key. Supports SegWit (P2WPKH) and
  * Legacy (P2PKH) formats.
- * @param publicKey - Public key used to derive the Bitcoin address.
- * @param bitcoinNetwork - Target Bitcoin network.
- * @param witness - Flag to determine address format: true for SegWit (P2WPKH)
+ * @param publicKey Compressed public key used to derive the Bitcoin address.
+ * @param bitcoinNetwork Target Bitcoin network.
+ * @param witness Flag to determine address format: true for SegWit (P2WPKH)
  *        and false for Legacy (P2PKH). Default is true.
  * @returns The derived Bitcoin address.
  */

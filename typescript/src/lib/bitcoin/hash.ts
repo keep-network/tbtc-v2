@@ -2,9 +2,10 @@ import { BigNumber, utils } from "ethers"
 import { Hex } from "../utils"
 
 /**
- * Computes the HASH160 for the given text.
- * @param text - Text the HASH160 is computed for.
+ * Computes the HASH160 (i.e. RIPEMD160(SHA256(text))) for the given text.
+ * @param text Text the HASH160 is computed for.
  * @returns 20-byte-long hash.
+ *
  */
 function computeHash160(text: Hex): Hex {
   const sha256Hash = utils.sha256(text.toPrefixedString())
@@ -28,7 +29,7 @@ function computeHash256(text: Hex): Hex {
 
 /**
  * Converts a hash in hex string in little endian to a BigNumber.
- * @param hash - Hash in hex-string format.
+ * @param hash Hash in hex-string format.
  * @returns BigNumber representation of the hash.
  */
 function hashLEToBigNumber(hash: Hex): BigNumber {
@@ -37,7 +38,7 @@ function hashLEToBigNumber(hash: Hex): BigNumber {
 
 /**
  * Computes the single SHA256 for the given text.
- * @param text - Text the single SHA256 is computed for.
+ * @param text Text the single SHA256 is computed for.
  * @returns 32-byte-long hash.
  * @dev Do not confuse it with computeHash256 which computes double SHA256.
  */
