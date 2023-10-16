@@ -774,7 +774,7 @@ describe("Bitcoin", () => {
       })
 
       context("when the compact size uint is 1-byte", () => {
-        it("should return the the uint value and byte length", () => {
+        it("should return the uint value and byte length", () => {
           expect(read(Hex.from("bb"))).to.be.eql({
             value: 187,
             byteLength: 1,

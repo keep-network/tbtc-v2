@@ -52,7 +52,7 @@ function compressPublicKey(publicKey: string | Hex): string {
 }
 
 /**
- * Utility functions allowing to perform Bitcoin ECDSA public keys.
+ * Utility functions allowing to perform operations on Bitcoin ECDSA public keys.
  */
 export const BitcoinPublicKeyUtils = {
   isCompressedPublicKey,
@@ -77,7 +77,7 @@ function createKeyPair(
 }
 
 /**
- * Utility functions allowing to perform Bitcoin ECDSA public keys.
+ * Utility functions allowing to perform operations on Bitcoin ECDSA private keys.
  */
 export const BitcoinPrivateKeyUtils = {
   createKeyPair,
