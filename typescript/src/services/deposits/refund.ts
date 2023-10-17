@@ -205,7 +205,7 @@ export class DepositRefund {
       throw new Error("Refunder public key must be compressed")
     }
 
-    return Buffer.from(await this.script.getPlainText(), "hex")
+    return (await this.script.getPlainText()).toBuffer()
   }
 
   /**

@@ -537,14 +537,14 @@ describe("Deposits", () => {
 
   describe("DepositScript", () => {
     describe("getPlainText", () => {
-      let script: string
+      let script: Hex
 
       beforeEach(async () => {
         script = await DepositScript.fromReceipt(deposit).getPlainText()
       })
 
       it("should return script with proper structure", async () => {
-        assertValidDepositScript(script)
+        assertValidDepositScript(script.toString())
       })
     })
 

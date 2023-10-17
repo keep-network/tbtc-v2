@@ -185,14 +185,14 @@ export class DepositScript {
     // If witness script hash should be produced, SHA256 should be used.
     // Legacy script hash needs HASH160.
     return this.witness
-      ? BitcoinHashUtils.computeSha256(Hex.from(script)).toBuffer()
-      : BitcoinHashUtils.computeHash160(Hex.from(script)).toBuffer()
+      ? BitcoinHashUtils.computeSha256(script).toBuffer()
+      : BitcoinHashUtils.computeHash160(script).toBuffer()
   }
 
   /**
-   * @returns Plain-text deposit script as an un-prefixed hex string.
+   * @returns Plain-text deposit script as a hex string.
    */
-  async getPlainText(): Promise<string> {
+  async getPlainText(): Promise<Hex> {
     const chunks: Stack = []
 
     // All HEXes pushed to the script must be un-prefixed
@@ -217,7 +217,7 @@ export class DepositScript {
     chunks.push(opcodes.OP_CHECKSIG)
     chunks.push(opcodes.OP_ENDIF)
 
-    return script.compile(chunks).toString("hex")
+    return Hex.from(script.compile(chunks))
   }
 
   /**
