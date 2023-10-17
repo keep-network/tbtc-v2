@@ -215,7 +215,7 @@ export class EthereumBridge
   ): RedemptionRequest {
     return {
       redeemer: EthereumAddress.from(request.redeemer),
-      redeemerOutputScript: redeemerOutputScript.toString(),
+      redeemerOutputScript: redeemerOutputScript,
       requestedAmount: BigNumber.from(request.requestedAmount),
       treasuryFee: BigNumber.from(request.treasuryFee),
       txMaxFee: BigNumber.from(request.txMaxFee),
@@ -653,9 +653,9 @@ export class EthereumBridge
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
         redeemer: EthereumAddress.from(event.args!.redeemer),
-        redeemerOutputScript: redeemerOutputScript,
+        redeemerOutputScript: Hex.from(redeemerOutputScript),
         requestedAmount: BigNumber.from(event.args!.requestedAmount),
         treasuryFee: BigNumber.from(event.args!.treasuryFee),
         txMaxFee: BigNumber.from(event.args!.txMaxFee),

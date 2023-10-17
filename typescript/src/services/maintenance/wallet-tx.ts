@@ -597,7 +597,7 @@ class Redemption {
 
       redemptionRequests.push({
         ...redemptionRequest,
-        redeemerOutputScript: redeemerOutputScript,
+        redeemerOutputScript: Hex.from(redeemerOutputScript),
       })
     }
 
@@ -710,7 +710,7 @@ class Redemption {
       txTotalFee = txTotalFee.add(request.txMaxFee)
 
       psbt.addOutput({
-        script: Buffer.from(request.redeemerOutputScript, "hex"),
+        script: request.redeemerOutputScript.toBuffer(),
         value: outputValue.toNumber(),
       })
     }

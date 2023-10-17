@@ -305,7 +305,7 @@ export class MockBridge implements Bridge {
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
           redeemer: EthereumAddress.from(constants.AddressZero),
-          redeemerOutputScript: "",
+          redeemerOutputScript: Hex.from(""),
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),
           txMaxFee: BigNumber.from(0),
