@@ -41,18 +41,13 @@ function compressPublicKey(publicKey: string | Hex): string {
   // The Y coordinate is the next 32 bytes.
   const publicKeyY = publicKey.substring(64)
 
-  let prefix: string
-  if (BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0)) {
-    prefix = "02"
-  } else {
-    prefix = "03"
-  }
+  const prefix = BigNumber.from(`0x${publicKeyY}`).mod(2).eq(0) ? "02" : "03"
 
   return `${prefix}${publicKeyX}`
 }
 
 /**
- * Utility functions allowing to perform Bitcoin ECDSA public keys.
+ * Utility functions allowing to perform operations on Bitcoin ECDSA public keys.
  */
 export const BitcoinPublicKeyUtils = {
   isCompressedPublicKey,
@@ -61,8 +56,8 @@ export const BitcoinPublicKeyUtils = {
 
 /**
  * Creates a Bitcoin key pair based on the given private key.
- * @param privateKey Private key in the WIF format that should be used to create
- *        the key pair.
+ * @param privateKey Private key that should be used to create the key pair.
+ *                   Should be passed in the WIF format.
  * @param bitcoinNetwork Bitcoin network the given key pair is relevant for.
  * @returns Bitcoin key pair.
  */
@@ -78,7 +73,7 @@ function createKeyPair(
 }
 
 /**
- * Utility functions allowing to perform Bitcoin ECDSA public keys.
+ * Utility functions allowing to perform operations on Bitcoin ECDSA private keys.
  */
 export const BitcoinPrivateKeyUtils = {
   createKeyPair,
