@@ -9,7 +9,13 @@ import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
  * @param publicKey - Public key that should be checked.
  * @returns True if the key is a compressed Bitcoin public key, false otherwise.
  */
-function isCompressedPublicKey(publicKey: string): boolean {
+function isCompressedPublicKey(publicKey: string | Hex): boolean {
+  if (typeof publicKey === "string") {
+    publicKey = Hex.from(publicKey)
+  }
+
+  publicKey = publicKey.toString()
+
   // Must have 33 bytes and 02 or 03 prefix.
   return (
     publicKey.length == 66 &&

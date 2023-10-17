@@ -196,7 +196,7 @@ export class EthereumBridge
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
-        `0x${walletPublicKeyHash}`,
+        `0x${walletPublicKeyHash.toString()}`,
       ]
     )
   }

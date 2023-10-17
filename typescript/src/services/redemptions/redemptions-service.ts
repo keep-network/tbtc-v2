@@ -49,14 +49,14 @@ export class RedemptionsService {
     amount: BigNumber
   ): Promise<{
     targetChainTxHash: Hex
-    walletPublicKey: string
+    walletPublicKey: Hex
   }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
       bitcoinRedeemerAddress,
       bitcoinNetwork
-    ).toString()
+    )
 
     // TODO: Validate the given script is supported for redemption.
 
@@ -66,9 +66,9 @@ export class RedemptionsService {
     )
 
     const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
-      Hex.from(walletPublicKey),
+      walletPublicKey,
       mainUtxo,
-      Hex.from(redeemerOutputScript),
+      redeemerOutputScript,
       amount
     )
 
@@ -82,16 +82,15 @@ export class RedemptionsService {
    * Finds the oldest live wallet that has enough BTC to handle a redemption
    * request.
    * @param redeemerOutputScript The redeemer output script the redeemed funds are
-   *        supposed to be locked on. Must be un-prefixed and not prepended with
-   *        length.
+   *        supposed to be locked on. Must not be prepended with length.
    * @param amount The amount to be redeemed in satoshis.
    * @returns Promise with the wallet details needed to request a redemption.
    */
   protected async findWalletForRedemption(
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<{
-    walletPublicKey: string
+    walletPublicKey: Hex
     mainUtxo: BitcoinUtxo
   }> {
     const wallets =
@@ -99,7 +98,7 @@ export class RedemptionsService {
 
     let walletData:
       | {
-          walletPublicKey: string
+          walletPublicKey: Hex
           mainUtxo: BitcoinUtxo
         }
       | undefined = undefined
@@ -141,7 +140,7 @@ export class RedemptionsService {
       const pendingRedemption =
         await this.tbtcContracts.bridge.pendingRedemptions(
           walletPublicKey,
-          Hex.from(redeemerOutputScript)
+          redeemerOutputScript
         )
 
       if (pendingRedemption.requestedAt != 0) {
@@ -149,7 +148,7 @@ export class RedemptionsService {
           `There is a pending redemption request from this wallet to the ` +
             `same Bitcoin address. Given wallet public key hash` +
             `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
-            `(${redeemerOutputScript}) pair can be used for only one ` +
+            `(${redeemerOutputScript.toString()}) pair can be used for only one ` +
             `pending request at the same time. ` +
             `Continue the loop execution to the next wallet...`
         )
@@ -163,7 +162,7 @@ export class RedemptionsService {
 
       if (walletBTCBalance.gte(amount)) {
         walletData = {
-          walletPublicKey: walletPublicKey.toString(),
+          walletPublicKey,
           mainUtxo,
         }
 
@@ -330,7 +329,7 @@ export class RedemptionsService {
    */
   async getRedemptionRequests(
     bitcoinRedeemerAddress: string,
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     type: "pending" | "timedOut" = "pending"
   ): Promise<RedemptionRequest> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
@@ -345,14 +344,14 @@ export class RedemptionsService {
     switch (type) {
       case "pending": {
         redemptionRequest = await this.tbtcContracts.bridge.pendingRedemptions(
-          Hex.from(walletPublicKey),
+          walletPublicKey,
           redeemerOutputScript
         )
         break
       }
       case "timedOut": {
         redemptionRequest = await this.tbtcContracts.bridge.timedOutRedemptions(
-          Hex.from(walletPublicKey),
+          walletPublicKey,
           redeemerOutputScript
         )
         break
