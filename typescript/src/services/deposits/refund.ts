@@ -189,10 +189,10 @@ export class DepositRefund {
    * @throws Error if there are discrepancies in values or key formats.
    */
   private async prepareDepositScript(refunderKeyPair: Signer): Promise<Buffer> {
-    const refunderPublicKey = refunderKeyPair.publicKey.toString("hex")
+    const refunderPublicKey = Hex.from(refunderKeyPair.publicKey)
 
     if (
-      !BitcoinHashUtils.computeHash160(Hex.from(refunderPublicKey)).equals(
+      !BitcoinHashUtils.computeHash160(refunderPublicKey).equals(
         this.script.receipt.refundPublicKeyHash
       )
     ) {

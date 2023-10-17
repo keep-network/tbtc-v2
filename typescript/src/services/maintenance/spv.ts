@@ -67,7 +67,7 @@ export class Spv {
   async submitRedemptionProof(
     transactionHash: BitcoinTxHash,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
+    walletPublicKey: Hex
   ): Promise<void> {
     const confirmations =
       await this.tbtcContracts.bridge.txProofDifficultyFactor()
@@ -85,7 +85,7 @@ export class Spv {
       rawTransactionVectors,
       proof,
       mainUtxo,
-      Hex.from(walletPublicKey)
+      walletPublicKey
     )
   }
 }

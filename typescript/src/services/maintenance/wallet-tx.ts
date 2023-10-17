@@ -470,10 +470,10 @@ class DepositSweep {
     previousOutputValue: number,
     walletKeyPair: Signer
   ): Promise<Buffer> {
-    const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+    const walletPublicKey = Hex.from(walletKeyPair.publicKey)
 
     if (
-      !BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).equals(
+      !BitcoinHashUtils.computeHash160(walletPublicKey).equals(
         deposit.walletPublicKeyHash
       )
     ) {
@@ -547,8 +547,8 @@ class Redemption {
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
    *        held by the on-chain Bridge contract
    * @param redeemerOutputScripts - The list of output scripts that the redeemed
-   *        funds will be locked to. The output scripts must be un-prefixed and
-   *        not prepended with length
+   *        funds will be locked to. The output scripts must not be prepended
+   *        with length
    * @returns The outcome consisting of:
    *          - the redemption transaction hash,
    *          - the optional new wallet's main UTXO produced by this transaction.
@@ -556,7 +556,7 @@ class Redemption {
   async submitTransaction(
     walletPrivateKey: string,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScripts: string[]
+    redeemerOutputScripts: Hex[]
   ): Promise<{
     transactionHash: BitcoinTxHash
     newMainUtxo?: BitcoinUtxo
@@ -577,15 +577,15 @@ class Redemption {
       bitcoinNetwork
     )
 
-    const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+    const walletPublicKey = Hex.from(walletKeyPair.publicKey)
 
     const redemptionRequests: RedemptionRequest[] = []
 
     for (const redeemerOutputScript of redeemerOutputScripts) {
       const redemptionRequest =
         await this.tbtcContracts.bridge.pendingRedemptions(
-          Hex.from(walletPublicKey),
-          Hex.from(redeemerOutputScript)
+          walletPublicKey,
+          redeemerOutputScript
         )
 
       if (redemptionRequest.requestedAt == 0) {
@@ -594,7 +594,7 @@ class Redemption {
 
       redemptionRequests.push({
         ...redemptionRequest,
-        redeemerOutputScript: Hex.from(redeemerOutputScript),
+        redeemerOutputScript,
       })
     }
 
