@@ -25,8 +25,9 @@ export const walletPrivateKey =
  * Public key of the wallet in the compressed form corresponding to
  * walletPrivateKey.
  */
-export const walletPublicKey =
+export const walletPublicKey = Hex.from(
   "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+)
 
 /**
  * P2PKH address corresponding to walletPrivateKey.
