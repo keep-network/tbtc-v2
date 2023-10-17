@@ -2533,7 +2533,7 @@ describe("Maintenance", () => {
         await maintenanceService.spv.submitRedemptionProof(
           transactionHash,
           mainUtxo,
-          walletPublicKey
+          walletPublicKey.toString()
         )
       })
 

@@ -53,21 +53,20 @@ describe("Redemptions", () => {
         tbtcContracts = new MockTBTCContracts()
         bitcoinClient = new MockBitcoinClient()
 
-        const walletPublicKeyHash = BitcoinHashUtils.computeHash160(
-          Hex.from(walletPublicKey)
-        )
+        const walletPublicKeyHash =
+          BitcoinHashUtils.computeHash160(walletPublicKey)
 
         // Prepare NewWalletRegisteredEvent history. Set only relevant fields.
         tbtcContracts.bridge.newWalletRegisteredEvents = [
           {
-            walletPublicKeyHash: walletPublicKeyHash,
+            walletPublicKeyHash,
           } as NewWalletRegisteredEvent,
         ]
 
         // Prepare wallet data in the Bridge. Set only relevant fields.
         tbtcContracts.bridge.setWallet(walletPublicKeyHash.toPrefixedString(), {
           state: WalletState.Live,
-          walletPublicKey: Hex.from(walletPublicKey),
+          walletPublicKey,
           pendingRedemptionsValue: BigNumber.from(0),
           mainUtxoHash: tbtcContracts.bridge.buildUtxoHash(mainUtxo),
         } as Wallet)
@@ -119,7 +118,7 @@ describe("Redemptions", () => {
         expect(tokenLog[0]).to.deep.equal({
           walletPublicKey,
           mainUtxo,
-          redeemerOutputScript: redeemerOutputScript.toString(),
+          redeemerOutputScript,
           amount,
         })
       })
@@ -156,7 +155,7 @@ describe("Redemptions", () => {
                 redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
-              walletPublicKey,
+              walletPublicKey.toString(),
               "pending"
             )
 
@@ -194,7 +193,7 @@ describe("Redemptions", () => {
                 redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
-              walletPublicKey,
+              walletPublicKey.toString(),
               "timedOut"
             )
 
