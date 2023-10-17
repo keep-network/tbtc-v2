@@ -105,7 +105,7 @@ describe("Redemptions", () => {
 
         await redemptionsService.requestRedemption(
           BitcoinAddressConverter.outputScriptToAddress(
-            Hex.from(redeemerOutputScript),
+            redeemerOutputScript,
             BitcoinNetwork.Testnet
           ),
           amount
@@ -119,7 +119,7 @@ describe("Redemptions", () => {
         expect(tokenLog[0]).to.deep.equal({
           walletPublicKey,
           mainUtxo,
-          redeemerOutputScript,
+          redeemerOutputScript: redeemerOutputScript.toString(),
           amount,
         })
       })
@@ -153,7 +153,7 @@ describe("Redemptions", () => {
           const actualRedemptionRequest =
             await redemptionsService.getRedemptionRequests(
               BitcoinAddressConverter.outputScriptToAddress(
-                Hex.from(redemptionRequest.redeemerOutputScript),
+                redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
               walletPublicKey,
@@ -191,7 +191,7 @@ describe("Redemptions", () => {
           const actualRedemptionRequest =
             await redemptionsService.getRedemptionRequests(
               BitcoinAddressConverter.outputScriptToAddress(
-                Hex.from(redemptionRequest.redeemerOutputScript),
+                redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
               walletPublicKey,
@@ -377,7 +377,7 @@ describe("Redemptions", () => {
 
               const key = MockBridge.buildRedemptionKey(
                 walletPublicKeyHash.toString(),
-                redeemerOutputScript
+                redeemerOutputScript.toString()
               )
 
               pendingRedemptions.set(
@@ -387,7 +387,7 @@ describe("Redemptions", () => {
               tbtcContracts.bridge.setPendingRedemptions(pendingRedemptions)
 
               result = await redemptionsService.findWalletForRedemption(
-                redeemerOutputScript,
+                redeemerOutputScript.toString(),
                 amount
               )
             })
@@ -466,12 +466,12 @@ describe("Redemptions", () => {
 
               const pendingRedemption1 = MockBridge.buildRedemptionKey(
                 walletPublicKeyHash.toString(),
-                redeemerOutputScript
+                redeemerOutputScript.toString()
               )
 
               const pendingRedemption2 = MockBridge.buildRedemptionKey(
                 findWalletForRedemptionData.liveWallet.event.walletPublicKeyHash.toString(),
-                redeemerOutputScript
+                redeemerOutputScript.toString()
               )
 
               pendingRedemptions.set(
@@ -489,7 +489,7 @@ describe("Redemptions", () => {
             it("should throw an error", async () => {
               await expect(
                 redemptionsService.findWalletForRedemption(
-                  redeemerOutputScript,
+                  redeemerOutputScript.toString(),
                   amount
                 )
               ).to.be.rejectedWith(
@@ -825,8 +825,8 @@ export async function runRedemptionScenario(
     )
   )
 
-  const redeemerOutputScripts = data.pendingRedemptions.map(
-    (redemption) => redemption.pendingRedemption.redeemerOutputScript
+  const redeemerOutputScripts = data.pendingRedemptions.map((redemption) =>
+    redemption.pendingRedemption.redeemerOutputScript.toString()
   )
 
   const walletTx = new WalletTx(tbtcContracts, bitcoinClient, data.witness)
