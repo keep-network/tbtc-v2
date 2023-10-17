@@ -1450,7 +1450,7 @@ describe("Maintenance", () => {
               it("should revert", async () => {
                 const redeemerOutputScripts = data.pendingRedemptions.map(
                   (redemption) =>
-                    redemption.pendingRedemption.redeemerOutputScript.toString()
+                    redemption.pendingRedemption.redeemerOutputScript
                 )
 
                 const walletTx = new WalletTx(
@@ -2533,7 +2533,7 @@ describe("Maintenance", () => {
         await maintenanceService.spv.submitRedemptionProof(
           transactionHash,
           mainUtxo,
-          walletPublicKey.toString()
+          walletPublicKey
         )
       })
 
