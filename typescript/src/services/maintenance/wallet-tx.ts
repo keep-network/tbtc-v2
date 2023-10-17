@@ -486,10 +486,7 @@ class DepositSweep {
       throw new Error("Wallet public key must be compressed")
     }
 
-    return Buffer.from(
-      await DepositScript.fromReceipt(deposit).getPlainText(),
-      "hex"
-    )
+    return (await DepositScript.fromReceipt(deposit).getPlainText()).toBuffer()
   }
 
   /**
