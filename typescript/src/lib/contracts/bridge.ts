@@ -294,10 +294,10 @@ export interface RedemptionRequest {
   redeemer: ChainIdentifier
 
   /**
-   * The output script the redeemed Bitcoin funds are locked to. It is un-prefixed
-   * and is not prepended with length.
+   * The output script the redeemed Bitcoin funds are locked to. It is not
+   * prepended with length.
    */
-  redeemerOutputScript: string
+  redeemerOutputScript: Hex
 
   /**
    * The amount of Bitcoins in satoshis that is requested to be redeemed.
@@ -334,10 +334,9 @@ export type RedemptionRequestedEvent = Omit<
   "requestedAt"
 > & {
   /**
-   * Public key hash of the wallet that is meant to handle the redemption. Must
-   * be an unprefixed hex string (without 0x prefix).
+   * Public key hash of the wallet that is meant to handle the redemption.
    */
-  walletPublicKeyHash: string
+  walletPublicKeyHash: Hex
 } & ChainEvent
 
 /* eslint-disable no-unused-vars */
