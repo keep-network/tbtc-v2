@@ -155,7 +155,7 @@ describe("Redemptions", () => {
                 redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
-              walletPublicKey.toString(),
+              walletPublicKey,
               "pending"
             )
 
@@ -193,7 +193,7 @@ describe("Redemptions", () => {
                 redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
-              walletPublicKey.toString(),
+              walletPublicKey,
               "timedOut"
             )
 
@@ -205,10 +205,10 @@ describe("Redemptions", () => {
     describe("findWalletForRedemption", () => {
       class TestRedemptionsService extends RedemptionsService {
         public async findWalletForRedemption(
-          redeemerOutputScript: string,
+          redeemerOutputScript: Hex,
           amount: BigNumber
         ): Promise<{
-          walletPublicKey: string
+          walletPublicKey: Hex
           mainUtxo: BitcoinUtxo
         }> {
           return super.findWalletForRedemption(redeemerOutputScript, amount)
@@ -220,8 +220,9 @@ describe("Redemptions", () => {
       let redemptionsService: TestRedemptionsService
       // script for testnet P2WSH address
       // tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
-      const redeemerOutputScript =
+      const redeemerOutputScript = Hex.from(
         "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c"
+      )
 
       context(
         "when there are no wallets in the network that can handle redemption",
@@ -326,7 +327,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.walletWithPendingRedemption.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -386,7 +387,7 @@ describe("Redemptions", () => {
               tbtcContracts.bridge.setPendingRedemptions(pendingRedemptions)
 
               result = await redemptionsService.findWalletForRedemption(
-                redeemerOutputScript.toString(),
+                redeemerOutputScript,
                 amount
               )
             })
@@ -407,7 +408,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.liveWallet.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -439,7 +440,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.liveWallet.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -488,7 +489,7 @@ describe("Redemptions", () => {
             it("should throw an error", async () => {
               await expect(
                 redemptionsService.findWalletForRedemption(
-                  redeemerOutputScript.toString(),
+                  redeemerOutputScript,
                   amount
                 )
               ).to.be.rejectedWith(
@@ -824,8 +825,8 @@ export async function runRedemptionScenario(
     )
   )
 
-  const redeemerOutputScripts = data.pendingRedemptions.map((redemption) =>
-    redemption.pendingRedemption.redeemerOutputScript.toString()
+  const redeemerOutputScripts = data.pendingRedemptions.map(
+    (redemption) => redemption.pendingRedemption.redeemerOutputScript
   )
 
   const walletTx = new WalletTx(tbtcContracts, bitcoinClient, data.witness)
