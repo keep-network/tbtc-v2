@@ -83,8 +83,9 @@ describe("Ethereum", () => {
           redeemer: EthereumAddress.from(
             "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
           ),
-          redeemerOutputScript:
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          redeemerOutputScript: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
           requestedAmount: BigNumber.from(10000),
           treasuryFee: BigNumber.from(100),
           txMaxFee: BigNumber.from(50),
@@ -124,8 +125,9 @@ describe("Ethereum", () => {
           redeemer: EthereumAddress.from(
             "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
           ),
-          redeemerOutputScript:
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          redeemerOutputScript: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
           requestedAmount: BigNumber.from(10000),
           treasuryFee: BigNumber.from(100),
           txMaxFee: BigNumber.from(50),

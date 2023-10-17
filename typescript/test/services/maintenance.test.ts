@@ -1450,7 +1450,7 @@ describe("Maintenance", () => {
               it("should revert", async () => {
                 const redeemerOutputScripts = data.pendingRedemptions.map(
                   (redemption) =>
-                    redemption.pendingRedemption.redeemerOutputScript
+                    redemption.pendingRedemption.redeemerOutputScript.toString()
                 )
 
                 const walletTx = new WalletTx(
