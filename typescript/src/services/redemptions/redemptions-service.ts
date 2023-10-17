@@ -66,9 +66,9 @@ export class RedemptionsService {
     )
 
     const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
-      walletPublicKey,
+      Hex.from(walletPublicKey),
       mainUtxo,
-      redeemerOutputScript,
+      Hex.from(redeemerOutputScript),
       amount
     )
 

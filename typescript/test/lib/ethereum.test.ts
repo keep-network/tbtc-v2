@@ -528,8 +528,9 @@ describe("Ethereum", () => {
         vault: EthereumAddress.from(
           "0x24BE35e7C04E2e0a628614Ce0Ed58805e1C894F7"
         ),
-        walletPublicKey:
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+        walletPublicKey: Hex.from(
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+        ),
         mainUtxo: {
           transactionHash: BitcoinTxHash.from(
             "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
@@ -540,10 +541,12 @@ describe("Ethereum", () => {
         redeemer: EthereumAddress.from(signer.address),
         amount: BigNumber.from(10000),
         redeemerOutputScript: {
-          unprefixed:
-            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
-          prefixed:
-            "0x220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+          unprefixed: Hex.from(
+            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70"
+          ),
+          prefixed: Hex.from(
+            "220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70"
+          ),
         },
       }
 
@@ -572,13 +575,11 @@ describe("Ethereum", () => {
           ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
           [
             redeemer.identifierHex,
-            BitcoinHashUtils.computeHash160(
-              Hex.from(walletPublicKey)
-            ).toPrefixedString(),
+            BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString(),
             mainUtxo.transactionHash.reverse().toPrefixedString(),
             mainUtxo.outputIndex,
             mainUtxo.value,
-            redeemerOutputScript.prefixed,
+            redeemerOutputScript.prefixed.toPrefixedString(),
           ]
         )
 
