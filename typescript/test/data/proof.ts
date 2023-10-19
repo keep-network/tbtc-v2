@@ -1,12 +1,12 @@
 import {
-  Proof,
-  RawTransaction,
-  Transaction,
-  TransactionHash,
-  TransactionMerkleBranch,
-} from "../../src/bitcoin"
+  BitcoinSpvProof,
+  BitcoinRawTx,
+  BitcoinTx,
+  BitcoinTxHash,
+  BitcoinTxMerkleBranch,
+  Hex,
+} from "../../src"
 import { BigNumber } from "ethers"
-import { Hex } from "../../src"
 
 /**
  * Represents a set of data used for given proof scenario.
@@ -14,14 +14,14 @@ import { Hex } from "../../src"
 export interface ProofTestData {
   requiredConfirmations: number
   bitcoinChainData: {
-    transaction: Transaction
-    rawTransaction: RawTransaction
+    transaction: BitcoinTx
+    rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
     headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    transactionMerkleBranch: BitcoinTxMerkleBranch
   }
-  expectedProof: Proof & Transaction
+  expectedProof: BitcoinSpvProof & BitcoinTx
 }
 
 /**
@@ -32,12 +32,12 @@ export const singleInputProofTestData: ProofTestData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
           ),
           outputIndex: 0,
@@ -102,12 +102,12 @@ export const singleInputProofTestData: ProofTestData = {
     },
   },
   expectedProof: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
     ),
     inputs: [
       {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "8ee67b585eeb682bf6907ea311282540ee53edf605e0f09757226a4dc3e72a67"
         ),
         outputIndex: 0,
@@ -160,33 +160,33 @@ export const multipleInputsProofTestData: ProofTestData = {
 
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
           ),
           outputIndex: 0,
@@ -269,33 +269,33 @@ export const multipleInputsProofTestData: ProofTestData = {
     },
   },
   expectedProof: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
     ),
     inputs: [
       {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
         ),
         outputIndex: 0,
         scriptSig: Hex.from(""),
       },
       {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
         ),
         outputIndex: 0,
         scriptSig: Hex.from(""),
       },
       {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
         ),
         outputIndex: 0,
         scriptSig: Hex.from(""),
       },
       {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
         ),
         outputIndex: 0,
@@ -343,11 +343,11 @@ export const multipleInputsProofTestData: ProofTestData = {
 export interface TransactionProofData {
   requiredConfirmations: number
   bitcoinChainData: {
-    transaction: Transaction
+    transaction: BitcoinTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
     headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    transactionMerkleBranch: BitcoinTxMerkleBranch
     previousDifficulty: BigNumber
     currentDifficulty: BigNumber
   }
@@ -362,12 +362,12 @@ export const transactionConfirmationsInOneEpochData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "713525ee9d9ab23433cd6ad470566ba1f47cac2d7f119cc50119128a84d718aa"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "91b83d443f32d5a1e87a200eac5d3501af0f156bef3a59d5e8805b4679c4a2a5"
           ),
           outputIndex: 3,
@@ -460,12 +460,12 @@ export const transactionConfirmationsInTwoEpochsData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "e073636400e132b8c1082133ab2b48866919153998f4f04877b580e9932d5a17"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "f160a6565d07fd2e8f1d0aaaff538f3150b7f9d2bc64f191076f45c92725b990"
           ),
           outputIndex: 0,
@@ -535,12 +535,12 @@ export const testnetTransactionData: TransactionProofData = {
   requiredConfirmations: 6,
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "b78636ae08e6c17261a9f3134109c13c2eb69f6df52e591cc0e0780f5ebf6472"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "b230eb52608287da6320fa0926b3ada60f8979fa662d878494d11909d9841aba"
           ),
           outputIndex: 1,

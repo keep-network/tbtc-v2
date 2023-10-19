@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "1.4.0-dev",
+  "version": "2.1.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

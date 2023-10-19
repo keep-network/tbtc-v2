@@ -1,11 +1,12 @@
 import { BigNumber } from "ethers"
 import {
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionHash,
-} from "../../src/bitcoin"
-import { Deposit, calculateDepositRefundLocktime } from "../../src/deposit"
-import { Address } from "../../src/ethereum"
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxHash,
+  BitcoinLocktimeUtils,
+  DepositReceipt,
+  EthereumAddress,
+} from "../../src"
 
 /**
  * Testnet private key that can be used to refund the deposits used in tests.
@@ -20,13 +21,13 @@ export const refunderPrivateKey =
  */
 export interface DepositRefundTestData {
   deposit: {
-    utxo: UnspentTransactionOutput & RawTransaction
-    data: Deposit
+    utxo: BitcoinUtxo & BitcoinRawTx
+    data: DepositReceipt
   }
   refunderAddress: string
   expectedRefund: {
-    transactionHash: TransactionHash
-    transaction: RawTransaction
+    transactionHash: BitcoinTxHash
+    transaction: BitcoinRawTx
   }
 }
 
@@ -39,7 +40,7 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
   {
     deposit: {
       utxo: {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "6430be26d8564658bf3ff0f74e4a7ddce9d65e9c7157d6e4a203125fc01d3c6d"
         ),
         outputIndex: 0,
@@ -55,18 +56,22 @@ export const depositRefundOfWitnessDepositAndWitnessRefunderAddress: DepositRefu
           "00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-        amount: BigNumber.from(100000),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // witness address associated with the refunder's private key
     refunderAddress: "tb1qrdnlyafhc7es5g7cenhmj6jv4n789kdpw5kty9",
     expectedRefund: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "b49bd6c0219066f0c76d85818b047e4685425844cda42dae9b9508b9bfbb483d"
       ),
       transaction: {
@@ -93,7 +98,7 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
   {
     deposit: {
       utxo: {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "60650462f367bf89b5a0dc52d7d1f65986296fa8d8903b129c444e2b742f0143"
         ),
         outputIndex: 0,
@@ -108,18 +113,22 @@ export const depositRefundOfNonWitnessDepositAndWitnessRefunderAddress: DepositR
           "2eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-        amount: BigNumber.from(90000),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // witness address associated with the refunder's private key
     refunderAddress: "tb1qrdnlyafhc7es5g7cenhmj6jv4n789kdpw5kty9",
     expectedRefund: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "7df9ed885525899ccbe144fd129062cec59be43d428b85fb847808b8790ad262"
       ),
       transaction: {
@@ -146,7 +155,7 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
   {
     deposit: {
       utxo: {
-        transactionHash: TransactionHash.from(
+        transactionHash: BitcoinTxHash.from(
           "b1fb065a61a6401279cafb95d10b502a6cd22f747bcfdb09ab25d4ee6f64319f"
         ),
         outputIndex: 0,
@@ -161,18 +170,22 @@ export const depositRefundOfWitnessDepositAndNonWitnessRefunderAddress: DepositR
           "d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
       },
       data: {
-        depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-        amount: BigNumber.from(150000),
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
         walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
         refundPublicKeyHash: "1b67f27537c7b30a23d8ccefb96a4cacfc72d9a1",
         blindingFactor: "f9f0c90d00039523",
-        refundLocktime: calculateDepositRefundLocktime(1674820800, 3600),
+        refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+          1674820800,
+          3600
+        ),
       },
     },
     // non-witness address associated with the refunder's private key
     refunderAddress: "mi1s4c2GtyVpqQb6MEpMbKimq3mwu5Z3a6",
     expectedRefund: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "0400678f7ae0275338cb0418236960c04c016b980cb7d1763c1d957f534ae0eb"
       ),
       transaction: {

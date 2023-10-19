@@ -1,10 +1,15 @@
 import { BigNumber } from "ethers"
-import { Deposit } from "../src/deposit"
-import { submitDepositRefundTransaction } from "../src/deposit-refund"
-import { TransactionHash, UnspentTransactionOutput } from "../src/bitcoin"
-import { Client as ElectrumClient } from "../src/electrum"
 import { program } from "commander"
-import fs from "fs"
+import * as fs from "fs"
+import {
+  BitcoinTxHash,
+  BitcoinUtxo,
+  DepositReceipt,
+  DepositRefund,
+  DepositScript,
+  ElectrumClient,
+  ElectrumCredentials,
+} from "../src"
 
 program
   .version("0.0.1")
@@ -49,13 +54,12 @@ const electrumCredentials = {
   host: options.host,
   port: options.port,
   protocol: options.protocol,
-}
+} as ElectrumCredentials
 
 const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, "utf-8"))
 
-const deposit: Deposit = {
+const deposit: DepositReceipt = {
   depositor: depositJson.depositor,
-  amount: BigNumber.from(refundAmount),
   walletPublicKeyHash: depositJson.walletPublicKeyHash,
   refundPublicKeyHash: depositJson.refundPublicKeyHash,
   blindingFactor: depositJson.blindingFactor,
@@ -73,19 +77,21 @@ console.log("electrum credentials:", electrumCredentials)
 console.log("=====================================")
 
 async function run(): Promise<void> {
-  const client = new ElectrumClient(electrumCredentials)
+  const client = new ElectrumClient([electrumCredentials])
 
-  const depositUtxo: UnspentTransactionOutput = {
-    transactionHash: TransactionHash.from(transactionId),
+  const depositUtxo: BitcoinUtxo = {
+    transactionHash: BitcoinTxHash.from(transactionId),
     outputIndex: Number(transactionIndex),
     value: BigNumber.from(refundAmount),
   }
 
-  const refundTxHash = await submitDepositRefundTransaction(
+  const depositScript = DepositScript.fromReceipt(deposit)
+  const depositRefund = DepositRefund.fromScript(depositScript)
+
+  const refundTxHash = await depositRefund.submitTransaction(
     client,
     BigNumber.from(fee),
     depositUtxo,
-    deposit,
     recoveryAddress,
     refunderPrivateKey
   )

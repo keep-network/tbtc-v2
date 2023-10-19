@@ -1,5 +1,5 @@
-import { BitcoinNetwork } from "../../src/bitcoin-network"
-import { Hex } from "../../src/hex"
+import { BitcoinNetwork } from "../../src"
+import { Hex } from "../../src"
 
 export const btcAddresses: Record<
   Exclude<BitcoinNetwork, BitcoinNetwork.Unknown>,
