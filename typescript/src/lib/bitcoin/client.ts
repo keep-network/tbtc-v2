@@ -1,6 +1,7 @@
 import { BitcoinNetwork } from "./network"
 import { BitcoinRawTx, BitcoinTx, BitcoinTxHash, BitcoinUtxo } from "./tx"
 import { BitcoinTxMerkleBranch } from "./spv"
+import { Hex } from "../../lib/utils"
 
 /**
  * Represents a Bitcoin client.
@@ -66,7 +67,7 @@ export interface BitcoinClient {
    *                      block.
    * @return Concatenation of block headers in a hexadecimal format.
    */
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string>
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex>
 
   /**
    * Get Merkle branch for a given transaction.

@@ -89,16 +89,15 @@ function deserializeHeader(rawHeader: Hex): BitcoinHeader {
  * @param rawHeadersChain - Raw Bitcoin block headers chain.
  * @returns Deserialized Bitcoin block headers.
  */
-function deserializeHeadersChain(rawHeadersChain: string): BitcoinHeader[] {
-  if (rawHeadersChain.length % 160 !== 0) {
+function deserializeHeadersChain(rawHeadersChain: Hex): BitcoinHeader[] {
+  const headersChain = rawHeadersChain.toString()
+  if (headersChain.length % 160 !== 0) {
     throw new Error("Incorrect length of Bitcoin headers")
   }
 
   const result: BitcoinHeader[] = []
-  for (let i = 0; i < rawHeadersChain.length; i += 160) {
-    result.push(
-      deserializeHeader(Hex.from(rawHeadersChain.substring(i, i + 160)))
-    )
+  for (let i = 0; i < headersChain.length; i += 160) {
+    result.push(deserializeHeader(Hex.from(headersChain.substring(i, i + 160))))
   }
 
   return result

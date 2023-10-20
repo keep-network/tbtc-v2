@@ -198,9 +198,9 @@ describe("Ethereum", () => {
             locktime: "33333333",
           },
           {
-            merkleProof: "44444444",
+            merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
-            bitcoinHeaders: "66666666",
+            bitcoinHeaders: Hex.from("66666666"),
           },
           {
             transactionHash: BitcoinTxHash.from(
@@ -296,9 +296,9 @@ describe("Ethereum", () => {
             locktime: "33333333",
           },
           {
-            merkleProof: "44444444",
+            merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
-            bitcoinHeaders: "66666666",
+            bitcoinHeaders: Hex.from("66666666"),
           },
           {
             transactionHash: BitcoinTxHash.from(

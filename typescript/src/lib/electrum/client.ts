@@ -518,8 +518,8 @@ export class ElectrumClient implements BitcoinClient {
   /**
    * @see {BitcoinClient#getHeadersChain}
    */
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return this.withElectrum<string>(async (electrum: Electrum) => {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex> {
+    return this.withElectrum<Hex>(async (electrum: Electrum) => {
       const { hex } = await this.withBackoffRetrier<{
         hex: string
       }>()(async () => {
@@ -529,7 +529,7 @@ export class ElectrumClient implements BitcoinClient {
         )
       })
 
-      return hex
+      return Hex.from(hex)
     })
   }
 
@@ -557,7 +557,7 @@ export class ElectrumClient implements BitcoinClient {
 
         return {
           blockHeight: merkle.block_height,
-          merkle: merkle.merkle,
+          merkle: merkle.merkle.map((m) => Hex.from(m)),
           position: merkle.pos,
         }
       }

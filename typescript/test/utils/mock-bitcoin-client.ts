@@ -7,6 +7,7 @@ import {
   BitcoinTx,
   BitcoinTxHash,
 } from "../../src/lib/bitcoin"
+import { Hex } from "../../src/lib/utils"
 
 /**
  * Mock Bitcoin client used for test purposes.
@@ -17,7 +18,7 @@ export class MockBitcoinClient implements BitcoinClient {
   private _transactions = new Map<string, BitcoinTx>()
   private _confirmations = new Map<string, number>()
   private _latestHeight = 0
-  private _headersChain = ""
+  private _headersChain = Hex.from("")
   private _transactionMerkle: BitcoinTxMerkleBranch = {
     blockHeight: 0,
     merkle: [],
@@ -46,7 +47,7 @@ export class MockBitcoinClient implements BitcoinClient {
     this._latestHeight = value
   }
 
-  set headersChain(value: string) {
+  set headersChain(value: Hex) {
     this._headersChain = value
   }
 
@@ -116,8 +117,8 @@ export class MockBitcoinClient implements BitcoinClient {
     })
   }
 
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return new Promise<string>((resolve, _) => {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex> {
+    return new Promise<Hex>((resolve, _) => {
       resolve(this._headersChain)
     })
   }
