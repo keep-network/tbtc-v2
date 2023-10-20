@@ -279,9 +279,9 @@ export class EthereumBridge
     }
 
     const sweepProofParam = {
-      merkleProof: `0x${sweepProof.merkleProof}`,
+      merkleProof: sweepProof.merkleProof.toPrefixedString(),
       txIndexInBlock: sweepProof.txIndexInBlock,
-      bitcoinHeaders: `0x${sweepProof.bitcoinHeaders}`,
+      bitcoinHeaders: sweepProof.bitcoinHeaders.toPrefixedString(),
     }
 
     const mainUtxoParam = {

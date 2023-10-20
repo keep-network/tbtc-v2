@@ -79,7 +79,7 @@ function addressToPublicKeyHash(
  * Converts an address to the respective output script.
  * @param address BTC address.
  * @param bitcoinNetwork Bitcoin network corresponding to the address.
- * @returns The un-prefixed and not prepended with length output script.
+ * @returns The output script not prepended with length.
  */
 function addressToOutputScript(
   address: string,

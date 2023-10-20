@@ -15,10 +15,9 @@ import { BitcoinHashUtils } from "./hash"
  */
 export interface BitcoinSpvProof {
   /**
-   * The merkle proof of transaction inclusion in a block, as an un-prefixed
-   * hex string.
+   * The merkle proof of transaction inclusion in a block.
    */
-  merkleProof: string
+  merkleProof: Hex
 
   /**
    * Transaction index in the block (0-indexed).
@@ -26,10 +25,10 @@ export interface BitcoinSpvProof {
   txIndexInBlock: number
 
   /**
-   * Single byte-string of 80-byte block headers, lowest height first, as an
-   * un-prefixed hex string.
+   * Concatenated block headers in hexadecimal format. Each block header is
+   * 80-byte-long. The block header with the lowest height is first.
    */
-  bitcoinHeaders: string
+  bitcoinHeaders: Hex
 }
 
 /**
@@ -46,7 +45,7 @@ export interface BitcoinTxMerkleBranch {
    * in order to trace up to obtain the merkle root of the including block,
    * the deepest pairing first. Each hash is an unprefixed hex string.
    */
-  merkle: string[]
+  merkle: Hex[]
 
   /**
    * The 0-based index of the transaction's position in the block.
@@ -117,12 +116,12 @@ export async function assembleBitcoinSpvProof(
  * @param txMerkleBranch - Branch of a Merkle tree leading to a transaction.
  * @returns Transaction inclusion proof in hexadecimal form.
  */
-function createMerkleProof(txMerkleBranch: BitcoinTxMerkleBranch): string {
+function createMerkleProof(txMerkleBranch: BitcoinTxMerkleBranch): Hex {
   let proof = Buffer.from("")
   txMerkleBranch.merkle.forEach(function (item) {
-    proof = Buffer.concat([proof, Buffer.from(item, "hex").reverse()])
+    proof = Buffer.concat([proof, item.toBuffer().reverse()])
   })
-  return proof.toString("hex")
+  return Hex.from(proof)
 }
 
 /**
@@ -315,19 +314,21 @@ function validateMerkleTreeHashes(
 }
 
 /**
- * Splits a given Merkle proof string into an array of intermediate node hashes.
- * @param merkleProof A string representation of the Merkle proof.
+ * Splits a given concatenated Merkle proof into an array of intermediate node
+ * hashes.
+ * @param merkleProof A concatenated representation of the Merkle proof.
  * @returns An array of intermediate node hashes.
  * @throws {Error} If the length of the Merkle proof is not a multiple of 64.
  */
-function splitMerkleProof(merkleProof: string): Hex[] {
-  if (merkleProof.length % 64 != 0) {
+function splitMerkleProof(merkleProof: Hex): Hex[] {
+  const merkleProofStr = merkleProof.toString()
+  if (merkleProofStr.length % 64 != 0) {
     throw new Error("Incorrect length of Merkle proof")
   }
 
   const intermediateNodeHashes: Hex[] = []
-  for (let i = 0; i < merkleProof.length; i += 64) {
-    intermediateNodeHashes.push(Hex.from(merkleProof.slice(i, i + 64)))
+  for (let i = 0; i < merkleProofStr.length; i += 64) {
+    intermediateNodeHashes.push(Hex.from(merkleProofStr.slice(i, i + 64)))
   }
 
   return intermediateNodeHashes
