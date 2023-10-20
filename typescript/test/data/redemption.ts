@@ -551,7 +551,7 @@ export interface RedemptionProofTestData {
     redemptionTx: BitcoinRawTxVectors
     redemptionProof: BitcoinSpvProof
     mainUtxo: BitcoinUtxo
-    walletPublicKey: string
+    walletPublicKey: Hex
   }
 }
 
@@ -720,8 +720,9 @@ export const redemptionProof: RedemptionProofTestData = {
       outputIndex: 1,
       value: BigNumber.from(1429580),
     },
-    walletPublicKey:
-      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+    walletPublicKey: Hex.from(
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+    ),
   },
 }
 
