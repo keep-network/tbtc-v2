@@ -12,6 +12,3 @@ export * from "./services/redemptions"
 
 // Export the entrypoint module.
 export * from "./services/tbtc"
-
-// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
-//       strings with a Hex type to increase API consistency.
