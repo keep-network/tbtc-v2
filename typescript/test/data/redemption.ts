@@ -669,18 +669,20 @@ export const redemptionProof: RedemptionProofTestData = {
   },
   expectedRedemptionProof: {
     redemptionTx: {
-      version: "01000000",
-      inputs:
+      version: Hex.from("01000000"),
+      inputs: Hex.from(
         "01e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f75bbb283d0" +
-        "100000000ffffffff",
-      outputs:
+          "100000000ffffffff"
+      ),
+      outputs: Hex.from(
         "051c3e0000000000001976a9144130879211c54df460e484ddf9aac009cb38ee748" +
-        "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
-        "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
-        "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
-        "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
-        "f738986f6",
-      locktime: "00000000",
+          "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
+          "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
+          "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
+          "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
+          "f738986f6"
+      ),
+      locktime: Hex.from("00000000"),
     },
     redemptionProof: {
       merkleProof: Hex.from(

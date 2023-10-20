@@ -102,26 +102,26 @@ export type BitcoinUtxo = BitcoinTxOutpoint & {
  */
 export interface BitcoinRawTxVectors {
   /**
-   * Transaction version as an un-prefixed hex string.
+   * Transaction version as a hex string.
    */
-  version: string
+  version: Hex
 
   /**
    * All transaction's inputs prepended by the number of transaction inputs,
-   * as an un-prefixed hex string.
+   * as a hex string.
    */
-  inputs: string
+  inputs: Hex
 
   /**
    * All transaction's outputs prepended by the number of transaction outputs,
-   * as an un-prefixed hex string.
+   * as a hex string.
    */
-  outputs: string
+  outputs: Hex
 
   /**
-   * Transaction locktime as an un-prefixed hex string.
+   * Transaction locktime as a hex string.
    */
-  locktime: string
+  locktime: Hex
 }
 
 /**
@@ -133,11 +133,11 @@ export interface BitcoinRawTxVectors {
 export function extractBitcoinRawTxVectors(
   rawTransaction: BitcoinRawTx
 ): BitcoinRawTxVectors {
-  const toHex = (bufferWriter: any): string => {
-    return bufferWriter.render().toString("hex")
+  const toHex = (bufferWriter: any): Hex => {
+    return Hex.from(bufferWriter.render())
   }
 
-  const getTxInputVector = (tx: Tx): string => {
+  const getTxInputVector = (tx: Tx): Hex => {
     const buffer = bufio.write()
     buffer.writeVarint(tx.ins.length)
     tx.ins.forEach((input) => {
@@ -149,7 +149,7 @@ export function extractBitcoinRawTxVectors(
     return toHex(buffer)
   }
 
-  const getTxOutputVector = (tx: Tx): string => {
+  const getTxOutputVector = (tx: Tx): Hex => {
     const buffer = bufio.write()
     buffer.writeVarint(tx.outs.length)
     tx.outs.forEach((output) => {
@@ -159,13 +159,13 @@ export function extractBitcoinRawTxVectors(
     return toHex(buffer)
   }
 
-  const getTxVersion = (tx: Tx): string => {
+  const getTxVersion = (tx: Tx): Hex => {
     const buffer = bufio.write()
     buffer.writeU32(tx.version)
     return toHex(buffer)
   }
 
-  const getTxLocktime = (tx: Tx): string => {
+  const getTxLocktime = (tx: Tx): Hex => {
     const buffer = bufio.write()
     buffer.writeU32(tx.locktime)
     return toHex(buffer)
