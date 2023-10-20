@@ -36,9 +36,9 @@ interface RevealDepositLogEntry {
 }
 
 interface RequestRedemptionLogEntry {
-  walletPublicKey: string
+  walletPublicKey: Hex
   mainUtxo: BitcoinUtxo
-  redeemerOutputScript: string
+  redeemerOutputScript: Hex
   amount: BigNumber
 }
 
@@ -46,7 +46,7 @@ interface RedemptionProofLogEntry {
   redemptionTx: BitcoinRawTxVectors
   redemptionProof: BitcoinSpvProof
   mainUtxo: BitcoinUtxo
-  walletPublicKey: string
+  walletPublicKey: Hex
 }
 
 interface NewWalletRegisteredEventsLog {
@@ -55,7 +55,7 @@ interface NewWalletRegisteredEventsLog {
 }
 
 interface WalletLog {
-  walletPublicKeyHash: string
+  walletPublicKeyHash: Hex
 }
 
 /**
@@ -229,7 +229,7 @@ export class MockBridge implements Bridge {
       redemptionTx,
       redemptionProof,
       mainUtxo,
-      walletPublicKey: walletPublicKey.toString(),
+      walletPublicKey,
     })
     return new Promise<void>((resolve, _) => {
       resolve()
@@ -243,9 +243,9 @@ export class MockBridge implements Bridge {
     amount: BigNumber
   ) {
     this._requestRedemptionLog.push({
-      walletPublicKey: walletPublicKey.toString(),
+      walletPublicKey,
       mainUtxo,
-      redeemerOutputScript: redeemerOutputScript.toString(),
+      redeemerOutputScript,
       amount,
     })
     return new Promise<void>((resolve, _) => {
@@ -266,8 +266,8 @@ export class MockBridge implements Bridge {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPublicKey.toString(),
-          redeemerOutputScript.toString(),
+          walletPublicKey,
+          redeemerOutputScript,
           this._pendingRedemptions
         )
       )
@@ -281,8 +281,8 @@ export class MockBridge implements Bridge {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPublicKey.toString(),
-          redeemerOutputScript.toString(),
+          walletPublicKey,
+          redeemerOutputScript,
           this._timedOutRedemptions
         )
       )
@@ -290,12 +290,12 @@ export class MockBridge implements Bridge {
   }
 
   private redemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string,
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex,
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(Hex.from(walletPublicKey)).toString(),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -314,12 +314,12 @@ export class MockBridge implements Bridge {
   }
 
   static buildRedemptionKey(
-    walletPublicKeyHash: string,
-    redeemerOutputScript: string
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
   ): string {
-    const prefixedWalletPublicKeyHash = `0x${walletPublicKeyHash}`
+    const prefixedWalletPublicKeyHash = walletPublicKeyHash.toPrefixedString()
 
-    const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawOutputScript = redeemerOutputScript.toBuffer()
 
     const prefixedOutputScript = `0x${Buffer.concat([
       Buffer.from([rawOutputScript.length]),
@@ -353,7 +353,7 @@ export class MockBridge implements Bridge {
 
   async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
     this._walletsLog.push({
-      walletPublicKeyHash: walletPublicKeyHash.toPrefixedString(),
+      walletPublicKeyHash,
     })
     const wallet = this._wallets.get(walletPublicKeyHash.toPrefixedString())
     return wallet!

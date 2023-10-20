@@ -376,8 +376,8 @@ describe("Redemptions", () => {
               >()
 
               const key = MockBridge.buildRedemptionKey(
-                walletPublicKeyHash.toString(),
-                redeemerOutputScript.toString()
+                walletPublicKeyHash,
+                redeemerOutputScript
               )
 
               pendingRedemptions.set(
@@ -465,13 +465,14 @@ describe("Redemptions", () => {
               >()
 
               const pendingRedemption1 = MockBridge.buildRedemptionKey(
-                walletPublicKeyHash.toString(),
-                redeemerOutputScript.toString()
+                walletPublicKeyHash,
+                redeemerOutputScript
               )
 
               const pendingRedemption2 = MockBridge.buildRedemptionKey(
-                findWalletForRedemptionData.liveWallet.event.walletPublicKeyHash.toString(),
-                redeemerOutputScript.toString()
+                findWalletForRedemptionData.liveWallet.event
+                  .walletPublicKeyHash,
+                redeemerOutputScript
               )
 
               pendingRedemptions.set(
