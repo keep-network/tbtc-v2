@@ -898,7 +898,7 @@ describe("Bitcoin", () => {
     })
   })
 
-  describe("assembleTransactionProof", () => {
+  describe("assembleBitcoinSpvProof", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
@@ -919,9 +919,9 @@ describe("Bitcoin", () => {
         )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
-        expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
+        expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedProof.bitcoinHeaders)
+        expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
       })
     })
 
@@ -939,9 +939,9 @@ describe("Bitcoin", () => {
         )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
-        expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
+        expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedProof.bitcoinHeaders)
+        expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
       })
     })
 
@@ -1042,9 +1042,10 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain:
-                transactionConfirmationsInOneEpochData.bitcoinChainData
-                  .headersChain + "ff",
+              headersChain: Hex.from(
+                transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain.toString() +
+                  "ff"
+              ),
             },
           }
           await expect(
@@ -1062,9 +1063,10 @@ describe("Bitcoin", () => {
               ...transactionConfirmationsInOneEpochData,
               bitcoinChainData: {
                 ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-                headersChain:
-                  transactionConfirmationsInOneEpochData.bitcoinChainData
-                    .headersChain + "f".repeat(160),
+                headersChain: Hex.from(
+                  transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain.toString() +
+                    "f".repeat(160)
+                ),
               },
             }
             await expect(
@@ -1081,7 +1083,9 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData.bitcoinChainData
               .transactionMerkleBranch.merkle,
           ]
-          merkle[merkle.length - 1] += "ff"
+          merkle[merkle.length - 1] = Hex.from(
+            merkle[merkle.length - 1].toString() + "ff"
+          )
 
           const corruptedProofData: TransactionProofData = {
             ...transactionConfirmationsInOneEpochData,
@@ -1131,7 +1135,7 @@ describe("Bitcoin", () => {
               .transactionMerkleBranch.merkle,
           ]
 
-          merkle[3] = "ff" + merkle[3].slice(2)
+          merkle[3] = Hex.from("ff" + merkle[3].toString().slice(2))
 
           const corruptedProofData: TransactionProofData = {
             ...transactionConfirmationsInOneEpochData,
@@ -1173,7 +1177,7 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain: corruptedHeadersChain,
+              headersChain: Hex.from(corruptedHeadersChain),
             },
           }
 
@@ -1201,7 +1205,7 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain: corruptedHeadersChain,
+              headersChain: Hex.from(corruptedHeadersChain),
             },
           }
 
