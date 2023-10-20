@@ -234,18 +234,18 @@ export class EthereumBridge
     vault?: ChainIdentifier
   ): Promise<string> {
     const depositTxParam = {
-      version: `0x${depositTx.version}`,
-      inputVector: `0x${depositTx.inputs}`,
-      outputVector: `0x${depositTx.outputs}`,
-      locktime: `0x${depositTx.locktime}`,
+      version: depositTx.version.toPrefixedString(),
+      inputVector: depositTx.inputs.toPrefixedString(),
+      outputVector: depositTx.outputs.toPrefixedString(),
+      locktime: depositTx.locktime.toPrefixedString(),
     }
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
-      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
-      refundLocktime: `0x${deposit.refundLocktime}`,
+      blindingFactor: deposit.blindingFactor.toPrefixedString(),
+      walletPubKeyHash: deposit.walletPublicKeyHash.toPrefixedString(),
+      refundPubKeyHash: deposit.refundPublicKeyHash.toPrefixedString(),
+      refundLocktime: deposit.refundLocktime.toPrefixedString(),
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 

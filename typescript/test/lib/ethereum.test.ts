@@ -143,10 +143,10 @@ describe("Ethereum", () => {
         await bridgeHandle.revealDeposit(
           // Just short byte strings for clarity.
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           2,
           {
@@ -192,10 +192,10 @@ describe("Ethereum", () => {
 
         await bridgeHandle.submitDepositSweepProof(
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           {
             merkleProof: Hex.from("44444444"),
@@ -290,10 +290,10 @@ describe("Ethereum", () => {
 
         await bridgeHandle.submitRedemptionProof(
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           {
             merkleProof: Hex.from("44444444"),
