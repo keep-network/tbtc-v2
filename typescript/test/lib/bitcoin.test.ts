@@ -879,8 +879,8 @@ describe("Bitcoin", () => {
         depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
       const decomposedTransaction = extractBitcoinRawTxVectors(rawTransaction)
 
-      expect(decomposedTransaction.version).to.be.equal("01000000")
-      expect(decomposedTransaction.inputs).to.be.equal(
+      expect(decomposedTransaction.version.toString()).to.be.equal("01000000")
+      expect(decomposedTransaction.inputs.toString()).to.be.equal(
         "02bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699bacd53e3d07400" +
           "000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f0cb3ef852a468153" +
           "e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f816bf27991c2b73211e" +
@@ -891,10 +891,10 @@ describe("Bitcoin", () => {
           "68ffffffffdc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa826394df" +
           "ec545c0000000000ffffffff"
       )
-      expect(decomposedTransaction.outputs).to.be.equal(
+      expect(decomposedTransaction.outputs.toString()).to.be.equal(
         "01488a0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
       )
-      expect(decomposedTransaction.locktime).to.be.equal("00000000")
+      expect(decomposedTransaction.locktime.toString()).to.be.equal("00000000")
     })
   })
 
