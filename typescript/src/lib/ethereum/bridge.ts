@@ -232,7 +232,7 @@ export class EthereumBridge
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<string> {
+  ): Promise<Hex> {
     const depositTxParam = {
       version: depositTx.version.toPrefixedString(),
       inputVector: depositTx.inputs.toPrefixedString(),
@@ -258,7 +258,7 @@ export class EthereumBridge
       ["Deposit already revealed"]
     )
 
-    return tx.hash
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -270,7 +270,7 @@ export class EthereumBridge
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
-  ): Promise<void> {
+  ): Promise<Hex> {
     const sweepTxParam = {
       version: `0x${sweepTx.version}`,
       inputVector: `0x${sweepTx.inputs}`,
@@ -296,7 +296,7 @@ export class EthereumBridge
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.submitDepositSweepProof(
           sweepTxParam,
@@ -307,6 +307,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -332,7 +334,7 @@ export class EthereumBridge
     mainUtxo: BitcoinUtxo,
     redeemerOutputScript: Hex,
     amount: BigNumber
-  ): Promise<void> {
+  ): Promise<Hex> {
     const walletPublicKeyHash =
       BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
@@ -352,7 +354,7 @@ export class EthereumBridge
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.requestRedemption(
           walletPublicKeyHash,
@@ -363,6 +365,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -374,7 +378,7 @@ export class EthereumBridge
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     walletPublicKey: Hex
-  ): Promise<void> {
+  ): Promise<Hex> {
     const redemptionTxParam = {
       version: `0x${redemptionTx.version}`,
       inputVector: `0x${redemptionTx.inputs}`,
@@ -399,7 +403,7 @@ export class EthereumBridge
     const walletPublicKeyHash =
       BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.submitRedemptionProof(
           redemptionTxParam,
@@ -410,6 +414,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
