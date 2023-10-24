@@ -1,78 +1,17 @@
-// TODO: Consider exports refactoring as per discussion https://github.com/keep-network/tbtc-v2/pull/460#discussion_r1084530007
+// Export shared library modules.
+export * from "./lib/bitcoin"
+export * from "./lib/contracts"
+export * from "./lib/electrum"
+export * from "./lib/ethereum"
+export * from "./lib/utils"
 
-import {
-  calculateDepositAddress,
-  getRevealedDeposit,
-  revealDeposit,
-  suggestDepositWallet,
-} from "./deposit"
+// Export feature modules (services).
+export * from "./services/deposits"
+export * from "./services/maintenance"
+export * from "./services/redemptions"
 
-import { submitDepositSweepProof } from "./deposit-sweep"
+// Export the entrypoint module.
+export * from "./services/tbtc"
 
-import {
-  requestRedemption,
-  submitRedemptionProof,
-  getRedemptionRequest,
-  findWalletForRedemption,
-} from "./redemption"
-
-import {
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
-} from "./optimistic-minting"
-
-import { validateTransactionProof } from "./proof"
-
-export const TBTC = {
-  calculateDepositAddress,
-  suggestDepositWallet,
-  revealDeposit,
-  getRevealedDeposit,
-  requestRedemption,
-  getRedemptionRequest,
-  findWalletForRedemption,
-}
-
-export const SpvMaintainer = {
-  submitDepositSweepProof,
-  submitRedemptionProof,
-}
-
-export const OptimisticMinting = {
-  requestOptimisticMint,
-  cancelOptimisticMint,
-  finalizeOptimisticMint,
-  getOptimisticMintingRequest,
-}
-
-export const Bitcoin = {
-  validateTransactionProof,
-}
-
-export {
-  TransactionHash as BitcoinTransactionHash,
-  Transaction as BitcoinTransaction,
-  TransactionOutput as BitcoinTransactionOutput,
-  locktimeToNumber as BitcoinLocktimeToNumber,
-} from "./bitcoin"
-
-export { BitcoinNetwork } from "./bitcoin-network"
-
-export { Client as ElectrumClient } from "./electrum"
-
-export {
-  Bridge as EthereumBridge,
-  WalletRegistry as EthereumWalletRegistry,
-  Address as EthereumAddress,
-  TBTCVault as EthereumTBTCVault,
-  TBTCToken as EthereumTBTCToken,
-} from "./ethereum"
-
-export { Hex } from "./hex"
-
-export {
-  OptimisticMintingRequest,
-  OptimisticMintingRequestedEvent,
-} from "./optimistic-minting"
+// TODO: Replace all properties that are expected to be un-prefixed hexadecimal
+//       strings with a Hex type to increase API consistency.

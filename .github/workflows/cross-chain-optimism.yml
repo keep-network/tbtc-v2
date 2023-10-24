@@ -9,6 +9,7 @@ on:
     paths:
       - "cross-chain/optimism/**"
       - ".github/workflows/cross-chain-optimism.yml"
+  pull_request:
 
 jobs:
   contracts-detect-changes:

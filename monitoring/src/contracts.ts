@@ -39,6 +39,11 @@ const resolve = () => {
     return block.number
   }
 
+  const blockTimestamp = async (blockNumber: number): Promise<number> => {
+    const block = await provider.getBlock(blockNumber)
+    return block.timestamp
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require,import/no-dynamic-require
   const bridgeArtifact = require(`${packageName}/artifacts/Bridge.json`)
   const bridge: Bridge = new EthereumBridge({
@@ -63,7 +68,7 @@ const resolve = () => {
     deployedAtBlockNumber: tbtcTokenArtifact.receipt.blockNumber,
   })
 
-  return { bridge, tbtcVault, tbtcToken, latestBlock }
+  return { bridge, tbtcVault, tbtcToken, latestBlock, blockTimestamp }
 }
 
 export const contracts = resolve()
