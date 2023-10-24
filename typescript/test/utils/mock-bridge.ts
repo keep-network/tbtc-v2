@@ -159,10 +159,14 @@ export class MockBridge implements Bridge {
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
-  ): Promise<void> {
+  ): Promise<Hex> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      resolve(
+        Hex.from(
+          "01ee2a0061b6bd68b6f478c48b9625fac89a4401e73b49d3ee258f9a60c5e65f"
+        )
+      )
     })
   }
 
@@ -170,12 +174,14 @@ export class MockBridge implements Bridge {
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositReceipt
-  ): Promise<string> {
+  ): Promise<Hex> {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
-    return new Promise<string>((resolve, _) => {
+    return new Promise<Hex>((resolve, _) => {
       // random transaction hash
       resolve(
-        "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+        Hex.from(
+          "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+        )
       )
     })
   }
@@ -224,15 +230,20 @@ export class MockBridge implements Bridge {
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     walletPublicKey: Hex
-  ): Promise<void> {
+  ): Promise<Hex> {
     this._redemptionProofLog.push({
       redemptionTx,
       redemptionProof,
       mainUtxo,
       walletPublicKey,
     })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        Hex.from(
+          "4f6ce6af47d547bb9821d28c21261026f21b72e52d506d17ab81502b8021537d"
+        )
+      )
     })
   }
 
@@ -241,15 +252,20 @@ export class MockBridge implements Bridge {
     mainUtxo: BitcoinUtxo,
     redeemerOutputScript: Hex,
     amount: BigNumber
-  ) {
+  ): Promise<Hex> {
     this._requestRedemptionLog.push({
       walletPublicKey,
       mainUtxo,
       redeemerOutputScript,
       amount,
     })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        Hex.from(
+          "bcbef136592feabdebcc68eb4222a49369a9cfeb7fc5f5ec84583313249025fd"
+        )
+      )
     })
   }
 
