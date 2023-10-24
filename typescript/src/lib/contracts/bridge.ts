@@ -32,13 +32,14 @@ export interface Bridge {
    * @param mainUtxo - Data of the wallet's main UTXO.
    * @param vault - Optional identifier of the vault the swept deposits should
    *        be routed in.
+   * @returns Transaction hash of the submit deposit sweep proof transaction.
    */
   submitDepositSweepProof(
     sweepTx: BitcoinRawTxVectors,
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
-  ): Promise<void>
+  ): Promise<Hex>
 
   /**
    * Reveals a given deposit to the on-chain contract.
@@ -48,14 +49,14 @@ export interface Bridge {
    * @param deposit - Data of the revealed deposit
    * @param vault - Optional parameter denoting the vault the given deposit
    *        should be routed to
-   * @returns Transaction hash of the reveal deposit transaction as string
+   * @returns Transaction hash of the reveal deposit transaction.
    */
   revealDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<string>
+  ): Promise<Hex>
 
   /**
    * Gets a revealed deposit from the on-chain contract.
@@ -78,14 +79,14 @@ export interface Bridge {
    * @param redeemerOutputScript - The output script that the redeemed funds will
    *        be locked to. Must not be prepended with length.
    * @param amount - The amount to be redeemed in satoshis.
-   * @returns Empty promise.
+   * @returns Transaction hash of the request redemption transaction.
    */
   requestRedemption(
     walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
     redeemerOutputScript: Hex,
     amount: BigNumber
-  ): Promise<void>
+  ): Promise<Hex>
 
   /**
    * Submits a redemption transaction proof to the on-chain contract.
@@ -94,13 +95,14 @@ export interface Bridge {
    * @param mainUtxo - Data of the wallet's main UTXO
    * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
    *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @returns Transaction hash of the submit redemption proof transaction.
    */
   submitRedemptionProof(
     redemptionTx: BitcoinRawTxVectors,
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     walletPublicKey: Hex
-  ): Promise<void>
+  ): Promise<Hex>
 
   /**
    * Gets transaction proof difficulty factor from the on-chain contract.
