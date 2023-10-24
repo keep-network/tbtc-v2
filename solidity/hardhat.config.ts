@@ -243,7 +243,7 @@ const config: HardhatUserConfig = {
     coordinator: {
       default: 9,
       goerli: "0x4815cd81fFc21039a25aCFbD97CE75cCE8579042",
-      // TODO: add one for sepolia
+      sepolia: "0x4815cd81fFc21039a25aCFbD97CE75cCE8579042",
       mainnet: "0x0595acCca29654c43Bd67E18578b30a405265234",
     },
     v1Redeemer: {
