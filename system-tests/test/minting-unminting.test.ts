@@ -153,6 +153,12 @@ describe("System Test - Minting and unminting", () => {
         - Output index: ${depositUtxo.outputIndex}
       `)
 
+        // It happens from time to time that a deposit reveal process starts when
+        // a deposit is not captured by the Bitcoin chain yet and a deposit is
+        // revealed with a non-existing Bitcoin tx. We should wait some time so
+        // the Bitcoin chain is in sync and then start the revealing process.
+        await new Promise((r) => setTimeout(r, 3000))
+
         // Since the reveal deposit logic does not perform SPV proof, we
         // can reveal the deposit transaction immediately without waiting
         // for confirmations.

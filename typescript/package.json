@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "1.4.0-dev",
+  "version": "2.1.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -13,8 +13,7 @@
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "typechain": "rm -rf ./typechain && for i in $npm_package_config_contracts; do typechain --target ethers-v5 --out-dir ./typechain $i; done && rm ./typechain/index.ts",
     "build": "npm run typechain && tsc --project tsconfig.build.json",
-    "dev": "tsc --project tsconfig.build.json --watch",
-    "postinstall": "npm rebuild bcrypto"
+    "dev": "tsc --project tsconfig.build.json --watch"
   },
   "files": [
     "dist/",
@@ -27,12 +26,13 @@
   "dependencies": {
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
-    "bcoin": "git+https://github.com/keep-network/bcoin.git#5accd32c63e6025a0d35d67739c4a6e84095a1f8",
-    "bcrypto": "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0",
+    "bitcoinjs-lib": "^6.1.5",
     "bufio": "^1.0.6",
+    "ecpair": "^2.1.0",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
     "ethers": "^5.5.2",
     "p-timeout": "^4.1.0",
+    "tiny-secp256k1": "^2.2.3",
     "wif": "2.0.6"
   },
   "devDependencies": {
@@ -58,9 +58,6 @@
     "typescript": "^4.3.5"
   },
   "engines": {
-    "node": ">=14 <15"
-  },
-  "browser": {
-    "bcoin": "bcoin/lib/bcoin-browser"
+    "node": ">=16"
   }
 }

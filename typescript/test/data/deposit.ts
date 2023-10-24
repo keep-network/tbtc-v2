@@ -1,8 +1,4 @@
-import {
-  RawTransaction,
-  TransactionHash,
-  UnspentTransactionOutput,
-} from "../../src/bitcoin"
+import { BitcoinRawTx, BitcoinTxHash, BitcoinUtxo } from "../../src"
 import { BigNumber } from "ethers"
 
 /**
@@ -20,7 +16,7 @@ export const testnetPrivateKey =
 /**
  * Hash of one of the transactions originating from testnetAddress.
  */
-export const testnetTransactionHash = TransactionHash.from(
+export const testnetTransactionHash = BitcoinTxHash.from(
   "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
 )
 
@@ -29,7 +25,7 @@ export const testnetTransactionHash = TransactionHash.from(
  * from testnetAddress. It can be decoded, for example, with:
  * https://live.blockcypher.com/btc-testnet/decodetx
  */
-export const testnetTransaction: RawTransaction = {
+export const testnetTransaction: BitcoinRawTx = {
   transactionHex:
     "0100000000010162cae24e74ad64f9f0493b09f3964908b3b3038f4924882d3dbd853b" +
     "4c9bc7390100000000ffffffff02102700000000000017a914867120d5480a9cc0c11c" +
@@ -43,7 +39,7 @@ export const testnetTransaction: RawTransaction = {
 /**
  * An UTXO from the testnetTransaction.
  */
-export const testnetUTXO: UnspentTransactionOutput & RawTransaction = {
+export const testnetUTXO: BitcoinUtxo & BitcoinRawTx = {
   transactionHash: testnetTransactionHash,
   outputIndex: 1,
   value: BigNumber.from(3933200),
@@ -60,15 +56,3 @@ export const testnetWalletPrivateKey =
  * Address corresponding to testnetWalletPrivateKey.
  */
 export const testnetWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
-
-/**
- * Address generated from deposit script hash during deposit creation
- */
-export const testnetDepositScripthashAddress =
-  "2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C"
-
-/**
- * Address generated from deposit witness script hash during deposit creation
- */
-export const testnetDepositWitnessScripthashAddress =
-  "tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y"
