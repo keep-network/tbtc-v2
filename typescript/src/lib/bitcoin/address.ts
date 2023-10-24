@@ -92,7 +92,7 @@ function addressToOutputScript(
 
 /**
  * Converts an output script to the respective network-specific address.
- * @param script The unprefixed and not prepended with length output script.
+ * @param script The output script not prepended with length.
  * @param bitcoinNetwork Bitcoin network the address should be produced for.
  * @returns The Bitcoin address.
  */
