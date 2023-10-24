@@ -16,7 +16,7 @@ function computeHash160(text: Hex): Hex {
 
 /**
  * Computes the double SHA256 for the given text.
- * @param text - Text the double SHA256 is computed for.
+ * @param text Text the double SHA256 is computed for.
  * @returns 32-byte-long hash.
  * @dev Do not confuse it with computeSha256 which computes single SHA256.
  */
