@@ -111,7 +111,7 @@ export class Deposit {
    *         initiate minting (both modes).
    */
   // TODO: Cover auto funding outpoint detection with unit tests.
-  async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<string> {
+  async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<Hex> {
     let resolvedFundingOutpoint: BitcoinTxOutpoint
 
     if (typeof fundingOutpoint !== "undefined") {
