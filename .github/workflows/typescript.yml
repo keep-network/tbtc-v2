@@ -12,8 +12,8 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment (network) for workflow execution, e.g. `goerli`"
-        required: false
+        description: "Environment (network) for workflow execution, e.g. `sepolia`"
+        required: true
       upstream_builds:
         description: "Upstream builds"
         required: false
