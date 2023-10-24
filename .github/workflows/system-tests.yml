@@ -28,8 +28,7 @@ jobs:
         working-directory: ./solidity
         run: |
           npx hardhat node --no-deploy &
-          HH_NODE_PID=$!
-          while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
+          while [[ -z $(lsof -i :8545 -t) ]]; do echo "Waiting for port 8545 to be open..."; sleep 10; done
 
       - name: Deploy contracts
         working-directory: ./solidity
@@ -84,8 +83,7 @@ jobs:
         working-directory: ./solidity
         run: |
           npx hardhat node --no-deploy &
-          HH_NODE_PID=$!
-          while ! lsof -n -Fn -p $HH_NODE_PID | grep -q '^n.*:8545$'; do sleep 10; done
+          while [[ -z $(lsof -i :8545 -t) ]]; do echo "Waiting for port 8545 to be open..."; sleep 10; done
 
       - name: Deploy contracts
         working-directory: ./solidity
