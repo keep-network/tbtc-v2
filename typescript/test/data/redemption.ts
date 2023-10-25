@@ -25,8 +25,9 @@ export const walletPrivateKey =
  * Public key of the wallet in the compressed form corresponding to
  * walletPrivateKey.
  */
-export const walletPublicKey =
+export const walletPublicKey = Hex.from(
   "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+)
 
 /**
  * P2PKH address corresponding to walletPrivateKey.
@@ -84,8 +85,9 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(10000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1600),
@@ -141,7 +143,9 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
-        redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
+        redeemerOutputScript: Hex.from(
+          "00144130879211c54df460e484ddf9aac009cb38ee74"
+        ),
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(1100),
         txMaxFee: BigNumber.from(1700),
@@ -197,7 +201,9 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
         txMaxFee: BigNumber.from(1700),
@@ -253,8 +259,9 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
-        redeemerOutputScript:
-          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+        redeemerOutputScript: Hex.from(
+          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+        ),
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1400),
@@ -310,8 +317,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1100),
@@ -326,7 +334,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
-        redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
+        redeemerOutputScript: Hex.from(
+          "00144130879211c54df460e484ddf9aac009cb38ee74"
+        ),
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
         txMaxFee: BigNumber.from(900),
@@ -341,7 +351,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1100),
         txMaxFee: BigNumber.from(1000),
@@ -356,8 +368,9 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
-        redeemerOutputScript:
-          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+        redeemerOutputScript: Hex.from(
+          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+        ),
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(700),
         txMaxFee: BigNumber.from(1400),
@@ -416,8 +429,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(6000),
         treasuryFee: BigNumber.from(0),
         txMaxFee: BigNumber.from(800),
@@ -432,7 +446,9 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
-        redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
+        redeemerOutputScript: Hex.from(
+          "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769"
+        ),
         requestedAmount: BigNumber.from(4000),
         treasuryFee: BigNumber.from(0),
         txMaxFee: BigNumber.from(900),
@@ -491,7 +507,9 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
           "82883a4c7a8dd73ef165deb402d432613615ced4"
         ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1200),
@@ -526,14 +544,14 @@ export interface RedemptionProofTestData {
     rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
-    headersChain: string
+    headersChain: Hex
     transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedRedemptionProof: {
     redemptionTx: BitcoinRawTxVectors
     redemptionProof: BitcoinSpvProof
     mainUtxo: BitcoinUtxo
-    walletPublicKey: string
+    walletPublicKey: Hex
   }
 }
 
@@ -609,76 +627,91 @@ export const redemptionProof: RedemptionProofTestData = {
         "b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
     },
     latestBlockHeight: 2226015,
-    headersChain:
+    headersChain: Hex.from(
       "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000000" +
-      "00f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5a2f990" +
-      "5e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4b4ef2cf4d" +
-      "a2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af887ae9b5af064" +
-      "ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47fe867411f520786b" +
-      "bb056d33cc5e412799355f22541600000000000000e428a225d38073c8e8584cf162b4" +
-      "cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff001d5ec11e770000a020bc" +
-      "1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86db93c7e3000000006381e8dd" +
-      "f3245ddd74afb580b6d1e508273673d14b3620c098bde4c50bdbf65de1975e62341f5c" +
-      "195a29773400006020e7fc1afb505baced47a255d8a14cb7162b6f94d6aea6a89f4300" +
-      "000000000000ad26d482c0f48d0aeb1e1d9a8189df9f8dae693203c117a777c6c15522" +
-      "2da759ef975e62341f5c19595dff820000802004bdf8678a1fd09fd50987f884793410" +
-      "62e7f2ad11098bd00800000000000000add66b467729d264031adec83bc06e30781153" +
-      "0b98f49b095bd4c1fee2472e841d995e62341f5c19945d657200004020f8228183708c" +
-      "5f703e673f381ecee895a8642eed9f700b9c2b00000000000000465ec2f30447552a4a" +
-      "30ee63964aaebcb040649269eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+        "00f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5a2f990" +
+        "5e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4b4ef2cf4d" +
+        "a2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af887ae9b5af064" +
+        "ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47fe867411f520786b" +
+        "bb056d33cc5e412799355f22541600000000000000e428a225d38073c8e8584cf162b4" +
+        "cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff001d5ec11e770000a020bc" +
+        "1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86db93c7e3000000006381e8dd" +
+        "f3245ddd74afb580b6d1e508273673d14b3620c098bde4c50bdbf65de1975e62341f5c" +
+        "195a29773400006020e7fc1afb505baced47a255d8a14cb7162b6f94d6aea6a89f4300" +
+        "000000000000ad26d482c0f48d0aeb1e1d9a8189df9f8dae693203c117a777c6c15522" +
+        "2da759ef975e62341f5c19595dff820000802004bdf8678a1fd09fd50987f884793410" +
+        "62e7f2ad11098bd00800000000000000add66b467729d264031adec83bc06e30781153" +
+        "0b98f49b095bd4c1fee2472e841d995e62341f5c19945d657200004020f8228183708c" +
+        "5f703e673f381ecee895a8642eed9f700b9c2b00000000000000465ec2f30447552a4a" +
+        "30ee63964aaebcb040649269eab449fb51823d58835a4aed9a5e62341f5c192fd94baa"
+    ),
     transactionMerkleBranch: {
       blockHeight: 2196313,
       merkle: [
-        "2e89760feb82c022f9b6757c0a758f8fea953ffce9051cbe5a7cc20e0603c940",
-        "ad1cae6d060b5dac5d7ff1a933680f15dac822f52316c89e95363856b8a742ae",
-        "acf6ecc3da4654362678ac2bf0abf82aba1f2071e143718df2b079124e88fec7",
-        "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17",
-        "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e",
+        Hex.from(
+          "2e89760feb82c022f9b6757c0a758f8fea953ffce9051cbe5a7cc20e0603c940"
+        ),
+        Hex.from(
+          "ad1cae6d060b5dac5d7ff1a933680f15dac822f52316c89e95363856b8a742ae"
+        ),
+        Hex.from(
+          "acf6ecc3da4654362678ac2bf0abf82aba1f2071e143718df2b079124e88fec7"
+        ),
+        Hex.from(
+          "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17"
+        ),
+        Hex.from(
+          "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e"
+        ),
       ],
       position: 4,
     },
   },
   expectedRedemptionProof: {
     redemptionTx: {
-      version: "01000000",
-      inputs:
+      version: Hex.from("01000000"),
+      inputs: Hex.from(
         "01e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f75bbb283d0" +
-        "100000000ffffffff",
-      outputs:
+          "100000000ffffffff"
+      ),
+      outputs: Hex.from(
         "051c3e0000000000001976a9144130879211c54df460e484ddf9aac009cb38ee748" +
-        "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
-        "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
-        "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
-        "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
-        "f738986f6",
-      locktime: "00000000",
+          "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
+          "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
+          "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
+          "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
+          "f738986f6"
+      ),
+      locktime: Hex.from("00000000"),
     },
     redemptionProof: {
-      merkleProof:
+      merkleProof: Hex.from(
         "40c903060ec27c5abe1c05e9fc3f95ea8f8f750a7c75b6f922c082eb0f76892eae4" +
-        "2a7b8563836959ec81623f522c8da150f6833a9f17f5dac5d0b066dae1cadc7fe88" +
-        "4e1279b0f28d7143e171201fba2af8abf02bac7826365446dac3ecf6ac17cce9f39" +
-        "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
-        "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c",
+          "2a7b8563836959ec81623f522c8da150f6833a9f17f5dac5d0b066dae1cadc7fe88" +
+          "4e1279b0f28d7143e171201fba2af8abf02bac7826365446dac3ecf6ac17cce9f39" +
+          "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
+          "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c"
+      ),
       txIndexInBlock: 4,
-      bitcoinHeaders:
+      bitcoinHeaders: Hex.from(
         "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000" +
-        "00000f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5" +
-        "a2f9905e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4" +
-        "b4ef2cf4da2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af8" +
-        "87ae9b5af064ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47f" +
-        "e867411f520786bbb056d33cc5e412799355f22541600000000000000e428a225d3" +
-        "8073c8e8584cf162b4cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff0" +
-        "01d5ec11e770000a020bc1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86" +
-        "db93c7e3000000006381e8ddf3245ddd74afb580b6d1e508273673d14b3620c098b" +
-        "de4c50bdbf65de1975e62341f5c195a29773400006020e7fc1afb505baced47a255" +
-        "d8a14cb7162b6f94d6aea6a89f4300000000000000ad26d482c0f48d0aeb1e1d9a8" +
-        "189df9f8dae693203c117a777c6c155222da759ef975e62341f5c19595dff820000" +
-        "802004bdf8678a1fd09fd50987f88479341062e7f2ad11098bd0080000000000000" +
-        "0add66b467729d264031adec83bc06e307811530b98f49b095bd4c1fee2472e841d" +
-        "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
-        "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
-        "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+          "00000f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5" +
+          "a2f9905e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4" +
+          "b4ef2cf4da2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af8" +
+          "87ae9b5af064ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47f" +
+          "e867411f520786bbb056d33cc5e412799355f22541600000000000000e428a225d3" +
+          "8073c8e8584cf162b4cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff0" +
+          "01d5ec11e770000a020bc1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86" +
+          "db93c7e3000000006381e8ddf3245ddd74afb580b6d1e508273673d14b3620c098b" +
+          "de4c50bdbf65de1975e62341f5c195a29773400006020e7fc1afb505baced47a255" +
+          "d8a14cb7162b6f94d6aea6a89f4300000000000000ad26d482c0f48d0aeb1e1d9a8" +
+          "189df9f8dae693203c117a777c6c155222da759ef975e62341f5c19595dff820000" +
+          "802004bdf8678a1fd09fd50987f88479341062e7f2ad11098bd0080000000000000" +
+          "0add66b467729d264031adec83bc06e307811530b98f49b095bd4c1fee2472e841d" +
+          "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
+          "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
+          "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa"
+      ),
     },
     mainUtxo: {
       transactionHash: BitcoinTxHash.from(
@@ -687,8 +720,9 @@ export const redemptionProof: RedemptionProofTestData = {
       outputIndex: 1,
       value: BigNumber.from(1429580),
     },
-    walletPublicKey:
-      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+    walletPublicKey: Hex.from(
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+    ),
   },
 }
 
@@ -902,7 +936,9 @@ export const findWalletForRedemptionData: {
       "0xeb9af8E66869902476347a4eFe59a527a57240ED"
     ),
     // script for testnet P2PKH address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
-    redeemerOutputScript: "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+    redeemerOutputScript: Hex.from(
+      "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac"
+    ),
     requestedAmount: BigNumber.from(1000000),
     treasuryFee: BigNumber.from(20000),
     txMaxFee: BigNumber.from(20000),

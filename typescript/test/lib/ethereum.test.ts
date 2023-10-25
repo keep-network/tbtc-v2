@@ -74,15 +74,18 @@ describe("Ethereum", () => {
       it("should return the pending redemption", async () => {
         expect(
           await bridgeHandle.pendingRedemptions(
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+            Hex.from(
+              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+            ),
+            Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87")
           )
         ).to.be.eql({
           redeemer: EthereumAddress.from(
             "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
           ),
-          redeemerOutputScript:
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          redeemerOutputScript: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
           requestedAmount: BigNumber.from(10000),
           treasuryFee: BigNumber.from(100),
           txMaxFee: BigNumber.from(50),
@@ -113,15 +116,18 @@ describe("Ethereum", () => {
       it("should return the timed-out redemption", async () => {
         expect(
           await bridgeHandle.timedOutRedemptions(
-            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+            Hex.from(
+              "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+            ),
+            Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87")
           )
         ).to.be.eql({
           redeemer: EthereumAddress.from(
             "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
           ),
-          redeemerOutputScript:
-            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          redeemerOutputScript: Hex.from(
+            "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+          ),
           requestedAmount: BigNumber.from(10000),
           treasuryFee: BigNumber.from(100),
           txMaxFee: BigNumber.from(50),
@@ -137,20 +143,24 @@ describe("Ethereum", () => {
         await bridgeHandle.revealDeposit(
           // Just short byte strings for clarity.
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           2,
           {
             depositor: EthereumAddress.from(
               "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
             ),
-            walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
-            blindingFactor: "f9f0c90d00039523",
-            refundLocktime: "60bcea61",
+            walletPublicKeyHash: Hex.from(
+              "8db50eb52063ea9d98b3eac91489a90f738986f6"
+            ),
+            refundPublicKeyHash: Hex.from(
+              "28e081f285138ccbe389c1eb8985716230129f89"
+            ),
+            blindingFactor: Hex.from("f9f0c90d00039523"),
+            refundLocktime: Hex.from("60bcea61"),
           },
           EthereumAddress.from("82883a4c7a8dd73ef165deb402d432613615ced4")
         )
@@ -182,15 +192,15 @@ describe("Ethereum", () => {
 
         await bridgeHandle.submitDepositSweepProof(
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           {
-            merkleProof: "44444444",
+            merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
-            bitcoinHeaders: "66666666",
+            bitcoinHeaders: Hex.from("66666666"),
           },
           {
             transactionHash: BitcoinTxHash.from(
@@ -244,7 +254,9 @@ describe("Ethereum", () => {
         await bridgeContract.mock.requestRedemption.returns()
 
         await bridgeHandle.requestRedemption(
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+          Hex.from(
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          ),
           {
             transactionHash: BitcoinTxHash.from(
               "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
@@ -252,7 +264,7 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+          Hex.from("a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"),
           BigNumber.from(10000)
         )
       })
@@ -278,15 +290,15 @@ describe("Ethereum", () => {
 
         await bridgeHandle.submitRedemptionProof(
           {
-            version: "00000000",
-            inputs: "11111111",
-            outputs: "22222222",
-            locktime: "33333333",
+            version: Hex.from("00000000"),
+            inputs: Hex.from("11111111"),
+            outputs: Hex.from("22222222"),
+            locktime: Hex.from("33333333"),
           },
           {
-            merkleProof: "44444444",
+            merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
-            bitcoinHeaders: "66666666",
+            bitcoinHeaders: Hex.from("66666666"),
           },
           {
             transactionHash: BitcoinTxHash.from(
@@ -295,7 +307,9 @@ describe("Ethereum", () => {
             outputIndex: 8,
             value: BigNumber.from(9999),
           },
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          Hex.from(
+            "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+          )
         )
       })
 
@@ -441,7 +455,9 @@ describe("Ethereum", () => {
         })
 
         it("should return the active wallet's public key", async () => {
-          expect(await bridgeHandle.activeWalletPublicKey()).to.be.equal(
+          expect(
+            (await bridgeHandle.activeWalletPublicKey())?.toString()
+          ).to.be.equal(
             "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
           )
         })
@@ -512,8 +528,9 @@ describe("Ethereum", () => {
         vault: EthereumAddress.from(
           "0x24BE35e7C04E2e0a628614Ce0Ed58805e1C894F7"
         ),
-        walletPublicKey:
-          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+        walletPublicKey: Hex.from(
+          "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+        ),
         mainUtxo: {
           transactionHash: BitcoinTxHash.from(
             "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
@@ -524,10 +541,12 @@ describe("Ethereum", () => {
         redeemer: EthereumAddress.from(signer.address),
         amount: BigNumber.from(10000),
         redeemerOutputScript: {
-          unprefixed:
-            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
-          prefixed:
-            "0x220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70",
+          unprefixed: Hex.from(
+            "0020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70"
+          ),
+          prefixed: Hex.from(
+            "220020cdbf909e935c855d3e8d1b61aeb9c5e3c03ae8021b286839b1a72f2e48fdba70"
+          ),
         },
       }
 
@@ -556,13 +575,11 @@ describe("Ethereum", () => {
           ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
           [
             redeemer.identifierHex,
-            Hex.from(
-              BitcoinHashUtils.computeHash160(walletPublicKey)
-            ).toPrefixedString(),
+            BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString(),
             mainUtxo.transactionHash.reverse().toPrefixedString(),
             mainUtxo.outputIndex,
             mainUtxo.value,
-            redeemerOutputScript.prefixed,
+            redeemerOutputScript.prefixed.toPrefixedString(),
           ]
         )
 

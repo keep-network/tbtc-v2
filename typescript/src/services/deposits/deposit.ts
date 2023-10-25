@@ -111,7 +111,7 @@ export class Deposit {
    *         initiate minting (both modes).
    */
   // TODO: Cover auto funding outpoint detection with unit tests.
-  async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<string> {
+  async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<Hex> {
     let resolvedFundingOutpoint: BitcoinTxOutpoint
 
     if (typeof fundingOutpoint !== "undefined") {
@@ -185,39 +185,39 @@ export class DepositScript {
     // If witness script hash should be produced, SHA256 should be used.
     // Legacy script hash needs HASH160.
     return this.witness
-      ? BitcoinHashUtils.computeSha256(Hex.from(script)).toBuffer()
-      : Buffer.from(BitcoinHashUtils.computeHash160(script), "hex")
+      ? BitcoinHashUtils.computeSha256(script).toBuffer()
+      : BitcoinHashUtils.computeHash160(script).toBuffer()
   }
 
   /**
-   * @returns Plain-text deposit script as an un-prefixed hex string.
+   * @returns Plain-text deposit script as a hex string.
    */
-  async getPlainText(): Promise<string> {
+  async getPlainText(): Promise<Hex> {
     const chunks: Stack = []
 
     // All HEXes pushed to the script must be un-prefixed
     chunks.push(Buffer.from(this.receipt.depositor.identifierHex, "hex"))
     chunks.push(opcodes.OP_DROP)
-    chunks.push(Buffer.from(this.receipt.blindingFactor, "hex"))
+    chunks.push(this.receipt.blindingFactor.toBuffer())
     chunks.push(opcodes.OP_DROP)
     chunks.push(opcodes.OP_DUP)
     chunks.push(opcodes.OP_HASH160)
-    chunks.push(Buffer.from(this.receipt.walletPublicKeyHash, "hex"))
+    chunks.push(this.receipt.walletPublicKeyHash.toBuffer())
     chunks.push(opcodes.OP_EQUAL)
     chunks.push(opcodes.OP_IF)
     chunks.push(opcodes.OP_CHECKSIG)
     chunks.push(opcodes.OP_ELSE)
     chunks.push(opcodes.OP_DUP)
     chunks.push(opcodes.OP_HASH160)
-    chunks.push(Buffer.from(this.receipt.refundPublicKeyHash, "hex"))
+    chunks.push(this.receipt.refundPublicKeyHash.toBuffer())
     chunks.push(opcodes.OP_EQUALVERIFY)
-    chunks.push(Buffer.from(this.receipt.refundLocktime, "hex"))
+    chunks.push(this.receipt.refundLocktime.toBuffer())
     chunks.push(opcodes.OP_CHECKLOCKTIMEVERIFY)
     chunks.push(opcodes.OP_DROP)
     chunks.push(opcodes.OP_CHECKSIG)
     chunks.push(opcodes.OP_ENDIF)
 
-    return script.compile(chunks).toString("hex")
+    return Hex.from(script.compile(chunks))
   }
 
   /**

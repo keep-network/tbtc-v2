@@ -53,27 +53,26 @@ describe("Redemptions", () => {
         tbtcContracts = new MockTBTCContracts()
         bitcoinClient = new MockBitcoinClient()
 
-        const walletPublicKeyHash = Hex.from(
+        const walletPublicKeyHash =
           BitcoinHashUtils.computeHash160(walletPublicKey)
-        )
 
         // Prepare NewWalletRegisteredEvent history. Set only relevant fields.
         tbtcContracts.bridge.newWalletRegisteredEvents = [
           {
-            walletPublicKeyHash: walletPublicKeyHash,
+            walletPublicKeyHash,
           } as NewWalletRegisteredEvent,
         ]
 
         // Prepare wallet data in the Bridge. Set only relevant fields.
         tbtcContracts.bridge.setWallet(walletPublicKeyHash.toPrefixedString(), {
           state: WalletState.Live,
-          walletPublicKey: Hex.from(walletPublicKey),
+          walletPublicKey,
           pendingRedemptionsValue: BigNumber.from(0),
           mainUtxoHash: tbtcContracts.bridge.buildUtxoHash(mainUtxo),
         } as Wallet)
 
         const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
-          walletPublicKeyHash.toString(),
+          walletPublicKeyHash,
           true,
           BitcoinNetwork.Testnet
         )
@@ -105,7 +104,7 @@ describe("Redemptions", () => {
 
         await redemptionsService.requestRedemption(
           BitcoinAddressConverter.outputScriptToAddress(
-            Hex.from(redeemerOutputScript),
+            redeemerOutputScript,
             BitcoinNetwork.Testnet
           ),
           amount
@@ -153,7 +152,7 @@ describe("Redemptions", () => {
           const actualRedemptionRequest =
             await redemptionsService.getRedemptionRequests(
               BitcoinAddressConverter.outputScriptToAddress(
-                Hex.from(redemptionRequest.redeemerOutputScript),
+                redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
               walletPublicKey,
@@ -191,7 +190,7 @@ describe("Redemptions", () => {
           const actualRedemptionRequest =
             await redemptionsService.getRedemptionRequests(
               BitcoinAddressConverter.outputScriptToAddress(
-                Hex.from(redemptionRequest.redeemerOutputScript),
+                redemptionRequest.redeemerOutputScript,
                 BitcoinNetwork.Testnet
               ),
               walletPublicKey,
@@ -206,10 +205,10 @@ describe("Redemptions", () => {
     describe("findWalletForRedemption", () => {
       class TestRedemptionsService extends RedemptionsService {
         public async findWalletForRedemption(
-          redeemerOutputScript: string,
+          redeemerOutputScript: Hex,
           amount: BigNumber
         ): Promise<{
-          walletPublicKey: string
+          walletPublicKey: Hex
           mainUtxo: BitcoinUtxo
         }> {
           return super.findWalletForRedemption(redeemerOutputScript, amount)
@@ -221,8 +220,9 @@ describe("Redemptions", () => {
       let redemptionsService: TestRedemptionsService
       // script for testnet P2WSH address
       // tb1qau95mxzh2249aa3y8exx76ltc2sq0e7kw8hj04936rdcmnynhswqqz02vv
-      const redeemerOutputScript =
+      const redeemerOutputScript = Hex.from(
         "0x220020ef0b4d985752aa5ef6243e4c6f6bebc2a007e7d671ef27d4b1d0db8dcc93bc1c"
+      )
 
       context(
         "when there are no wallets in the network that can handle redemption",
@@ -327,7 +327,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.walletWithPendingRedemption.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -376,7 +376,7 @@ describe("Redemptions", () => {
               >()
 
               const key = MockBridge.buildRedemptionKey(
-                walletPublicKeyHash.toString(),
+                walletPublicKeyHash,
                 redeemerOutputScript
               )
 
@@ -408,7 +408,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.liveWallet.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -440,7 +440,7 @@ describe("Redemptions", () => {
                 findWalletForRedemptionData.liveWallet.data
 
               expect(result).to.deep.eq({
-                walletPublicKey: expectedWalletData.walletPublicKey.toString(),
+                walletPublicKey: expectedWalletData.walletPublicKey,
                 mainUtxo: expectedWalletData.mainUtxo,
               })
             })
@@ -465,12 +465,13 @@ describe("Redemptions", () => {
               >()
 
               const pendingRedemption1 = MockBridge.buildRedemptionKey(
-                walletPublicKeyHash.toString(),
+                walletPublicKeyHash,
                 redeemerOutputScript
               )
 
               const pendingRedemption2 = MockBridge.buildRedemptionKey(
-                findWalletForRedemptionData.liveWallet.event.walletPublicKeyHash.toString(),
+                findWalletForRedemptionData.liveWallet.event
+                  .walletPublicKeyHash,
                 redeemerOutputScript
               )
 
@@ -751,13 +752,13 @@ describe("Redemptions", () => {
 
                   const walletWitnessAddress =
                     BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash.toString(),
+                      walletPublicKeyHash,
                       true,
                       bitcoinNetwork
                     )
                   const walletLegacyAddress =
                     BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash.toString(),
+                      walletPublicKeyHash,
                       false,
                       bitcoinNetwork
                     )
