@@ -14,7 +14,7 @@ import {
   BitcoinHashUtils,
 } from "../bitcoin"
 import Electrum from "electrum-client-js"
-import { BigNumber, utils } from "ethers"
+import { BigNumber } from "ethers"
 import { URL } from "url"
 import { backoffRetrier, Hex, RetrierFn } from "../utils"
 
@@ -261,7 +261,7 @@ export class ElectrumClient implements BitcoinClient {
       const script = BitcoinAddressConverter.addressToOutputScript(
         address,
         bitcoinNetwork
-      ).toString()
+      )
 
       // eslint-disable-next-line camelcase
       type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -292,7 +292,7 @@ export class ElectrumClient implements BitcoinClient {
       const script = BitcoinAddressConverter.addressToOutputScript(
         address,
         bitcoinNetwork
-      ).toString()
+      )
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
@@ -518,8 +518,8 @@ export class ElectrumClient implements BitcoinClient {
   /**
    * @see {BitcoinClient#getHeadersChain}
    */
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return this.withElectrum<string>(async (electrum: Electrum) => {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex> {
+    return this.withElectrum<Hex>(async (electrum: Electrum) => {
       const { hex } = await this.withBackoffRetrier<{
         hex: string
       }>()(async () => {
@@ -529,7 +529,7 @@ export class ElectrumClient implements BitcoinClient {
         )
       })
 
-      return hex
+      return Hex.from(hex)
     })
   }
 
@@ -557,7 +557,7 @@ export class ElectrumClient implements BitcoinClient {
 
         return {
           blockHeight: merkle.block_height,
-          merkle: merkle.merkle,
+          merkle: merkle.merkle.map((m) => Hex.from(m)),
           position: merkle.pos,
         }
       }
@@ -585,9 +585,6 @@ export class ElectrumClient implements BitcoinClient {
  * @param script - Bitcoin script as hex string
  * @returns Electrum script hash as a hex string.
  */
-export function computeElectrumScriptHash(script: string): string {
-  const _script = Hex.from(Buffer.from(script, "hex")).toPrefixedString()
-  const hash256 = utils.sha256(_script)
-
-  return Hex.from(hash256).reverse().toString()
+export function computeElectrumScriptHash(script: Hex): string {
+  return BitcoinHashUtils.computeSha256(script).reverse().toString()
 }

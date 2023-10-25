@@ -69,9 +69,9 @@ export class EthereumTBTCToken
    * @see {TBTCToken#requestRedemption}
    */
   async requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<Hex> {
     const redeemer = await this._instance?.signer?.getAddress()
@@ -103,9 +103,9 @@ export class EthereumTBTCToken
 
   private buildRequestRedemptionData(
     redeemer: EthereumAddress,
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string
+    redeemerOutputScript: Hex
   ): Hex {
     const {
       walletPublicKeyHash,
@@ -133,13 +133,12 @@ export class EthereumTBTCToken
   }
 
   private buildBridgeRequestRedemptionData(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string
+    redeemerOutputScript: Hex
   ) {
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
-      walletPublicKey
-    )}`
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
@@ -150,7 +149,7 @@ export class EthereumTBTCToken
     }
 
     // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
     // Prefix the output script bytes buffer with 0x and its own length.
     const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
       Buffer.from([rawRedeemerOutputScript.length]),

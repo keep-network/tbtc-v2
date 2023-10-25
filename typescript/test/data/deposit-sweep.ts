@@ -65,10 +65,14 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -96,10 +100,14 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -158,10 +166,14 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1653302600,
             2592000
@@ -213,10 +225,14 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -245,10 +261,14 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1641650400,
             2592000
@@ -343,10 +363,14 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
           ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
           refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
             1653302600,
             2592000
@@ -404,7 +428,7 @@ export interface DepositSweepProofTestData {
     rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
-    headersChain: string
+    headersChain: Hex
     transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedSweepProof: {
@@ -498,82 +522,97 @@ export const depositSweepProof: DepositSweepProofTestData = {
         "120fb077fbed8804e0250162b175ac6800000000",
     },
     latestBlockHeight: 2164335,
-    headersChain:
+    headersChain: Hex.from(
       "04000020642125b3910fdaead521b57955e28893d89f8ce7fd3ba1dd6d0100000" +
-      "0000000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d8833" +
-      "11e5355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140d" +
-      "c7031225f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fe" +
-      "a2ccf0ba212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e00" +
-      "0208475e15e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000" +
-      "002a3fa06fecd9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67c" +
-      "ea1c51c62ed3e031a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa0" +
-      "8ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f38626eb9d" +
-      "70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc2170000002068" +
-      "7e487acbf5eb375c631a15127fbf7d80ca084461e7f26f92c509b6000000006fa" +
-      "d33bd7c8d651bd6dc86c286f0a99340b668f019b9e97a59fd392c36c4f46910cf" +
-      "1c62ffff001d407facaa0400002040f4c65610f26f06c4365305b956934501713" +
-      "e01c2fc08b919e0bc1b00000000e401a6a884ba015e83c6fe2cd363e877ef0398" +
-      "2e81eaff4e2c95af1e23a670f407d41c62ffff001d58c64d180400002038854bd" +
-      "62f802e1de14653eceeb7a80290f5e99b8e9db517e36f000000000000a494b803" +
-      "4039e7855b75563ab83c9410dd67e89bb58e6cd93b85290a885dd749f4d61c62e" +
-      "d3e031ad9a83746",
+        "0000000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d8833" +
+        "11e5355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140d" +
+        "c7031225f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fe" +
+        "a2ccf0ba212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e00" +
+        "0208475e15e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000" +
+        "002a3fa06fecd9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67c" +
+        "ea1c51c62ed3e031a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa0" +
+        "8ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f38626eb9d" +
+        "70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc2170000002068" +
+        "7e487acbf5eb375c631a15127fbf7d80ca084461e7f26f92c509b6000000006fa" +
+        "d33bd7c8d651bd6dc86c286f0a99340b668f019b9e97a59fd392c36c4f46910cf" +
+        "1c62ffff001d407facaa0400002040f4c65610f26f06c4365305b956934501713" +
+        "e01c2fc08b919e0bc1b00000000e401a6a884ba015e83c6fe2cd363e877ef0398" +
+        "2e81eaff4e2c95af1e23a670f407d41c62ffff001d58c64d180400002038854bd" +
+        "62f802e1de14653eceeb7a80290f5e99b8e9db517e36f000000000000a494b803" +
+        "4039e7855b75563ab83c9410dd67e89bb58e6cd93b85290a885dd749f4d61c62e" +
+        "d3e031ad9a83746"
+    ),
     transactionMerkleBranch: {
       blockHeight: 2164155,
       merkle: [
-        "322cfdf3ca53cf597b6f08e93489b9a1cfa1f5958c3657474b0d8f5efb5ca92e",
-        "82aedffef6c9670375effee25740fecce143d21f8abf98307235b7ebd31ad4d1",
-        "837fa041b9a8f5b42353fdf8981e3b7a78c61858852e43058bfe6cacf9eab5a3",
-        "a51612d3f3f857e95803a4d86aa6dbbe2e756dc2ed6cc0e04630e8baf597e377",
-        "a00501650e0c4f8a1e07a5d6d5bc5e75e4c75de61a65f0410cce354bbae78686",
+        Hex.from(
+          "322cfdf3ca53cf597b6f08e93489b9a1cfa1f5958c3657474b0d8f5efb5ca92e"
+        ),
+        Hex.from(
+          "82aedffef6c9670375effee25740fecce143d21f8abf98307235b7ebd31ad4d1"
+        ),
+        Hex.from(
+          "837fa041b9a8f5b42353fdf8981e3b7a78c61858852e43058bfe6cacf9eab5a3"
+        ),
+        Hex.from(
+          "a51612d3f3f857e95803a4d86aa6dbbe2e756dc2ed6cc0e04630e8baf597e377"
+        ),
+        Hex.from(
+          "a00501650e0c4f8a1e07a5d6d5bc5e75e4c75de61a65f0410cce354bbae78686"
+        ),
       ],
       position: 6,
     },
   },
   expectedSweepProof: {
     sweepTx: {
-      version: "01000000",
-      inputs:
+      version: Hex.from("01000000"),
+      inputs: Hex.from(
         "048f99b22593afdc4e3c08c7821151e801b2e9a16bf307c087a1b8c1f8459e4dea0" +
-        "0000000c9483045022100bb54f2717647b2f2c5370b5f12b55e27f97a6e2009dcd2" +
-        "1fca08527df949e1fd022058bc3cd1dd739b89b9e4cda43b13bc59cfb15663b80cb" +
-        "fa3edb4539107bba35d012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a9" +
-        "8f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df63" +
-        "77508f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986" +
-        "f68763ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e025016" +
-        "2b175ac68fffffffffd337f1abd32f17566e17a3606714d981bb8982339805ebb84" +
-        "c881174cff44c80000000000ffffffff73a486cf5ca706f513b6bf170ed0e7465d5" +
-        "bbe2968b4c2a9a207ac0ebc68c5440000000000ffffffff78439e510ac6b659b529" +
-        "a608611a77ca05f00ca050648212e16447460ec048f50000000000ffffffff",
-      outputs:
-        "01789b0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6",
-      locktime: "00000000",
+          "0000000c9483045022100bb54f2717647b2f2c5370b5f12b55e27f97a6e2009dcd2" +
+          "1fca08527df949e1fd022058bc3cd1dd739b89b9e4cda43b13bc59cfb15663b80cb" +
+          "fa3edb4539107bba35d012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a9" +
+          "8f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df63" +
+          "77508f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986" +
+          "f68763ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e025016" +
+          "2b175ac68fffffffffd337f1abd32f17566e17a3606714d981bb8982339805ebb84" +
+          "c881174cff44c80000000000ffffffff73a486cf5ca706f513b6bf170ed0e7465d5" +
+          "bbe2968b4c2a9a207ac0ebc68c5440000000000ffffffff78439e510ac6b659b529" +
+          "a608611a77ca05f00ca050648212e16447460ec048f50000000000ffffffff"
+      ),
+      outputs: Hex.from(
+        "01789b0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
+      ),
+      locktime: Hex.from("00000000"),
     },
     sweepProof: {
-      merkleProof:
+      merkleProof: Hex.from(
         "2ea95cfb5e8f0d4b4757368c95f5a1cfa1b98934e9086f7b59cf53caf3fd2c32d1d" +
-        "41ad3ebb735723098bf8a1fd243e1ccfe4057e2feef750367c9f6fedfae82a3b5ea" +
-        "f9ac6cfe8b05432e855818c6787a3b1e98f8fd5323b4f5a8b941a07f8377e397f5b" +
-        "ae83046e0c06cedc26d752ebedba66ad8a40358e957f8f3d31216a58686e7ba4b35" +
-        "ce0c41f0651ae65dc7e4755ebcd5d6a5071e8a4f0c0e650105a0",
+          "41ad3ebb735723098bf8a1fd243e1ccfe4057e2feef750367c9f6fedfae82a3b5ea" +
+          "f9ac6cfe8b05432e855818c6787a3b1e98f8fd5323b4f5a8b941a07f8377e397f5b" +
+          "ae83046e0c06cedc26d752ebedba66ad8a40358e957f8f3d31216a58686e7ba4b35" +
+          "ce0c41f0651ae65dc7e4755ebcd5d6a5071e8a4f0c0e650105a0"
+      ),
       txIndexInBlock: 6,
-      bitcoinHeaders:
+      bitcoinHeaders: Hex.from(
         "04000020642125b3910fdaead521b57955e28893d89f8ce7fd3ba1dd6d010000000" +
-        "00000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d883311e5" +
-        "355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140dc70312" +
-        "25f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fea2ccf0ba" +
-        "212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e000208475e15" +
-        "e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000002a3fa06fec" +
-        "d9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67cea1c51c62ed3e0" +
-        "31a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa08ab6139eee31f4f6" +
-        "7a010000000000004cda79bc48b970de2fb29c3f38626eb9d70d8bae7b92aad09f2" +
-        "a0ad2d2f334d35bca1c62ffff001d048fc21700000020687e487acbf5eb375c631a" +
-        "15127fbf7d80ca084461e7f26f92c509b6000000006fad33bd7c8d651bd6dc86c28" +
-        "6f0a99340b668f019b9e97a59fd392c36c4f46910cf1c62ffff001d407facaa0400" +
-        "002040f4c65610f26f06c4365305b956934501713e01c2fc08b919e0bc1b0000000" +
-        "0e401a6a884ba015e83c6fe2cd363e877ef03982e81eaff4e2c95af1e23a670f407" +
-        "d41c62ffff001d58c64d180400002038854bd62f802e1de14653eceeb7a80290f5e" +
-        "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
-        "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746",
+          "00000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d883311e5" +
+          "355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140dc70312" +
+          "25f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fea2ccf0ba" +
+          "212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e000208475e15" +
+          "e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000002a3fa06fec" +
+          "d9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67cea1c51c62ed3e0" +
+          "31a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa08ab6139eee31f4f6" +
+          "7a010000000000004cda79bc48b970de2fb29c3f38626eb9d70d8bae7b92aad09f2" +
+          "a0ad2d2f334d35bca1c62ffff001d048fc21700000020687e487acbf5eb375c631a" +
+          "15127fbf7d80ca084461e7f26f92c509b6000000006fad33bd7c8d651bd6dc86c28" +
+          "6f0a99340b668f019b9e97a59fd392c36c4f46910cf1c62ffff001d407facaa0400" +
+          "002040f4c65610f26f06c4365305b956934501713e01c2fc08b919e0bc1b0000000" +
+          "0e401a6a884ba015e83c6fe2cd363e877ef03982e81eaff4e2c95af1e23a670f407" +
+          "d41c62ffff001d58c64d180400002038854bd62f802e1de14653eceeb7a80290f5e" +
+          "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
+          "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746"
+      ),
     },
     mainUtxo: NO_MAIN_UTXO,
   },

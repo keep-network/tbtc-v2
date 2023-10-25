@@ -2541,7 +2541,7 @@ describe("Maintenance", () => {
         const bridgeLog = tbtcContracts.bridge.redemptionProofLog
         expect(bridgeLog.length).to.equal(1)
         expect(bridgeLog[0].mainUtxo).to.equal(mainUtxo)
-        expect(bridgeLog[0].walletPublicKey).to.equal(
+        expect(bridgeLog[0].walletPublicKey).to.deep.equal(
           redemptionProof.expectedRedemptionProof.walletPublicKey
         )
         expect(bridgeLog[0].redemptionTx).to.deep.equal(

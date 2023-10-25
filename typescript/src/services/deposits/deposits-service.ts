@@ -9,6 +9,7 @@ import {
   BitcoinHashUtils,
   BitcoinLocktimeUtils,
 } from "../../lib/bitcoin"
+import { Hex } from "../../lib/utils"
 import { Deposit } from "./deposit"
 import * as crypto from "crypto"
 
@@ -66,7 +67,7 @@ export class DepositsService {
       )
     }
 
-    const blindingFactor = crypto.randomBytes(8).toString("hex")
+    const blindingFactor = Hex.from(crypto.randomBytes(8))
 
     const walletPublicKey =
       await this.tbtcContracts.bridge.activeWalletPublicKey()

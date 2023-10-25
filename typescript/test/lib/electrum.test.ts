@@ -3,6 +3,7 @@ import {
   ElectrumCredentials,
   ElectrumClient,
   computeElectrumScriptHash,
+  Hex,
 } from "../../src"
 import {
   testnetAddress,
@@ -224,7 +225,9 @@ describe("Electrum", () => {
 
         describe("computeElectrumScriptHash", () => {
           it("should convert Bitcoin script to an Electrum script hash correctly", () => {
-            const script = "00144b47c798d12edd17dfb4ea98e5447926f664731c"
+            const script = Hex.from(
+              "00144b47c798d12edd17dfb4ea98e5447926f664731c"
+            )
             const expectedScriptHash =
               "cabdea0bfc10fb3521721dde503487dd1f0e41dd6609da228066757563f292ab"
 
