@@ -7,6 +7,7 @@ import {
   BitcoinAddressConverter,
   BitcoinClient,
   BitcoinNetwork,
+  BitcoinScriptUtils,
   BitcoinTxOutput,
   BitcoinUtxo,
 } from "../../lib/bitcoin"
@@ -57,8 +58,14 @@ export class RedemptionsService {
       bitcoinRedeemerAddress,
       bitcoinNetwork
     )
-
-    // TODO: Validate the given script is supported for redemption.
+    if (
+      !BitcoinScriptUtils.isP2PKHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2WPKHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2SHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2WSHScript(redeemerOutputScript)
+    ) {
+      throw new Error("Redeemer output script must be of standard type")
+    }
 
     const { walletPublicKey, mainUtxo } = await this.findWalletForRedemption(
       redeemerOutputScript,
