@@ -8,6 +8,7 @@ import {
   BitcoinClient,
   BitcoinHashUtils,
   BitcoinLocktimeUtils,
+  BitcoinScriptUtils,
 } from "../../lib/bitcoin"
 import { Hex } from "../../lib/utils"
 import { Deposit } from "./deposit"
@@ -80,9 +81,17 @@ export class DepositsService {
 
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
-    // TODO: Only P2(W)PKH addresses can be used for recovery. The below conversion
-    //       function ensures that but, it would be good to check it here as well
-    //       in case the converter implementation changes.
+    const recoveryOutputScript = BitcoinAddressConverter.addressToOutputScript(
+      bitcoinRecoveryAddress,
+      bitcoinNetwork
+    )
+    if (
+      !BitcoinScriptUtils.isP2PKHScript(recoveryOutputScript) &&
+      !BitcoinScriptUtils.isP2WPKHScript(recoveryOutputScript)
+    ) {
+      throw new Error("Bitcoin recovery address must be P2PKH or P2WPKH")
+    }
+
     const refundPublicKeyHash = BitcoinAddressConverter.addressToPublicKeyHash(
       bitcoinRecoveryAddress,
       bitcoinNetwork
