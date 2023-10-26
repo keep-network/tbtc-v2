@@ -61,6 +61,7 @@ describe("System Test - Deposit and redemption", () => {
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
+  const depositTxFee = BigNumber.from(1500)
   // Number of retries for Electrum requests.
   const ELECTRUM_RETRIES = 5
   // Initial backoff step in milliseconds that will be increased exponentially for
@@ -144,7 +145,6 @@ describe("System Test - Deposit and redemption", () => {
         Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
         BitcoinNetwork.Testnet,
       )
-      const fee = BigNumber.from(1500)
       const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
         depositorBitcoinAddress
       )
@@ -155,7 +155,7 @@ describe("System Test - Deposit and redemption", () => {
         electrumClient,
         true,
         depositorUtxos,
-        fee
+        depositTxFee
       ))
 
       console.log(`
@@ -427,7 +427,6 @@ describe("System Test - Deposit and redemption", () => {
         Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
         BitcoinNetwork.Testnet,
       )
-      const fee = BigNumber.from(1500)
       const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
         depositorBitcoinAddress
       )
@@ -438,7 +437,7 @@ describe("System Test - Deposit and redemption", () => {
         electrumClient,
         true,
         depositorUtxos,
-        fee
+        depositTxFee
       ))
 
       console.log(`

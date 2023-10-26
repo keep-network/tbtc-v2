@@ -64,6 +64,7 @@ describe("System Test - Minting and unminting", () => {
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
+  const depositTxFee = BigNumber.from(1500)
   // Number of retries for Electrum requests.
   const ELECTRUM_RETRIES = 5
   // Initial backoff step in milliseconds that will be increased exponentially for
@@ -147,7 +148,6 @@ describe("System Test - Minting and unminting", () => {
           Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
           BitcoinNetwork.Testnet,
         )
-        const fee = BigNumber.from(1500)
         const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
           depositorBitcoinAddress
         )
@@ -158,7 +158,7 @@ describe("System Test - Minting and unminting", () => {
           electrumClient,
           true,
           depositorUtxos,
-          fee
+          depositTxFee
         ))
 
         console.log(`
