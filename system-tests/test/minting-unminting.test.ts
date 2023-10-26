@@ -5,8 +5,10 @@ import {
   EthereumAddress,
   EthereumBridge,
   BitcoinTransactionHash,
+  BitcoinNetwork,
 } from "@keep-network/tbtc-v2.ts/dist/src"
-import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import { computeHash160, createAddressFromPublicKey } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import { Hex } from "@keep-network/tbtc-v2.ts/dist/src/hex"
 import { BigNumber, constants, Contract, utils as ethersUtils } from "ethers"
 import chai, { expect } from "chai"
 import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
@@ -140,11 +142,23 @@ describe("System Test - Minting and unminting", () => {
         Generated deposit data:
         ${JSON.stringify(deposit)}
       `)
+
+        const depositorBitcoinAddress = createAddressFromPublicKey(
+          Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
+          BitcoinNetwork.Testnet,
+        )
+        const fee = BigNumber.from(1500)
+        const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
+          depositorBitcoinAddress
+        )
+
         ;({ depositUtxo } = await submitDepositTransaction(
           deposit,
           systemTestsContext.depositorBitcoinKeyPair.wif,
           electrumClient,
-          true
+          true,
+          depositorUtxos,
+          fee
         ))
 
         console.log(`
