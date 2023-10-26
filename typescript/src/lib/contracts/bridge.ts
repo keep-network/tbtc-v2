@@ -32,13 +32,14 @@ export interface Bridge {
    * @param mainUtxo - Data of the wallet's main UTXO.
    * @param vault - Optional identifier of the vault the swept deposits should
    *        be routed in.
+   * @returns Transaction hash of the submit deposit sweep proof transaction.
    */
   submitDepositSweepProof(
     sweepTx: BitcoinRawTxVectors,
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
-  ): Promise<void>
+  ): Promise<Hex>
 
   /**
    * Reveals a given deposit to the on-chain contract.
@@ -48,14 +49,14 @@ export interface Bridge {
    * @param deposit - Data of the revealed deposit
    * @param vault - Optional parameter denoting the vault the given deposit
    *        should be routed to
-   * @returns Transaction hash of the reveal deposit transaction as string
+   * @returns Transaction hash of the reveal deposit transaction.
    */
   revealDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<string>
+  ): Promise<Hex>
 
   /**
    * Gets a revealed deposit from the on-chain contract.
@@ -76,16 +77,16 @@ export interface Bridge {
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
    *        held by the on-chain contract.
    * @param redeemerOutputScript - The output script that the redeemed funds will
-   *        be locked to. Must be un-prefixed and not prepended with length.
+   *        be locked to. Must not be prepended with length.
    * @param amount - The amount to be redeemed in satoshis.
-   * @returns Empty promise.
+   * @returns Transaction hash of the request redemption transaction.
    */
   requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
-  ): Promise<void>
+  ): Promise<Hex>
 
   /**
    * Submits a redemption transaction proof to the on-chain contract.
@@ -94,13 +95,14 @@ export interface Bridge {
    * @param mainUtxo - Data of the wallet's main UTXO
    * @param walletPublicKey - Bitcoin public key of the wallet. Must be in the
    *        compressed form (33 bytes long with 02 or 03 prefix).
+   * @returns Transaction hash of the submit redemption proof transaction.
    */
   submitRedemptionProof(
     redemptionTx: BitcoinRawTxVectors,
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
-  ): Promise<void>
+    walletPublicKey: Hex
+  ): Promise<Hex>
 
   /**
    * Gets transaction proof difficulty factor from the on-chain contract.
@@ -116,13 +118,12 @@ export interface Bridge {
    *        targeted to. Must be in the compressed form (33 bytes long with 02
    *        or 03 prefix).
    * @param redeemerOutputScript The redeemer output script the redeemed funds
-   *        are supposed to be locked on. Must be un-prefixed and not prepended
-   *        with length.
+   *        are supposed to be locked on. Must not be prepended with length.
    * @returns Promise with the pending redemption.
    */
   pendingRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest>
 
   /**
@@ -131,13 +132,12 @@ export interface Bridge {
    *        targeted to. Must be in the compressed form (33 bytes long with 02
    *        or 03 prefix).
    * @param redeemerOutputScript The redeemer output script the redeemed funds
-   *        are supposed to be locked on. Must be un-prefixed and not prepended
-   *        with length.
+   *        are supposed to be locked on. Must not be prepended with length.
    * @returns Promise with the pending redemption.
    */
   timedOutRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest>
 
   /**
@@ -146,7 +146,7 @@ export interface Bridge {
    *          public key. If there is no active wallet at the moment, undefined
    *          is returned.
    */
-  activeWalletPublicKey(): Promise<string | undefined>
+  activeWalletPublicKey(): Promise<Hex | undefined>
 
   /**
    * Get emitted NewWalletRegisteredEvent events.
@@ -192,31 +192,30 @@ export interface DepositReceipt {
   depositor: ChainIdentifier
 
   /**
-   * An 8-byte blinding factor as an un-prefixed hex string. Must be unique
-   * for the given depositor, wallet public key and refund public key.
+   * An 8-byte blinding factor. Must be unique for the given depositor, wallet
+   * public key and refund public key.
    */
-  blindingFactor: string
+  blindingFactor: Hex
 
   /**
-   * Public key hash of the wallet that is meant to receive the deposit. Must
-   * be an unprefixed hex string (without 0x prefix).
+   * Public key hash of the wallet that is meant to receive the deposit.
    *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
+   * You can use `computeHash160` function to get the hash from a public key.
    */
-  walletPublicKeyHash: string
+  walletPublicKeyHash: Hex
 
   /**
    * Public key hash that is meant to be used during deposit refund after the
-   * locktime passes. Must be an unprefixed hex string (without 0x prefix).
+   * locktime passes.
    *
-   * You can use `computeHash160` function to get the hash from a plain text public key.
+   * You can use `computeHash160` function to get the hash from a public key.
    */
-  refundPublicKeyHash: string
+  refundPublicKeyHash: Hex
 
   /**
-   * A 4-byte little-endian refund locktime as an un-prefixed hex string.
+   * A 4-byte little-endian refund locktime.
    */
-  refundLocktime: string
+  refundLocktime: Hex
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -227,18 +226,18 @@ export interface DepositReceipt {
  *      validity is chain-specific. This parameter must be validated outside.
  */
 export function validateDepositReceipt(receipt: DepositReceipt) {
-  if (receipt.blindingFactor.length != 16) {
+  if (receipt.blindingFactor.toString().length != 16) {
     throw new Error("Blinding factor must be an 8-byte number")
   }
-  if (receipt.walletPublicKeyHash.length != 40) {
+  if (receipt.walletPublicKeyHash.toString().length != 40) {
     throw new Error("Invalid wallet public key hash")
   }
 
-  if (receipt.refundPublicKeyHash.length != 40) {
+  if (receipt.refundPublicKeyHash.toString().length != 40) {
     throw new Error("Invalid refund public key hash")
   }
 
-  if (receipt.refundLocktime.length != 8) {
+  if (receipt.refundLocktime.toString().length != 8) {
     throw new Error("Refund locktime must be a 4-byte number")
   }
 }
@@ -297,10 +296,10 @@ export interface RedemptionRequest {
   redeemer: ChainIdentifier
 
   /**
-   * The output script the redeemed Bitcoin funds are locked to. It is un-prefixed
-   * and is not prepended with length.
+   * The output script the redeemed Bitcoin funds are locked to. It is not
+   * prepended with length.
    */
-  redeemerOutputScript: string
+  redeemerOutputScript: Hex
 
   /**
    * The amount of Bitcoins in satoshis that is requested to be redeemed.
@@ -337,10 +336,9 @@ export type RedemptionRequestedEvent = Omit<
   "requestedAt"
 > & {
   /**
-   * Public key hash of the wallet that is meant to handle the redemption. Must
-   * be an unprefixed hex string (without 0x prefix).
+   * Public key hash of the wallet that is meant to handle the redemption.
    */
-  walletPublicKeyHash: string
+  walletPublicKeyHash: Hex
 } & ChainEvent
 
 /* eslint-disable no-unused-vars */

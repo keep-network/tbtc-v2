@@ -23,6 +23,7 @@ import {
 } from "../../src"
 import { MockBitcoinClient } from "../utils/mock-bitcoin-client"
 import { MockTBTCContracts } from "../utils/mock-tbtc-contracts"
+import { Hex } from "../../src/lib/utils"
 import { txToJSON } from "../utils/helpers"
 import {
   depositRefundOfNonWitnessDepositAndWitnessRefunderAddress,
@@ -40,10 +41,10 @@ describe("Deposits", () => {
   const deposit: DepositReceipt = {
     depositor: EthereumAddress.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-    walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+    walletPublicKeyHash: Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6"),
     // HASH160 of 0300d6f28a2f6bf9836f57fcda5d284c9a8f849316119779f0d6090830d97763a9.
-    refundPublicKeyHash: "28e081f285138ccbe389c1eb8985716230129f89",
-    blindingFactor: "f9f0c90d00039523",
+    refundPublicKeyHash: Hex.from("28e081f285138ccbe389c1eb8985716230129f89"),
+    blindingFactor: Hex.from("f9f0c90d00039523"),
     refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
       depositCreatedAt,
       depositRefundLocktimeDuration
@@ -139,7 +140,9 @@ describe("Deposits", () => {
     // The first byte (0x08) before the blinding factor is this byte length.
     // In this case it's 8 bytes.
     expect(script.substring(44, 46)).to.be.equal("08")
-    expect(script.substring(46, 62)).to.be.equal(deposit.blindingFactor)
+    expect(script.substring(46, 62)).to.be.equal(
+      deposit.blindingFactor.toString()
+    )
 
     // OP_DROP opcode is 0x75.
     expect(script.substring(62, 64)).to.be.equal("75")
@@ -154,7 +157,9 @@ describe("Deposits", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(68, 70)).to.be.equal("14")
-    expect(script.substring(70, 110)).to.be.equal(deposit.walletPublicKeyHash)
+    expect(script.substring(70, 110)).to.be.equal(
+      deposit.walletPublicKeyHash.toString()
+    )
 
     // OP_EQUAL opcode is 0x87.
     expect(script.substring(110, 112)).to.be.equal("87")
@@ -178,7 +183,9 @@ describe("Deposits", () => {
     // The first byte (0x14) before the public key is this byte length.
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(122, 124)).to.be.equal("14")
-    expect(script.substring(124, 164)).to.be.equal(deposit.refundPublicKeyHash)
+    expect(script.substring(124, 164)).to.be.equal(
+      deposit.refundPublicKeyHash.toString()
+    )
 
     // OP_EQUALVERIFY opcode is 0x88.
     expect(script.substring(164, 166)).to.be.equal("88")
@@ -530,14 +537,14 @@ describe("Deposits", () => {
 
   describe("DepositScript", () => {
     describe("getPlainText", () => {
-      let script: string
+      let script: Hex
 
       beforeEach(async () => {
         script = await DepositScript.fromReceipt(deposit).getPlainText()
       })
 
       it("should return script with proper structure", async () => {
-        assertValidDepositScript(script)
+        assertValidDepositScript(script.toString())
       })
     })
 

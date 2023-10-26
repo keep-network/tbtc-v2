@@ -7,6 +7,7 @@ import {
   BitcoinAddressConverter,
   BitcoinClient,
   BitcoinNetwork,
+  BitcoinScriptUtils,
   BitcoinTxOutput,
   BitcoinUtxo,
 } from "../../lib/bitcoin"
@@ -49,16 +50,22 @@ export class RedemptionsService {
     amount: BigNumber
   ): Promise<{
     targetChainTxHash: Hex
-    walletPublicKey: string
+    walletPublicKey: Hex
   }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
       bitcoinRedeemerAddress,
       bitcoinNetwork
-    ).toString()
-
-    // TODO: Validate the given script is supported for redemption.
+    )
+    if (
+      !BitcoinScriptUtils.isP2PKHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2WPKHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2SHScript(redeemerOutputScript) &&
+      !BitcoinScriptUtils.isP2WSHScript(redeemerOutputScript)
+    ) {
+      throw new Error("Redeemer output script must be of standard type")
+    }
 
     const { walletPublicKey, mainUtxo } = await this.findWalletForRedemption(
       redeemerOutputScript,
@@ -82,16 +89,15 @@ export class RedemptionsService {
    * Finds the oldest live wallet that has enough BTC to handle a redemption
    * request.
    * @param redeemerOutputScript The redeemer output script the redeemed funds are
-   *        supposed to be locked on. Must be un-prefixed and not prepended with
-   *        length.
+   *        supposed to be locked on. Must not be prepended with length.
    * @param amount The amount to be redeemed in satoshis.
    * @returns Promise with the wallet details needed to request a redemption.
    */
   protected async findWalletForRedemption(
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<{
-    walletPublicKey: string
+    walletPublicKey: Hex
     mainUtxo: BitcoinUtxo
   }> {
     const wallets =
@@ -99,7 +105,7 @@ export class RedemptionsService {
 
     let walletData:
       | {
-          walletPublicKey: string
+          walletPublicKey: Hex
           mainUtxo: BitcoinUtxo
         }
       | undefined = undefined
@@ -140,7 +146,7 @@ export class RedemptionsService {
 
       const pendingRedemption =
         await this.tbtcContracts.bridge.pendingRedemptions(
-          walletPublicKey.toString(),
+          walletPublicKey,
           redeemerOutputScript
         )
 
@@ -149,7 +155,7 @@ export class RedemptionsService {
           `There is a pending redemption request from this wallet to the ` +
             `same Bitcoin address. Given wallet public key hash` +
             `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
-            `(${redeemerOutputScript}) pair can be used for only one ` +
+            `(${redeemerOutputScript.toString()}) pair can be used for only one ` +
             `pending request at the same time. ` +
             `Continue the loop execution to the next wallet...`
         )
@@ -163,7 +169,7 @@ export class RedemptionsService {
 
       if (walletBTCBalance.gte(amount)) {
         walletData = {
-          walletPublicKey: walletPublicKey.toString(),
+          walletPublicKey,
           mainUtxo,
         }
 
@@ -239,7 +245,7 @@ export class RedemptionsService {
     ): Promise<BitcoinUtxo | undefined> => {
       // Build the wallet Bitcoin address based on its public key hash.
       const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
-        walletPublicKeyHash.toString(),
+        walletPublicKeyHash,
         witnessAddress,
         bitcoinNetwork
       )
@@ -330,7 +336,7 @@ export class RedemptionsService {
    */
   async getRedemptionRequests(
     bitcoinRedeemerAddress: string,
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     type: "pending" | "timedOut" = "pending"
   ): Promise<RedemptionRequest> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
@@ -338,7 +344,7 @@ export class RedemptionsService {
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
       bitcoinRedeemerAddress,
       bitcoinNetwork
-    ).toString()
+    )
 
     let redemptionRequest: RedemptionRequest | undefined = undefined
 

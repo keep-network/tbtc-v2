@@ -9,6 +9,7 @@ import {
   DepositScript,
   ElectrumClient,
   ElectrumCredentials,
+  Hex,
 } from "../src"
 
 program
@@ -60,15 +61,15 @@ const depositJson = JSON.parse(fs.readFileSync(depositJsonPath, "utf-8"))
 
 const deposit: DepositReceipt = {
   depositor: depositJson.depositor,
-  walletPublicKeyHash: depositJson.walletPublicKeyHash,
-  refundPublicKeyHash: depositJson.refundPublicKeyHash,
-  blindingFactor: depositJson.blindingFactor,
-  refundLocktime: depositJson.refundLocktime,
+  walletPublicKeyHash: Hex.from(depositJson.walletPublicKeyHash),
+  refundPublicKeyHash: Hex.from(depositJson.refundPublicKeyHash),
+  blindingFactor: Hex.from(depositJson.blindingFactor),
+  refundLocktime: Hex.from(depositJson.refundLocktime),
 }
 const recoveryAddress = depositJson.btcRecoveryAddress
 
 console.log("======= refund provided data ========")
-console.log("deposit JSON: ", deposit)
+console.log("deposit JSON: ", depositJson)
 console.log("deposit recovery amount: ", refundAmount)
 console.log("deposit transaction ID: ", transactionId)
 console.log("deposit transaction index: ", transactionIndex)

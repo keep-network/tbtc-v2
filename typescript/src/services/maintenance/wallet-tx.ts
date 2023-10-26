@@ -249,7 +249,7 @@ class DepositSweep {
         utxo.outputIndex
       ]
       const previousOutputValue = previousOutput.value
-      const previousOutputScript = previousOutput.script
+      const previousOutputScript = Hex.from(previousOutput.script)
 
       const deposit = deposits[depositIndex]
 
@@ -309,10 +309,13 @@ class DepositSweep {
     previousOutput: TxOutput,
     walletKeyPair: Signer
   ) {
+    const previousOutputScript = Hex.from(previousOutput.script)
+    const previousOutputValue = previousOutput.value
+
     if (
       !this.canSpendOutput(
         Hex.from(walletKeyPair.publicKey),
-        previousOutput.script
+        previousOutputScript
       )
     ) {
       throw new Error("UTXO does not belong to the wallet")
@@ -320,11 +323,11 @@ class DepositSweep {
 
     const sigHashType = Transaction.SIGHASH_ALL
 
-    if (BitcoinScriptUtils.isP2PKHScript(previousOutput.script)) {
+    if (BitcoinScriptUtils.isP2PKHScript(previousOutputScript)) {
       // P2PKH
       const sigHash = transaction.hashForSignature(
         inputIndex,
-        previousOutput.script,
+        previousOutputScript.toBuffer(),
         sigHashType
       )
 
@@ -339,16 +342,17 @@ class DepositSweep {
       }).input!
 
       transaction.ins[inputIndex].script = scriptSig
-    } else if (BitcoinScriptUtils.isP2WPKHScript(previousOutput.script)) {
+    } else if (BitcoinScriptUtils.isP2WPKHScript(previousOutputScript)) {
       // P2WPKH
-      const publicKeyHash = payments.p2wpkh({ output: previousOutput.script })
-        .hash!
+      const publicKeyHash = payments.p2wpkh({
+        output: previousOutputScript.toBuffer(),
+      }).hash!
       const p2pkhScript = payments.p2pkh({ hash: publicKeyHash }).output!
 
       const sigHash = transaction.hashForWitnessV0(
         inputIndex,
         p2pkhScript,
-        previousOutput.value,
+        previousOutputValue,
         sigHashType
       )
 
@@ -466,11 +470,12 @@ class DepositSweep {
     previousOutputValue: number,
     walletKeyPair: Signer
   ): Promise<Buffer> {
-    const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+    const walletPublicKey = Hex.from(walletKeyPair.publicKey)
 
     if (
-      BitcoinHashUtils.computeHash160(walletPublicKey) !=
-      deposit.walletPublicKeyHash
+      !BitcoinHashUtils.computeHash160(walletPublicKey).equals(
+        deposit.walletPublicKeyHash
+      )
     ) {
       throw new Error(
         "Wallet public key does not correspond to wallet private key"
@@ -481,10 +486,7 @@ class DepositSweep {
       throw new Error("Wallet public key must be compressed")
     }
 
-    return Buffer.from(
-      await DepositScript.fromReceipt(deposit).getPlainText(),
-      "hex"
-    )
+    return (await DepositScript.fromReceipt(deposit).getPlainText()).toBuffer()
   }
 
   /**
@@ -496,10 +498,14 @@ class DepositSweep {
    * @returns True if the provided output script matches the P2PKH or P2WPKH
    *          output scripts derived from the given public key. False otherwise.
    */
-  private canSpendOutput(publicKey: Hex, outputScript: Buffer): boolean {
+  private canSpendOutput(publicKey: Hex, outputScript: Hex): boolean {
     const pubkeyBuffer = publicKey.toBuffer()
-    const p2pkhOutput = payments.p2pkh({ pubkey: pubkeyBuffer }).output!
-    const p2wpkhOutput = payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
+    const p2pkhOutput = Hex.from(
+      payments.p2pkh({ pubkey: pubkeyBuffer }).output!
+    )
+    const p2wpkhOutput = Hex.from(
+      payments.p2wpkh({ pubkey: pubkeyBuffer }).output!
+    )
 
     return outputScript.equals(p2pkhOutput) || outputScript.equals(p2wpkhOutput)
   }
@@ -541,8 +547,8 @@ class Redemption {
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
    *        held by the on-chain Bridge contract
    * @param redeemerOutputScripts - The list of output scripts that the redeemed
-   *        funds will be locked to. The output scripts must be un-prefixed and
-   *        not prepended with length
+   *        funds will be locked to. The output scripts must not be prepended
+   *        with length
    * @returns The outcome consisting of:
    *          - the redemption transaction hash,
    *          - the optional new wallet's main UTXO produced by this transaction.
@@ -550,7 +556,7 @@ class Redemption {
   async submitTransaction(
     walletPrivateKey: string,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScripts: string[]
+    redeemerOutputScripts: Hex[]
   ): Promise<{
     transactionHash: BitcoinTxHash
     newMainUtxo?: BitcoinUtxo
@@ -571,7 +577,7 @@ class Redemption {
       bitcoinNetwork
     )
 
-    const walletPublicKey = walletKeyPair.publicKey.toString("hex")
+    const walletPublicKey = Hex.from(walletKeyPair.publicKey)
 
     const redemptionRequests: RedemptionRequest[] = []
 
@@ -588,7 +594,7 @@ class Redemption {
 
       redemptionRequests.push({
         ...redemptionRequest,
-        redeemerOutputScript: redeemerOutputScript,
+        redeemerOutputScript,
       })
     }
 
@@ -661,7 +667,7 @@ class Redemption {
     const previousOutput = Transaction.fromHex(mainUtxo.transactionHex).outs[
       mainUtxo.outputIndex
     ]
-    const previousOutputScript = previousOutput.script
+    const previousOutputScript = Hex.from(previousOutput.script)
     const previousOutputValue = previousOutput.value
 
     if (BitcoinScriptUtils.isP2PKHScript(previousOutputScript)) {
@@ -675,7 +681,7 @@ class Redemption {
         hash: mainUtxo.transactionHash.reverse().toBuffer(),
         index: mainUtxo.outputIndex,
         witnessUtxo: {
-          script: previousOutputScript,
+          script: previousOutputScript.toBuffer(),
           value: previousOutputValue,
         },
       })
@@ -701,7 +707,7 @@ class Redemption {
       txTotalFee = txTotalFee.add(request.txMaxFee)
 
       psbt.addOutput({
-        script: Buffer.from(request.redeemerOutputScript, "hex"),
+        script: request.redeemerOutputScript.toBuffer(),
         value: outputValue.toNumber(),
       })
     }

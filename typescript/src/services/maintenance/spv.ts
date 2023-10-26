@@ -5,6 +5,7 @@ import {
   BitcoinUtxo,
   extractBitcoinRawTxVectors,
 } from "../../lib/bitcoin"
+import { Hex } from "../../lib/utils"
 import { ChainIdentifier, TBTCContracts } from "../../lib/contracts"
 
 export class Spv {
@@ -66,7 +67,7 @@ export class Spv {
   async submitRedemptionProof(
     transactionHash: BitcoinTxHash,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
+    walletPublicKey: Hex
   ): Promise<void> {
     const confirmations =
       await this.tbtcContracts.bridge.txProofDifficultyFactor()

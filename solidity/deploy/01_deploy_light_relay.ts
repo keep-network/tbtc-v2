@@ -9,6 +9,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (hre.network.name === "goerli") {
       return "GoerliLightRelay"
     }
+    if (hre.network.name === "sepolia") {
+      return "SepoliaLightRelay"
+    }
     if (hre.network.name === "system_tests") {
       return "SystemTestRelay"
     }

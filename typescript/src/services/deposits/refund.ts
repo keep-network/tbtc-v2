@@ -12,6 +12,7 @@ import {
   BitcoinUtxo,
 } from "../../lib/bitcoin"
 import { validateDepositReceipt } from "../../lib/contracts"
+import { Hex } from "../../lib/utils"
 import { DepositScript } from "./"
 import {
   Signer,
@@ -153,7 +154,7 @@ export class DepositRefund {
       utxo.outputIndex
     ]
     const previousOutputValue = previousOutput.value
-    const previousOutputScript = previousOutput.script
+    const previousOutputScript = Hex.from(previousOutput.script)
 
     if (BitcoinScriptUtils.isP2SHScript(previousOutputScript)) {
       // P2SH deposit UTXO
@@ -188,11 +189,12 @@ export class DepositRefund {
    * @throws Error if there are discrepancies in values or key formats.
    */
   private async prepareDepositScript(refunderKeyPair: Signer): Promise<Buffer> {
-    const refunderPublicKey = refunderKeyPair.publicKey.toString("hex")
+    const refunderPublicKey = Hex.from(refunderKeyPair.publicKey)
 
     if (
-      BitcoinHashUtils.computeHash160(refunderPublicKey) !=
-      this.script.receipt.refundPublicKeyHash
+      !BitcoinHashUtils.computeHash160(refunderPublicKey).equals(
+        this.script.receipt.refundPublicKeyHash
+      )
     ) {
       throw new Error(
         "Refund public key does not correspond to wallet private key"
@@ -203,7 +205,7 @@ export class DepositRefund {
       throw new Error("Refunder public key must be compressed")
     }
 
-    return Buffer.from(await this.script.getPlainText(), "hex")
+    return (await this.script.getPlainText()).toBuffer()
   }
 
   /**
@@ -288,10 +290,7 @@ export class DepositRefund {
  * @param locktime - Locktime as a little endian hexstring.
  * @returns Locktime as a Unix timestamp.
  */
-function locktimeToUnixTimestamp(locktime: string): number {
-  const bigEndianLocktime = Buffer.from(locktime, "hex")
-    .reverse()
-    .toString("hex")
-
+function locktimeToUnixTimestamp(locktime: Hex): number {
+  const bigEndianLocktime = locktime.reverse().toString()
   return parseInt(bigEndianLocktime, 16)
 }
