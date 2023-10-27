@@ -114,4 +114,10 @@ jobs:
           WALLET_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_WALLET_PRIVATE_KEY_WIF }}
           DEPOSITOR_BITCOIN_WIF: ${{ secrets.SYSTEM_TESTS_DEPOSITOR_PRIVATE_KEY_WIF }}
         run: |
+          # As system tests use the same Bitcoin key and perform the same initial
+          # actions, they often retrieve UTXOs simultaneously. This can lead to
+          # issues where both tests try to spend the same UTXOs, causing
+          # conflicts. Adding a delay helps to mitigate this problem by allowing
+          # time for the UTXO list to update.
+          sleep 240
           yarn test ./test/minting-unminting.test.ts --network $ETH_NETWORK
