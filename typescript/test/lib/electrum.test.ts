@@ -4,13 +4,16 @@ import {
   ElectrumClient,
   computeElectrumScriptHash,
   Hex,
+  BitcoinTxHash,
 } from "../../src"
 import {
   testnetAddress,
   testnetHeadersChain,
+  testnetPublicKeyHash,
   testnetRawTransaction,
   testnetTransaction,
   testnetTransactionMerkleBranch,
+  testnetTxHashes,
   testnetUTXO,
 } from "../data/electrum"
 import { expect } from "chai"
@@ -177,6 +180,29 @@ describe("Electrum", () => {
               latestBlockHeight - testnetTransactionMerkleBranch.blockHeight
 
             expect(result).to.be.closeTo(expectedResult, 3)
+          })
+        })
+
+        describe("getTxHashesForPublicKeyHash", () => {
+          let actualHashes: BitcoinTxHash[]
+
+          before(async () => {
+            actualHashes = await electrumClient.getTxHashesForPublicKeyHash(
+              testnetPublicKeyHash
+            )
+          })
+
+          it("should return proper transaction hashes", async () => {
+            const expectedHashes = testnetTxHashes
+            // If the actual hashes set is greater than the expected set, we
+            // need to adjust them to the same length to make a comparison that
+            // makes sense.
+            if (actualHashes.length > expectedHashes.length) {
+              actualHashes = actualHashes.slice(
+                actualHashes.length - expectedHashes.length
+              )
+            }
+            expect(actualHashes).to.be.deep.equal(expectedHashes)
           })
         })
 

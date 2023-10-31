@@ -17,6 +17,7 @@ export class MockBitcoinClient implements BitcoinClient {
   private _rawTransactions = new Map<string, BitcoinRawTx>()
   private _transactions = new Map<string, BitcoinTx>()
   private _confirmations = new Map<string, number>()
+  private _txHashes = new Map<string, BitcoinTxHash[]>()
   private _latestHeight = 0
   private _headersChain = Hex.from("")
   private _transactionMerkle: BitcoinTxMerkleBranch = {
@@ -108,6 +109,12 @@ export class MockBitcoinClient implements BitcoinClient {
   getTransactionConfirmations(transactionHash: BitcoinTxHash): Promise<number> {
     return new Promise<number>((resolve, _) => {
       resolve(this._confirmations.get(transactionHash.toString()) as number)
+    })
+  }
+
+  getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]> {
+    return new Promise<BitcoinTxHash[]>((resolve, _) => {
+      resolve(this._txHashes.get(publicKeyHash.toString()) as BitcoinTxHash[])
     })
   }
 
