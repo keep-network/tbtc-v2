@@ -11,9 +11,9 @@ import {
 } from "./adapter"
 import { EthereumAddress } from "./address"
 
-import MainnetTBTCTokenDeployment from "./artifacts/mainnet/TBTCToken.json"
-import GoerliTBTCTokenDeployment from "./artifacts/goerli/TBTCToken.json"
-import LocalTBTCTokenDeployment from "@keep-network/tbtc-v2/artifacts/TBTCToken.json"
+import MainnetTBTCTokenDeployment from "./artifacts/mainnet/TBTC.json"
+import GoerliTBTCTokenDeployment from "./artifacts/goerli/TBTC.json"
+import LocalTBTCTokenDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 
 /**
  * Implementation of the Ethereum TBTC v2 token handle.
