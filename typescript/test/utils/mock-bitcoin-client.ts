@@ -44,6 +44,10 @@ export class MockBitcoinClient implements BitcoinClient {
     this._confirmations = value
   }
 
+  set txHashes(value: Map<string, BitcoinTxHash[]>) {
+    this._txHashes = value
+  }
+
   set latestHeight(value: number) {
     this._latestHeight = value
   }
