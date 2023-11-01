@@ -79,23 +79,33 @@ describe("Redemptions", () => {
 
         // Prepare wallet transaction history for main UTXO lookup.
         // Set only relevant fields.
-        const transactionHistory = new Map<string, BitcoinTx[]>()
-        transactionHistory.set(walletAddress, [
-          {
-            transactionHash: mainUtxo.transactionHash,
-            outputs: [
-              {
-                outputIndex: mainUtxo.outputIndex,
-                value: mainUtxo.value,
-                scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
-                  walletAddress,
-                  BitcoinNetwork.Testnet
-                ),
-              },
-            ],
-          } as BitcoinTx,
+
+        const transaction = {
+          transactionHash: mainUtxo.transactionHash,
+          outputs: [
+            {
+              outputIndex: mainUtxo.outputIndex,
+              value: mainUtxo.value,
+              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
+                walletAddress,
+                BitcoinNetwork.Testnet
+              ),
+            },
+          ],
+        }
+
+        const walletTransactions = new Map<string, BitcoinTx>()
+        walletTransactions.set(
+          transaction.transactionHash.toString(),
+          transaction as BitcoinTx
+        )
+        bitcoinClient.transactions = walletTransactions
+
+        const walletTransactionHashes = new Map<string, BitcoinTxHash[]>()
+        walletTransactionHashes.set(walletPublicKeyHash.toString(), [
+          transaction.transactionHash,
         ])
-        bitcoinClient.transactionHistory = transactionHistory
+        bitcoinClient.transactionHashes = walletTransactionHashes
 
         const redemptionsService = new RedemptionsService(
           tbtcContracts,
@@ -268,19 +278,27 @@ describe("Redemptions", () => {
             (wallet) => wallet.event
           )
 
-          const walletsTransactionHistory = new Map<string, BitcoinTx[]>()
+          const walletTransactions = new Map<string, BitcoinTx>()
+          const walletTransactionHashes = new Map<string, BitcoinTxHash[]>()
 
           walletsOrder.forEach((wallet) => {
             const {
               state,
               mainUtxoHash,
               walletPublicKey,
-              btcAddress,
               transactions,
               pendingRedemptionsValue,
             } = wallet.data
 
-            walletsTransactionHistory.set(btcAddress, transactions)
+            transactions.forEach((tx) => {
+              walletTransactions.set(tx.transactionHash.toString(), tx)
+            })
+
+            walletTransactionHashes.set(
+              wallet.event.walletPublicKeyHash.toString(),
+              transactions.map((tx) => tx.transactionHash)
+            )
+
             tbtcContracts.bridge.setWallet(
               wallet.event.walletPublicKeyHash.toPrefixedString(),
               {
@@ -292,7 +310,8 @@ describe("Redemptions", () => {
             )
           })
 
-          bitcoinClient.transactionHistory = walletsTransactionHistory
+          bitcoinClient.transactions = walletTransactions
+          bitcoinClient.transactionHashes = walletTransactionHashes
 
           redemptionsService = new TestRedemptionsService(
             tbtcContracts,
@@ -538,9 +557,10 @@ describe("Redemptions", () => {
         }
       }
 
-      // Create a fake wallet witness transaction history that consists of 6 transactions.
-      const walletWitnessTransactionHistory: BitcoinTx[] = [
+      // Create a fake wallet transaction history.
+      const walletTransactionHistory: BitcoinTx[] = [
         mockTransaction(
+          // Witness transaction
           "3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1",
           {
             "0014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0": 100000, // wallet witness output
@@ -548,6 +568,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Witness transaction
           "4c6b33b7c0550e0e536a5d119ac7189d71e1296fcb0c258e0c115356895bc0e6",
           {
             "00140000000000000000000000000000000000000001": 100000,
@@ -555,6 +576,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Witness transaction
           "44863a79ce2b8fec9792403d5048506e50ffa7338191db0e6c30d3d3358ea2f6",
           {
             "00140000000000000000000000000000000000000001": 100000,
@@ -563,6 +585,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Witness transaction
           "f65bc5029251f0042aedb37f90dbb2bfb63a2e81694beef9cae5ec62e954c22e",
           {
             "0014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0": 100000, // wallet witness output
@@ -570,6 +593,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Witness transaction
           "2724545276df61f43f1e92c4b9f1dd3c9109595c022dbd9dc003efbad8ded38b",
           {
             "0014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0": 100000, // wallet witness output
@@ -577,17 +601,15 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Witness transaction
           "ea374ab6842723c647c3fc0ab281ca0641eaa768576cf9df695ca5b827140214",
           {
             "00140000000000000000000000000000000000000001": 100000,
             "0014e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0": 200000, // wallet witness output
           }
         ),
-      ]
-
-      // Create a fake wallet legacy transaction history that consists of 6 transactions.
-      const walletLegacyTransactionHistory: BitcoinTx[] = [
         mockTransaction(
+          // Legacy transaction
           "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267",
           {
             "00140000000000000000000000000000000000000001": 100000,
@@ -595,6 +617,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Legacy transaction
           "b11bfc481b95769b8488bd661d5f61a35f7c3c757160494d63f6e04e532dfcb9",
           {
             "00140000000000000000000000000000000000000001": 100000,
@@ -603,6 +626,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Legacy transaction
           "7e91580d989f8541489a37431381ff9babd596111232f1bc7a1a1ba503c27dee",
           {
             "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 100000, // wallet legacy output
@@ -610,6 +634,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Legacy transaction
           "5404e339ba82e6e52fcc24cb40029bed8425baa4c7f869626ef9de956186f910",
           {
             "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 100000, // wallet legacy output
@@ -617,6 +642,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Legacy transaction
           "05dabb0291c0a6aa522de5ded5cb6d14ee2159e7ff109d3ef0f21de128b56b94",
           {
             "76a914e6f9d74726b19b75f16fe1e9feaec048aa4fa1d088ac": 100000, // wallet legacy output
@@ -624,6 +650,7 @@ describe("Redemptions", () => {
           }
         ),
         mockTransaction(
+          // Legacy transaction
           "00cc0cd13fc4de7a15cb41ab6d58f8b31c75b6b9b4194958c381441a67d09b08",
           {
             "00140000000000000000000000000000000000000001": 100000,
@@ -669,134 +696,143 @@ describe("Redemptions", () => {
       })
 
       context("when wallet main UTXO is set in the Bridge", () => {
-        const tests = [
-          {
-            testName: "recent witness transaction",
-            // Set the main UTXO hash based on the latest transaction from walletWitnessTransactionHistory.
-            actualMainUtxo: {
-              transactionHash: Hex.from(
-                "ea374ab6842723c647c3fc0ab281ca0641eaa768576cf9df695ca5b827140214"
-              ),
-              outputIndex: 1,
-              value: BigNumber.from(200000),
-            },
-            expectedMainUtxo: {
-              transactionHash: Hex.from(
-                "ea374ab6842723c647c3fc0ab281ca0641eaa768576cf9df695ca5b827140214"
-              ),
-              outputIndex: 1,
-              value: BigNumber.from(200000),
-            },
-          },
-          {
-            testName: "recent legacy transaction",
-            // Set the main UTXO hash based on the second last transaction from walletLegacyTransactionHistory.
-            actualMainUtxo: {
-              transactionHash: Hex.from(
-                "05dabb0291c0a6aa522de5ded5cb6d14ee2159e7ff109d3ef0f21de128b56b94"
-              ),
-              outputIndex: 0,
-              value: BigNumber.from(100000),
-            },
-            expectedMainUtxo: {
-              transactionHash: Hex.from(
-                "05dabb0291c0a6aa522de5ded5cb6d14ee2159e7ff109d3ef0f21de128b56b94"
-              ),
-              outputIndex: 0,
-              value: BigNumber.from(100000),
-            },
-          },
-          {
-            testName: "old witness transaction",
-            // Set the main UTXO hash based on the oldest transaction from walletWitnessTransactionHistory.
-            actualMainUtxo: {
-              transactionHash: Hex.from(
-                "3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1"
-              ),
-              outputIndex: 0,
-              value: BigNumber.from(100000),
-            },
-            expectedMainUtxo: undefined,
-          },
-          {
-            testName: "old legacy transaction",
-            // Set the main UTXO hash based on the oldest transaction from walletLegacyTransactionHistory.
-            actualMainUtxo: {
-              transactionHash: Hex.from(
-                "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267"
-              ),
-              outputIndex: 1,
-              value: BigNumber.from(200000),
-            },
-            expectedMainUtxo: undefined,
-          },
-        ]
+        context(
+          "when the transaction representing main UTXO could not be found",
+          () => {
+            // This scenario should never happen. It could only happen due to some
+            // serious error.
+            beforeEach(async () => {
+              tbtcContracts.bridge.setWallet(
+                walletPublicKeyHash.toPrefixedString(),
+                {
+                  // Set main UTXO hash to some non-zero-filled hash.
+                  mainUtxoHash: Hex.from(
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  ),
+                } as Wallet
+              )
+            })
 
-        tests.forEach(({ testName, actualMainUtxo, expectedMainUtxo }) => {
-          context(`with main UTXO coming from ${testName}`, () => {
-            const networkTests = [
+            it("should return undefined", async () => {
+              const mainUtxo = await redemptionsService.determineWalletMainUtxo(
+                walletPublicKeyHash,
+                BitcoinNetwork.Testnet
+              )
+
+              expect(mainUtxo).to.be.undefined
+            })
+          }
+        )
+
+        context(
+          "when the transaction representing main UTXO could be found",
+          () => {
+            const tests = [
               {
-                networkTestName: "bitcoin testnet",
-                network: BitcoinNetwork.Testnet,
+                testName: "recent witness transaction",
+                // Set the main UTXO hash based on the latest transaction from walletWitnessTransactionHistory.
+                mainUtxo: {
+                  transactionHash: Hex.from(
+                    "ea374ab6842723c647c3fc0ab281ca0641eaa768576cf9df695ca5b827140214"
+                  ),
+                  outputIndex: 1,
+                  value: BigNumber.from(200000),
+                },
               },
               {
-                networkTestName: "bitcoin mainnet",
-                network: BitcoinNetwork.Mainnet,
+                testName: "recent legacy transaction",
+                // Set the main UTXO hash based on the second last transaction from walletLegacyTransactionHistory.
+                mainUtxo: {
+                  transactionHash: Hex.from(
+                    "05dabb0291c0a6aa522de5ded5cb6d14ee2159e7ff109d3ef0f21de128b56b94"
+                  ),
+                  outputIndex: 0,
+                  value: BigNumber.from(100000),
+                },
+              },
+              {
+                testName: "old witness transaction",
+                // Set the main UTXO hash based on the oldest transaction from walletWitnessTransactionHistory.
+                mainUtxo: {
+                  transactionHash: Hex.from(
+                    "3ca4ae3f8ee3b48949192bc7a146c8d9862267816258c85e02a44678364551e1"
+                  ),
+                  outputIndex: 0,
+                  value: BigNumber.from(100000),
+                },
+              },
+              {
+                testName: "old legacy transaction",
+                // Set the main UTXO hash based on the oldest transaction from walletLegacyTransactionHistory.
+                mainUtxo: {
+                  transactionHash: Hex.from(
+                    "230a19d8867ff3f5b409e924d9dd6413188e215f9bb52f1c47de6154dac42267"
+                  ),
+                  outputIndex: 1,
+                  value: BigNumber.from(200000),
+                },
               },
             ]
 
-            networkTests.forEach(({ networkTestName, network }) => {
-              context(`with ${networkTestName} network`, () => {
-                beforeEach(async () => {
-                  bitcoinNetwork = network
+            tests.forEach(({ testName, mainUtxo }) => {
+              context(`with main UTXO coming from ${testName}`, () => {
+                const networkTests = [
+                  {
+                    networkTestName: "bitcoin testnet",
+                    network: BitcoinNetwork.Testnet,
+                  },
+                  {
+                    networkTestName: "bitcoin mainnet",
+                    network: BitcoinNetwork.Mainnet,
+                  },
+                ]
 
-                  const walletWitnessAddress =
-                    BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash,
-                      true,
-                      bitcoinNetwork
-                    )
-                  const walletLegacyAddress =
-                    BitcoinAddressConverter.publicKeyHashToAddress(
-                      walletPublicKeyHash,
-                      false,
-                      bitcoinNetwork
-                    )
+                networkTests.forEach(({ networkTestName, network }) => {
+                  context(`with ${networkTestName} network`, () => {
+                    beforeEach(async () => {
+                      bitcoinNetwork = network
 
-                  // Record the fake transaction history for both address types.
-                  const transactionHistory = new Map<string, BitcoinTx[]>()
-                  transactionHistory.set(
-                    walletWitnessAddress,
-                    walletWitnessTransactionHistory
-                  )
-                  transactionHistory.set(
-                    walletLegacyAddress,
-                    walletLegacyTransactionHistory
-                  )
-                  bitcoinClient.transactionHistory = transactionHistory
+                      // Record transaction and transaction hashes.
+                      const transactions = new Map<string, BitcoinTx>()
+                      walletTransactionHistory.forEach((tx) => {
+                        transactions.set(tx.transactionHash.toString(), tx)
+                      })
+                      bitcoinClient.transactions = transactions
 
-                  tbtcContracts.bridge.setWallet(
-                    walletPublicKeyHash.toPrefixedString(),
-                    {
-                      mainUtxoHash:
-                        tbtcContracts.bridge.buildUtxoHash(actualMainUtxo),
-                    } as Wallet
-                  )
-                })
+                      const transactionHashes = new Map<
+                        string,
+                        BitcoinTxHash[]
+                      >()
+                      transactionHashes.set(
+                        walletPublicKeyHash.toString(),
+                        walletTransactionHistory.map((tx) => tx.transactionHash)
+                      )
+                      bitcoinClient.transactionHashes = transactionHashes
 
-                it("should return the expected main UTXO", async () => {
-                  const mainUtxo =
-                    await redemptionsService.determineWalletMainUtxo(
-                      walletPublicKeyHash,
-                      bitcoinNetwork
-                    )
+                      tbtcContracts.bridge.setWallet(
+                        walletPublicKeyHash.toPrefixedString(),
+                        {
+                          mainUtxoHash:
+                            tbtcContracts.bridge.buildUtxoHash(mainUtxo),
+                        } as Wallet
+                      )
+                    })
 
-                  expect(mainUtxo).to.be.eql(expectedMainUtxo)
+                    it("should return the expected main UTXO", async () => {
+                      const mainUtxo =
+                        await redemptionsService.determineWalletMainUtxo(
+                          walletPublicKeyHash,
+                          bitcoinNetwork
+                        )
+
+                      expect(mainUtxo).to.be.eql(mainUtxo)
+                    })
+                  })
                 })
               })
             })
-          })
-        })
+          }
+        )
       })
     })
   })

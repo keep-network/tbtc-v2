@@ -302,6 +302,12 @@ export class RedemptionsService {
       }
     }
 
+    // Should never happen if the wallet has the main UTXO registered in the
+    // Bridge. It could only happen due to some serious error, e.g. wrong main
+    // UTXO hash stored in the Bridge or Bitcoin blockchain data corruption.
+    console.error(
+      `main UTXO with hash ${mainUtxoHash.toPrefixedString()} not found for wallet ${walletPublicKeyHash.toString()}`
+    )
     return undefined
   }
 
