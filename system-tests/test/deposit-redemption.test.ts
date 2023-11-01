@@ -145,6 +145,11 @@ describe("System Test - Deposit and redemption", () => {
         Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
         BitcoinNetwork.Testnet,
       )
+      console.log(`
+        Depositor Bitcoin address:
+        ${depositorBitcoinAddress}
+      `)
+
       const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
         depositorBitcoinAddress
       )
