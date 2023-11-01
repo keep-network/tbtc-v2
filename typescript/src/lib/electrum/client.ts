@@ -21,8 +21,8 @@ import { backoffRetrier, Hex, RetrierFn } from "../utils"
 import MainnetElectrumUrls from "./urls/mainnet.json"
 import TestnetElectrumUrls from "./urls/testnet.json"
 
-const browserURL = window.URL
-const URL = browserURL ?? nodeURL
+const browserURL = typeof window !== "undefined" && window.URL
+const URL = nodeURL ?? browserURL
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
