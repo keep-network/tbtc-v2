@@ -96,7 +96,7 @@ export async function loadEthereumContracts(
   const tbtcVault = new EthereumTBTCVault({ signerOrProvider: signer }, network)
   const walletRegistry = new EthereumWalletRegistry(
     { signerOrProvider: signer },
-    "mainnet"
+    network
   )
 
   const bridgeWalletRegistry = await bridge.walletRegistry()
