@@ -1,0 +1,29 @@
+[@keep-network/tbtc-v2.ts](../README.md) / WalletState
+
+# Namespace: WalletState
+
+## Table of contents
+
+### Functions
+
+- [parse](WalletState.md#parse)
+
+## Functions
+
+### parse
+
+▸ **parse**(`val`): [`WalletState`](../enums/WalletState-1.md)
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `val` | `number` |
+
+#### Returns
+
+[`WalletState`](../enums/WalletState-1.md)
+
+#### Defined in
+
+[lib/contracts/bridge.ts:384](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L384)
