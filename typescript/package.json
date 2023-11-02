@@ -59,5 +59,10 @@
   },
   "engines": {
     "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keep-network/tbtc-v2.git",
+    "directory": "typescript"
   }
 }
