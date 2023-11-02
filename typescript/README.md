@@ -1,6 +1,7 @@
 # tBTC v2 SDK
 
 ![SDK build status](https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/typescript.yml?branch=main&event=push&label=SDK%20build)
+![npm](https://img.shields.io/npm/v/%40keep-network%2Ftbtc-v2.ts)
 
 tBTC SDK is a TypeScript library that provides effortless access to the
 fundamental features of the tBTC Bitcoin bridge. The SDK allows developers
