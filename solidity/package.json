@@ -76,10 +76,5 @@
   },
   "engines": {
     "node": ">= 14.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/keep-network/tbtc-v2.git",
-    "directory": "typescript"
   }
 }
