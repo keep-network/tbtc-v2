@@ -20,6 +20,7 @@ trustless tokenized Bitcoin to their users.
   - [Build](#build)
   - [Test](#test)
   - [Format](#format)
+  - [Auto-generated API reference](#auto-generated-api-reference)
 - [Documentation](#documentation)
 
 ## Quickstart
@@ -133,6 +134,19 @@ To format code automatically, invoke:
 ```bash
 yarn format:fix
 ```
+
+### Auto-generated API reference
+
+There is an auto-generated API reference documentation that must be
+re-generated in case of modifications in the source code. This can be
+done automatically using a pre-commit hook or manually using:
+
+```bash
+yarn docs
+```
+
+Generated API reference in form of Markdown files is saved
+to the [`api-reference`](./api-reference) directory.
 
 ## Documentation
 
