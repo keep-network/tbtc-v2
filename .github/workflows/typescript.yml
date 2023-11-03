@@ -206,4 +206,4 @@ jobs:
         run: yarn docs
 
       - name: Check docs up to date
-      - run: git diff --exit-code || exit 1
+        run: git diff --exit-code || exit 1
