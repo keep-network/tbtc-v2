@@ -24,6 +24,7 @@
     "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault,TBTC}.json"
   },
   "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.0.5",
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
     "bitcoinjs-lib": "^6.1.5",
