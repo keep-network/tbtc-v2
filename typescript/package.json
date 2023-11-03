@@ -32,7 +32,6 @@
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
     "ethers": "^5.5.2",
     "p-timeout": "^4.1.0",
-    "tiny-secp256k1": "^2.2.3",
     "wif": "2.0.6"
   },
   "devDependencies": {
