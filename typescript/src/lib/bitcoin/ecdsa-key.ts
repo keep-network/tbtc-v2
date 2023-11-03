@@ -1,7 +1,7 @@
 import { BigNumber } from "ethers"
 import { Hex } from "../utils"
 import { ECPairFactory, ECPairInterface } from "ecpair"
-import * as tinysecp from "tiny-secp256k1"
+import * as tinysecp from "@bitcoinerlab/secp256k1"
 import { BitcoinNetwork, toBitcoinJsLibNetwork } from "./network"
 
 /**
