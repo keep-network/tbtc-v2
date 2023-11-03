@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / EthereumContractConfig
-
 # Interface: EthereumContractConfig
 
 Represents a config set required to connect an Ethereum contract.
@@ -24,7 +22,7 @@ contract artifact.
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:53](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L53)
+[lib/ethereum/adapter.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L53)
 
 ___
 
@@ -38,7 +36,7 @@ contract artifact.
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:64](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L64)
+[lib/ethereum/adapter.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L64)
 
 ___
 
@@ -51,4 +49,4 @@ Provider - will return a downgraded Contract which only has read-only access (i.
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:58](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L58)
+[lib/ethereum/adapter.ts:58](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L58)

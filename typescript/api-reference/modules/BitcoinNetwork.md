@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / BitcoinNetwork
-
 # Namespace: BitcoinNetwork
 
 ## Table of contents
@@ -32,4 +30,4 @@ Bitcoin Network.
 
 #### Defined in
 
-[lib/bitcoin/network.ts:33](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/network.ts#L33)
+[lib/bitcoin/network.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L33)

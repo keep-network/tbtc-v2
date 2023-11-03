@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / EthereumWalletRegistry
-
 # Class: EthereumWalletRegistry
 
 Implementation of the Ethereum WalletRegistry handle.
@@ -63,7 +61,7 @@ EthersContractHandle\&lt;WalletRegistryTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L32)
+[lib/ethereum/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L32)
 
 ## Properties
 
@@ -81,7 +79,7 @@ EthersContractHandle.\_deployedAtBlockNumber
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L80)
+[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L80)
 
 ___
 
@@ -97,7 +95,7 @@ EthersContractHandle.\_instance
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L74)
+[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L74)
 
 ___
 
@@ -113,7 +111,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L84)
+[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L84)
 
 ## Methods
 
@@ -135,7 +133,7 @@ EthersContractHandle.getAddress
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L112)
+[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L112)
 
 ___
 
@@ -155,7 +153,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:59](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L59)
+[lib/ethereum/wallet-registry.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L59)
 
 ___
 
@@ -182,7 +180,7 @@ WalletRegistry.getDkgResultApprovedEvents
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:125](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L125)
+[lib/ethereum/wallet-registry.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L125)
 
 ___
 
@@ -209,7 +207,7 @@ WalletRegistry.getDkgResultChallengedEvents
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:150](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L150)
+[lib/ethereum/wallet-registry.ts:150](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L150)
 
 ___
 
@@ -236,7 +234,7 @@ WalletRegistry.getDkgResultSubmittedEvents
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:82](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L82)
+[lib/ethereum/wallet-registry.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L82)
 
 ___
 
@@ -270,7 +268,7 @@ EthersContractHandle.getEvents
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L127)
+[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L127)
 
 ___
 
@@ -296,4 +294,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/wallet-registry.ts:67](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/wallet-registry.ts#L67)
+[lib/ethereum/wallet-registry.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L67)

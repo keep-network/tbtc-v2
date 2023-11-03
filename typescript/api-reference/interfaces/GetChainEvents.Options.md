@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / [GetChainEvents](../modules/GetChainEvents.md) / Options
-
 # Interface: Options
 
 [GetChainEvents](../modules/GetChainEvents.md).Options
@@ -26,7 +24,7 @@ Number of blocks for interval length in partial events pulls.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:43](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L43)
+[lib/contracts/chain-event.ts:43](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L43)
 
 ___
 
@@ -39,7 +37,7 @@ If not defined a block number of a contract deployment is used.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:30](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L30)
+[lib/contracts/chain-event.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L30)
 
 ___
 
@@ -51,7 +49,7 @@ A logger function to pass execution messages.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:47](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L47)
+[lib/contracts/chain-event.ts:47](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L47)
 
 ___
 
@@ -63,7 +61,7 @@ Number of retries in case of an error getting the events.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:39](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L39)
+[lib/contracts/chain-event.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L39)
 
 ___
 
@@ -76,4 +74,4 @@ If not defined the latest block number will be used.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:35](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L35)
+[lib/contracts/chain-event.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L35)

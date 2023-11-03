@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / TBTCToken
-
 # Interface: TBTCToken
 
 Interface for communication with the TBTC v2 token on-chain contract.
@@ -30,7 +28,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:13](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/tbtc-token.ts#L13)
+[lib/contracts/tbtc-token.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L13)
 
 ___
 
@@ -60,7 +58,7 @@ Transaction hash of the approve and call transaction.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:40](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/tbtc-token.ts#L40)
+[lib/contracts/tbtc-token.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L40)
 
 ___
 
@@ -84,4 +82,4 @@ with 1e8 precision in satoshi.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/tbtc-token.ts#L23)
+[lib/contracts/tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L23)

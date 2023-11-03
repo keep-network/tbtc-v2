@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / GetChainEvents
-
 # Namespace: GetChainEvents
 
 ## Table of contents

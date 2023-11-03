@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / EthereumAddress
-
 # Class: EthereumAddress
 
 Represents an Ethereum address.
@@ -41,7 +39,7 @@ Represents an Ethereum address.
 
 #### Defined in
 
-[lib/ethereum/address.ts:12](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/address.ts#L12)
+[lib/ethereum/address.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/address.ts#L12)
 
 ## Properties
 
@@ -57,7 +55,7 @@ Identifier as an un-prefixed hex string.
 
 #### Defined in
 
-[lib/ethereum/address.ts:10](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/address.ts#L10)
+[lib/ethereum/address.ts:10](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/address.ts#L10)
 
 ## Methods
 
@@ -83,7 +81,7 @@ Checks if two identifiers are equal.
 
 #### Defined in
 
-[lib/ethereum/address.ts:28](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/address.ts#L28)
+[lib/ethereum/address.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/address.ts#L28)
 
 ___
 
@@ -103,4 +101,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/address.ts:24](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/address.ts#L24)
+[lib/ethereum/address.ts:24](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/address.ts#L24)

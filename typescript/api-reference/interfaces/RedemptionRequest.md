@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / RedemptionRequest
-
 # Interface: RedemptionRequest
 
 Represents a redemption request.
@@ -25,7 +23,7 @@ On-chain identifier of the redeemer.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:296](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L296)
+[lib/contracts/bridge.ts:296](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L296)
 
 ___
 
@@ -38,7 +36,7 @@ prepended with length.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:302](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L302)
+[lib/contracts/bridge.ts:302](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L302)
 
 ___
 
@@ -52,7 +50,7 @@ by the sum of the fee share and the treasury fee for this particular output.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:309](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L309)
+[lib/contracts/bridge.ts:309](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L309)
 
 ___
 
@@ -64,7 +62,7 @@ UNIX timestamp the request was created at.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:328](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L328)
+[lib/contracts/bridge.ts:328](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L328)
 
 ___
 
@@ -79,7 +77,7 @@ on-chain contract at the time the redemption request was made.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:317](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L317)
+[lib/contracts/bridge.ts:317](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L317)
 
 ___
 
@@ -92,4 +90,4 @@ redemption's `requestedAmount` to pay the transaction network fee.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:323](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L323)
+[lib/contracts/bridge.ts:323](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L323)

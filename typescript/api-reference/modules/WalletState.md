@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / WalletState
-
 # Namespace: WalletState
 
 ## Table of contents
@@ -26,4 +24,4 @@
 
 #### Defined in
 
-[lib/contracts/bridge.ts:384](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L384)
+[lib/contracts/bridge.ts:384](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L384)

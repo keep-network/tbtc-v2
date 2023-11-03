@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / WalletRegistry
-
 # Interface: WalletRegistry
 
 Interface for communication with the WalletRegistry on-chain contract.
@@ -35,7 +33,7 @@ GetEventsFunction
 
 #### Defined in
 
-[lib/contracts/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/wallet-registry.ts#L32)
+[lib/contracts/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L32)
 
 ___
 
@@ -51,7 +49,7 @@ GetEventsFunction
 
 #### Defined in
 
-[lib/contracts/wallet-registry.ts:38](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/wallet-registry.ts#L38)
+[lib/contracts/wallet-registry.ts:38](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L38)
 
 ___
 
@@ -67,7 +65,7 @@ GetEventsFunction
 
 #### Defined in
 
-[lib/contracts/wallet-registry.ts:26](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/wallet-registry.ts#L26)
+[lib/contracts/wallet-registry.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L26)
 
 ## Methods
 
@@ -83,7 +81,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/wallet-registry.ts:13](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/wallet-registry.ts#L13)
+[lib/contracts/wallet-registry.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L13)
 
 ___
 
@@ -107,4 +105,4 @@ Uncompressed public key without the 04 prefix.
 
 #### Defined in
 
-[lib/contracts/wallet-registry.ts:20](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/wallet-registry.ts#L20)
+[lib/contracts/wallet-registry.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L20)

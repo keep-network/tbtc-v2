@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / DepositReceipt
-
 # Interface: DepositReceipt
 
 Represents a deposit receipt. The receipt holds all information required
@@ -26,7 +24,7 @@ public key and refund public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:198](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L198)
+[lib/contracts/bridge.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L198)
 
 ___
 
@@ -38,7 +36,7 @@ Depositor's chain identifier.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:192](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L192)
+[lib/contracts/bridge.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L192)
 
 ___
 
@@ -50,7 +48,7 @@ A 4-byte little-endian refund locktime.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:218](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L218)
+[lib/contracts/bridge.ts:218](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L218)
 
 ___
 
@@ -65,7 +63,7 @@ You can use `computeHash160` function to get the hash from a public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:213](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L213)
+[lib/contracts/bridge.ts:213](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L213)
 
 ___
 
@@ -79,4 +77,4 @@ You can use `computeHash160` function to get the hash from a public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:205](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L205)
+[lib/contracts/bridge.ts:205](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L205)

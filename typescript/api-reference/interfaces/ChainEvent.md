@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / ChainEvent
-
 # Interface: ChainEvent
 
 Represents a generic chain event.
@@ -22,7 +20,7 @@ Block hash of the event emission.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:14](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L14)
+[lib/contracts/chain-event.ts:14](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L14)
 
 ___
 
@@ -34,7 +32,7 @@ Block number of the event emission.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:10](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L10)
+[lib/contracts/chain-event.ts:10](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L10)
 
 ___
 
@@ -46,4 +44,4 @@ Transaction hash within which the event was emitted.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:18](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L18)
+[lib/contracts/chain-event.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L18)

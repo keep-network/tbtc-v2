@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / BitcoinTxOutput
-
 # Interface: BitcoinTxOutput
 
 Data about a Bitcoin transaction output.
@@ -22,7 +20,7 @@ The 0-based index of the output.
 
 #### Defined in
 
-[lib/bitcoin/tx.ts:77](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/tx.ts#L77)
+[lib/bitcoin/tx.ts:77](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L77)
 
 ___
 
@@ -34,7 +32,7 @@ The receiving scriptPubKey.
 
 #### Defined in
 
-[lib/bitcoin/tx.ts:87](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/tx.ts#L87)
+[lib/bitcoin/tx.ts:87](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L87)
 
 ___
 
@@ -46,4 +44,4 @@ The value of the output in satoshis.
 
 #### Defined in
 
-[lib/bitcoin/tx.ts:82](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/tx.ts#L82)
+[lib/bitcoin/tx.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L82)

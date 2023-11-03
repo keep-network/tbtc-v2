@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / BitcoinRawTx
-
 # Interface: BitcoinRawTx
 
 Represents a raw Bitcoin transaction.
@@ -20,4 +18,4 @@ The full transaction payload as an un-prefixed hex string.
 
 #### Defined in
 
-[lib/bitcoin/tx.ts:22](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/tx.ts#L22)
+[lib/bitcoin/tx.ts:22](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L22)

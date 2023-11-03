@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / [GetChainEvents](../modules/GetChainEvents.md) / Function
-
 # Interface: Function\<T\>
 
 [GetChainEvents](../modules/GetChainEvents.md).Function
@@ -35,4 +33,4 @@ Array of found events.
 
 #### Defined in
 
-[lib/contracts/chain-event.ts:60](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/chain-event.ts#L60)
+[lib/contracts/chain-event.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L60)

@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / BitcoinTxMerkleBranch
-
 # Interface: BitcoinTxMerkleBranch
 
 Information about the merkle branch to a confirmed transaction.
@@ -22,7 +20,7 @@ The height of the block the transaction was confirmed in.
 
 #### Defined in
 
-[lib/bitcoin/spv.ts:41](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/spv.ts#L41)
+[lib/bitcoin/spv.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L41)
 
 ___
 
@@ -36,7 +34,7 @@ the deepest pairing first. Each hash is an unprefixed hex string.
 
 #### Defined in
 
-[lib/bitcoin/spv.ts:48](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/spv.ts#L48)
+[lib/bitcoin/spv.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L48)
 
 ___
 
@@ -48,4 +46,4 @@ The 0-based index of the transaction's position in the block.
 
 #### Defined in
 
-[lib/bitcoin/spv.ts:53](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/spv.ts#L53)
+[lib/bitcoin/spv.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L53)

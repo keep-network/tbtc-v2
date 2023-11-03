@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / DepositRequest
-
 # Interface: DepositRequest
 
 Represents a deposit request revealed to the on-chain bridge.
@@ -25,7 +23,7 @@ Deposit amount in satoshis.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:257](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L257)
+[lib/contracts/bridge.ts:257](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L257)
 
 ___
 
@@ -37,7 +35,7 @@ Depositor's chain identifier.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:252](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L252)
+[lib/contracts/bridge.ts:252](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L252)
 
 ___
 
@@ -49,7 +47,7 @@ UNIX timestamp the deposit was revealed at.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:267](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L267)
+[lib/contracts/bridge.ts:267](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L267)
 
 ___
 
@@ -62,7 +60,7 @@ should have zero as value.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:272](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L272)
+[lib/contracts/bridge.ts:272](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L272)
 
 ___
 
@@ -75,7 +73,7 @@ Denominated in satoshi.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:277](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L277)
+[lib/contracts/bridge.ts:277](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L277)
 
 ___
 
@@ -87,4 +85,4 @@ Optional identifier of the vault the deposit should be routed in.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:262](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/contracts/bridge.ts#L262)
+[lib/contracts/bridge.ts:262](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L262)

@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / EthereumTBTCToken
-
 # Class: EthereumTBTCToken
 
 Implementation of the Ethereum TBTC v2 token handle.
@@ -63,7 +61,7 @@ EthersContractHandle\&lt;TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:26](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L26)
+[lib/ethereum/tbtc-token.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L26)
 
 ## Properties
 
@@ -81,7 +79,7 @@ EthersContractHandle.\_deployedAtBlockNumber
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L80)
+[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L80)
 
 ___
 
@@ -97,7 +95,7 @@ EthersContractHandle.\_instance
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L74)
+[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L74)
 
 ___
 
@@ -113,7 +111,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L84)
+[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L84)
 
 ## Methods
 
@@ -144,7 +142,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:135](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L135)
+[lib/ethereum/tbtc-token.ts:135](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L135)
 
 ___
 
@@ -167,7 +165,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:104](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L104)
+[lib/ethereum/tbtc-token.ts:104](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L104)
 
 ___
 
@@ -189,7 +187,7 @@ EthersContractHandle.getAddress
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L112)
+[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L112)
 
 ___
 
@@ -209,7 +207,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:53](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L53)
+[lib/ethereum/tbtc-token.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L53)
 
 ___
 
@@ -243,7 +241,7 @@ EthersContractHandle.getEvents
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L127)
+[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L127)
 
 ___
 
@@ -272,7 +270,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:71](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L71)
+[lib/ethereum/tbtc-token.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L71)
 
 ___
 
@@ -298,4 +296,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-token.ts:61](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-token.ts#L61)
+[lib/ethereum/tbtc-token.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L61)

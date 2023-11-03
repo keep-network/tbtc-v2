@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / WalletTx
-
 # Class: WalletTx
 
 Wallet transactions builder. This feature set is supposed to be used only
@@ -42,7 +40,7 @@ using threshold signature schemes.
 
 #### Defined in
 
-[services/maintenance/wallet-tx.ts:48](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/maintenance/wallet-tx.ts#L48)
+[services/maintenance/wallet-tx.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/maintenance/wallet-tx.ts#L48)
 
 ## Properties
 
@@ -52,7 +50,7 @@ using threshold signature schemes.
 
 #### Defined in
 
-[services/maintenance/wallet-tx.ts:45](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/maintenance/wallet-tx.ts#L45)
+[services/maintenance/wallet-tx.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/maintenance/wallet-tx.ts#L45)
 
 ___
 
@@ -62,4 +60,4 @@ ___
 
 #### Defined in
 
-[services/maintenance/wallet-tx.ts:46](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/maintenance/wallet-tx.ts#L46)
+[services/maintenance/wallet-tx.ts:46](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/maintenance/wallet-tx.ts#L46)

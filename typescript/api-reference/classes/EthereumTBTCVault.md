@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / EthereumTBTCVault
-
 # Class: EthereumTBTCVault
 
 Implementation of the Ethereum TBTCVault handle.
@@ -71,7 +69,7 @@ EthersContractHandle\&lt;TBTCVaultTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:40](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L40)
+[lib/ethereum/tbtc-vault.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L40)
 
 ## Properties
 
@@ -89,7 +87,7 @@ EthersContractHandle.\_deployedAtBlockNumber
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L80)
+[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L80)
 
 ___
 
@@ -105,7 +103,7 @@ EthersContractHandle.\_instance
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L74)
+[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L74)
 
 ___
 
@@ -121,7 +119,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L84)
+[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L84)
 
 ## Methods
 
@@ -148,7 +146,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:149](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L149)
+[lib/ethereum/tbtc-vault.ts:149](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L149)
 
 ___
 
@@ -175,7 +173,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:172](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L172)
+[lib/ethereum/tbtc-vault.ts:172](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L172)
 
 ___
 
@@ -197,7 +195,7 @@ EthersContractHandle.getAddress
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L112)
+[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L112)
 
 ___
 
@@ -217,7 +215,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:67](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L67)
+[lib/ethereum/tbtc-vault.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L67)
 
 ___
 
@@ -251,7 +249,7 @@ EthersContractHandle.getEvents
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/adapter.ts#L127)
+[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L127)
 
 ___
 
@@ -271,7 +269,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:89](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L89)
+[lib/ethereum/tbtc-vault.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L89)
 
 ___
 
@@ -298,7 +296,7 @@ TBTCVault.getOptimisticMintingCancelledEvents
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:267](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L267)
+[lib/ethereum/tbtc-vault.ts:267](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L267)
 
 ___
 
@@ -325,7 +323,7 @@ TBTCVault.getOptimisticMintingFinalizedEvents
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:294](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L294)
+[lib/ethereum/tbtc-vault.ts:294](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L294)
 
 ___
 
@@ -352,7 +350,7 @@ TBTCVault.getOptimisticMintingRequestedEvents
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:234](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L234)
+[lib/ethereum/tbtc-vault.ts:234](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L234)
 
 ___
 
@@ -378,7 +376,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:113](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L113)
+[lib/ethereum/tbtc-vault.ts:113](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L113)
 
 ___
 
@@ -404,7 +402,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:103](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L103)
+[lib/ethereum/tbtc-vault.ts:103](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L103)
 
 ___
 
@@ -424,7 +422,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:75](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L75)
+[lib/ethereum/tbtc-vault.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L75)
 
 ___
 
@@ -451,7 +449,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:198](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L198)
+[lib/ethereum/tbtc-vault.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L198)
 
 ___
 
@@ -475,7 +473,7 @@ Parsed optimistic minting request.
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:221](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L221)
+[lib/ethereum/tbtc-vault.ts:221](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L221)
 
 ___
 
@@ -502,4 +500,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/tbtc-vault.ts:123](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/ethereum/tbtc-vault.ts#L123)
+[lib/ethereum/tbtc-vault.ts:123](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L123)

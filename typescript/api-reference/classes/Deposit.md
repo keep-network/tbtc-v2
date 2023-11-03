@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / Deposit
-
 # Class: Deposit
 
 Component representing an instance of the tBTC v2 deposit process.
@@ -48,7 +46,7 @@ This component tries to abstract away that complexity.
 
 #### Defined in
 
-[services/deposits/deposit.ts:42](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L42)
+[services/deposits/deposit.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L42)
 
 ## Properties
 
@@ -60,7 +58,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[services/deposits/deposit.ts:35](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L35)
+[services/deposits/deposit.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L35)
 
 ___
 
@@ -73,7 +71,7 @@ generated deposit address.
 
 #### Defined in
 
-[services/deposits/deposit.ts:40](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L40)
+[services/deposits/deposit.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L40)
 
 ___
 
@@ -85,7 +83,7 @@ Bitcoin script corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:27](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L27)
+[services/deposits/deposit.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L27)
 
 ___
 
@@ -97,7 +95,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/deposits/deposit.ts:31](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L31)
+[services/deposits/deposit.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L31)
 
 ## Methods
 
@@ -116,7 +114,7 @@ Specific UTXOs targeting this deposit. Empty array in case
 
 #### Defined in
 
-[services/deposits/deposit.ts:84](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L84)
+[services/deposits/deposit.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L84)
 
 ___
 
@@ -132,7 +130,7 @@ Bitcoin address corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:74](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L74)
+[services/deposits/deposit.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L74)
 
 ___
 
@@ -148,7 +146,7 @@ Receipt corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:67](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L67)
+[services/deposits/deposit.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L67)
 
 ___
 
@@ -192,7 +190,7 @@ Throws an error if the funding outpoint was already used to
 
 #### Defined in
 
-[services/deposits/deposit.ts:114](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L114)
+[services/deposits/deposit.ts:114](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L114)
 
 ___
 
@@ -214,4 +212,4 @@ ___
 
 #### Defined in
 
-[services/deposits/deposit.ts:54](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L54)
+[services/deposits/deposit.ts:54](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L54)

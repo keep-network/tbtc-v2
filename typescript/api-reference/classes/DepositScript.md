@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / DepositScript
-
 # Class: DepositScript
 
 Represents a Bitcoin script corresponding to a tBTC v2 deposit.
@@ -45,7 +43,7 @@ by the target wallet during the deposit sweep process.
 
 #### Defined in
 
-[services/deposits/deposit.ts:166](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L166)
+[services/deposits/deposit.ts:166](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L166)
 
 ## Properties
 
@@ -58,7 +56,7 @@ and allowing to build a unique deposit script (and address) on Bitcoin chain.
 
 #### Defined in
 
-[services/deposits/deposit.ts:159](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L159)
+[services/deposits/deposit.ts:159](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L159)
 
 ___
 
@@ -71,7 +69,7 @@ should be a witness P2WSH one. If false, legacy P2SH will be used instead.
 
 #### Defined in
 
-[services/deposits/deposit.ts:164](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L164)
+[services/deposits/deposit.ts:164](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L164)
 
 ## Methods
 
@@ -95,7 +93,7 @@ Bitcoin address corresponding to this deposit script.
 
 #### Defined in
 
-[services/deposits/deposit.ts:228](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L228)
+[services/deposits/deposit.ts:228](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L228)
 
 ___
 
@@ -111,7 +109,7 @@ Hashed deposit script as Buffer.
 
 #### Defined in
 
-[services/deposits/deposit.ts:183](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L183)
+[services/deposits/deposit.ts:183](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L183)
 
 ___
 
@@ -127,7 +125,7 @@ Plain-text deposit script as a hex string.
 
 #### Defined in
 
-[services/deposits/deposit.ts:195](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L195)
+[services/deposits/deposit.ts:195](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L195)
 
 ___
 
@@ -148,4 +146,4 @@ ___
 
 #### Defined in
 
-[services/deposits/deposit.ts:173](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/deposit.ts#L173)
+[services/deposits/deposit.ts:173](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L173)

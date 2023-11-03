@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / DepositFunding
-
 # Class: DepositFunding
 
 Component allowing to craft and submit the Bitcoin funding transaction using
@@ -43,7 +41,7 @@ the given tBTC v2 deposit script.
 
 #### Defined in
 
-[services/deposits/funding.ts:30](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/funding.ts#L30)
+[services/deposits/funding.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/funding.ts#L30)
 
 ## Properties
 
@@ -53,7 +51,7 @@ the given tBTC v2 deposit script.
 
 #### Defined in
 
-[services/deposits/funding.ts:28](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/funding.ts#L28)
+[services/deposits/funding.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/funding.ts#L28)
 
 ## Methods
 
@@ -103,7 +101,7 @@ When the sum of the selected UTXOs is insufficient to cover
 
 #### Defined in
 
-[services/deposits/funding.ts:62](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/funding.ts#L62)
+[services/deposits/funding.ts:62](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/funding.ts#L62)
 
 ___
 
@@ -153,7 +151,7 @@ When the sum of the selected UTXOs is insufficient to cover
 
 #### Defined in
 
-[services/deposits/funding.ts:181](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/funding.ts#L181)
+[services/deposits/funding.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/funding.ts#L181)
 
 ___
 
@@ -173,4 +171,4 @@ ___
 
 #### Defined in
 
-[services/deposits/funding.ts:34](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/services/deposits/funding.ts#L34)
+[services/deposits/funding.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/funding.ts#L34)

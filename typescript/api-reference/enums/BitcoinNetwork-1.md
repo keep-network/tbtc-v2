@@ -1,5 +1,3 @@
-[@keep-network/tbtc-v2.ts](../README.md) / BitcoinNetwork
-
 # Enumeration: BitcoinNetwork
 
 Bitcoin networks.
@@ -22,7 +20,7 @@ Bitcoin Mainnet.
 
 #### Defined in
 
-[lib/bitcoin/network.ts:20](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/network.ts#L20)
+[lib/bitcoin/network.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L20)
 
 ___
 
@@ -34,7 +32,7 @@ Bitcoin Testnet.
 
 #### Defined in
 
-[lib/bitcoin/network.ts:16](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/network.ts#L16)
+[lib/bitcoin/network.ts:16](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L16)
 
 ___
 
@@ -46,4 +44,4 @@ Unknown network.
 
 #### Defined in
 
-[lib/bitcoin/network.ts:12](https://github.com/keep-network/tbtc-v2/blob/807249d0/typescript/src/lib/bitcoin/network.ts#L12)
+[lib/bitcoin/network.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L12)
