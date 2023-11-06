@@ -177,3 +177,36 @@ jobs:
 
       - name: Check formatting
         run: yarn format
+
+  typescript-docs:
+    needs: typescript-detect-changes
+    if: |
+      github.event_name == 'push'
+        || needs.typescript-detect-changes.outputs.path-filter == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./typescript
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          cache: "yarn"
+          cache-dependency-path: typescript/yarn.lock
+
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn build
+
+      - name: Generate docs
+        run: yarn docs
+
+      - name: Check docs up to date
+        run: git diff --exit-code || exit 1
