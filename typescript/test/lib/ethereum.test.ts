@@ -4,6 +4,8 @@ import {
   EthereumAddress,
   EthereumBridge,
   EthereumTBTCToken,
+  ethereumAddressFromSigner,
+  ethereumNetworkFromSigner,
   Hex,
 } from "../../src"
 import {
@@ -11,7 +13,7 @@ import {
   MockContract,
 } from "@ethereum-waffle/mock-contract"
 import chai, { assert, expect } from "chai"
-import { BigNumber, Wallet, constants, utils } from "ethers"
+import { BigNumber, Wallet, constants, getDefaultProvider, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
@@ -588,6 +590,42 @@ describe("Ethereum", () => {
           amount,
           expectedExtraData,
         ])
+      })
+    })
+  })
+
+  describe("ethereumAddressFromSigner", () => {
+    context("when the signer is a wallet", () => {
+      const [mockSigner] = new MockProvider().getWallets()
+      it("should return the signer's address", async () => {
+        expect(await ethereumAddressFromSigner(mockSigner)).to.be.eql(
+          EthereumAddress.from(mockSigner.address)
+        )
+      })
+    })
+
+    context("when the signer is a provider", () => {
+      const mockProvider = getDefaultProvider()
+      it("should return undefined", async () => {
+        expect(await ethereumAddressFromSigner(mockProvider)).to.be.undefined
+      })
+    })
+  })
+
+  describe("ethereumNetworkFromSigner", () => {
+    context("when the signer is a wallet", () => {
+      const [mockSigner] = new MockProvider().getWallets()
+      it("should return the signer's network", async () => {
+        expect(await ethereumNetworkFromSigner(mockSigner)).to.be.eql("local")
+      })
+    })
+
+    context("when the signer is a provider", () => {
+      const mockProvider = getDefaultProvider()
+      it("should return the signer's network", async () => {
+        expect(await ethereumNetworkFromSigner(mockProvider)).to.be.eql(
+          "mainnet"
+        )
       })
     })
   })
