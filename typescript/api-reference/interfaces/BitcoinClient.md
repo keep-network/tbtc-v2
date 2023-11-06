@@ -19,6 +19,7 @@ Represents a Bitcoin client.
 - [getTransactionConfirmations](BitcoinClient.md#gettransactionconfirmations)
 - [getTransactionHistory](BitcoinClient.md#gettransactionhistory)
 - [getTransactionMerkle](BitcoinClient.md#gettransactionmerkle)
+- [getTxHashesForPublicKeyHash](BitcoinClient.md#gettxhashesforpublickeyhash)
 - [latestBlockHeight](BitcoinClient.md#latestblockheight)
 
 ## Methods
@@ -41,7 +42,7 @@ Broadcasts the given transaction over the network.
 
 #### Defined in
 
-[lib/bitcoin/client.ts:87](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L87)
+[lib/bitcoin/client.ts:101](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L101)
 
 ___
 
@@ -90,7 +91,7 @@ Concatenation of block headers in a hexadecimal format.
 
 #### Defined in
 
-[lib/bitcoin/client.ts:70](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L70)
+[lib/bitcoin/client.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L84)
 
 ___
 
@@ -232,7 +233,37 @@ Merkle branch.
 
 #### Defined in
 
-[lib/bitcoin/client.ts:78](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L78)
+[lib/bitcoin/client.ts:92](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L92)
+
+___
+
+### getTxHashesForPublicKeyHash
+
+▸ **getTxHashesForPublicKeyHash**(`publicKeyHash`): `Promise`\<[`BitcoinTxHash`](../classes/BitcoinTxHash.md)[]\>
+
+Gets hashes of confirmed transactions that pay the given public key hash
+using either a P2PKH or P2WPKH script. The returned transactions hashes are
+ordered by block height in the ascending order, i.e. the latest transaction
+hash is at the end of the list. The returned list does not contain
+unconfirmed transactions hashes living in the mempool at the moment of
+request.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `publicKeyHash` | [`Hex`](../classes/Hex.md) | Hash of the public key for which to find corresponding transaction hashes. |
+
+#### Returns
+
+`Promise`\<[`BitcoinTxHash`](../classes/BitcoinTxHash.md)[]\>
+
+Array of confirmed transaction hashes related to the provided
+         public key hash.
+
+#### Defined in
+
+[lib/bitcoin/client.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L69)
 
 ___
 
@@ -250,4 +281,4 @@ Height of the last mined block.
 
 #### Defined in
 
-[lib/bitcoin/client.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L61)
+[lib/bitcoin/client.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L75)
