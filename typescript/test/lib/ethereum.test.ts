@@ -4,7 +4,7 @@ import {
   EthereumAddress,
   EthereumBridge,
   EthereumTBTCToken,
-  ethereumAddressFromSigner, 
+  ethereumAddressFromSigner,
   ethereumNetworkFromSigner,
   Hex,
 } from "../../src"
@@ -600,11 +600,11 @@ describe("Ethereum", () => {
       it("should return the signer's address", async () => {
         expect(await ethereumAddressFromSigner(mockSigner)).to.be.eql(
           EthereumAddress.from(mockSigner.address)
-          )
-        })
+        )
       })
-      
-      context("when the signer is a provider", () => {
+    })
+
+    context("when the signer is a provider", () => {
       const mockProvider = getDefaultProvider()
       it("should return undefined", async () => {
         expect(await ethereumAddressFromSigner(mockProvider)).to.be.undefined
@@ -619,11 +619,13 @@ describe("Ethereum", () => {
         expect(await ethereumNetworkFromSigner(mockSigner)).to.be.eql("local")
       })
     })
-    
+
     context("when the signer is a provider", () => {
       const mockProvider = getDefaultProvider()
       it("should return the signer's network", async () => {
-        expect(await ethereumNetworkFromSigner(mockProvider)).to.be.eql("mainnet")
+        expect(await ethereumNetworkFromSigner(mockProvider)).to.be.eql(
+          "mainnet"
+        )
       })
     })
   })
