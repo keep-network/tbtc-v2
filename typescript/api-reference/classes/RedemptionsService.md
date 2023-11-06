@@ -75,11 +75,6 @@ Determines the plain-text wallet main UTXO currently registered in the
 Bridge on-chain contract. The returned main UTXO can be undefined if the
 wallet does not have a main UTXO registered in the Bridge at the moment.
 
-WARNING: THIS FUNCTION CANNOT DETERMINE THE MAIN UTXO IF IT COMES FROM A
-BITCOIN TRANSACTION THAT IS NOT ONE OF THE LATEST FIVE TRANSACTIONS
-TARGETING THE GIVEN WALLET PUBLIC KEY HASH. HOWEVER, SUCH A CASE IS
-VERY UNLIKELY.
-
 #### Parameters
 
 | Name | Type | Description |
@@ -95,7 +90,7 @@ Promise holding the wallet main UTXO or undefined value.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:221](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L221)
+[services/redemptions/redemptions-service.ts:215](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L215)
 
 ___
 
@@ -152,7 +147,7 @@ Throws an error if no redemption request exists for the given
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:337](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L337)
+[services/redemptions/redemptions-service.ts:327](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L327)
 
 ___
 

@@ -31,6 +31,7 @@ Electrum-based implementation of the Bitcoin client.
 - [getTransactionConfirmations](ElectrumClient.md#gettransactionconfirmations)
 - [getTransactionHistory](ElectrumClient.md#gettransactionhistory)
 - [getTransactionMerkle](ElectrumClient.md#gettransactionmerkle)
+- [getTxHashesForPublicKeyHash](ElectrumClient.md#gettxhashesforpublickeyhash)
 - [latestBlockHeight](ElectrumClient.md#latestblockheight)
 - [withBackoffRetrier](ElectrumClient.md#withbackoffretrier)
 - [withElectrum](ElectrumClient.md#withelectrum)
@@ -136,7 +137,7 @@ ___
 
 #### Defined in
 
-[lib/electrum/client.ts:574](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L574)
+[lib/electrum/client.ts:632](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L632)
 
 ___
 
@@ -189,7 +190,7 @@ ___
 
 #### Defined in
 
-[lib/electrum/client.ts:524](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L524)
+[lib/electrum/client.ts:582](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L582)
 
 ___
 
@@ -341,7 +342,33 @@ ___
 
 #### Defined in
 
-[lib/electrum/client.ts:543](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L543)
+[lib/electrum/client.ts:601](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L601)
+
+___
+
+### getTxHashesForPublicKeyHash
+
+▸ **getTxHashesForPublicKeyHash**(`publicKeyHash`): `Promise`\<[`BitcoinTxHash`](BitcoinTxHash.md)[]\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `publicKeyHash` | [`Hex`](Hex.md) |
+
+#### Returns
+
+`Promise`\<[`BitcoinTxHash`](BitcoinTxHash.md)[]\>
+
+**`See`**
+
+#### Implementation of
+
+[BitcoinClient](../interfaces/BitcoinClient.md).[getTxHashesForPublicKeyHash](../interfaces/BitcoinClient.md#gettxhashesforpublickeyhash)
+
+#### Defined in
+
+[lib/electrum/client.ts:508](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L508)
 
 ___
 
@@ -361,7 +388,7 @@ ___
 
 #### Defined in
 
-[lib/electrum/client.ts:508](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L508)
+[lib/electrum/client.ts:566](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L566)
 
 ___
 

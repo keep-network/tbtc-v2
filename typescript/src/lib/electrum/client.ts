@@ -503,6 +503,64 @@ export class ElectrumClient implements BitcoinClient {
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {BitcoinClient#getTxHashesForPublicKeyHash}
+   */
+  getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]> {
+    return this.withElectrum<BitcoinTxHash[]>(async (electrum: Electrum) => {
+      const bitcoinNetwork = await this.getNetwork()
+
+      // eslint-disable-next-line camelcase
+      type HistoryItem = { height: number; tx_hash: string }
+
+      const getConfirmedHistory = async (
+        witnessAddress: boolean
+      ): Promise<HistoryItem[]> => {
+        const address = BitcoinAddressConverter.publicKeyHashToAddress(
+          publicKeyHash,
+          witnessAddress,
+          bitcoinNetwork
+        )
+
+        const script = BitcoinAddressConverter.addressToOutputScript(
+          address,
+          bitcoinNetwork
+        )
+
+        let historyItems: HistoryItem[] = await this.withBackoffRetrier<
+          HistoryItem[]
+        >()(async () => {
+          return await electrum.blockchain_scripthash_getHistory(
+            computeElectrumScriptHash(script)
+          )
+        })
+
+        // According to https://electrumx.readthedocs.io/en/latest/protocol-methods.html#blockchain-scripthash-get-history
+        // unconfirmed items living in the mempool are appended at the end of the
+        // returned list and their height value is either -1 or 0. That means
+        // we need to take all items with height >0 to obtain a confirmed txs
+        // history.
+        historyItems = historyItems.filter((item) => item.height > 0)
+
+        // The list returned from blockchain.scripthash.get_history is sorted by
+        // the block height in the ascending order though we are sorting it
+        // again just in case (e.g. API contract changes).
+        historyItems = historyItems.sort((a, b) => a.height - b.height)
+
+        return historyItems
+      }
+
+      const p2pkhItems = await getConfirmedHistory(false)
+      const p2wpkhItems = await getConfirmedHistory(true)
+
+      const items = [...p2pkhItems, ...p2wpkhItems]
+      items.sort((a, b) => a.height - b.height)
+
+      return items.map((item) => BitcoinTxHash.from(item.tx_hash))
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {BitcoinClient#latestBlockHeight}
    */
   latestBlockHeight(): Promise<number> {
