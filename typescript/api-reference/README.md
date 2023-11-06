@@ -685,7 +685,7 @@ Electrum script hash as a hex string.
 
 #### Defined in
 
-[lib/electrum/client.ts:591](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L591)
+[lib/electrum/client.ts:649](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L649)
 
 ___
 
