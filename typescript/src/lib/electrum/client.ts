@@ -507,14 +507,14 @@ export class ElectrumClient implements BitcoinClient {
    */
   getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]> {
     return this.withElectrum<BitcoinTxHash[]>(async (electrum: Electrum) => {
+      const bitcoinNetwork = await this.getNetwork()
+
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
 
       const getConfirmedHistory = async (
         witnessAddress: boolean
       ): Promise<HistoryItem[]> => {
-        const bitcoinNetwork = await this.getNetwork()
-
         const address = BitcoinAddressConverter.publicKeyHashToAddress(
           publicKeyHash,
           witnessAddress,
