@@ -1515,18 +1515,7 @@
   resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.4.0-solc-0.8.tgz#8b44c246ffab8ea993efe196f6bf385b1a3b84dc"
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
-"@keep-network/ecdsa@2.1.0-dev.15":
-  version "2.1.0-dev.15"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.1.0-dev.15.tgz#ee631a42e165f30c75aae8c54aace765b77e272a"
-  integrity sha512-iUE3SwDSNc/k1oui7Z+fDGhhGyOzpe4/f/oKvDUMHqXx0BQG3QCrOz9KqWuPFXTXMav4LxLbt12WyDITAl/hjw==
-  dependencies:
-    "@keep-network/random-beacon" "2.1.0-dev.15"
-    "@keep-network/sortition-pools" "^2.0.0-pre.16"
-    "@openzeppelin/contracts" "^4.6.0"
-    "@openzeppelin/contracts-upgradeable" "^4.6.0"
-    "@threshold-network/solidity-contracts" "1.3.0-dev.6"
-
-"@keep-network/ecdsa@2.1.0-dev.16":
+"@keep-network/ecdsa@2.1.0-dev.16", "@keep-network/ecdsa@development":
   version "2.1.0-dev.16"
   resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.1.0-dev.16.tgz#bd9d084b4f2b7bdda0a85a8f69200832d7c24fde"
   integrity sha512-8k8XiPXneRtBN/4jVX+0qxqya8232cglRM/GrfYMv/niQkgvdolK2prXyd3LO7d4ot4WcyfLYU7uJfjjmc5rEw==
@@ -1572,16 +1561,6 @@
   version "0.0.1"
   resolved "https://codeload.github.com/keep-network/prettier-config-keep/tar.gz/a1a333e7ac49928a0f6ed39421906dd1e46ab0f3"
 
-"@keep-network/random-beacon@2.1.0-dev.15":
-  version "2.1.0-dev.15"
-  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.15.tgz#541620c469e3bc75a5d1f7649889540b0e032e9e"
-  integrity sha512-vxBICRtmqSmJtFU5hZMpwB0alhgKchyMbxk4DtLZ7T2zBjd5tjt3CqeKEk+ON09g7yL1mIxY07InP4okviUK4A==
-  dependencies:
-    "@keep-network/sortition-pools" "^2.0.0-pre.16"
-    "@openzeppelin/contracts" "4.7.3"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
-    "@threshold-network/solidity-contracts" "1.3.0-dev.5"
-
 "@keep-network/random-beacon@2.1.0-dev.16":
   version "2.1.0-dev.16"
   resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.16.tgz#9f2b5c19aa79f6ff1a5498ba7b55eb170463161d"
@@ -1591,6 +1570,16 @@
     "@openzeppelin/contracts" "4.7.3"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
     "@threshold-network/solidity-contracts" "1.3.0-dev.6"
+
+"@keep-network/random-beacon@2.1.0-dev.17":
+  version "2.1.0-dev.17"
+  resolved "https://registry.yarnpkg.com/@keep-network/random-beacon/-/random-beacon-2.1.0-dev.17.tgz#5fb2621948aa2fe07ceb134ba76f737b7e6d85cd"
+  integrity sha512-alfd2sHdMrX15qKzM4zwkZ3l/CXboLoeos4l3WvChW978VJIwUPm2ZIXd8tNTaHlykQ57eSSX7esaLfIjeO3Kg==
+  dependencies:
+    "@keep-network/sortition-pools" "^2.0.0-pre.16"
+    "@openzeppelin/contracts" "4.7.3"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
+    "@threshold-network/solidity-contracts" "1.3.0-dev.8"
 
 "@keep-network/sortition-pools@1.2.0-dev.1":
   version "1.2.0-dev.1"
@@ -1607,13 +1596,13 @@
     "@openzeppelin/contracts" "^4.3.2"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
-"@keep-network/tbtc-v2.ts@2.0.0-dev.0":
-  version "2.0.0-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-2.0.0-dev.0.tgz#1e51d8b605a8c96c3bea9522595d3b3db4eb8214"
-  integrity sha512-kJJCiWTu0EoZW1Q2zQZ5fOM52PpXDPd7EHd/oTbETxKYIW7h/Qg/Fnqx9KNynIInMrQIdXwsIDTEjoxGmD1AiQ==
+"@keep-network/tbtc-v2.ts@2.1.0-dev.0":
+  version "2.1.0-dev.0"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2.ts/-/tbtc-v2.ts-2.1.0-dev.0.tgz#6eadb36784fdb9b79e0fd360519af0bf18cf487c"
+  integrity sha512-VZmBX1SZaDD9KRfkIL3O9pGDqa7k89SM3fGdz3o7AkV/1rBWXOp3CJ4yfe57xV9XwHKac7BJWob9/ApTgD26HA==
   dependencies:
-    "@keep-network/ecdsa" "2.1.0-dev.16"
-    "@keep-network/tbtc-v2" "1.6.0-dev.0"
+    "@keep-network/ecdsa" development
+    "@keep-network/tbtc-v2" development
     bitcoinjs-lib "^6.1.5"
     bufio "^1.0.6"
     ecpair "^2.1.0"
@@ -1623,14 +1612,14 @@
     tiny-secp256k1 "^2.2.3"
     wif "2.0.6"
 
-"@keep-network/tbtc-v2@1.6.0-dev.0":
-  version "1.6.0-dev.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.6.0-dev.0.tgz#ba95805cef3f04bde7379d3c3b14e882a9cfa080"
-  integrity sha512-5N2dMdFSdS+Ljvqnqoscft5xnbIK/U/z8Dc2hNXWULkPhIy0Mx/E7i7I4CpBTV4LazIo1Hq6W4EJtj+lmrekgg==
+"@keep-network/tbtc-v2@development":
+  version "1.6.0-dev.4"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc-v2/-/tbtc-v2-1.6.0-dev.4.tgz#16861d4bccb9da3693170b4de3f747814179eb7f"
+  integrity sha512-fxbiK6PAsh1TlH/OYwbNdFMIyvjOXpSksOldrgBY3/xnppuoeMFi/nTNrCtRD9kGsnImc5D2TCRj8+vbCHg3gA==
   dependencies:
     "@keep-network/bitcoin-spv-sol" "3.4.0-solc-0.8"
-    "@keep-network/ecdsa" "2.1.0-dev.15"
-    "@keep-network/random-beacon" "2.1.0-dev.16"
+    "@keep-network/ecdsa" "2.1.0-dev.16"
+    "@keep-network/random-beacon" "2.1.0-dev.17"
     "@keep-network/tbtc" "1.1.2-dev.1"
     "@openzeppelin/contracts" "^4.8.1"
     "@openzeppelin/contracts-upgradeable" "^4.8.1"
@@ -2289,7 +2278,6 @@
     eslint-config-prettier "^8.3.0"
     eslint-plugin-import "^2.23.4"
     eslint-plugin-jsx-a11y "^6.4.1"
-    eslint-plugin-no-only-tests "^2.6.0"
     eslint-plugin-prettier "^4.0.0"
     eslint-plugin-react "^7.25.2"
     eslint-plugin-react-hooks "^4.2.0"
@@ -2303,16 +2291,6 @@
   resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/4985bcfc28e36eed9838993b16710e1b500f9e85"
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
-
-"@threshold-network/solidity-contracts@1.3.0-dev.5":
-  version "1.3.0-dev.5"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.3.0-dev.5.tgz#f7a2727d627a10218f0667bc0d33e19ed8f87fdc"
-  integrity sha512-AInTKQkJ0PKa32q2m8GnZFPYEArsnvOwhIFdBFaHdq9r4EGyqHMf4YY1WjffkheBZ7AQ0DNA8Lst30kBoQd0SA==
-  dependencies:
-    "@keep-network/keep-core" ">1.8.1-dev <1.8.1-goerli"
-    "@openzeppelin/contracts" "~4.5.0"
-    "@openzeppelin/contracts-upgradeable" "~4.5.2"
-    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@threshold-network/solidity-contracts@1.3.0-dev.6":
   version "1.3.0-dev.6"
