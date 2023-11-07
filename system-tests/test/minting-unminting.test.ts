@@ -188,9 +188,7 @@ describe("System Test - Minting and unminting", () => {
 
         const depositorBitcoinAddress =
           BitcoinAddressConverter.publicKeyToAddress(
-            Hex.from(
-              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-            ),
+            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed,
             BitcoinNetwork.Testnet
           )
         const depositorUtxos =
@@ -378,9 +376,7 @@ describe("System Test - Minting and unminting", () => {
 
             // Request redemption to depositor's address.
             redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-              Hex.from(
-                systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-              )
+              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
             )}`
 
             // Convert the redeemer output script to a byte buffer.
@@ -415,9 +411,7 @@ describe("System Test - Minting and unminting", () => {
             )
 
             redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
-              Hex.from(
-                systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-              ),
+              systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
               Hex.from(redeemerOutputScript)
             )
           })
@@ -479,10 +473,7 @@ describe("System Test - Minting and unminting", () => {
                   await maintenanceService.spv.submitRedemptionProof(
                     redemptionTxHash,
                     sweepUtxo,
-                    Hex.from(
-                      systemTestsContext.walletBitcoinKeyPair.publicKey
-                        .compressed
-                    )
+                    systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
                   )
 
                   console.log("Redemption proved on the bridge")
@@ -499,10 +490,8 @@ describe("System Test - Minting and unminting", () => {
               it("should close the redemption request on the bridge", async () => {
                 await expect(
                   maintainerBridgeHandle.pendingRedemptions(
-                    Hex.from(
-                      systemTestsContext.walletBitcoinKeyPair.publicKey
-                        .compressed
-                    ),
+                    systemTestsContext.walletBitcoinKeyPair.publicKey
+                      .compressed,
                     redemptionRequest.redeemerOutputScript
                   )
                 ).to.be.rejectedWith(

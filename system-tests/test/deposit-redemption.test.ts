@@ -177,9 +177,7 @@ describe("System Test - Deposit and redemption", () => {
 
       const depositorBitcoinAddress =
         BitcoinAddressConverter.publicKeyToAddress(
-          Hex.from(
-            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-          ),
+          systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed,
           BitcoinNetwork.Testnet
         )
 
@@ -339,15 +337,11 @@ describe("System Test - Deposit and redemption", () => {
 
           // Request redemption to depositor's address.
           redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-            Hex.from(
-              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-            )
+            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
           )}`
 
           await depositorBridgeHandle.requestRedemption(
-            Hex.from(
-              systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-            ),
+            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             Hex.from(redeemerOutputScript),
             requestedAmount
@@ -358,9 +352,7 @@ describe("System Test - Deposit and redemption", () => {
           )
 
           redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
-            Hex.from(
-              systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-            ),
+            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             Hex.from(redeemerOutputScript)
           )
         })
@@ -416,9 +408,7 @@ describe("System Test - Deposit and redemption", () => {
                 await maintenanceService.spv.submitRedemptionProof(
                   redemptionTxHash,
                   sweepUtxo,
-                  Hex.from(
-                    systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-                  )
+                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
                 )
 
                 console.log("Redemption proved on the bridge")
@@ -435,9 +425,7 @@ describe("System Test - Deposit and redemption", () => {
             it("should close the redemption request on the bridge", async () => {
               await expect(
                 maintainerBridgeHandle.pendingRedemptions(
-                  Hex.from(
-                    systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-                  ),
+                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                   redemptionRequest.redeemerOutputScript
                 )
               ).to.be.rejectedWith(
@@ -470,9 +458,7 @@ describe("System Test - Deposit and redemption", () => {
 
       const depositorBitcoinAddress =
         BitcoinAddressConverter.publicKeyToAddress(
-          Hex.from(
-            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-          ),
+          systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed,
           BitcoinNetwork.Testnet
         )
 
@@ -648,15 +634,11 @@ describe("System Test - Deposit and redemption", () => {
 
           // Request redemption to depositor's address.
           redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-            Hex.from(
-              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-            )
+            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
           )}`
 
           await depositorBridgeHandle.requestRedemption(
-            Hex.from(
-              systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-            ),
+            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             Hex.from(redeemerOutputScript),
             tbtcBalanceOfDepositor
@@ -667,9 +649,7 @@ describe("System Test - Deposit and redemption", () => {
           )
 
           redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
-            Hex.from(
-              systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-            ),
+            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             Hex.from(redeemerOutputScript)
           )
         })
@@ -731,9 +711,7 @@ describe("System Test - Deposit and redemption", () => {
                 await maintenanceService.spv.submitRedemptionProof(
                   redemptionTxHash,
                   sweepUtxo,
-                  Hex.from(
-                    systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-                  )
+                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
                 )
 
                 console.log("Redemption proved on the bridge")
@@ -750,9 +728,7 @@ describe("System Test - Deposit and redemption", () => {
             it("should close the redemption request on the bridge", async () => {
               await expect(
                 maintainerBridgeHandle.pendingRedemptions(
-                  Hex.from(
-                    systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
-                  ),
+                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                   redemptionRequest.redeemerOutputScript
                 )
               ).to.be.rejectedWith(
