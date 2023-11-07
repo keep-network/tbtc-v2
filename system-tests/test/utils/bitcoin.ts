@@ -2,7 +2,7 @@
 // @ts-ignore
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { assembleBitcoinSpvProof } from "@keep-network/tbtc-v2.ts"
+import { assembleBitcoinSpvProof, Hex } from "@keep-network/tbtc-v2.ts"
 
 import type { BitcoinTxHash, ElectrumClient } from "@keep-network/tbtc-v2.ts"
 import type { Contract } from "ethers"
@@ -26,21 +26,21 @@ export interface KeyPair {
    */
   wif: string
   /**
-   * Private key as an unprefixed hex string.
+   * Private key.
    */
-  privateKey: string
+  privateKey: Hex
   /**
    * Public key.
    */
   publicKey: {
     /**
-     * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+     * Compressed 33-byte-long public key prefixed with 02 or 03.
      */
-    compressed: string
+    compressed: Hex
     /**
-     * Uncompressed public key as an unprefixed hex string.
+     * Uncompressed public key.
      */
-    uncompressed: string
+    uncompressed: Hex
   }
 }
 
@@ -54,11 +54,13 @@ export function keyPairFromWif(wif: string): KeyPair {
   const keyPair = secp256k1.keyFromPrivate(privateKey)
   return {
     wif,
-    privateKey: keyPair.getPrivate("hex"),
+    privateKey: Hex.from(keyPair.getPrivate("hex")),
     publicKey: {
-      compressed: keyPair.getPublic().encodeCompressed("hex"),
+      compressed: Hex.from(keyPair.getPublic().encodeCompressed("hex")),
       // Trim the `04` prefix from the uncompressed key.
-      uncompressed: keyPair.getPublic().encode("hex", false).substring(2),
+      uncompressed: Hex.from(
+        keyPair.getPublic().encode("hex", false).substring(2)
+      ),
     },
   }
 }
