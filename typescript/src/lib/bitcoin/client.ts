@@ -1,6 +1,7 @@
 import { BitcoinNetwork } from "./network"
 import { BitcoinRawTx, BitcoinTx, BitcoinTxHash, BitcoinUtxo } from "./tx"
 import { BitcoinTxMerkleBranch } from "./spv"
+import { Hex } from "../../lib/utils"
 
 /**
  * Represents a Bitcoin client.
@@ -54,6 +55,20 @@ export interface BitcoinClient {
   getTransactionConfirmations(transactionHash: BitcoinTxHash): Promise<number>
 
   /**
+   * Gets hashes of confirmed transactions that pay the given public key hash
+   * using either a P2PKH or P2WPKH script. The returned transactions hashes are
+   * ordered by block height in the ascending order, i.e. the latest transaction
+   * hash is at the end of the list. The returned list does not contain
+   * unconfirmed transactions hashes living in the mempool at the moment of
+   * request.
+   * @param publicKeyHash - Hash of the public key for which to find
+   *        corresponding transaction hashes.
+   * @returns Array of confirmed transaction hashes related to the provided
+   *          public key hash.
+   */
+  getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]>
+
+  /**
    * Gets height of the latest mined block.
    * @return Height of the last mined block.
    */
@@ -66,7 +81,7 @@ export interface BitcoinClient {
    *                      block.
    * @return Concatenation of block headers in a hexadecimal format.
    */
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string>
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex>
 
   /**
    * Get Merkle branch for a given transaction.

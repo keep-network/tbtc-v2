@@ -7,6 +7,7 @@ import {
   BitcoinTx,
   BitcoinTxHash,
 } from "../../src/lib/bitcoin"
+import { Hex } from "../../src/lib/utils"
 
 /**
  * Mock Bitcoin client used for test purposes.
@@ -16,8 +17,9 @@ export class MockBitcoinClient implements BitcoinClient {
   private _rawTransactions = new Map<string, BitcoinRawTx>()
   private _transactions = new Map<string, BitcoinTx>()
   private _confirmations = new Map<string, number>()
+  private _transactionHashes = new Map<string, BitcoinTxHash[]>()
   private _latestHeight = 0
-  private _headersChain = ""
+  private _headersChain = Hex.from("")
   private _transactionMerkle: BitcoinTxMerkleBranch = {
     blockHeight: 0,
     merkle: [],
@@ -42,11 +44,15 @@ export class MockBitcoinClient implements BitcoinClient {
     this._confirmations = value
   }
 
+  set transactionHashes(value: Map<string, BitcoinTxHash[]>) {
+    this._transactionHashes = value
+  }
+
   set latestHeight(value: number) {
     this._latestHeight = value
   }
 
-  set headersChain(value: string) {
+  set headersChain(value: Hex) {
     this._headersChain = value
   }
 
@@ -110,14 +116,25 @@ export class MockBitcoinClient implements BitcoinClient {
     })
   }
 
+  getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]> {
+    return new Promise<BitcoinTxHash[]>((resolve, _) => {
+      const hashes = this._transactionHashes.get(publicKeyHash.toString())
+      if (hashes) {
+        resolve(hashes)
+      } else {
+        resolve([])
+      }
+    })
+  }
+
   latestBlockHeight(): Promise<number> {
     return new Promise<number>((resolve, _) => {
       resolve(this._latestHeight)
     })
   }
 
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return new Promise<string>((resolve, _) => {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex> {
+    return new Promise<Hex>((resolve, _) => {
       resolve(this._headersChain)
     })
   }

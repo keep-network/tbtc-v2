@@ -106,9 +106,10 @@ describe("Bitcoin", () => {
       context("when public key parameter has a correct length", () => {
         context("when the Y coordinate is divisible by 2", () => {
           it("should compress the public key correctly", () => {
-            const uncompressedPublicKey =
+            const uncompressedPublicKey = Hex.from(
               "ff6e1857db52d6dba2bd4239fba722655622bc520709d38011f9adac8ea3477b" +
-              "45ae275b657f7bac7c1e3d146a564051aee1356895f01e4f29f333502416fa4a"
+                "45ae275b657f7bac7c1e3d146a564051aee1356895f01e4f29f333502416fa4a"
+            )
             const compressedPublicKey =
               "02ff6e1857db52d6dba2bd4239fba722655622bc520709d38011f9adac8ea3477b"
 
@@ -120,9 +121,10 @@ describe("Bitcoin", () => {
 
         context("when the Y coordinate is not divisible by 2", () => {
           it("should compress the public key correctly", () => {
-            const uncompressedPublicKey =
+            const uncompressedPublicKey = Hex.from(
               "474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8" +
-              "7b5dff055ee1cc3a1fff4715dea2858ca4dd5bba0af30abcd881a6bda4fb70af"
+                "7b5dff055ee1cc3a1fff4715dea2858ca4dd5bba0af30abcd881a6bda4fb70af"
+            )
             const compressedPublicKey =
               "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
 
@@ -135,10 +137,10 @@ describe("Bitcoin", () => {
 
       context("when public key parameter has an incorrect length", () => {
         it("should throw", () => {
-          const uncompressedPublicKey =
+          const uncompressedPublicKey = Hex.from(
             "04474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8" +
-            "7b5dff055ee1cc3a1fff4715dea2858ca4dd5bba0af30abcd881a6bda4fb70af"
-
+              "7b5dff055ee1cc3a1fff4715dea2858ca4dd5bba0af30abcd881a6bda4fb70af"
+          )
           expect(() => compressPublicKey(uncompressedPublicKey)).to.throw(
             "The public key parameter must be 64-byte. Neither 0x nor 04 prefix is allowed"
           )
@@ -153,11 +155,14 @@ describe("Bitcoin", () => {
 
     describe("computeHash160", () => {
       it("should compute hash160 correctly", () => {
-        const compressedPublicKey =
+        const compressedPublicKey = Hex.from(
           "03474444cca71c678f5019d16782b6522735717a94602085b4adf707b465c36ca8"
+        )
         const expectedHash160 = "3e1dfbd72483fb3964ca828ee71cf3270cafdc65"
 
-        expect(computeHash160(compressedPublicKey)).to.be.equal(expectedHash160)
+        expect(computeHash160(compressedPublicKey).toString()).to.be.equal(
+          expectedHash160
+        )
       })
     })
 
@@ -205,7 +210,7 @@ describe("Bitcoin", () => {
   })
 
   describe("BitcoinAddressConverter", () => {
-    const publicKeyHash = "3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e"
+    const publicKeyHash = Hex.from("3a38d44d6a0c8d0bb84e0232cc632b7e48c72e0e")
     const P2WPKHAddress = "bc1q8gudgnt2pjxshwzwqgevccet0eyvwtswt03nuy"
     const P2PKHAddress = "16JrGhLx5bcBSA34kew9V6Mufa4aXhFe9X"
     const P2WPKHAddressTestnet = "tb1q8gudgnt2pjxshwzwqgevccet0eyvwtswpf2q8h"
@@ -260,7 +265,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -290,7 +297,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -322,7 +331,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -352,7 +363,9 @@ describe("Bitcoin", () => {
 
           context("when wrong public key hash is provided", () => {
             it("should throw", () => {
-              const wrongPublicKeyHash = "02" + publicKeyHash
+              const wrongPublicKeyHash = Hex.from(
+                "02" + publicKeyHash.toString()
+              )
 
               expect(() =>
                 publicKeyHashToAddress(
@@ -383,7 +396,7 @@ describe("Bitcoin", () => {
           it("should decode P2WPKH adress correctly", () => {
             expect(
               addressToPublicKeyHash(P2WPKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -391,7 +404,7 @@ describe("Bitcoin", () => {
           it("should decode P2PKH address correctly", () => {
             expect(
               addressToPublicKeyHash(P2PKHAddress, BitcoinNetwork.Mainnet)
-            ).to.be.equal(publicKeyHash)
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -455,7 +468,7 @@ describe("Bitcoin", () => {
                 P2WPKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash)
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -466,7 +479,7 @@ describe("Bitcoin", () => {
                 P2PKHAddressTestnet,
                 BitcoinNetwork.Testnet
               )
-            ).to.be.equal(publicKeyHash)
+            ).to.be.deep.equal(publicKeyHash)
           })
         })
 
@@ -585,12 +598,12 @@ describe("Bitcoin", () => {
       const testData = [
         {
           contextName: "when locktime is a block height",
-          unprefixedHex: "ede80600",
+          unprefixedHex: Hex.from("ede80600"),
           expectedLocktime: 452845,
         },
         {
           contextName: "when locktime is a timestamp",
-          unprefixedHex: "06241559",
+          unprefixedHex: Hex.from("06241559"),
           expectedLocktime: 1494557702,
         },
         {
@@ -604,24 +617,24 @@ describe("Bitcoin", () => {
         context(test.contextName, () => {
           context("when input is non-prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
-              expect(locktimeToNumber(test.unprefixedHex)).to.be.equal(
-                test.expectedLocktime
-              )
+              expect(
+                locktimeToNumber(test.unprefixedHex.toString())
+              ).to.be.equal(test.expectedLocktime)
             })
           })
 
           context("when input is 0x prefixed hex string", () => {
             it("should return the locktime in seconds", async () => {
-              expect(locktimeToNumber("0x" + test.unprefixedHex)).to.be.equal(
-                test.expectedLocktime
-              )
+              expect(
+                locktimeToNumber(test.unprefixedHex.toPrefixedString())
+              ).to.be.equal(test.expectedLocktime)
             })
           })
 
           context("when input is Buffer object", () => {
             it("should return the locktime in seconds", async () => {
               expect(
-                locktimeToNumber(Buffer.from(test.unprefixedHex, "hex"))
+                locktimeToNumber(test.unprefixedHex.toBuffer())
               ).to.be.equal(test.expectedLocktime)
             })
           })
@@ -657,7 +670,7 @@ describe("Bitcoin", () => {
           // The start timestamp is 1652776752 and locktime duration 2592000 (30 days).
           // So, the locktime timestamp is 1652776752 + 2592000 = 1655368752 which
           // is represented as 30ecaa62 hex in the little-endian format.
-          expect(locktime).to.be.equal("30ecaa62")
+          expect(locktime.toString()).to.be.equal("30ecaa62")
         })
       })
     })
@@ -818,33 +831,27 @@ describe("Bitcoin", () => {
       const testData = [
         {
           testFunction: isP2PKHScript,
-          validScript: Buffer.from(
-            "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac",
-            "hex"
+          validScript: Hex.from(
+            "76a9148db50eb52063ea9d98b3eac91489a90f738986f688ac"
           ),
           name: "P2PKH",
         },
         {
           testFunction: isP2WPKHScript,
-          validScript: Buffer.from(
-            "00148db50eb52063ea9d98b3eac91489a90f738986f6",
-            "hex"
-          ),
+          validScript: Hex.from("00148db50eb52063ea9d98b3eac91489a90f738986f6"),
           name: "P2WPKH",
         },
         {
           testFunction: isP2SHScript,
-          validScript: Buffer.from(
-            "a914a9a5f97d5d3c4687a52e90718168270005b369c487",
-            "hex"
+          validScript: Hex.from(
+            "a914a9a5f97d5d3c4687a52e90718168270005b369c487"
           ),
           name: "P2SH",
         },
         {
           testFunction: isP2WSHScript,
-          validScript: Buffer.from(
-            "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7",
-            "hex"
+          validScript: Hex.from(
+            "0020b1f83e226979dc9fe74e87f6d303dbb08a27a1c7ce91664033f34c7f2d214cd7"
           ),
           name: "P2WSH",
         },
@@ -874,8 +881,8 @@ describe("Bitcoin", () => {
         depositSweepWithNoMainUtxoAndWitnessOutput.expectedSweep.transaction
       const decomposedTransaction = extractBitcoinRawTxVectors(rawTransaction)
 
-      expect(decomposedTransaction.version).to.be.equal("01000000")
-      expect(decomposedTransaction.inputs).to.be.equal(
+      expect(decomposedTransaction.version.toString()).to.be.equal("01000000")
+      expect(decomposedTransaction.inputs.toString()).to.be.equal(
         "02bc187be612bc3db8cfcdec56b75e9bc0262ab6eacfe27cc1a699bacd53e3d07400" +
           "000000c948304502210089a89aaf3fec97ac9ffa91cdff59829f0cb3ef852a468153" +
           "e2c0e2b473466d2e022072902bb923ef016ac52e941ced78f816bf27991c2b73211e" +
@@ -886,14 +893,14 @@ describe("Bitcoin", () => {
           "68ffffffffdc557e737b6688c5712649b86f7757a722dc3d42786f23b2fa826394df" +
           "ec545c0000000000ffffffff"
       )
-      expect(decomposedTransaction.outputs).to.be.equal(
+      expect(decomposedTransaction.outputs.toString()).to.be.equal(
         "01488a0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
       )
-      expect(decomposedTransaction.locktime).to.be.equal("00000000")
+      expect(decomposedTransaction.locktime.toString()).to.be.equal("00000000")
     })
   })
 
-  describe("assembleTransactionProof", () => {
+  describe("assembleBitcoinSpvProof", () => {
     let bitcoinClient: MockBitcoinClient
 
     beforeEach(async () => {
@@ -914,9 +921,9 @@ describe("Bitcoin", () => {
         )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
-        expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
+        expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedProof.bitcoinHeaders)
+        expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
       })
     })
 
@@ -934,9 +941,9 @@ describe("Bitcoin", () => {
         )
         expect(proof.inputs).to.deep.equal(expectedProof.inputs)
         expect(proof.outputs).to.deep.equal(expectedProof.outputs)
-        expect(proof.merkleProof).to.equal(expectedProof.merkleProof)
+        expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
-        expect(proof.bitcoinHeaders).to.equal(expectedProof.bitcoinHeaders)
+        expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
       })
     })
 
@@ -1037,9 +1044,10 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain:
-                transactionConfirmationsInOneEpochData.bitcoinChainData
-                  .headersChain + "ff",
+              headersChain: Hex.from(
+                transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain.toString() +
+                  "ff"
+              ),
             },
           }
           await expect(
@@ -1057,9 +1065,10 @@ describe("Bitcoin", () => {
               ...transactionConfirmationsInOneEpochData,
               bitcoinChainData: {
                 ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-                headersChain:
-                  transactionConfirmationsInOneEpochData.bitcoinChainData
-                    .headersChain + "f".repeat(160),
+                headersChain: Hex.from(
+                  transactionConfirmationsInOneEpochData.bitcoinChainData.headersChain.toString() +
+                    "f".repeat(160)
+                ),
               },
             }
             await expect(
@@ -1076,7 +1085,9 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData.bitcoinChainData
               .transactionMerkleBranch.merkle,
           ]
-          merkle[merkle.length - 1] += "ff"
+          merkle[merkle.length - 1] = Hex.from(
+            merkle[merkle.length - 1].toString() + "ff"
+          )
 
           const corruptedProofData: TransactionProofData = {
             ...transactionConfirmationsInOneEpochData,
@@ -1126,7 +1137,7 @@ describe("Bitcoin", () => {
               .transactionMerkleBranch.merkle,
           ]
 
-          merkle[3] = "ff" + merkle[3].slice(2)
+          merkle[3] = Hex.from("ff" + merkle[3].toString().slice(2))
 
           const corruptedProofData: TransactionProofData = {
             ...transactionConfirmationsInOneEpochData,
@@ -1168,7 +1179,7 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain: corruptedHeadersChain,
+              headersChain: Hex.from(corruptedHeadersChain),
             },
           }
 
@@ -1196,7 +1207,7 @@ describe("Bitcoin", () => {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
               ...transactionConfirmationsInOneEpochData.bitcoinChainData,
-              headersChain: corruptedHeadersChain,
+              headersChain: Hex.from(corruptedHeadersChain),
             },
           }
 

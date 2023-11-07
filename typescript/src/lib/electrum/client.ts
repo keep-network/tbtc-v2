@@ -14,12 +14,15 @@ import {
   BitcoinHashUtils,
 } from "../bitcoin"
 import Electrum from "electrum-client-js"
-import { BigNumber, utils } from "ethers"
-import { URL } from "url"
+import { BigNumber } from "ethers"
+import { URL as nodeURL } from "url"
 import { backoffRetrier, Hex, RetrierFn } from "../utils"
 
 import MainnetElectrumUrls from "./urls/mainnet.json"
 import TestnetElectrumUrls from "./urls/testnet.json"
+
+const browserURL = typeof window !== "undefined" && window.URL
+const URL = nodeURL ?? browserURL
 
 /**
  * Represents a set of credentials required to establish an Electrum connection.
@@ -261,7 +264,7 @@ export class ElectrumClient implements BitcoinClient {
       const script = BitcoinAddressConverter.addressToOutputScript(
         address,
         bitcoinNetwork
-      ).toString()
+      )
 
       // eslint-disable-next-line camelcase
       type UnspentOutput = { tx_pos: number; value: number; tx_hash: string }
@@ -292,7 +295,7 @@ export class ElectrumClient implements BitcoinClient {
       const script = BitcoinAddressConverter.addressToOutputScript(
         address,
         bitcoinNetwork
-      ).toString()
+      )
 
       // eslint-disable-next-line camelcase
       type HistoryItem = { height: number; tx_hash: string }
@@ -500,6 +503,64 @@ export class ElectrumClient implements BitcoinClient {
 
   // eslint-disable-next-line valid-jsdoc
   /**
+   * @see {BitcoinClient#getTxHashesForPublicKeyHash}
+   */
+  getTxHashesForPublicKeyHash(publicKeyHash: Hex): Promise<BitcoinTxHash[]> {
+    return this.withElectrum<BitcoinTxHash[]>(async (electrum: Electrum) => {
+      const bitcoinNetwork = await this.getNetwork()
+
+      // eslint-disable-next-line camelcase
+      type HistoryItem = { height: number; tx_hash: string }
+
+      const getConfirmedHistory = async (
+        witnessAddress: boolean
+      ): Promise<HistoryItem[]> => {
+        const address = BitcoinAddressConverter.publicKeyHashToAddress(
+          publicKeyHash,
+          witnessAddress,
+          bitcoinNetwork
+        )
+
+        const script = BitcoinAddressConverter.addressToOutputScript(
+          address,
+          bitcoinNetwork
+        )
+
+        let historyItems: HistoryItem[] = await this.withBackoffRetrier<
+          HistoryItem[]
+        >()(async () => {
+          return await electrum.blockchain_scripthash_getHistory(
+            computeElectrumScriptHash(script)
+          )
+        })
+
+        // According to https://electrumx.readthedocs.io/en/latest/protocol-methods.html#blockchain-scripthash-get-history
+        // unconfirmed items living in the mempool are appended at the end of the
+        // returned list and their height value is either -1 or 0. That means
+        // we need to take all items with height >0 to obtain a confirmed txs
+        // history.
+        historyItems = historyItems.filter((item) => item.height > 0)
+
+        // The list returned from blockchain.scripthash.get_history is sorted by
+        // the block height in the ascending order though we are sorting it
+        // again just in case (e.g. API contract changes).
+        historyItems = historyItems.sort((a, b) => a.height - b.height)
+
+        return historyItems
+      }
+
+      const p2pkhItems = await getConfirmedHistory(false)
+      const p2wpkhItems = await getConfirmedHistory(true)
+
+      const items = [...p2pkhItems, ...p2wpkhItems]
+      items.sort((a, b) => a.height - b.height)
+
+      return items.map((item) => BitcoinTxHash.from(item.tx_hash))
+    })
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
    * @see {BitcoinClient#latestBlockHeight}
    */
   latestBlockHeight(): Promise<number> {
@@ -518,8 +579,8 @@ export class ElectrumClient implements BitcoinClient {
   /**
    * @see {BitcoinClient#getHeadersChain}
    */
-  getHeadersChain(blockHeight: number, chainLength: number): Promise<string> {
-    return this.withElectrum<string>(async (electrum: Electrum) => {
+  getHeadersChain(blockHeight: number, chainLength: number): Promise<Hex> {
+    return this.withElectrum<Hex>(async (electrum: Electrum) => {
       const { hex } = await this.withBackoffRetrier<{
         hex: string
       }>()(async () => {
@@ -529,7 +590,7 @@ export class ElectrumClient implements BitcoinClient {
         )
       })
 
-      return hex
+      return Hex.from(hex)
     })
   }
 
@@ -557,7 +618,7 @@ export class ElectrumClient implements BitcoinClient {
 
         return {
           blockHeight: merkle.block_height,
-          merkle: merkle.merkle,
+          merkle: merkle.merkle.map((m) => Hex.from(m)),
           position: merkle.pos,
         }
       }
@@ -585,9 +646,6 @@ export class ElectrumClient implements BitcoinClient {
  * @param script - Bitcoin script as hex string
  * @returns Electrum script hash as a hex string.
  */
-export function computeElectrumScriptHash(script: string): string {
-  const _script = Hex.from(Buffer.from(script, "hex")).toPrefixedString()
-  const hash256 = utils.sha256(_script)
-
-  return Hex.from(hash256).reverse().toString()
+export function computeElectrumScriptHash(script: Hex): string {
+  return BitcoinHashUtils.computeSha256(script).reverse().toString()
 }

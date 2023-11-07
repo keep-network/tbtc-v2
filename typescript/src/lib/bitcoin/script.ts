@@ -1,3 +1,4 @@
+import { Hex } from "../utils"
 import { payments } from "bitcoinjs-lib"
 
 /**
@@ -5,9 +6,9 @@ import { payments } from "bitcoinjs-lib"
  * @param script The script to be checked.
  * @returns True if the script is P2PKH, false otherwise.
  */
-function isP2PKHScript(script: Buffer): boolean {
+function isP2PKHScript(script: Hex): boolean {
   try {
-    payments.p2pkh({ output: script })
+    payments.p2pkh({ output: script.toBuffer() })
     return true
   } catch (err) {
     return false
@@ -19,9 +20,9 @@ function isP2PKHScript(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2WPKH, false otherwise.
  */
-function isP2WPKHScript(script: Buffer): boolean {
+function isP2WPKHScript(script: Hex): boolean {
   try {
-    payments.p2wpkh({ output: script })
+    payments.p2wpkh({ output: script.toBuffer() })
     return true
   } catch (err) {
     return false
@@ -33,9 +34,9 @@ function isP2WPKHScript(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2SH, false otherwise.
  */
-function isP2SHScript(script: Buffer): boolean {
+function isP2SHScript(script: Hex): boolean {
   try {
-    payments.p2sh({ output: script })
+    payments.p2sh({ output: script.toBuffer() })
     return true
   } catch (err) {
     return false
@@ -47,9 +48,9 @@ function isP2SHScript(script: Buffer): boolean {
  * @param script The script to be checked.
  * @returns True if the script is P2WSH, false otherwise.
  */
-function isP2WSHScript(script: Buffer): boolean {
+function isP2WSHScript(script: Hex): boolean {
   try {
-    payments.p2wsh({ output: script })
+    payments.p2wsh({ output: script.toBuffer() })
     return true
   } catch (err) {
     return false

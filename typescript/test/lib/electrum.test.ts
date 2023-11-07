@@ -3,13 +3,17 @@ import {
   ElectrumCredentials,
   ElectrumClient,
   computeElectrumScriptHash,
+  Hex,
+  BitcoinTxHash,
 } from "../../src"
 import {
   testnetAddress,
   testnetHeadersChain,
+  testnetPublicKeyHash,
   testnetRawTransaction,
   testnetTransaction,
   testnetTransactionMerkleBranch,
+  testnetTxHashes,
   testnetUTXO,
 } from "../data/electrum"
 import { expect } from "chai"
@@ -179,6 +183,29 @@ describe("Electrum", () => {
           })
         })
 
+        describe("getTxHashesForPublicKeyHash", () => {
+          let actualHashes: BitcoinTxHash[]
+
+          before(async () => {
+            actualHashes = await electrumClient.getTxHashesForPublicKeyHash(
+              testnetPublicKeyHash
+            )
+          })
+
+          it("should return proper transaction hashes", async () => {
+            const expectedHashes = testnetTxHashes
+            // If the actual hashes set is greater than the expected set, we
+            // need to adjust them to the same length to make a comparison that
+            // makes sense.
+            if (actualHashes.length > expectedHashes.length) {
+              actualHashes = actualHashes.slice(
+                actualHashes.length - expectedHashes.length
+              )
+            }
+            expect(actualHashes).to.be.deep.equal(expectedHashes)
+          })
+        })
+
         describe("latestBlockHeight", () => {
           let result: number
 
@@ -224,7 +251,9 @@ describe("Electrum", () => {
 
         describe("computeElectrumScriptHash", () => {
           it("should convert Bitcoin script to an Electrum script hash correctly", () => {
-            const script = "00144b47c798d12edd17dfb4ea98e5447926f664731c"
+            const script = Hex.from(
+              "00144b47c798d12edd17dfb4ea98e5447926f664731c"
+            )
             const expectedScriptHash =
               "cabdea0bfc10fb3521721dde503487dd1f0e41dd6609da228066757563f292ab"
 

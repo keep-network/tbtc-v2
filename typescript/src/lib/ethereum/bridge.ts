@@ -112,10 +112,10 @@ export class EthereumBridge
         ).toNumber(),
         depositor: EthereumAddress.from(event.args!.depositor),
         amount: BigNumber.from(event.args!.amount),
-        blindingFactor: Hex.from(event.args!.blindingFactor).toString(),
-        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
-        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash).toString(),
-        refundLocktime: Hex.from(event.args!.refundLocktime).toString(),
+        blindingFactor: Hex.from(event.args!.blindingFactor),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
+        refundPublicKeyHash: Hex.from(event.args!.refundPubKeyHash),
+        refundLocktime: Hex.from(event.args!.refundLocktime),
         vault:
           event.args!.vault === constants.AddressZero
             ? undefined
@@ -129,8 +129,8 @@ export class EthereumBridge
    * @see {Bridge#pendingRedemptions}
    */
   async pendingRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
       BitcoinHashUtils.computeHash160(walletPublicKey),
@@ -152,8 +152,8 @@ export class EthereumBridge
    * @see {Bridge#timedOutRedemptions}
    */
   async timedOutRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
       BitcoinHashUtils.computeHash160(walletPublicKey),
@@ -173,19 +173,18 @@ export class EthereumBridge
   /**
    * Builds a redemption key required to refer a redemption request.
    * @param walletPublicKeyHash The wallet public key hash that identifies the
-   *        pending redemption (along with the redeemer output script). Must be
-   *        unprefixed.
+   *        pending redemption (along with the redeemer output script).
    * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length.
+   *        pending redemption (along with the wallet public key hash). Must not
+   *        be prepended with length.
    * @returns The redemption key.
    */
   static buildRedemptionKey(
-    walletPublicKeyHash: string,
-    redeemerOutputScript: string
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
   ): string {
     // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
     // Prefix the output script bytes buffer with 0x and its own length.
     const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
       Buffer.from([rawRedeemerOutputScript.length]),
@@ -197,7 +196,7 @@ export class EthereumBridge
       ["bytes32", "bytes20"],
       [
         utils.solidityKeccak256(["bytes"], [prefixedRawRedeemerOutputScript]),
-        `0x${walletPublicKeyHash}`,
+        `0x${walletPublicKeyHash.toString()}`,
       ]
     )
   }
@@ -206,13 +205,13 @@ export class EthereumBridge
    * Parses a redemption request using data fetched from the on-chain contract.
    * @param request Data of the request.
    * @param redeemerOutputScript The redeemer output script that identifies the
-   *        pending redemption (along with the wallet public key hash). Must be
-   *        un-prefixed and not prepended with length.
+   *        pending redemption (along with the wallet public key hash). Must not
+   *        be prepended with length.
    * @returns Parsed redemption request.
    */
   private parseRedemptionRequest(
     request: RedemptionRequestTypechain,
-    redeemerOutputScript: string
+    redeemerOutputScript: Hex
   ): RedemptionRequest {
     return {
       redeemer: EthereumAddress.from(request.redeemer),
@@ -233,20 +232,20 @@ export class EthereumBridge
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<string> {
+  ): Promise<Hex> {
     const depositTxParam = {
-      version: `0x${depositTx.version}`,
-      inputVector: `0x${depositTx.inputs}`,
-      outputVector: `0x${depositTx.outputs}`,
-      locktime: `0x${depositTx.locktime}`,
+      version: depositTx.version.toPrefixedString(),
+      inputVector: depositTx.inputs.toPrefixedString(),
+      outputVector: depositTx.outputs.toPrefixedString(),
+      locktime: depositTx.locktime.toPrefixedString(),
     }
 
     const revealParam = {
       fundingOutputIndex: depositOutputIndex,
-      blindingFactor: `0x${deposit.blindingFactor}`,
-      walletPubKeyHash: `0x${deposit.walletPublicKeyHash}`,
-      refundPubKeyHash: `0x${deposit.refundPublicKeyHash}`,
-      refundLocktime: `0x${deposit.refundLocktime}`,
+      blindingFactor: deposit.blindingFactor.toPrefixedString(),
+      walletPubKeyHash: deposit.walletPublicKeyHash.toPrefixedString(),
+      refundPubKeyHash: deposit.refundPublicKeyHash.toPrefixedString(),
+      refundLocktime: deposit.refundLocktime.toPrefixedString(),
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
@@ -259,7 +258,7 @@ export class EthereumBridge
       ["Deposit already revealed"]
     )
 
-    return tx.hash
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -271,7 +270,7 @@ export class EthereumBridge
     sweepProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
     vault?: ChainIdentifier
-  ): Promise<void> {
+  ): Promise<Hex> {
     const sweepTxParam = {
       version: `0x${sweepTx.version}`,
       inputVector: `0x${sweepTx.inputs}`,
@@ -280,9 +279,9 @@ export class EthereumBridge
     }
 
     const sweepProofParam = {
-      merkleProof: `0x${sweepProof.merkleProof}`,
+      merkleProof: sweepProof.merkleProof.toPrefixedString(),
       txIndexInBlock: sweepProof.txIndexInBlock,
-      bitcoinHeaders: `0x${sweepProof.bitcoinHeaders}`,
+      bitcoinHeaders: sweepProof.bitcoinHeaders.toPrefixedString(),
     }
 
     const mainUtxoParam = {
@@ -297,7 +296,7 @@ export class EthereumBridge
       ? `0x${vault.identifierHex}`
       : constants.AddressZero
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.submitDepositSweepProof(
           sweepTxParam,
@@ -308,6 +307,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -329,14 +330,13 @@ export class EthereumBridge
    * @see {Bridge#requestRedemption}
    */
   async requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
-  ): Promise<void> {
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
-      walletPublicKey
-    )}`
+  ): Promise<Hex> {
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
     const mainUtxoParam = {
       // The Ethereum Bridge expects this hash to be in the Bitcoin internal
@@ -347,14 +347,14 @@ export class EthereumBridge
     }
 
     // Convert the output script to raw bytes buffer.
-    const rawRedeemerOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
     // Prefix the output script bytes buffer with 0x and its own length.
     const prefixedRawRedeemerOutputScript = `0x${Buffer.concat([
       Buffer.from([rawRedeemerOutputScript.length]),
       rawRedeemerOutputScript,
     ]).toString("hex")}`
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.requestRedemption(
           walletPublicKeyHash,
@@ -365,6 +365,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -375,8 +377,8 @@ export class EthereumBridge
     redemptionTx: BitcoinRawTxVectors,
     redemptionProof: BitcoinSpvProof,
     mainUtxo: BitcoinUtxo,
-    walletPublicKey: string
-  ): Promise<void> {
+    walletPublicKey: Hex
+  ): Promise<Hex> {
     const redemptionTxParam = {
       version: `0x${redemptionTx.version}`,
       inputVector: `0x${redemptionTx.inputs}`,
@@ -398,11 +400,10 @@ export class EthereumBridge
       txOutputValue: mainUtxo.value,
     }
 
-    const walletPublicKeyHash = `0x${BitcoinHashUtils.computeHash160(
-      walletPublicKey
-    )}`
+    const walletPublicKeyHash =
+      BitcoinHashUtils.computeHash160(walletPublicKey).toPrefixedString()
 
-    await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
+    const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
         return await this._instance.submitRedemptionProof(
           redemptionTxParam,
@@ -413,6 +414,8 @@ export class EthereumBridge
       },
       this._totalRetryAttempts
     )
+
+    return Hex.from(tx.hash)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -484,7 +487,7 @@ export class EthereumBridge
   /**
    * @see {Bridge#activeWalletPublicKey}
    */
-  async activeWalletPublicKey(): Promise<string | undefined> {
+  async activeWalletPublicKey(): Promise<Hex | undefined> {
     const activeWalletPublicKeyHash: string = await backoffRetrier<string>(
       this._totalRetryAttempts
     )(async () => {
@@ -502,7 +505,7 @@ export class EthereumBridge
       Hex.from(activeWalletPublicKeyHash)
     )
 
-    return walletPublicKey.toString()
+    return walletPublicKey
   }
 
   private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
@@ -656,9 +659,9 @@ export class EthereumBridge
         blockNumber: BigNumber.from(event.blockNumber).toNumber(),
         blockHash: Hex.from(event.blockHash),
         transactionHash: Hex.from(event.transactionHash),
-        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash).toString(),
+        walletPublicKeyHash: Hex.from(event.args!.walletPubKeyHash),
         redeemer: EthereumAddress.from(event.args!.redeemer),
-        redeemerOutputScript: redeemerOutputScript,
+        redeemerOutputScript: Hex.from(redeemerOutputScript),
         requestedAmount: BigNumber.from(event.args!.requestedAmount),
         treasuryFee: BigNumber.from(event.args!.treasuryFee),
         txMaxFee: BigNumber.from(event.args!.txMaxFee),

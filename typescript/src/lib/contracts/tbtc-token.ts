@@ -32,16 +32,15 @@ export interface TBTCToken {
    * @param mainUtxo - The main UTXO of the wallet. Must match the main UTXO
    *        held by the on-chain Bridge contract.
    * @param redeemerOutputScript - The output script that the redeemed funds
-   *        will be locked to. Must be un-prefixed and not prepended with
-   *        length.
+   *        will be locked to. Must not be prepended with length.
    * @param amount - The amount to be redeemed with the precision of the tBTC
    *        on-chain token contract.
    * @returns Transaction hash of the approve and call transaction.
    */
   requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<Hex>
 }

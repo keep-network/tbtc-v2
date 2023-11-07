@@ -33,7 +33,7 @@ export async function ethereumNetworkFromSigner(
   signer: EthereumSigner
 ): Promise<EthereumNetwork> {
   let chainId: number
-  if (signer instanceof Signer) {
+  if (Signer.isSigner(signer)) {
     chainId = await signer.getChainId()
   } else {
     const network = await signer.getNetwork()
@@ -61,7 +61,7 @@ export async function ethereumNetworkFromSigner(
 export async function ethereumAddressFromSigner(
   signer: EthereumSigner
 ): Promise<EthereumAddress | undefined> {
-  if (signer instanceof Signer) {
+  if (Signer.isSigner(signer)) {
     return EthereumAddress.from(await signer.getAddress())
   } else {
     return undefined
@@ -96,7 +96,7 @@ export async function loadEthereumContracts(
   const tbtcVault = new EthereumTBTCVault({ signerOrProvider: signer }, network)
   const walletRegistry = new EthereumWalletRegistry(
     { signerOrProvider: signer },
-    "mainnet"
+    network
   )
 
   const bridgeWalletRegistry = await bridge.walletRegistry()

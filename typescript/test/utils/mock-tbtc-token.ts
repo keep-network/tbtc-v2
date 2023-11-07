@@ -5,9 +5,9 @@ import { BitcoinUtxo } from "../../src/lib/bitcoin"
 import { EthereumAddress } from "../../src"
 
 interface RequestRedemptionLog {
-  walletPublicKey: string
+  walletPublicKey: Hex
   mainUtxo: BitcoinUtxo
-  redeemerOutputScript: string
+  redeemerOutputScript: Hex
   amount: BigNumber
 }
 
@@ -23,9 +23,9 @@ export class MockTBTCToken implements TBTCToken {
   }
 
   async requestRedemption(
-    walletPublicKey: string,
+    walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,
-    redeemerOutputScript: string,
+    redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<Hex> {
     this._requestRedemptionLog.push({

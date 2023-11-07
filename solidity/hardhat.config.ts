@@ -101,7 +101,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: process.env.TEST_USE_STUBS_TBTC === "true",
     },
     system_tests: {
-      url: "http://localhost:8545",
+      url: "http://127.0.0.1:8545",
       tags: ["allowStubs"],
     },
     development: {

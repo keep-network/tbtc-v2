@@ -8,10 +8,10 @@ import "hardhat-deploy"
 const config: HardhatUserConfig = {
   networks: {
     development: {
-      url: "http://localhost:8545",
+      url: "http://127.0.0.1:8545",
     },
     system_tests: {
-      url: "http://localhost:8545",
+      url: "http://127.0.0.1:8545",
     },
   },
 
