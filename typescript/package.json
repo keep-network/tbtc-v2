@@ -19,7 +19,8 @@
   "files": [
     "dist/",
     "src/",
-    "typechain/"
+    "typechain/",
+    "README.md"
   ],
   "config": {
     "contracts": "./node_modules/@keep-network/ecdsa/artifacts/WalletRegistry.json ./node_modules/@keep-network/tbtc-v2/artifacts/{Bridge,TBTCVault,TBTC}.json"
