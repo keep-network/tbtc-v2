@@ -67,9 +67,19 @@ export class RedemptionsService {
       throw new Error("Redeemer output script must be of standard type")
     }
 
+    const amountToSatoshi = (value: BigNumber): BigNumber => {
+      const satoshiMultiplier = BigNumber.from(1e10)
+      const remainder = value.mod(satoshiMultiplier)
+      const convertibleAmount = amount.sub(remainder)
+      return convertibleAmount.div(satoshiMultiplier)
+    }
+
+    // The findWalletForRedemption operates on satoshi amount precision (1e8)
+    // while the amount parameter is TBTC token precision (1e18). We need to
+    // convert the amount to get proper results.
     const { walletPublicKey, mainUtxo } = await this.findWalletForRedemption(
       redeemerOutputScript,
-      amount
+      amountToSatoshi(amount)
     )
 
     const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(

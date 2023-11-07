@@ -32,7 +32,7 @@ export class MockTBTCToken implements TBTCToken {
       walletPublicKey,
       mainUtxo,
       redeemerOutputScript,
-      amount,
+      amount: amount.div(1e10), // Store amount in satoshi.
     })
 
     return Hex.from(
