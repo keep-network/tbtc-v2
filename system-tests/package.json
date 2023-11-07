@@ -18,7 +18,7 @@
     "test/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2.ts": "2.1.0-dev.0",
+    "@keep-network/tbtc-v2.ts": "2.2.0-dev.0",
     "elliptic": "^6.5.4",
     "wif": "^2.0.6"
   },
