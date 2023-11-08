@@ -365,7 +365,7 @@ describe("System Test - Minting and unminting", () => {
 
         context("when unminting is done", () => {
           let unmintedAmount: BigNumber
-          let redeemerOutputScript: string
+          let redeemerOutputScript: Hex
           let redemptionRequest: RedemptionRequest
 
           before("do unminting through TBTC approve-and-call", async () => {
@@ -375,15 +375,14 @@ describe("System Test - Minting and unminting", () => {
             )
 
             // Request redemption to depositor's address.
-            redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-            )}`
+            redeemerOutputScript = Hex.from(
+              `0014${BitcoinHashUtils.computeHash160(
+                systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
+              )}`
+            )
 
             // Convert the redeemer output script to a byte buffer.
-            const rawRedeemerOutputScript = Buffer.from(
-              redeemerOutputScript,
-              "hex"
-            )
+            const rawRedeemerOutputScript = redeemerOutputScript.toBuffer()
 
             const redemptionData = ethersUtils.defaultAbiCoder.encode(
               ["address", "bytes20", "bytes32", "uint32", "uint64", "bytes"],
@@ -412,7 +411,7 @@ describe("System Test - Minting and unminting", () => {
 
             redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
               systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-              Hex.from(redeemerOutputScript)
+              redeemerOutputScript
             )
           })
 
@@ -434,7 +433,7 @@ describe("System Test - Minting and unminting", () => {
             expect(redemptionRequest.requestedAmount).to.be.equal(
               unmintedAmount.div(satoshiMultiplier)
             )
-            expect(redemptionRequest.redeemerOutputScript).to.be.equal(
+            expect(redemptionRequest.redeemerOutputScript).to.be.deep.equal(
               redeemerOutputScript
             )
           })

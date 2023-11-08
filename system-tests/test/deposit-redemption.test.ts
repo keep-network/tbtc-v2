@@ -321,7 +321,7 @@ describe("System Test - Deposit and redemption", () => {
 
       context("when redemption is requested", () => {
         let requestedAmount: BigNumber
-        let redeemerOutputScript: string
+        let redeemerOutputScript: Hex
         let redemptionRequest: RedemptionRequest
 
         before("request the redemption", async () => {
@@ -336,14 +336,16 @@ describe("System Test - Deposit and redemption", () => {
             .approveBalance(bridgeAddress, requestedAmount)
 
           // Request redemption to depositor's address.
-          redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-          )}`
+          redeemerOutputScript = Hex.from(
+            `0014${BitcoinHashUtils.computeHash160(
+              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
+            )}`
+          )
 
           await depositorBridgeHandle.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
-            Hex.from(redeemerOutputScript),
+            redeemerOutputScript,
             requestedAmount
           )
 
@@ -353,7 +355,7 @@ describe("System Test - Deposit and redemption", () => {
 
           redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-            Hex.from(redeemerOutputScript)
+            redeemerOutputScript
           )
         })
 
@@ -370,7 +372,7 @@ describe("System Test - Deposit and redemption", () => {
         it("should register the redemption request on the bridge", async () => {
           expect(redemptionRequest.requestedAt).to.be.greaterThan(0)
           expect(redemptionRequest.requestedAmount).to.be.equal(requestedAmount)
-          expect(redemptionRequest.redeemerOutputScript).to.be.equal(
+          expect(redemptionRequest.redeemerOutputScript).to.be.deep.equal(
             redeemerOutputScript
           )
         })
@@ -620,7 +622,7 @@ describe("System Test - Deposit and redemption", () => {
 
       context("when redemption is requested", () => {
         let requestedAmount: BigNumber
-        let redeemerOutputScript: string
+        let redeemerOutputScript: Hex
         let redemptionRequest: RedemptionRequest
 
         before("request the redemption", async () => {
@@ -633,14 +635,16 @@ describe("System Test - Deposit and redemption", () => {
           requestedAmount = tbtcBalanceOfDepositor.div(SATOSHI_MULTIPLIER)
 
           // Request redemption to depositor's address.
-          redeemerOutputScript = `0014${BitcoinHashUtils.computeHash160(
-            systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
-          )}`
+          redeemerOutputScript = Hex.from(
+            `0014${BitcoinHashUtils.computeHash160(
+              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed
+            )}`
+          )
 
           await depositorBridgeHandle.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
-            Hex.from(redeemerOutputScript),
+            redeemerOutputScript,
             tbtcBalanceOfDepositor
           )
 
@@ -650,7 +654,7 @@ describe("System Test - Deposit and redemption", () => {
 
           redemptionRequest = await maintainerBridgeHandle.pendingRedemptions(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-            Hex.from(redeemerOutputScript)
+            redeemerOutputScript
           )
         })
 
@@ -673,7 +677,7 @@ describe("System Test - Deposit and redemption", () => {
         it("should register the redemption request on the bridge", async () => {
           expect(redemptionRequest.requestedAt).to.be.greaterThan(0)
           expect(redemptionRequest.requestedAmount).to.be.equal(requestedAmount)
-          expect(redemptionRequest.redeemerOutputScript).to.be.equal(
+          expect(redemptionRequest.redeemerOutputScript).to.be.deep.equal(
             redeemerOutputScript
           )
         })
