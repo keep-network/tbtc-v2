@@ -672,6 +672,30 @@ describe("Deposits", () => {
   describe("Deposit", () => {
     // TODO: Implement unit tests for other functions.
 
+    describe("getBitcoinAddress", () => {
+      let bitcoinClient: MockBitcoinClient
+      let tbtcContracts: MockTBTCContracts
+      let depositService: Deposit
+      let bitcoinAddress: string
+
+      beforeEach(async () => {
+        bitcoinClient = new MockBitcoinClient()
+        tbtcContracts = new MockTBTCContracts()
+        depositService = await Deposit.fromReceipt(
+          deposit,
+          tbtcContracts,
+          bitcoinClient
+        )
+        bitcoinAddress = await depositService.getBitcoinAddress()
+      })
+
+      it("should return correct address", () => {
+        expect(bitcoinAddress).to.be.equal(
+          "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
+        )
+      })
+    })
+
     describe("detectFunding", () => {
       let bitcoinClient: MockBitcoinClient
       let tbtcContracts: MockTBTCContracts
