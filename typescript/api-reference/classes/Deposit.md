@@ -114,7 +114,7 @@ Specific UTXOs targeting this deposit. Empty array in case
 
 #### Defined in
 
-[services/deposits/deposit.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L84)
+[services/deposits/deposit.ts:83](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L83)
 
 ___
 
@@ -190,7 +190,7 @@ Throws an error if the funding outpoint was already used to
 
 #### Defined in
 
-[services/deposits/deposit.ts:114](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L114)
+[services/deposits/deposit.ts:113](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L113)
 
 ___
 

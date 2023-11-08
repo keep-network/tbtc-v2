@@ -77,7 +77,7 @@ export class Deposit {
 
   /**
    * Detects Bitcoin funding transactions transferring BTC to this deposit.
-   * @return Specific UTXOs targeting this deposit. Empty array in case
+   * @returns Specific UTXOs targeting this deposit. Empty array in case
    *         there are no UTXOs referring this deposit.
    */
   async detectFunding(): Promise<BitcoinUtxo[]> {
