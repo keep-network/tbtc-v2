@@ -422,14 +422,11 @@ describe("System Test - Deposit and redemption", () => {
             })
 
             it("should close the redemption request on the bridge", async () => {
-              await expect(
-                maintainerBridgeHandle.pendingRedemptions(
-                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-                  redemptionRequest.redeemerOutputScript
-                )
-              ).to.be.rejectedWith(
-                "Provided redeemer output script and wallet public key do not identify a redemption request"
+              const request = await maintainerBridgeHandle.pendingRedemptions(
+                systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
+                redemptionRequest.redeemerOutputScript
               )
+              expect(request.requestedAt).to.be.equal(0)
             })
 
             it("should decrease Bridge's balance in the bank", async () => {
@@ -724,14 +721,11 @@ describe("System Test - Deposit and redemption", () => {
             })
 
             it("should close the redemption request on the bridge", async () => {
-              await expect(
-                maintainerBridgeHandle.pendingRedemptions(
-                  systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-                  redemptionRequest.redeemerOutputScript
-                )
-              ).to.be.rejectedWith(
-                "Provided redeemer output script and wallet public key do not identify a redemption request"
+              const request = await maintainerBridgeHandle.pendingRedemptions(
+                systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
+                redemptionRequest.redeemerOutputScript
               )
+              expect(request.requestedAt).to.be.equal(0)
             })
 
             it("should decrease Bridge's balance in the bank", async () => {
