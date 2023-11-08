@@ -5,8 +5,10 @@ import {
   EthereumAddress,
   EthereumBridge,
   BitcoinTransactionHash,
+  BitcoinNetwork,
 } from "@keep-network/tbtc-v2.ts/dist/src"
-import { computeHash160 } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import { computeHash160, createAddressFromPublicKey } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
+import { Hex } from "@keep-network/tbtc-v2.ts/dist/src/hex"
 import { BigNumber, constants, Contract, utils as ethersUtils } from "ethers"
 import chai, { expect } from "chai"
 import { submitDepositTransaction } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
@@ -62,6 +64,7 @@ describe("System Test - Minting and unminting", () => {
 
   const depositAmount = BigNumber.from(2000000)
   const depositSweepTxFee = BigNumber.from(10000)
+  const depositTxFee = BigNumber.from(1500)
   // Number of retries for Electrum requests.
   const ELECTRUM_RETRIES = 5
   // Initial backoff step in milliseconds that will be increased exponentially for
@@ -140,11 +143,22 @@ describe("System Test - Minting and unminting", () => {
         Generated deposit data:
         ${JSON.stringify(deposit)}
       `)
+
+        const depositorBitcoinAddress = createAddressFromPublicKey(
+          Hex.from(systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed),
+          BitcoinNetwork.Testnet,
+        )
+        const depositorUtxos = await electrumClient.findAllUnspentTransactionOutputs(
+          depositorBitcoinAddress
+        )
+
         ;({ depositUtxo } = await submitDepositTransaction(
           deposit,
           systemTestsContext.depositorBitcoinKeyPair.wif,
           electrumClient,
-          true
+          true,
+          depositorUtxos,
+          depositTxFee
         ))
 
         console.log(`
@@ -152,6 +166,12 @@ describe("System Test - Minting and unminting", () => {
         - Transaction hash: ${depositUtxo.transactionHash}
         - Output index: ${depositUtxo.outputIndex}
       `)
+
+        // It happens from time to time that a deposit reveal process starts when
+        // a deposit is not captured by the Bitcoin chain yet and a deposit is
+        // revealed with a non-existing Bitcoin tx. We should wait some time so
+        // the Bitcoin chain is in sync and then start the revealing process.
+        await new Promise((r) => setTimeout(r, 3000))
 
         // Since the reveal deposit logic does not perform SPV proof, we
         // can reveal the deposit transaction immediately without waiting

@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // In unit tests we cover VendingMachine, VendingMachineV2, and TBTCVault
   // contracts. All those tests require minting TBTC. To make the test setup
   // easier, we leave the responsibility of transferring the TBTC ownership
-  // to the test. In system tests and on Goerli, TBTCVault is the owner of TBTC
+  // to the test. In system tests and on testnet, TBTCVault is the owner of TBTC
   // token, just like on v1.0 mainnet, after transferring the ownership from the
   // VendingMachine.
   if (hre.network.name !== "hardhat") {

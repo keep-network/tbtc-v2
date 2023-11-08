@@ -1,19 +1,20 @@
 import {
-  DecomposedRawTransaction,
-  Proof,
-  Transaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionMerkleBranch,
-  TransactionHash,
-} from "../../src/bitcoin"
-import { calculateDepositRefundLocktime, Deposit } from "../../src/deposit"
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinTx,
+  BitcoinRawTx,
+  BitcoinUtxo,
+  BitcoinTxMerkleBranch,
+  BitcoinTxHash,
+  BitcoinLocktimeUtils,
+  DepositReceipt,
+  EthereumAddress,
+  Hex,
+} from "../../src"
 import { BigNumber } from "ethers"
-import { Address } from "../../src/ethereum"
-import { Hex } from "../../src"
 
 export const NO_MAIN_UTXO = {
-  transactionHash: TransactionHash.from(""),
+  transactionHash: BitcoinTxHash.from(""),
   outputIndex: 0,
   value: BigNumber.from(0),
   transactionHex: "",
@@ -24,14 +25,14 @@ export const NO_MAIN_UTXO = {
  */
 export interface DepositSweepTestData {
   deposits: {
-    utxo: UnspentTransactionOutput & RawTransaction
-    data: Deposit
+    utxo: BitcoinUtxo & BitcoinRawTx
+    data: DepositReceipt
   }[]
-  mainUtxo: UnspentTransactionOutput & RawTransaction
+  mainUtxo: BitcoinUtxo & BitcoinRawTx
   witness: boolean
   expectedSweep: {
-    transactionHash: TransactionHash
-    transaction: RawTransaction
+    transactionHash: BitcoinTxHash
+    transaction: BitcoinRawTx
   }
 }
 
@@ -45,7 +46,7 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "74d0e353cdba99a6c17ce2cfeab62a26c09b5eb756eccdcfb83dbc12e67b18bc"
           ),
           outputIndex: 0,
@@ -60,19 +61,27 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-          amount: BigNumber.from(25000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1641650400,
+            2592000
+          ),
         },
       },
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "5c54ecdf946382fab2236f78423ddc22a757776fb8492671c588667b737e55dc"
           ),
           outputIndex: 0,
@@ -87,22 +96,29 @@ export const depositSweepWithNoMainUtxoAndWitnessOutput: DepositSweepTestData =
             "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-
-          amount: BigNumber.from(12000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1641650400,
+            2592000
+          ),
         },
       },
     ],
     mainUtxo: NO_MAIN_UTXO,
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
       ),
       transaction: {
@@ -137,7 +153,7 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "4cdd899d7133cd681bdc4e80b3af09d34da1f7450c5b19167aa8a8223c7a8426"
           ),
           outputIndex: 0,
@@ -146,21 +162,29 @@ export const depositSweepWithNoMainUtxoAndNonWitnessOutput: DepositSweepTestData
             "01000000000101dcd1de7b256376f1e05b3c20846868401aee2a85c27990b95886e0d2970a3fc40100000000ffffffff02983a00000000000017a914a9a5f97d5d3c4687a52e90718168270005b369c487f065120000000000160014e257eccafbc07c381642ce6e7e55120fb077fbed02483045022100baccb37cb46a20d79ccd3875162ab8b614a671cc64dc37d3477e24ef5eb61d7102204c68c5a5caff7e5089c1cacaa173fb5aad9529642773501b5e8d88abe7b4fc9c0121039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-          amount: BigNumber.from(15000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1653302600, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1653302600,
+            2592000
+          ),
         },
       },
     ],
     mainUtxo: NO_MAIN_UTXO,
     witness: false,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "1c42b0568d88bb4d21ae138769fd06199dd3ec689911972792e678be8516d58d"
       ),
       transaction: {
@@ -182,7 +206,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
       {
         // P2SH deposit
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "d4fe2ef9068d039eae2210e893db518280d4757696fe9db8f3c696a94de90aed"
           ),
           outputIndex: 0,
@@ -197,20 +221,28 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "08db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-          amount: BigNumber.from(17000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1641650400,
+            2592000
+          ),
         },
       },
       {
         // P2WSH deposit
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "b86ef64f8aff19778535e7c6e45ff82bc2f5f5eec800fd2b03a03fc22f557fe3"
           ),
           outputIndex: 0,
@@ -225,20 +257,28 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
             "8d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-          amount: BigNumber.from(10000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1641650400, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1641650400,
+            2592000
+          ),
         },
       },
     ],
     mainUtxo: {
       // P2WPKH
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f8eaf242a55ea15e602f9f990e33f67f99dfbe25d1802bbde63cc1caabf99668"
       ),
       outputIndex: 0,
@@ -263,7 +303,7 @@ export const depositSweepWithWitnessMainUtxoAndWitnessOutput: DepositSweepTestDa
     },
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "435d4aff6d4bc34134877bd3213c17970142fdd04d4113d534120033b9eecb2e"
       ),
       transaction: {
@@ -303,7 +343,7 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     deposits: [
       {
         utxo: {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "fda2323b4075a0311767ae8db07f4387bb53663a304278cd8c2c7a591f203a17"
           ),
           outputIndex: 0,
@@ -319,19 +359,27 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
             "e7bc11907bfa00000000",
         },
         data: {
-          depositor: Address.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
-          amount: BigNumber.from(19000),
+          depositor: EthereumAddress.from(
+            "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+          ),
           // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
-          walletPublicKeyHash: "8db50eb52063ea9d98b3eac91489a90f738986f6",
+          walletPublicKeyHash: Hex.from(
+            "8db50eb52063ea9d98b3eac91489a90f738986f6"
+          ),
           // HASH160 of 039d61d62dcd048d3f8550d22eb90b4af908db60231d117aeede04e7bc11907bfa.
-          refundPublicKeyHash: "e257eccafbc07c381642ce6e7e55120fb077fbed",
-          blindingFactor: "f9f0c90d00039523",
-          refundLocktime: calculateDepositRefundLocktime(1653302600, 2592000),
+          refundPublicKeyHash: Hex.from(
+            "e257eccafbc07c381642ce6e7e55120fb077fbed"
+          ),
+          blindingFactor: Hex.from("f9f0c90d00039523"),
+          refundLocktime: BitcoinLocktimeUtils.calculateLocktime(
+            1653302600,
+            2592000
+          ),
         },
       },
     ],
     mainUtxo: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "c8a2c407309b9434cb73d4788ce4ac895084240eec7bb440e7f76b75be1296e1"
       ),
       outputIndex: 0,
@@ -349,25 +397,24 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
     },
     witness: true,
     expectedSweep: {
-      transactionHash: TransactionHash.from(
-        "7831d0dfde7e160f3b9bb66c433710f0d3110d73ea78b9db65e81c091a6718a0"
+      transactionHash: BitcoinTxHash.from(
+        "1933781f01f27f086c3a31c4a53035ebc7c4688e1f4b316babefa8f6dab77dc2"
       ),
       transaction: {
         transactionHex:
-          "01000000000102173a201f597a2c8ccd7842303a6653bb87437fb08dae671731a0" +
-          "75403b32a2fd0000000000ffffffffe19612be756bf7e740b47bec0e24845089ac" +
-          "e48c78d473cb34949b3007c4a2c8000000006a47304402204382deb051f9f3e2b5" +
-          "39e4bac2d1a50faf8d66bc7a3a3f3d286dabd96d92b58b02207c74c6aaf48e25d0" +
-          "7e02bb4039606d77ecfd80c492c050ab2486af6027fc2d5a012103989d253b17a6" +
-          "a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9ffffffff010884" +
-          "0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f603483045" +
-          "022100c52bc876cdee80a3061ace3ffbce5e860942d444cd38e00e5f63fd8e818d" +
-          "7e7c022040a7017bb8213991697705e7092c481526c788a4731d06e582dc1c57be" +
-          "d7243b012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc2" +
-          "9dcf8581d95c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d" +
-          "000395237576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776" +
-          "a914e257eccafbc07c381642ce6e7e55120fb077fbed880448f2b262b175ac6800" +
-          "00000000",
+          "01000000000102e19612be756bf7e740b47bec0e24845089ace48c78d473cb34949" +
+          "b3007c4a2c8000000006a473044022013787be70eda0620002fa55c92abfcd32257" +
+          "d64fa652dd32bac65d705162a95902203407fea1abc99a9273ead3179ce60f60a34" +
+          "33fb2e93f58569e4bee9f63c0d679012103989d253b17a6a0f41838b84ff0d20e88" +
+          "98f9d7b1a98f2564da4cc29dcf8581d9ffffffff173a201f597a2c8ccd7842303a6" +
+          "653bb87437fb08dae671731a075403b32a2fd0000000000ffffffff010884000000" +
+          "0000001600148db50eb52063ea9d98b3eac91489a90f738986f6000348304502210" +
+          "0804f0fa989d632cda99a24159e28b8d31d4033c2d5de47d8207ea2767273d10a02" +
+          "20278e82d0714867b31eb013762306e2b97c2c1cc74b8135bee78d565e72ee630e0" +
+          "12103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581" +
+          "d95c14934b98637ca318a4d6e7ca6ffd1690b8e77df6377508f9f0c90d000395237" +
+          "576a9148db50eb52063ea9d98b3eac91489a90f738986f68763ac6776a914e257ec" +
+          "cafbc07c381642ce6e7e55120fb077fbed880448f2b262b175ac6800000000",
       },
     },
   }
@@ -377,17 +424,17 @@ export const depositSweepWithNonWitnessMainUtxoAndWitnessOutput: DepositSweepTes
  */
 export interface DepositSweepProofTestData {
   bitcoinChainData: {
-    transaction: Transaction
-    rawTransaction: RawTransaction
+    transaction: BitcoinTx
+    rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
-    headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    headersChain: Hex
+    transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedSweepProof: {
-    sweepTx: DecomposedRawTransaction
-    sweepProof: Proof
-    mainUtxo: UnspentTransactionOutput
+    sweepTx: BitcoinRawTxVectors
+    sweepProof: BitcoinSpvProof
+    mainUtxo: BitcoinUtxo
   }
 }
 
@@ -398,33 +445,33 @@ export interface DepositSweepProofTestData {
 export const depositSweepProof: DepositSweepProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "5083822ed0b8d0bc661362b778e666cb572ff6d5152193992dd69d3207995753"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "ea4d9e45f8c1b8a187c007f36ba1e9b201e8511182c7083c4edcaf9325b2998f"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "c844ff4c1781c884bb5e80392398b81b984d7106367ae16675f132bd1a7f33fd"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "44c568bc0eac07a2a9c2b46829be5b5d46e7d00e17bfb613f506a75ccf86a473"
           ),
           outputIndex: 0,
           scriptSig: Hex.from(""),
         },
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "f548c00e464764e112826450a00cf005ca771a6108a629b559b6c60a519e4378"
           ),
           outputIndex: 0,
@@ -475,82 +522,97 @@ export const depositSweepProof: DepositSweepProofTestData = {
         "120fb077fbed8804e0250162b175ac6800000000",
     },
     latestBlockHeight: 2164335,
-    headersChain:
+    headersChain: Hex.from(
       "04000020642125b3910fdaead521b57955e28893d89f8ce7fd3ba1dd6d0100000" +
-      "0000000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d8833" +
-      "11e5355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140d" +
-      "c7031225f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fe" +
-      "a2ccf0ba212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e00" +
-      "0208475e15e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000" +
-      "002a3fa06fecd9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67c" +
-      "ea1c51c62ed3e031a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa0" +
-      "8ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f38626eb9d" +
-      "70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc2170000002068" +
-      "7e487acbf5eb375c631a15127fbf7d80ca084461e7f26f92c509b6000000006fa" +
-      "d33bd7c8d651bd6dc86c286f0a99340b668f019b9e97a59fd392c36c4f46910cf" +
-      "1c62ffff001d407facaa0400002040f4c65610f26f06c4365305b956934501713" +
-      "e01c2fc08b919e0bc1b00000000e401a6a884ba015e83c6fe2cd363e877ef0398" +
-      "2e81eaff4e2c95af1e23a670f407d41c62ffff001d58c64d180400002038854bd" +
-      "62f802e1de14653eceeb7a80290f5e99b8e9db517e36f000000000000a494b803" +
-      "4039e7855b75563ab83c9410dd67e89bb58e6cd93b85290a885dd749f4d61c62e" +
-      "d3e031ad9a83746",
+        "0000000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d8833" +
+        "11e5355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140d" +
+        "c7031225f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fe" +
+        "a2ccf0ba212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e00" +
+        "0208475e15e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000" +
+        "002a3fa06fecd9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67c" +
+        "ea1c51c62ed3e031a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa0" +
+        "8ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f38626eb9d" +
+        "70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc2170000002068" +
+        "7e487acbf5eb375c631a15127fbf7d80ca084461e7f26f92c509b6000000006fa" +
+        "d33bd7c8d651bd6dc86c286f0a99340b668f019b9e97a59fd392c36c4f46910cf" +
+        "1c62ffff001d407facaa0400002040f4c65610f26f06c4365305b956934501713" +
+        "e01c2fc08b919e0bc1b00000000e401a6a884ba015e83c6fe2cd363e877ef0398" +
+        "2e81eaff4e2c95af1e23a670f407d41c62ffff001d58c64d180400002038854bd" +
+        "62f802e1de14653eceeb7a80290f5e99b8e9db517e36f000000000000a494b803" +
+        "4039e7855b75563ab83c9410dd67e89bb58e6cd93b85290a885dd749f4d61c62e" +
+        "d3e031ad9a83746"
+    ),
     transactionMerkleBranch: {
       blockHeight: 2164155,
       merkle: [
-        "322cfdf3ca53cf597b6f08e93489b9a1cfa1f5958c3657474b0d8f5efb5ca92e",
-        "82aedffef6c9670375effee25740fecce143d21f8abf98307235b7ebd31ad4d1",
-        "837fa041b9a8f5b42353fdf8981e3b7a78c61858852e43058bfe6cacf9eab5a3",
-        "a51612d3f3f857e95803a4d86aa6dbbe2e756dc2ed6cc0e04630e8baf597e377",
-        "a00501650e0c4f8a1e07a5d6d5bc5e75e4c75de61a65f0410cce354bbae78686",
+        Hex.from(
+          "322cfdf3ca53cf597b6f08e93489b9a1cfa1f5958c3657474b0d8f5efb5ca92e"
+        ),
+        Hex.from(
+          "82aedffef6c9670375effee25740fecce143d21f8abf98307235b7ebd31ad4d1"
+        ),
+        Hex.from(
+          "837fa041b9a8f5b42353fdf8981e3b7a78c61858852e43058bfe6cacf9eab5a3"
+        ),
+        Hex.from(
+          "a51612d3f3f857e95803a4d86aa6dbbe2e756dc2ed6cc0e04630e8baf597e377"
+        ),
+        Hex.from(
+          "a00501650e0c4f8a1e07a5d6d5bc5e75e4c75de61a65f0410cce354bbae78686"
+        ),
       ],
       position: 6,
     },
   },
   expectedSweepProof: {
     sweepTx: {
-      version: "01000000",
-      inputs:
+      version: Hex.from("01000000"),
+      inputs: Hex.from(
         "048f99b22593afdc4e3c08c7821151e801b2e9a16bf307c087a1b8c1f8459e4dea0" +
-        "0000000c9483045022100bb54f2717647b2f2c5370b5f12b55e27f97a6e2009dcd2" +
-        "1fca08527df949e1fd022058bc3cd1dd739b89b9e4cda43b13bc59cfb15663b80cb" +
-        "fa3edb4539107bba35d012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a9" +
-        "8f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df63" +
-        "77508f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986" +
-        "f68763ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e025016" +
-        "2b175ac68fffffffffd337f1abd32f17566e17a3606714d981bb8982339805ebb84" +
-        "c881174cff44c80000000000ffffffff73a486cf5ca706f513b6bf170ed0e7465d5" +
-        "bbe2968b4c2a9a207ac0ebc68c5440000000000ffffffff78439e510ac6b659b529" +
-        "a608611a77ca05f00ca050648212e16447460ec048f50000000000ffffffff",
-      outputs:
-        "01789b0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6",
-      locktime: "00000000",
+          "0000000c9483045022100bb54f2717647b2f2c5370b5f12b55e27f97a6e2009dcd2" +
+          "1fca08527df949e1fd022058bc3cd1dd739b89b9e4cda43b13bc59cfb15663b80cb" +
+          "fa3edb4539107bba35d012103989d253b17a6a0f41838b84ff0d20e8898f9d7b1a9" +
+          "8f2564da4cc29dcf8581d94c5c14934b98637ca318a4d6e7ca6ffd1690b8e77df63" +
+          "77508f9f0c90d000395237576a9148db50eb52063ea9d98b3eac91489a90f738986" +
+          "f68763ac6776a914e257eccafbc07c381642ce6e7e55120fb077fbed8804e025016" +
+          "2b175ac68fffffffffd337f1abd32f17566e17a3606714d981bb8982339805ebb84" +
+          "c881174cff44c80000000000ffffffff73a486cf5ca706f513b6bf170ed0e7465d5" +
+          "bbe2968b4c2a9a207ac0ebc68c5440000000000ffffffff78439e510ac6b659b529" +
+          "a608611a77ca05f00ca050648212e16447460ec048f50000000000ffffffff"
+      ),
+      outputs: Hex.from(
+        "01789b0000000000001600148db50eb52063ea9d98b3eac91489a90f738986f6"
+      ),
+      locktime: Hex.from("00000000"),
     },
     sweepProof: {
-      merkleProof:
+      merkleProof: Hex.from(
         "2ea95cfb5e8f0d4b4757368c95f5a1cfa1b98934e9086f7b59cf53caf3fd2c32d1d" +
-        "41ad3ebb735723098bf8a1fd243e1ccfe4057e2feef750367c9f6fedfae82a3b5ea" +
-        "f9ac6cfe8b05432e855818c6787a3b1e98f8fd5323b4f5a8b941a07f8377e397f5b" +
-        "ae83046e0c06cedc26d752ebedba66ad8a40358e957f8f3d31216a58686e7ba4b35" +
-        "ce0c41f0651ae65dc7e4755ebcd5d6a5071e8a4f0c0e650105a0",
+          "41ad3ebb735723098bf8a1fd243e1ccfe4057e2feef750367c9f6fedfae82a3b5ea" +
+          "f9ac6cfe8b05432e855818c6787a3b1e98f8fd5323b4f5a8b941a07f8377e397f5b" +
+          "ae83046e0c06cedc26d752ebedba66ad8a40358e957f8f3d31216a58686e7ba4b35" +
+          "ce0c41f0651ae65dc7e4755ebcd5d6a5071e8a4f0c0e650105a0"
+      ),
       txIndexInBlock: 6,
-      bitcoinHeaders:
+      bitcoinHeaders: Hex.from(
         "04000020642125b3910fdaead521b57955e28893d89f8ce7fd3ba1dd6d010000000" +
-        "00000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d883311e5" +
-        "355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140dc70312" +
-        "25f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fea2ccf0ba" +
-        "212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e000208475e15" +
-        "e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000002a3fa06fec" +
-        "d9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67cea1c51c62ed3e0" +
-        "31a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa08ab6139eee31f4f6" +
-        "7a010000000000004cda79bc48b970de2fb29c3f38626eb9d70d8bae7b92aad09f2" +
-        "a0ad2d2f334d35bca1c62ffff001d048fc21700000020687e487acbf5eb375c631a" +
-        "15127fbf7d80ca084461e7f26f92c509b6000000006fad33bd7c8d651bd6dc86c28" +
-        "6f0a99340b668f019b9e97a59fd392c36c4f46910cf1c62ffff001d407facaa0400" +
-        "002040f4c65610f26f06c4365305b956934501713e01c2fc08b919e0bc1b0000000" +
-        "0e401a6a884ba015e83c6fe2cd363e877ef03982e81eaff4e2c95af1e23a670f407" +
-        "d41c62ffff001d58c64d180400002038854bd62f802e1de14653eceeb7a80290f5e" +
-        "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
-        "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746",
+          "00000f9e17a266a2267ee02d5ab82a75a76805db821a13abd2e80e0950d883311e5" +
+          "355dc21c62ed3e031adefc02c4040000205b6de55e069be71b21a62cd140dc70312" +
+          "25f7258dc758f19ea01000000000000139966d27d9ed0c0c1ed9162c2fea2ccf0ba" +
+          "212706f6bc421d0a2b6211de040d1ac41c62ed3e031a4726538f04e000208475e15" +
+          "e0314635d32abf04c761fee528d6a3f2db3b3d13798000000000000002a3fa06fec" +
+          "d9dd4bf2e25e22a95d4f65435d5c5b42bcf498b4e756f9f4ea67cea1c51c62ed3e0" +
+          "31a9d7bf3ac000000203f16d450c51853a4cd9569d225028aa08ab6139eee31f4f6" +
+          "7a010000000000004cda79bc48b970de2fb29c3f38626eb9d70d8bae7b92aad09f2" +
+          "a0ad2d2f334d35bca1c62ffff001d048fc21700000020687e487acbf5eb375c631a" +
+          "15127fbf7d80ca084461e7f26f92c509b6000000006fad33bd7c8d651bd6dc86c28" +
+          "6f0a99340b668f019b9e97a59fd392c36c4f46910cf1c62ffff001d407facaa0400" +
+          "002040f4c65610f26f06c4365305b956934501713e01c2fc08b919e0bc1b0000000" +
+          "0e401a6a884ba015e83c6fe2cd363e877ef03982e81eaff4e2c95af1e23a670f407" +
+          "d41c62ffff001d58c64d180400002038854bd62f802e1de14653eceeb7a80290f5e" +
+          "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
+          "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746"
+      ),
     },
     mainUtxo: NO_MAIN_UTXO,
   },

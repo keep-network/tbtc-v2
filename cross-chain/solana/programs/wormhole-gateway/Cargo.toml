@@ -18,9 +18,11 @@ no-log-ix-name = []
 cpi = ["no-entrypoint"]
 
 [dependencies]
+wormhole-anchor-sdk = { version = "0.1.0-alpha.1", features = ["token-bridge"], default-features = false }
+
 anchor-lang = { version = "0.28.0", features = ["init-if-needed"]}
 anchor-spl = "0.28.0"
 
-wormhole-anchor-sdk = { git = "https://github.com/wormhole-foundation/wormhole-scaffolding", rev = "f8d5ba04bfd449ab3693b15c818fd3e85e30f758", features = ["token-bridge"], default-features = false }
+solana-program = "=1.14"
 
 tbtc = { path = "../tbtc", features = ["cpi"] }

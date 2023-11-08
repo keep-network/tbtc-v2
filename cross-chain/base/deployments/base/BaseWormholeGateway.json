@@ -175,19 +175,6 @@
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "depositWormholeTbtc",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "bytes32",
           "name": "_address",
           "type": "bytes32"
@@ -489,7 +476,7 @@
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 1,
-  "implementation": "0x292C9fdf2e2475599cBe350cc473c221Bd67AE28",
+  "numDeployments": 2,
+  "implementation": "0x00A5504eFB14373FAF38cB6AB4fc03fDb7762ebE",
   "devdoc": "Contract deployed as upgradable proxy"
 }

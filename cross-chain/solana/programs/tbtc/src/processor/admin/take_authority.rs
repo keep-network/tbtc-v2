@@ -7,16 +7,30 @@ pub struct TakeAuthority<'info> {
         mut,
         seeds = [Config::SEED_PREFIX],
         bump,
-        constraint = config.pending_authority.is_some() @ TbtcError::NoPendingAuthorityChange
     )]
     config: Account<'info, Config>,
 
-    #[account(
-        constraint = pending_authority.key() == config.pending_authority.unwrap() @ TbtcError::IsNotPendingAuthority
-    )]
     pending_authority: Signer<'info>,
 }
 
+impl<'info> TakeAuthority<'info> {
+    fn constraints(ctx: &Context<Self>) -> Result<()> {
+        match ctx.accounts.config.pending_authority {
+            Some(pending_authority) => {
+                require_keys_eq!(
+                    pending_authority,
+                    ctx.accounts.pending_authority.key(),
+                    TbtcError::IsNotPendingAuthority
+                );
+
+                Ok(())
+            }
+            None => err!(TbtcError::NoPendingAuthorityChange),
+        }
+    }
+}
+
+#[access_control(TakeAuthority::constraints(&ctx))]
 pub fn take_authority(ctx: Context<TakeAuthority>) -> Result<()> {
     ctx.accounts.config.authority = ctx.accounts.pending_authority.key();
     ctx.accounts.config.pending_authority = None;

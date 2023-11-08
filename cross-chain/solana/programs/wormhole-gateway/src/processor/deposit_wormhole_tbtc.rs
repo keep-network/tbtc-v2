@@ -7,6 +7,7 @@ use anchor_spl::token;
 pub struct DepositWormholeTbtc<'info> {
     /// NOTE: This account also acts as a minter for the TBTC program.
     #[account(
+        mut, 
         seeds = [Custodian::SEED_PREFIX],
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,
@@ -51,7 +52,7 @@ pub struct DepositWormholeTbtc<'info> {
     tbtc_config: UncheckedAccount<'info>,
 
     /// CHECK: TBTC program requires this account.
-    minter_info: UncheckedAccount<'info>,
+    tbtc_minter_info: UncheckedAccount<'info>,
 
     token_program: Program<'info, token::Token>,
     tbtc_program: Program<'info, tbtc::Tbtc>,
@@ -59,9 +60,15 @@ pub struct DepositWormholeTbtc<'info> {
 
 impl<'info> DepositWormholeTbtc<'info> {
     fn constraints(ctx: &Context<Self>, amount: u64) -> Result<()> {
-        require_gt!(
+        let updated_minted_amount = ctx
+            .accounts
+            .custodian
+            .minted_amount
+            .checked_add(amount)
+            .ok_or(WormholeGatewayError::MintedAmountOverflow)?;
+        require_gte!(
             ctx.accounts.custodian.minting_limit,
-            ctx.accounts.tbtc_mint.supply.saturating_add(amount),
+            updated_minted_amount,
             WormholeGatewayError::MintingLimitExceeded
         );
 
@@ -84,6 +91,9 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
         amount,
     )?;
 
+    // Account for minted amount.
+    ctx.accounts.custodian.minted_amount += amount;
+
     let custodian = &ctx.accounts.custodian;
 
     // Now mint.
@@ -93,7 +103,7 @@ pub fn deposit_wormhole_tbtc(ctx: Context<DepositWormholeTbtc>, amount: u64) -> 
             tbtc::cpi::accounts::Mint {
                 mint: ctx.accounts.tbtc_mint.to_account_info(),
                 config: ctx.accounts.tbtc_config.to_account_info(),
-                minter_info: ctx.accounts.minter_info.to_account_info(),
+                minter_info: ctx.accounts.tbtc_minter_info.to_account_info(),
                 minter: custodian.to_account_info(),
                 recipient_token: ctx.accounts.recipient_token.to_account_info(),
                 token_program: ctx.accounts.token_program.to_account_info(),

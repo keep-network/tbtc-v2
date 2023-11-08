@@ -1,8 +1,7 @@
-
 out_solana-devnet=artifacts-testnet
 out_mainnet=artifacts-mainnet
 
-.PHONY: all clean build test
+.PHONY: all clean build test lint
 
 all: test
 
@@ -24,3 +23,15 @@ endif
 
 test: node_modules
 	anchor test --arch sbf
+
+lint:
+	cargo fmt --check
+	cargo check --features "mainnet" --no-default-features
+	cargo check --features "solana-devnet" --no-default-features
+	cargo clippy --no-deps --all-targets -- -D warnings
+
+init_programs:
+	ts-node --files ./deploy/init.ts
+
+transfer_authority:
+	ts-node --files ./deploy/transfer_authority.ts

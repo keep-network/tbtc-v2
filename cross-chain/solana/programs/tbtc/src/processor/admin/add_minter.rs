@@ -1,6 +1,6 @@
 use crate::{
     error::TbtcError,
-    state::{Config, MinterInfo},
+    state::{Config, MinterInfo, Minters},
 };
 use anchor_lang::prelude::*;
 
@@ -18,6 +18,16 @@ pub struct AddMinter<'info> {
     authority: Signer<'info>,
 
     #[account(
+        mut,
+        seeds = [Minters::SEED_PREFIX],
+        bump = minters.bump,
+        realloc = Minters::compute_size(minters.keys.len() + 1),
+        realloc::payer = authority,
+        realloc::zero = true,
+    )]
+    minters: Account<'info, Minters>,
+
+    #[account(
         init,
         payer = authority,
         space = 8 + MinterInfo::INIT_SPACE,
@@ -33,11 +43,21 @@ pub struct AddMinter<'info> {
 }
 
 pub fn add_minter(ctx: Context<AddMinter>) -> Result<()> {
+    let minter = ctx.accounts.minter.key();
+
+    // Set account data.
     ctx.accounts.minter_info.set_inner(MinterInfo {
-        minter: ctx.accounts.minter.key(),
         bump: ctx.bumps["minter_info"],
+        minter,
     });
 
+    // Push pubkey to minters account.
+    ctx.accounts.minters.push(minter);
+
+    // Update config.
     ctx.accounts.config.num_minters += 1;
+
+    emit!(crate::event::MinterAdded { minter });
+
     Ok(())
 }

@@ -1,4 +1,7 @@
-use crate::state::{Custodian, GatewayInfo};
+use crate::{
+    constants::MSG_SEED_PREFIX,
+    state::{Custodian, GatewayInfo},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::{
@@ -10,6 +13,7 @@ use wormhole_anchor_sdk::{
 #[instruction(args: SendTbtcGatewayArgs)]
 pub struct SendTbtcGateway<'info> {
     #[account(
+        mut, 
         seeds = [Custodian::SEED_PREFIX],
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,
@@ -26,9 +30,11 @@ pub struct SendTbtcGateway<'info> {
     gateway_info: Account<'info, GatewayInfo>,
 
     /// Custody account.
+    #[account(mut)]
     wrapped_tbtc_token: Box<Account<'info, token::TokenAccount>>,
 
     /// CHECK: This account is needed for the Token Bridge program.
+    #[account(mut)]
     wrapped_tbtc_mint: UncheckedAccount<'info>,
 
     #[account(mut)]
@@ -55,12 +61,15 @@ pub struct SendTbtcGateway<'info> {
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(mut)]
-    core_bridge: UncheckedAccount<'info>,
+    core_bridge_data: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(
         mut,
-        seeds = [b"msg", &core_emitter_sequence.value().to_le_bytes()],
+        seeds = [
+            MSG_SEED_PREFIX,
+            &core_emitter_sequence.value().to_le_bytes()
+        ],
         bump,
     )]
     core_message: AccountInfo<'info>,
@@ -120,16 +129,17 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
     } = args;
 
     let sender = &ctx.accounts.sender;
-    let custodian = &ctx.accounts.custodian;
     let wrapped_tbtc_token = &ctx.accounts.wrapped_tbtc_token;
     let token_bridge_transfer_authority = &ctx.accounts.token_bridge_transfer_authority;
     let token_program = &ctx.accounts.token_program;
 
+    let gateway = ctx.accounts.gateway_info.address;
+
     // Prepare for wrapped tBTC transfer (this method also truncates the amount to prevent having to
     // handle dust since tBTC has >8 decimals).
-    let amount = super::burn_and_prepare_transfer(
+    super::burn_and_prepare_transfer(
         super::PrepareTransfer {
-            custodian,
+            custodian: &mut ctx.accounts.custodian,
             tbtc_mint: &ctx.accounts.tbtc_mint,
             sender_token: &ctx.accounts.sender_token,
             sender,
@@ -138,7 +148,14 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
             token_program,
         },
         amount,
+        recipient_chain,
+        Some(gateway),
+        recipient,
+        None, // arbiter_fee
+        nonce,
     )?;
+
+    let custodian = &ctx.accounts.custodian;
 
     // Finally transfer wrapped tBTC with the recipient encoded as this transfer's message.
     token_bridge::transfer_wrapped_with_payload(
@@ -152,7 +169,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
                 wrapped_mint: ctx.accounts.wrapped_tbtc_mint.to_account_info(),
                 wrapped_metadata: ctx.accounts.token_bridge_wrapped_asset.to_account_info(),
                 authority_signer: token_bridge_transfer_authority.to_account_info(),
-                wormhole_bridge: ctx.accounts.core_bridge.to_account_info(),
+                wormhole_bridge: ctx.accounts.core_bridge_data.to_account_info(),
                 wormhole_message: ctx.accounts.core_message.to_account_info(),
                 wormhole_emitter: ctx.accounts.token_bridge_core_emitter.to_account_info(),
                 wormhole_sequence: ctx.accounts.core_emitter_sequence.to_account_info(),
@@ -171,7 +188,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
                     &[ctx.accounts.custodian.token_bridge_sender_bump],
                 ],
                 &[
-                    b"msg",
+                    MSG_SEED_PREFIX,
                     &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
                     &[ctx.bumps["core_message"]],
                 ],
@@ -179,7 +196,7 @@ pub fn send_tbtc_gateway(ctx: Context<SendTbtcGateway>, args: SendTbtcGatewayArg
         ),
         nonce,
         amount,
-        ctx.accounts.gateway_info.address,
+        gateway,
         recipient_chain,
         recipient.to_vec(),
         &crate::ID,

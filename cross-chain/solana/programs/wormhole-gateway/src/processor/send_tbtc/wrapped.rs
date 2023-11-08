@@ -1,5 +1,5 @@
-use crate::state::Custodian;
-use anchor_lang::{prelude::*, solana_program};
+use crate::{constants::MSG_SEED_PREFIX, state::Custodian};
+use anchor_lang::prelude::*;
 use anchor_spl::token;
 use wormhole_anchor_sdk::{
     token_bridge::{self, program::TokenBridge},
@@ -10,6 +10,7 @@ use wormhole_anchor_sdk::{
 #[instruction(args: SendTbtcWrappedArgs)]
 pub struct SendTbtcWrapped<'info> {
     #[account(
+        mut,
         seeds = [Custodian::SEED_PREFIX],
         bump = custodian.bump,
         has_one = wrapped_tbtc_token,
@@ -19,9 +20,11 @@ pub struct SendTbtcWrapped<'info> {
     custodian: Account<'info, Custodian>,
 
     /// Custody account.
+    #[account(mut)]
     wrapped_tbtc_token: Box<Account<'info, token::TokenAccount>>,
 
     /// CHECK: This account is needed for the Token Bridge program.
+    #[account(mut)]
     wrapped_tbtc_mint: UncheckedAccount<'info>,
 
     #[account(mut)]
@@ -48,13 +51,16 @@ pub struct SendTbtcWrapped<'info> {
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(mut)]
-    core_bridge: UncheckedAccount<'info>,
+    core_bridge_data: UncheckedAccount<'info>,
 
     /// CHECK: This account is needed for the Token Bridge program.
     #[account(
         mut,
-        seeds = [b"msg", &core_emitter_sequence.value().to_le_bytes()],
-        bump,
+        seeds = [
+            MSG_SEED_PREFIX,
+            &core_emitter_sequence.value().to_le_bytes()
+        ],
+        bump
     )]
     core_message: AccountInfo<'info>,
 
@@ -111,15 +117,14 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
     } = args;
 
     let sender = &ctx.accounts.sender;
-    let custodian = &ctx.accounts.custodian;
     let wrapped_tbtc_token = &ctx.accounts.wrapped_tbtc_token;
     let token_bridge_transfer_authority = &ctx.accounts.token_bridge_transfer_authority;
     let token_program = &ctx.accounts.token_program;
 
     // Prepare for wrapped tBTC transfer.
-    let amount = super::burn_and_prepare_transfer(
+    super::burn_and_prepare_transfer(
         super::PrepareTransfer {
-            custodian,
+            custodian: &mut ctx.accounts.custodian,
             tbtc_mint: &ctx.accounts.tbtc_mint,
             sender_token: &ctx.accounts.sender_token,
             sender,
@@ -128,52 +133,51 @@ pub fn send_tbtc_wrapped(ctx: Context<SendTbtcWrapped>, args: SendTbtcWrappedArg
             token_program,
         },
         amount,
+        recipient_chain,
+        None, // gateway
+        recipient,
+        Some(arbiter_fee),
+        nonce,
     )?;
 
-    // Because the wormhole-anchor-sdk does not support relayable transfers (i.e. payload ID == 1),
-    // we need to construct the instruction from scratch and invoke it.
-    let ix = solana_program::instruction::Instruction {
-        program_id: ctx.accounts.token_bridge_program.key(),
-        accounts: vec![
-            AccountMeta::new(sender.key(), true),
-            AccountMeta::new_readonly(ctx.accounts.token_bridge_config.key(), false),
-            AccountMeta::new(wrapped_tbtc_token.key(), false),
-            AccountMeta::new_readonly(custodian.key(), false),
-            AccountMeta::new(ctx.accounts.wrapped_tbtc_mint.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.token_bridge_wrapped_asset.key(), false),
-            AccountMeta::new_readonly(token_bridge_transfer_authority.key(), false),
-            AccountMeta::new(ctx.accounts.core_bridge.key(), false),
-            AccountMeta::new(ctx.accounts.core_message.key(), true),
-            AccountMeta::new_readonly(ctx.accounts.token_bridge_core_emitter.key(), false),
-            AccountMeta::new(ctx.accounts.core_emitter_sequence.key(), false),
-            AccountMeta::new(ctx.accounts.core_fee_collector.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-            AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
-            AccountMeta::new_readonly(token_program.key(), false),
-        ],
-        data: token_bridge::Instruction::TransferWrapped {
-            batch_id: nonce,
-            amount,
-            fee: arbiter_fee,
-            recipient_address: recipient,
-            recipient_chain,
-        }
-        .try_to_vec()?,
-    };
+    let custodian = &ctx.accounts.custodian;
 
-    solana_program::program::invoke_signed(
-        &ix,
-        &ctx.accounts.to_account_infos(),
-        &[
-            &[Custodian::SEED_PREFIX, &[custodian.bump]],
+    // Finally transfer wrapped tBTC to the recipient.
+    token_bridge::transfer_wrapped(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_bridge_program.to_account_info(),
+            token_bridge::TransferWrapped {
+                payer: sender.to_account_info(),
+                config: ctx.accounts.token_bridge_config.to_account_info(),
+                from: wrapped_tbtc_token.to_account_info(),
+                from_owner: custodian.to_account_info(),
+                wrapped_mint: ctx.accounts.wrapped_tbtc_mint.to_account_info(),
+                wrapped_metadata: ctx.accounts.token_bridge_wrapped_asset.to_account_info(),
+                authority_signer: token_bridge_transfer_authority.to_account_info(),
+                wormhole_bridge: ctx.accounts.core_bridge_data.to_account_info(),
+                wormhole_message: ctx.accounts.core_message.to_account_info(),
+                wormhole_emitter: ctx.accounts.token_bridge_core_emitter.to_account_info(),
+                wormhole_sequence: ctx.accounts.core_emitter_sequence.to_account_info(),
+                wormhole_fee_collector: ctx.accounts.core_fee_collector.to_account_info(),
+                clock: ctx.accounts.clock.to_account_info(),
+                rent: ctx.accounts.rent.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                token_program: token_program.to_account_info(),
+                wormhole_program: ctx.accounts.core_bridge_program.to_account_info(),
+            },
             &[
-                b"msg",
-                &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
-                &[ctx.bumps["core_message"]],
+                &[Custodian::SEED_PREFIX, &[custodian.bump]],
+                &[
+                    MSG_SEED_PREFIX,
+                    &ctx.accounts.core_emitter_sequence.value().to_le_bytes(),
+                    &[ctx.bumps["core_message"]],
+                ],
             ],
-        ],
+        ),
+        nonce,
+        amount,
+        arbiter_fee,
+        recipient,
+        recipient_chain,
     )
-    .map_err(Into::into)
 }
