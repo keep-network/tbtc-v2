@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2",
-  "version": "1.6.0-dapp-dev-goerli",
+  "version": "1.6.0-dapp-dev-sepolia",
   "license": "GPL-3.0-only",
   "files": [
     "artifacts/",
@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "@keep-network/bitcoin-spv-sol": "3.4.0-solc-0.8",
-    "@keep-network/ecdsa": "dapp-development-goerli",
-    "@keep-network/random-beacon": "dapp-development-goerli",
+    "@keep-network/ecdsa": "dapp-development-sepolia",
+    "@keep-network/random-beacon": "dapp-development-sepolia",
     "@keep-network/tbtc": "development",
     "@openzeppelin/contracts": "^4.8.1",
     "@openzeppelin/contracts-upgradeable": "^4.8.1",
