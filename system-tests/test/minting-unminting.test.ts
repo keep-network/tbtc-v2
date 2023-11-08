@@ -22,7 +22,7 @@ import chaiAsPromised from "chai-as-promised"
 
 import { setupSystemTestsContext } from "./utils/context"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
-import { createDepositReceipt } from "./utils/deposit"
+import { createDepositReceipt, printDepositReceipt } from "./utils/deposit"
 
 import type { SystemTestsContext } from "./utils/context"
 import type {
@@ -181,10 +181,7 @@ describe("System Test - Minting and unminting", () => {
           systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
         )
 
-        console.log(`
-        Generated deposit data:
-        ${JSON.stringify(depositReceipt)}
-      `)
+        printDepositReceipt(depositReceipt)
 
         const depositorBitcoinAddress =
           BitcoinAddressConverter.publicKeyToAddress(

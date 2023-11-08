@@ -52,3 +52,19 @@ export function createDepositReceipt(
     refundLocktime,
   }
 }
+
+/**
+ * Prints a formatted deposit receipt to the console.
+ * @param receipt Deposit receipt object containing information to be printed.
+ * @returns {void} This function does not return any value.
+ */
+export function printDepositReceipt(receipt: DepositReceipt): void {
+  console.log(`
+    Deposit receipt:
+    - depositor: ${receipt.depositor.identifierHex}
+    - walletPublicKeyHash: ${receipt.walletPublicKeyHash}
+    - refundPublicKeyHash: ${receipt.refundPublicKeyHash}
+    - blindingFactor: ${receipt.blindingFactor}
+    - refundLocktime: ${receipt.refundLocktime}
+  `)
+}
