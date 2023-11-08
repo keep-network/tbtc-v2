@@ -672,6 +672,88 @@ describe("Deposits", () => {
   describe("Deposit", () => {
     // TODO: Implement unit tests for other functions.
 
+    describe("detectFunding", () => {
+      let bitcoinClient: MockBitcoinClient
+      let tbtcContracts: MockTBTCContracts
+      let depositService: Deposit
+      let utxos: BitcoinUtxo[]
+
+      beforeEach(async () => {
+        bitcoinClient = new MockBitcoinClient()
+        tbtcContracts = new MockTBTCContracts()
+
+        depositService = await Deposit.fromReceipt(
+          deposit,
+          tbtcContracts,
+          bitcoinClient
+        )
+      })
+
+      context("when there are no UTXOs from funding transactions", () => {
+        context("when Bitcoin client returns undefined", () => {
+          beforeEach(async () => {
+            // Do not set any value for the address stored in the deposit
+            // service so that undefined is returned.
+            utxos = await depositService.detectFunding()
+          })
+
+          it("should return an empty UTXO array", async () => {
+            expect(utxos).to.be.empty
+          })
+        })
+
+        context("when Bitcoin client returns an empty array", () => {
+          beforeEach(async () => {
+            const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+            // Set an empty array for the address stored in the deposit service.
+            unspentTransactionOutputs.set(
+              await depositService.getBitcoinAddress(),
+              []
+            )
+            bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+            utxos = await depositService.detectFunding()
+          })
+
+          it("should return an empty UTXO array", async () => {
+            expect(utxos).to.be.empty
+          })
+        })
+      })
+
+      context("when there are UTXOs from funding transactions", () => {
+        const fundingUtxos: BitcoinUtxo[] = [
+          {
+            transactionHash: BitcoinTxHash.from(
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ),
+            outputIndex: 0,
+            value: BigNumber.from(1111),
+          },
+          {
+            transactionHash: BitcoinTxHash.from(
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ),
+            outputIndex: 1,
+            value: BigNumber.from(2222),
+          },
+        ]
+
+        beforeEach(async () => {
+          const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+          unspentTransactionOutputs.set(
+            await depositService.getBitcoinAddress(),
+            fundingUtxos
+          )
+          bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+          utxos = await depositService.detectFunding()
+        })
+
+        it("should return funding UTXOs stored in the blockchain", async () => {
+          expect(utxos).to.be.equal(fundingUtxos)
+        })
+      })
+    })
+
     describe("initiateMinting", () => {
       describe("auto funding outpoint detection mode", () => {
         // TODO: Unit test for this case.

@@ -80,7 +80,6 @@ export class Deposit {
    * @return Specific UTXOs targeting this deposit. Empty array in case
    *         there are no UTXOs referring this deposit.
    */
-  // TODO: Cover with unit tests.
   async detectFunding(): Promise<BitcoinUtxo[]> {
     const utxos = await this.bitcoinClient.findAllUnspentTransactionOutputs(
       await this.getBitcoinAddress()
