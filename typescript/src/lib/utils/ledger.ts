@@ -8,6 +8,13 @@ import BigNumber from "bignumber.js"
 import { AddressZero } from "@ethersproject/constants"
 import { Deferrable } from "@ethersproject/properties"
 import { Hex } from "./hex"
+class AccountNotFoundError extends Error {
+  constructor() {
+    super(
+      "Account not found. Please use `requestAccount` method or set the signer account with `setAccount` method."
+    )
+  }
+}
 
 export class LedgerLiveAppEthereumSigner extends Signer {
   private _walletApiClient: WalletAPIClient
@@ -47,27 +54,21 @@ export class LedgerLiveAppEthereumSigner extends Signer {
 
   getAccountId(): string {
     if (!this._account || !this._account.id) {
-      throw new Error(
-        "Account not found. Please use `requestAccount` method first."
-      )
+      throw new AccountNotFoundError()
     }
     return this._account.id
   }
 
   async getAddress(): Promise<string> {
     if (!this._account || !this._account.address) {
-      throw new Error(
-        "Account not found. Please use `requestAccount` method first."
-      )
+      throw new AccountNotFoundError()
     }
     return this._account.address
   }
 
   async signMessage(message: string): Promise<string> {
     if (!this._account || !this._account.address) {
-      throw new Error(
-        "Account not found. Please use `requestAccount` method first."
-      )
+      throw new AccountNotFoundError()
     }
     this._windowMessageTransport.connect()
     const buffer = await this._walletApiClient.message.sign(
@@ -82,9 +83,7 @@ export class LedgerLiveAppEthereumSigner extends Signer {
     transaction: ethers.providers.TransactionRequest
   ): Promise<string> {
     if (!this._account || !this._account.address) {
-      throw new Error(
-        "Account not found. Please use `requestAccount` method first."
-      )
+      throw new AccountNotFoundError()
     }
 
     const { value, to, nonce, data, gasPrice, gasLimit } = transaction
@@ -119,9 +118,7 @@ export class LedgerLiveAppEthereumSigner extends Signer {
     transaction: Deferrable<ethers.providers.TransactionRequest>
   ): Promise<ethers.providers.TransactionResponse> {
     if (!this._account || !this._account.address) {
-      throw new Error(
-        "Account not found. Please use `requestAccount` method first."
-      )
+      throw new AccountNotFoundError()
     }
 
     const { value, to, nonce, data, gasPrice, gasLimit } = transaction
