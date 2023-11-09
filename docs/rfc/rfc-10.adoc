@@ -174,11 +174,12 @@ relayer's responsibility will be:
 - Request bridging tBTC from Ethereum to Solana once the tBTC for the deposit
   has been optimistically minted or the deposit was swept on Bitcoin and the
   SPV sweep proof was submitted to Ethereum.
-- Redeem bridged tBTC on Solana to the depositor address once the tBTC minted on
-  Ethereum has been successfully bridged to Solana.
-- Redeem bridged tBTC on Ethereum to `SolanaRedeemer` contract once the
-  redemption was requested on Solana and tBTC was bridged back via the Wormhole
-  Token Bridge.
+- Redeem bridged tBTC on Solana from the Wormhole Token Bridge contract to the
+  depositor address once the tBTC minted on Ethereum has been successfully
+  bridged to Solana.
+- Redeem bridged tBTC on Ethereum from the Wormhole Token Bridge contract to the
+  `SolanaRedeemer` contract once the redemption was requested on Solana and
+  tBTC was bridged back via the Wormhole Token Bridge.
 
 ==== Optimistic minting changes
 
@@ -220,8 +221,8 @@ With smart contract interactions:
    Solana depositor address associated with the given deposit using Wormhole
    Token Bridge. The same happens when the deposit was not optimistically minted
    but swept.
-10. Relayer bot redeems the tBTC bridged to Solana to the depositor's Solana
-    address.
+10. Relayer bot redeems the tBTC bridged to Solana from the Wormhole Token Bridge
+    contract to the depositor's Solana address.
 11. The user reveals their tBTC under the Solana address.
 
 ==== Redemption flow
@@ -237,7 +238,8 @@ With smart contract interactions:
 2. `SolanaGateway` takes the tBTC from the user and bridges tBTC back to
    Ethereum using Wormhole Token Bridge and `transferTokensWithPayload` passing
    the BTC redemption address as a payload.
-3. The relayer bot redeems tBTC on Ethereum to the `SolanaRedeemer` contract.
+3. The relayer bot redeems tBTC on Ethereum from the Wormhole Token Bridge
+   contract to the `SolanaRedeemer` contract.
 4. `SolanaRedeemer` contract uses the received tBTC to request redemption in the
    tBTC `Bridge` contract using the BTC address obtained from the payload.
 5. After some time, the user receives their BTC to the address they provided.
