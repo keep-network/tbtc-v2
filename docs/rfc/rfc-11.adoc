@@ -1,6 +1,6 @@
 :toc: macro
 
-= RFC 9: Solana tBTC
+= RFC 11: Solana tBTC
 
 :icons: font
 :numbered:
