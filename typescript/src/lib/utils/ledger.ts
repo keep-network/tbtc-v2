@@ -1,4 +1,4 @@
-import { ethers } from "ethers"
+import { ethers, Signer } from "ethers"
 import {
   Account,
   WalletAPIClient,
@@ -7,7 +7,6 @@ import {
 import BigNumber from "bignumber.js"
 import { AddressZero } from "@ethersproject/constants"
 import { Deferrable } from "@ethersproject/properties"
-import { Signer } from "ethers"
 import { Hex } from "./hex"
 
 export class LedgerLiveAppEthereumSigner extends Signer {
