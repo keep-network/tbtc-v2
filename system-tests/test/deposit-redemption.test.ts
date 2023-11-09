@@ -34,25 +34,6 @@ import type { SystemTestsContext } from "./utils/context"
 
 chai.use(chaiAsPromised)
 
-/**
- * This system test scenario performs a single deposit and redemption.
- *
- * The scenario consists of the following steps:
- * 1. The depositor broadcasts the deposit transaction on BTC chain and reveals
- *    it to the bridge.
- * 2. The wallet broadcasts the sweep transaction of the given deposit on BTC
- *    chain and submits the sweep proof to the bridge.
- * 3. The depositor (redeemer) requests the redemption of its entire bank
- *    balance.
- * 4. The wallet broadcasts the redemption transaction handling the given
- *    request and submits the redemption proof to the bridge.
- *
- * Following prerequisites must be fulfilled to make a successful pass:
- * - The depositor's BTC balance must allow to perform the deposit
- * - tBTC v2 contracts must be deployed on used Ethereum network
- * - A fresh live wallet (with no main UTXO yet) must be registered in
- *   the bridge
- */
 describe("System Test - Deposit and redemption", () => {
   let systemTestsContext: SystemTestsContext
   let electrumClient: ElectrumClient
@@ -164,6 +145,25 @@ describe("System Test - Deposit and redemption", () => {
   })
 
   context("when deposit is made and revealed without a vault", () => {
+    /**
+     * This system test scenario performs a single deposit and redemption.
+     *
+     * The scenario consists of the following steps:
+     * 1. The depositor broadcasts the deposit transaction on BTC chain and
+     *    reveals it to the bridge without providing a vault address.
+     * 2. The wallet broadcasts the sweep transaction of the given deposit on BTC
+     *    chain and submits the sweep proof to the bridge.
+     * 3. The depositor (redeemer) requests the redemption of its entire bank
+     *    balance.
+     * 4. The wallet broadcasts the redemption transaction handling the given
+     *    request and submits the redemption proof to the bridge.
+     *
+     * Following prerequisites must be fulfilled to make a successful pass:
+     * - The depositor's BTC balance must allow to perform the deposit
+     * - tBTC v2 contracts must be deployed on used Ethereum network
+     * - A fresh live wallet (with no main UTXO yet) must be registered in
+     *   the bridge
+     */
     before("make and reveal deposit", async () => {
       depositReceipt = createDepositReceipt(
         systemTestsContext.depositor.address,
@@ -441,6 +441,25 @@ describe("System Test - Deposit and redemption", () => {
   })
 
   context("when deposit is made and revealed with a vault", () => {
+    /**
+     * This system test scenario performs a single deposit and redemption.
+     *
+     * The scenario consists of the following steps:
+     * 1. The depositor broadcasts the deposit transaction on BTC chain and
+     *    reveals it to the bridge with the vault address provided.
+     * 2. The wallet broadcasts the sweep transaction of the given deposit on BTC
+     *    chain and submits the sweep proof to the bridge.
+     * 3. The depositor (redeemer) requests the redemption of its entire TBTC
+     *    balance.
+     * 4. The wallet broadcasts the redemption transaction handling the given
+     *    request and submits the redemption proof to the bridge.
+     *
+     * Following prerequisites must be fulfilled to make a successful pass:
+     * - The depositor's BTC balance must allow to perform the deposit
+     * - tBTC v2 contracts must be deployed on used Ethereum network
+     * - A live wallet (with the main UTXO from the previous system test) must
+     *   be registered in the bridge
+     */
     before("make and reveal deposit", async () => {
       depositReceipt = createDepositReceipt(
         systemTestsContext.depositor.address,
@@ -636,7 +655,7 @@ describe("System Test - Deposit and redemption", () => {
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
-            tbtcBalanceOfDepositor,
+            tbtcBalanceOfDepositor
           )
 
           console.log(
