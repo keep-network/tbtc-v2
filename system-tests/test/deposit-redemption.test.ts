@@ -210,7 +210,7 @@ describe("System Test - Deposit and redemption", () => {
       const depositRawTxVectors = extractBitcoinRawTxVectors(
         rawDepositTransaction
       )
-      depositorBridgeHandle.revealDeposit(
+      await depositorBridgeHandle.revealDeposit(
         depositRawTxVectors,
         depositUtxo.outputIndex,
         depositReceipt
@@ -487,7 +487,7 @@ describe("System Test - Deposit and redemption", () => {
       const depositRawTxVectors = extractBitcoinRawTxVectors(
         rawDepositTransaction
       )
-      depositorBridgeHandle.revealDeposit(
+      await depositorBridgeHandle.revealDeposit(
         depositRawTxVectors,
         depositUtxo.outputIndex,
         depositReceipt,
@@ -632,11 +632,11 @@ describe("System Test - Deposit and redemption", () => {
             )}`
           )
 
-          await depositorBridgeHandle.requestRedemption(
+          await tbtcTokenHandle.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
-            tbtcBalanceOfDepositor
+            tbtcBalanceOfDepositor,
           )
 
           console.log(

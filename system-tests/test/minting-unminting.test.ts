@@ -226,7 +226,7 @@ describe("System Test - Minting and unminting", () => {
         const depositRawTxVectors = extractBitcoinRawTxVectors(
           rawDepositTransaction
         )
-        depositorBridgeHandle.revealDeposit(
+        await depositorBridgeHandle.revealDeposit(
           depositRawTxVectors,
           depositUtxo.outputIndex,
           depositReceipt,
