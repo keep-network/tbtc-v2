@@ -16,11 +16,17 @@ export class LedgerLiveAppEthereumSigner extends Signer {
   private _windowMessageTransport: WindowMessageTransport
   private _account: Account | undefined
 
-  constructor(provider: ethers.providers.Provider) {
+  constructor(
+    provider: ethers.providers.Provider,
+    windowMessageTransport?: WindowMessageTransport,
+    walletApiClient?: WalletAPIClient
+  ) {
     super()
     ethers.utils.defineReadOnly(this, "provider", provider || null)
-    this._windowMessageTransport = getWindowMessageTransport()
-    this._walletApiClient = getWalletAPIClient(this._windowMessageTransport)
+    this._windowMessageTransport =
+      windowMessageTransport || getWindowMessageTransport()
+    this._walletApiClient =
+      walletApiClient || getWalletAPIClient(this._windowMessageTransport)
   }
 
   get account() {
