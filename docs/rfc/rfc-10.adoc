@@ -131,8 +131,9 @@ responsibility to make the use of them.
 
 `SolanaGateway` contract will be deployed on Solana and should be placed in
 `tbtc-v2/cross-chain/solana` project. The contract will communicate with
-Ethereum L1 using Wormhole VAAs to reveal Bitcoin deposits. The contract will
-use Wormhole Token Bridge to request Bitcoin redemption on Ethereum L1.
+Ethereum L1 using link:https://docs.wormhole.com/wormhole/explore-wormhole/vaa[Wormhole VAAs (Verified Action Approvals)]
+to reveal Bitcoin deposits. The contract will use Wormhole Token Bridge to
+request Bitcoin redemption on Ethereum L1.
 
 For the implementation, we should consider using the
 link:https://solang.readthedocs.io/en/latest/index.html[Solang compiler]. 
