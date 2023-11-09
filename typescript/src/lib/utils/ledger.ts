@@ -5,11 +5,10 @@ import {
   WindowMessageTransport,
 } from "@ledgerhq/wallet-api-client"
 import BigNumber from "bignumber.js"
-import { Hex } from "../../utils"
 import { AddressZero } from "@ethersproject/constants"
 import { Deferrable } from "@ethersproject/properties"
-import { getWalletAPIClient, getWindowMessageTransport } from "."
 import { Signer } from "ethers"
+import { Hex } from "./hex"
 
 export class LedgerLiveAppEthereumSigner extends Signer {
   private _walletApiClient: WalletAPIClient
@@ -167,4 +166,16 @@ export class LedgerLiveAppEthereumSigner extends Signer {
   connect(provider: ethers.providers.Provider): Signer {
     return new LedgerLiveAppEthereumSigner(provider)
   }
+}
+
+export const getWindowMessageTransport = () => {
+  return new WindowMessageTransport()
+}
+
+export const getWalletAPIClient = (
+  windowMessageTransport: WindowMessageTransport
+) => {
+  const walletApiClient = new WalletAPIClient(windowMessageTransport)
+
+  return walletApiClient
 }
