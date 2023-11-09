@@ -41,9 +41,9 @@ executed in the Threshold Dashboard.
 === Implementation
 
 The implementation is based on the Wormhole token bridge and does not require
-the off-chain client to work with Solana. Ethereum L1 `Bank` contract remains
+the off-chain client to work with Solana. Ethereum `Bank` contract remains
 the center of the gravity of tBTC bridge and tBTC token is still minted
-"centrally" on Ethereum L1.
+"centrally" on Ethereum.
 
 There are two main design challenges. The first challenge is how to represent
 32-byte Solana addresses in the process of depositing and redeeming. The entire
@@ -133,7 +133,7 @@ responsibility to make the use of them.
 `tbtc-v2/cross-chain/solana` project. The contract will communicate with
 Ethereum L1 using link:https://docs.wormhole.com/wormhole/explore-wormhole/vaa[Wormhole VAAs (Verified Action Approvals)]
 to reveal Bitcoin deposits. The contract will use Wormhole Token Bridge to
-request Bitcoin redemption on Ethereum L1.
+request Bitcoin redemption on Ethereum.
 
 For the implementation, we should consider using the
 link:https://solang.readthedocs.io/en/latest/index.html[Solang compiler]. 
@@ -142,7 +142,7 @@ The contract needs to be upgradeable.
 
 ==== Solana depositor
 
-`SolanaDepositor` contract will act as tBTC depositor on L1 Ethereum and should
+`SolanaDepositor` contract will act as tBTC depositor on Ethereum and should
 be placed in `tbtc-v2/solidity` project. The contract will receive Wormhole VAAs
 from Solana and reveal Bitcoin deposits to the tBTC `Bridge` contract. The
 contract will map the revealed deposit to the Solana address. It will also
@@ -158,7 +158,7 @@ The contract needs to be upgradeable.
 
 ==== Solana redeemer
 
-`SolanaRedeemer` contract will act as tBTC redeemer on L1 Ethereum and should be
+`SolanaRedeemer` contract will act as tBTC redeemer on Ethereum and should be
 placed in `tbtc-v2/solidity` project. The contract will receive tBTC from Solana
 via Wormhole Token Bridge and request redemption in the tBTC `Bridge` contract. 
 
@@ -172,9 +172,10 @@ relayer's responsibility will be:
 - Deliver Wormhole VAA to `SolanaDepositor` contract once the deposit was
   revealed on Solana.
 - Request bridging tBTC from Ethereum to Solana once the tBTC for the deposit
-  has been optimistically minted or the deposit was swept.
+  has been optimistically minted or the deposit was swept on Bitcoin and the
+  SPV sweep proof was submitted to Ethereum.
 - Redeem bridged tBTC on Solana to the depositor address once the tBTC minted on
-  L1 has been successfully bridged to Solana.
+  Ethereum has been successfully bridged to Solana.
 - Redeem bridged tBTC on Ethereum to `SolanaRedeemer` contract once the
   redemption was requested on Solana and tBTC was bridged back via the Wormhole
   Token Bridge.
@@ -233,10 +234,10 @@ From the user's perspective:
 With smart contract interactions:
 
 1. The user requests redemption on Solana sending their tBTC to a smart contract.
-2. `SolanaGateway` takes the tBTC from the user and bridges tBTC back to L1
+2. `SolanaGateway` takes the tBTC from the user and bridges tBTC back to
    Ethereum using Wormhole Token Bridge and `transferTokensWithPayload` passing
    the BTC redemption address as a payload.
-3. The relayer bot redeems tBTC on L1 Ethereum to the `SolanaRedeemer` contract.
+3. The relayer bot redeems tBTC on Ethereum to the `SolanaRedeemer` contract.
 4. `SolanaRedeemer` contract uses the received tBTC to request redemption in the
    tBTC `Bridge` contract using the BTC address obtained from the payload.
 5. After some time, the user receives their BTC to the address they provided.
