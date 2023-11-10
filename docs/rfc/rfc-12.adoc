@@ -1,0 +1,99 @@
+:toc: macro
+
+= RFC 11: Decentralized wallet coordination
+
+:icons: font
+:numbered:
+toc::[]
+
+== Background
+
+Currently used wallet coordination mechanism based on the `WalletCoordinator`
+smart contract and authorized maintainers turned out to be a single
+point of failure of the tBTC v2 system. This RFC aims to provide
+an alternative approach.
+
+=== Current functionality
+
+To execute a wallet action like deposit sweep or redemption, the majority of
+signers backing the given tBTC v2 wallet must attest to it using the threshold
+signing process. On a high level, a wallet action execution looks as follows:
+
+1. Signers determine the right input for the signing process (e.g. which deposits
+   should be swept, what Bitcoin network fee should be used, and so on).
+2. Signers execute the threshold signing process.
+3. Signers broadcast outcomes of the signing process (e.g. signed Bitcoin transaction).
+
+The first step is non-trivial as the majority of signers must come into the
+same view of the world. An obvious solution for that problem is forcing
+signers to use a consensus algorithm and let them agree about the common
+state. However, in combination with the ineffective signing algorithm (GG18)
+currently used by signers, the consensus-based solution would greatly increase
+the time and complexity of the whole signing process. That, in turn, would
+negatively impact system stability and user experience.
+
+To address the above challenges and make wallet coordination simple,
+a contract-based coordination mechanism has been used instead. Their central
+point is the `WalletCoordinator` smart contract. This contract is powered
+by authorized maintainers and acts as a lighthouse for signers backing tBTC v2
+wallets. In that model, the wallet coordination mechanism works as follows:
+
+1. Authorized maintainer proposes an action for a specific wallet by submitting
+   a transaction to the `WalletCoordinator` contract. The proposal contains
+   all the information necessary to build the right input for the threshold
+   signing process. Therefore, signers do not need to gather this information on
+   their own or reach a consensus about it. For example, a deposit sweep proposal is
+   something like: "Wallet A, sweep deposits D1, D2, and D3 using a Bitcoin fee of 10000 sat".
+2. Signers of the target wallet receive the proposal. Although maintainers are
+   authorized, **they are not trusted**. The received proposal is validated
+   by signers to ensure that the proposed action can be executed against the
+   current state of the system. For example, in the case of a deposit sweep
+   proposal, signers must check whether the deposits proposed for sweep actually
+   exist in the system and were not already swept. The validation performed by
+   signers depends on the proposal type but often consists of two general steps:
+   - On-chain validation. Often done using specialized view functions
+     exposed by the `WalletCoordinator` contract
+   - Additional validation, such as validation against the state of the Bitcoin chain
+3. If the given proposal is invalid, wallet signers ignore it. This is in the
+   wallet's best interest, as executing an invalid proposal would not be
+   accepted by the system. It would put the wallet into an invalid state and
+   make their signers subject to slashing. Conversely, if the proposal is
+   deemed valid, wallet signers prepare for execution. First, they ensure that
+   any previous actions of the wallet have been completed and that the wallet
+   is idle. If not, the proposal is ignored. Second, they prepare all necessary
+   data and execute the threshold signing process.
+
+This mechanism takes the consensus burden out of the signers' shoulders and
+allows to keep system complexity at a reasonable level during the launch phase.
+However, it has some serious drawbacks that become a real pain as the
+system grows.
+
+First, specific authorized maintainers are points of failure. If they
+go down, wallets stay idle and core actions like deposit sweep or redemptions
+halt. This can put the system into an undesired state because:
+
+- All deposits must be either swept (happy path) or refunded to the depositor (unhappy path)
+- All redemptions must be either processed (happy path) or timed out (unhappy path)
+
+If core wallet actions do not happen on an ongoing basis, deposit refunds
+and redemption timeouts will happen often and harm the system. This is not
+acceptable in the long term.
+
+Second, growing the set of authorized maintainers turned out to be a real
+challenge. Having a small set of maintainers (or even a single one)
+amplifies the aforementioned SPoF problem.
+
+Last but not least, such a design may raise some censorship-related concerns.
+Although authorized maintainers are purely a coordination mechanism and
+cannot force wallets to do anything against the protocol rules, they can just
+become idle on purpose and force refunds on specific deposits or timeouts
+on redemptions.
+
+This is why we need to replace the `WalletCoordinator`-based mechanism with
+a more robust and decentralized alternative.
+
+
+
+
+
+
