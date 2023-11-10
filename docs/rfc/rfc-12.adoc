@@ -92,6 +92,36 @@ on redemptions.
 This is why we need to replace the `WalletCoordinator`-based mechanism with
 a more robust and decentralized alternative.
 
+== Proposal
+
+Here we propose to replace the global `WalletCoordinator`-based wallet
+coordination with an in-wallet mechanism, where each wallet is responsible for
+its own coordination.
+
+=== Goal
+
+The goal of this proposal is to eliminate the current naive model, based
+on the `WalletCoordinator` contract and authorized maintainers. Pushing the
+responsibility of coordination onto wallets should solve the problems of the
+current mechanism and make wallet coordination reliable, decentralized,
+and censorship-resistant.
+
+=== Implementation
+
+The implementation must meet the proposal goals and be neutral for system
+stakeholders as much as possible. Specifically, the implementation:
+
+- Should be possible to introduce in a live system
+- Should not have any negative impact on key architecture attributes
+  (especially security, reliability, maintainability, and performance)
+- Should involve only wallet signers and leverage secure broadcast channels
+  for inter-signer communication, just as for other wallet actions
+
+As mentioned in the introduction of this RFC, the original consensus-based
+solution does not meet the second requirement, as it negatively impacts
+reliability and performance. The proposed implementation is something
+between the current `WalletCoordinator`-based model and a consensus-based
+mechanism. The following sections describe it in detail.
 
 
 
