@@ -12,14 +12,13 @@
     "lint:fix:eslint": "eslint . --fix",
     "lint:config": "prettier --check '**/*.@(json|yaml)'",
     "lint:config:fix": "prettier --write '**/*.@(json|yaml)'",
-    "test": "hardhat test",
-    "postinstall": "npm rebuild"
+    "test": "hardhat test"
   },
   "files": [
     "test/**/*"
   ],
   "dependencies": {
-    "@keep-network/tbtc-v2.ts": "development",
+    "@keep-network/tbtc-v2.ts": "2.0.0-dev.0",
     "elliptic": "^6.5.4",
     "wif": "^2.0.6"
   },
@@ -42,7 +41,7 @@
     "eslint-config-keep": "github:keep-network/eslint-config-keep",
     "ethereum-waffle": "4.0.0-alpha.25",
     "ethers": "^5.5.3",
-    "hardhat": "^2.8.3",
+    "hardhat": "^2.18.2",
     "hardhat-deploy": "^0.11.10",
     "mocha": "^9.0.2",
     "prettier": "^2.3.2",
@@ -50,6 +49,6 @@
     "typescript": "^4.3.5"
   },
   "engines": {
-    "node": ">= 14.0.0"
+    "node": ">= 16"
   }
 }

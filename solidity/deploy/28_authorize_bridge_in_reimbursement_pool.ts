@@ -24,6 +24,6 @@ func.dependencies = ["ReimbursementPool", "Bridge"]
 // On mainnet, the ReimbursementPool ownership is passed to the Threshold
 // Council / DAO and that address is not controlled by the dev team.
 // Hence, this step can be executed only for non-mainnet networks such as
-// Hardhat (unit tests) and Goerli (testnet).
+// Hardhat (unit tests) and Goerli or Sepolia (testnets).
 func.skip = async (hre: HardhatRuntimeEnvironment): Promise<boolean> =>
   hre.network.name === "mainnet"

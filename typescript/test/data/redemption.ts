@@ -1,16 +1,19 @@
 import { BigNumber, BytesLike } from "ethers"
 import {
-  DecomposedRawTransaction,
-  Proof,
-  Transaction,
-  RawTransaction,
-  UnspentTransactionOutput,
-  TransactionMerkleBranch,
-  TransactionHash,
-} from "../../src/bitcoin"
-import { RedemptionRequest } from "../../src/redemption"
-import { Address } from "../../src/ethereum"
-import { Hex } from "../../src"
+  BitcoinAddressConverter,
+  BitcoinNetwork,
+  BitcoinRawTx,
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinTx,
+  BitcoinTxHash,
+  BitcoinTxMerkleBranch,
+  BitcoinUtxo,
+  EthereumAddress,
+  Hex,
+  RedemptionRequest,
+  WalletState,
+} from "../../src"
 
 /**
  * Private key (testnet) of the wallet.
@@ -22,8 +25,9 @@ export const walletPrivateKey =
  * Public key of the wallet in the compressed form corresponding to
  * walletPrivateKey.
  */
-export const walletPublicKey =
+export const walletPublicKey = Hex.from(
   "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+)
 
 /**
  * P2PKH address corresponding to walletPrivateKey.
@@ -39,15 +43,15 @@ export const p2wpkhWalletAddress = "tb1q3k6sadfqv04fmx9naty3fzdfpaecnphkfm3cf3"
  * Represents a set of data used for given sweep scenario.
  */
 export interface RedemptionTestData {
-  mainUtxo: UnspentTransactionOutput & RawTransaction
+  mainUtxo: BitcoinUtxo & BitcoinRawTx
   pendingRedemptions: {
     redemptionKey: BytesLike
     pendingRedemption: RedemptionRequest
   }[]
   witness: boolean
   expectedRedemption: {
-    transactionHash: TransactionHash
-    transaction: RawTransaction
+    transactionHash: BitcoinTxHash
+    transaction: BitcoinRawTx
   }
 }
 
@@ -58,7 +62,7 @@ export interface RedemptionTestData {
  */
 export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "523e4bfb71804e5ed3b76c8933d733339563e560311c1bf835934ee7aae5db20"
     ),
     outputIndex: 1,
@@ -77,10 +81,13 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(10000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1600),
@@ -90,7 +97,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
     ),
     transaction: {
@@ -113,7 +120,7 @@ export const singleP2PKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "c437f1117db977682334b53a71fbe63a42aab42f6e0976c35b69977f86308c20"
     ),
     outputIndex: 1,
@@ -132,9 +139,13 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
-        redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
+        redeemerOutputScript: Hex.from(
+          "00144130879211c54df460e484ddf9aac009cb38ee74"
+        ),
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(1100),
         txMaxFee: BigNumber.from(1700),
@@ -144,7 +155,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
     ),
     transaction: {
@@ -167,7 +178,7 @@ export const singleP2WPKHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "925e61dc31396e7f2cbcc8bc9b4009b4f24ba679257762df078b7e9b875ea110"
     ),
     outputIndex: 1,
@@ -186,9 +197,13 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
         txMaxFee: BigNumber.from(1700),
@@ -198,7 +213,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
     ),
     transaction: {
@@ -221,7 +236,7 @@ export const singleP2SHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "ef25c9c8f4df673def035c0c1880278c90030b3c94a56668109001a591c2c521"
     ),
     outputIndex: 1,
@@ -240,10 +255,13 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
-        redeemerOutputScript:
-          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+        redeemerOutputScript: Hex.from(
+          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+        ),
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1400),
@@ -253,7 +271,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
     ),
     transaction: {
@@ -276,7 +294,7 @@ export const singleP2WSHRedemptionWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
     ),
     outputIndex: 1,
@@ -295,10 +313,13 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(18000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1100),
@@ -309,9 +330,13 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x52a5e94b7f933cbc9565c61d43a83921a6b7bbf950156a2dfda7743a7cefffbf",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qgycg0ys3c4xlgc8ysnwln2kqp89n3mn5ts7z3l
-        redeemerOutputScript: "00144130879211c54df460e484ddf9aac009cb38ee74",
+        redeemerOutputScript: Hex.from(
+          "00144130879211c54df460e484ddf9aac009cb38ee74"
+        ),
         requestedAmount: BigNumber.from(13000),
         treasuryFee: BigNumber.from(800),
         txMaxFee: BigNumber.from(900),
@@ -322,9 +347,13 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1100),
         txMaxFee: BigNumber.from(1000),
@@ -335,10 +364,13 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x2636de6d29da2c7e229a31f3a39b151e2dcd149b1cc2c4e28008f9ab1b02c112",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WSH address tb1qs63s8nwjut4tr5t8nudgzwp4m3dpkefjzpmumn90pruce0cye2tq2jkq0y
-        redeemerOutputScript:
-          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96",
+        redeemerOutputScript: Hex.from(
+          "002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf08f98cbf04ca96"
+        ),
         requestedAmount: BigNumber.from(15000),
         treasuryFee: BigNumber.from(700),
         txMaxFee: BigNumber.from(1400),
@@ -348,7 +380,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
     ),
     transaction: {
@@ -374,7 +406,7 @@ export const multipleRedemptionsWithWitnessChange: RedemptionTestData = {
  */
 export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "7dd38b48cb626580d317871c5b716eaf4a952ceb67ba3aa4ca76e3dc7cdcc65b"
     ),
     outputIndex: 1,
@@ -393,10 +425,13 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xcb493004c645792101cfa4cc5da4c16aa3148065034371a6f1478b7df4b92d39",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2PKH address mmTeMR8RKu6QzMGTG4ipA71uewm3EuJng5
-        redeemerOutputScript:
-          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac",
+        redeemerOutputScript: Hex.from(
+          "76a9144130879211c54df460e484ddf9aac009cb38ee7488ac"
+        ),
         requestedAmount: BigNumber.from(6000),
         treasuryFee: BigNumber.from(0),
         txMaxFee: BigNumber.from(800),
@@ -407,9 +442,13 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
       redemptionKey:
         "0xa690d9da3e64c337eb11344b94cf948ec2da333f0a985e09f1c120a326f6de87",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2WPKH address tb1qf0ulldawp79s7knz9v254j5zjyn0demfx2d0xx
-        redeemerOutputScript: "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769",
+        redeemerOutputScript: Hex.from(
+          "00144bf9ffb7ae0f8b0f5a622b154aca829126f6e769"
+        ),
         requestedAmount: BigNumber.from(4000),
         treasuryFee: BigNumber.from(0),
         txMaxFee: BigNumber.from(900),
@@ -419,7 +458,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
   ],
   witness: true,
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "afcdf8f91273b73abc40018873978c22bbb7c3d8d669ef2faffa0c4b0898c8eb"
     ),
     transaction: {
@@ -442,7 +481,7 @@ export const multipleRedemptionsWithoutChange: RedemptionTestData = {
  */
 export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   mainUtxo: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
     ),
     outputIndex: 4,
@@ -464,9 +503,13 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
       redemptionKey:
         "0x4f5c364239f365622168b8fcb3f4556a8bbad22f5b5ae598757c4fe83b3a78d7",
       pendingRedemption: {
-        redeemer: Address.from("82883a4c7a8dd73ef165deb402d432613615ced4"),
+        redeemer: EthereumAddress.from(
+          "82883a4c7a8dd73ef165deb402d432613615ced4"
+        ),
         // script for testnet P2SH address 2Mxy76sc1qAxiJ1fXMXDXqHvVcPLh6Lf12C
-        redeemerOutputScript: "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87",
+        redeemerOutputScript: Hex.from(
+          "a9143ec459d0f3c29286ae5df5fcc421e2786024277e87"
+        ),
         requestedAmount: BigNumber.from(12000),
         treasuryFee: BigNumber.from(1000),
         txMaxFee: BigNumber.from(1200),
@@ -476,7 +519,7 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
   ],
   witness: false, // False will result in a P2PKH output
   expectedRedemption: {
-    transactionHash: TransactionHash.from(
+    transactionHash: BitcoinTxHash.from(
       "0fec22d0fecd6607a0429210d04e9465681507d514f3edf0f07def96eda0f89d"
     ),
     transaction: {
@@ -497,18 +540,18 @@ export const singleP2SHRedemptionWithNonWitnessChange: RedemptionTestData = {
  */
 export interface RedemptionProofTestData {
   bitcoinChainData: {
-    transaction: Transaction
-    rawTransaction: RawTransaction
+    transaction: BitcoinTx
+    rawTransaction: BitcoinRawTx
     accumulatedTxConfirmations: number
     latestBlockHeight: number
-    headersChain: string
-    transactionMerkleBranch: TransactionMerkleBranch
+    headersChain: Hex
+    transactionMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedRedemptionProof: {
-    redemptionTx: DecomposedRawTransaction
-    redemptionProof: Proof
-    mainUtxo: UnspentTransactionOutput
-    walletPublicKey: string
+    redemptionTx: BitcoinRawTxVectors
+    redemptionProof: BitcoinSpvProof
+    mainUtxo: BitcoinUtxo
+    walletPublicKey: Hex
   }
 }
 
@@ -519,12 +562,12 @@ export interface RedemptionProofTestData {
 export const redemptionProof: RedemptionProofTestData = {
   bitcoinChainData: {
     transaction: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "f70ff89fd2b6226183e4b8143cc5f0f457f05dd1dca0c6151ab66f4523d972b7"
       ),
       inputs: [
         {
-          transactionHash: TransactionHash.from(
+          transactionHash: BitcoinTxHash.from(
             "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
           ),
           outputIndex: 1,
@@ -584,85 +627,321 @@ export const redemptionProof: RedemptionProofTestData = {
         "b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d900000000",
     },
     latestBlockHeight: 2226015,
-    headersChain:
+    headersChain: Hex.from(
       "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000000" +
-      "00f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5a2f990" +
-      "5e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4b4ef2cf4d" +
-      "a2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af887ae9b5af064" +
-      "ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47fe867411f520786b" +
-      "bb056d33cc5e412799355f22541600000000000000e428a225d38073c8e8584cf162b4" +
-      "cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff001d5ec11e770000a020bc" +
-      "1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86db93c7e3000000006381e8dd" +
-      "f3245ddd74afb580b6d1e508273673d14b3620c098bde4c50bdbf65de1975e62341f5c" +
-      "195a29773400006020e7fc1afb505baced47a255d8a14cb7162b6f94d6aea6a89f4300" +
-      "000000000000ad26d482c0f48d0aeb1e1d9a8189df9f8dae693203c117a777c6c15522" +
-      "2da759ef975e62341f5c19595dff820000802004bdf8678a1fd09fd50987f884793410" +
-      "62e7f2ad11098bd00800000000000000add66b467729d264031adec83bc06e30781153" +
-      "0b98f49b095bd4c1fee2472e841d995e62341f5c19945d657200004020f8228183708c" +
-      "5f703e673f381ecee895a8642eed9f700b9c2b00000000000000465ec2f30447552a4a" +
-      "30ee63964aaebcb040649269eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+        "00f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5a2f990" +
+        "5e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4b4ef2cf4d" +
+        "a2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af887ae9b5af064" +
+        "ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47fe867411f520786b" +
+        "bb056d33cc5e412799355f22541600000000000000e428a225d38073c8e8584cf162b4" +
+        "cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff001d5ec11e770000a020bc" +
+        "1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86db93c7e3000000006381e8dd" +
+        "f3245ddd74afb580b6d1e508273673d14b3620c098bde4c50bdbf65de1975e62341f5c" +
+        "195a29773400006020e7fc1afb505baced47a255d8a14cb7162b6f94d6aea6a89f4300" +
+        "000000000000ad26d482c0f48d0aeb1e1d9a8189df9f8dae693203c117a777c6c15522" +
+        "2da759ef975e62341f5c19595dff820000802004bdf8678a1fd09fd50987f884793410" +
+        "62e7f2ad11098bd00800000000000000add66b467729d264031adec83bc06e30781153" +
+        "0b98f49b095bd4c1fee2472e841d995e62341f5c19945d657200004020f8228183708c" +
+        "5f703e673f381ecee895a8642eed9f700b9c2b00000000000000465ec2f30447552a4a" +
+        "30ee63964aaebcb040649269eab449fb51823d58835a4aed9a5e62341f5c192fd94baa"
+    ),
     transactionMerkleBranch: {
       blockHeight: 2196313,
       merkle: [
-        "2e89760feb82c022f9b6757c0a758f8fea953ffce9051cbe5a7cc20e0603c940",
-        "ad1cae6d060b5dac5d7ff1a933680f15dac822f52316c89e95363856b8a742ae",
-        "acf6ecc3da4654362678ac2bf0abf82aba1f2071e143718df2b079124e88fec7",
-        "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17",
-        "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e",
+        Hex.from(
+          "2e89760feb82c022f9b6757c0a758f8fea953ffce9051cbe5a7cc20e0603c940"
+        ),
+        Hex.from(
+          "ad1cae6d060b5dac5d7ff1a933680f15dac822f52316c89e95363856b8a742ae"
+        ),
+        Hex.from(
+          "acf6ecc3da4654362678ac2bf0abf82aba1f2071e143718df2b079124e88fec7"
+        ),
+        Hex.from(
+          "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17"
+        ),
+        Hex.from(
+          "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e"
+        ),
       ],
       position: 4,
     },
   },
   expectedRedemptionProof: {
     redemptionTx: {
-      version: "01000000",
-      inputs:
+      version: Hex.from("01000000"),
+      inputs: Hex.from(
         "01e30b907d077893bd0ed819c66644027b1dd30e4d3f68bc51da7933f75bbb283d0" +
-        "100000000ffffffff",
-      outputs:
+          "100000000ffffffff"
+      ),
+      outputs: Hex.from(
         "051c3e0000000000001976a9144130879211c54df460e484ddf9aac009cb38ee748" +
-        "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
-        "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
-        "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
-        "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
-        "f738986f6",
-      locktime: "00000000",
+          "8ac242c0000000000001600144130879211c54df460e484ddf9aac009cb38ee74ac" +
+          "2600000000000017a9143ec459d0f3c29286ae5df5fcc421e2786024277e8764320" +
+          "0000000000022002086a303cdd2e2eab1d1679f1a813835dc5a1b65321077cdccaf" +
+          "08f98cbf04ca96ccfb1400000000001600148db50eb52063ea9d98b3eac91489a90" +
+          "f738986f6"
+      ),
+      locktime: Hex.from("00000000"),
     },
     redemptionProof: {
-      merkleProof:
+      merkleProof: Hex.from(
         "40c903060ec27c5abe1c05e9fc3f95ea8f8f750a7c75b6f922c082eb0f76892eae4" +
-        "2a7b8563836959ec81623f522c8da150f6833a9f17f5dac5d0b066dae1cadc7fe88" +
-        "4e1279b0f28d7143e171201fba2af8abf02bac7826365446dac3ecf6ac17cce9f39" +
-        "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
-        "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c",
+          "2a7b8563836959ec81623f522c8da150f6833a9f17f5dac5d0b066dae1cadc7fe88" +
+          "4e1279b0f28d7143e171201fba2af8abf02bac7826365446dac3ecf6ac17cce9f39" +
+          "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
+          "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c"
+      ),
       txIndexInBlock: 4,
-      bitcoinHeaders:
+      bitcoinHeaders: Hex.from(
         "04e000203d93e4b82b59ccaae5aff315b9319248c1119f8f848e421516000000000" +
-        "00000f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5" +
-        "a2f9905e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4" +
-        "b4ef2cf4da2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af8" +
-        "87ae9b5af064ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47f" +
-        "e867411f520786bbb056d33cc5e412799355f22541600000000000000e428a225d3" +
-        "8073c8e8584cf162b4cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff0" +
-        "01d5ec11e770000a020bc1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86" +
-        "db93c7e3000000006381e8ddf3245ddd74afb580b6d1e508273673d14b3620c098b" +
-        "de4c50bdbf65de1975e62341f5c195a29773400006020e7fc1afb505baced47a255" +
-        "d8a14cb7162b6f94d6aea6a89f4300000000000000ad26d482c0f48d0aeb1e1d9a8" +
-        "189df9f8dae693203c117a777c6c155222da759ef975e62341f5c19595dff820000" +
-        "802004bdf8678a1fd09fd50987f88479341062e7f2ad11098bd0080000000000000" +
-        "0add66b467729d264031adec83bc06e307811530b98f49b095bd4c1fee2472e841d" +
-        "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
-        "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
-        "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa",
+          "00000f28145109cd15498a2c4264dcda1c3d40d1ab1117f6365cc345e5bab9eb8e5" +
+          "a2f9905e62341f5c19adebd9480000c020a33f8505bae0c529af29b00741e2828e4" +
+          "b4ef2cf4da2af790d00000000000000f1dad96fa7c65ae0b2582268ebf6e47b1af8" +
+          "87ae9b5af064ff87b361259f9bb212915e62341f5c19913d8a790000002074ac47f" +
+          "e867411f520786bbb056d33cc5e412799355f22541600000000000000e428a225d3" +
+          "8073c8e8584cf162b4cdc17eaf766f2fc1beae23f0ebac8b29964ec4955e62ffff0" +
+          "01d5ec11e770000a020bc1e329ea2658a4e0dfe27cb80e2f9712d78e02c5428eb86" +
+          "db93c7e3000000006381e8ddf3245ddd74afb580b6d1e508273673d14b3620c098b" +
+          "de4c50bdbf65de1975e62341f5c195a29773400006020e7fc1afb505baced47a255" +
+          "d8a14cb7162b6f94d6aea6a89f4300000000000000ad26d482c0f48d0aeb1e1d9a8" +
+          "189df9f8dae693203c117a777c6c155222da759ef975e62341f5c19595dff820000" +
+          "802004bdf8678a1fd09fd50987f88479341062e7f2ad11098bd0080000000000000" +
+          "0add66b467729d264031adec83bc06e307811530b98f49b095bd4c1fee2472e841d" +
+          "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
+          "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
+          "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa"
+      ),
     },
     mainUtxo: {
-      transactionHash: TransactionHash.from(
+      transactionHash: BitcoinTxHash.from(
         "3d28bb5bf73379da51bc683f4d0ed31d7b024466c619d80ebd9378077d900be3"
       ),
       outputIndex: 1,
       value: BigNumber.from(1429580),
     },
-    walletPublicKey:
-      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9",
+    walletPublicKey: Hex.from(
+      "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+    ),
+  },
+}
+
+interface FindWalletForRedemptionWalletData {
+  data: {
+    state: WalletState
+    mainUtxoHash: Hex
+    walletPublicKey: Hex
+    btcAddress: string
+    mainUtxo: BitcoinUtxo
+    transactions: BitcoinTx[]
+    pendingRedemptionsValue: BigNumber
+  }
+  event: {
+    blockNumber: number
+    blockHash: Hex
+    transactionHash: Hex
+    ecdsaWalletID: Hex
+    walletPublicKeyHash: Hex
+  }
+}
+
+export const findWalletForRedemptionData: {
+  liveWallet: FindWalletForRedemptionWalletData
+  walletWithoutUtxo: FindWalletForRedemptionWalletData
+  nonLiveWallet: FindWalletForRedemptionWalletData
+  walletWithPendingRedemption: FindWalletForRedemptionWalletData
+  pendingRedemption: RedemptionRequest
+} = {
+  liveWallet: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0x3ded9dcfce0ffe479640013ebeeb69b6a82306004f9525b1346ca3b553efc6aa"
+      ),
+      walletPublicKey: Hex.from(
+        "0x028ed84936be6a9f594a2dcc636d4bebf132713da3ce4dac5c61afbf8bbb47d6f7"
+      ),
+      btcAddress: "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("791613461"),
+      },
+      transactions: [
+        {
+          transactionHash: Hex.from(
+            "0x5b6d040eb06b3de1a819890d55d251112e55c31db4a3f5eb7cfacf519fad7adb"
+          ),
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("791613461"),
+              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
+                "tb1qqwm566yn44rdlhgph8sw8vecta8uutg79afuja",
+                BitcoinNetwork.Testnet
+              ),
+            },
+          ],
+        },
+      ],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 8367602,
+      blockHash: Hex.from(
+        "0x908ea9c82b388a760e6dd070522e5421d88b8931fbac6702119f9e9a483dd022"
+      ),
+      transactionHash: Hex.from(
+        "0xc1e995d0ac451cc9ffc9d43f105eddbaf2eb45ea57a61074a84fc022ecf5bda9"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x5314e0e5a62b173f52ea424958e5bc04bd77e2159478934a89d4fa193c7b3b72"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x03b74d6893ad46dfdd01b9e0e3b3385f4fce2d1e"
+      ),
+    },
+  },
+  walletWithoutUtxo: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      walletPublicKey: Hex.from(
+        "0x030fbbae74e6d85342819e719575949a1349e975b69fb382e9fef671a3a74efc52"
+      ),
+      btcAddress: "tb1qkct7r24k4wutnsun84rvp3qsyt8yfpvqz89d2y",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 9103428,
+      blockHash: Hex.from(
+        "0x92ad328db2cb1d2aad60ac809660e05e2b6763ddd376ca21630e304c98f23600"
+      ),
+      transactionHash: Hex.from(
+        "0x309085ebb92e10eb9e665c7d90c94e053f13b36f9bc8017e820bc879ba629b8e"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0xd27bfaaad9c3489e613eb3664c3b9958bd9a494377123689733267cb4a5767ba"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0xb617e1aab6abb8b9c3933d46c0c41022ce448580"
+      ),
+    },
+  },
+
+  nonLiveWallet: {
+    data: {
+      state: WalletState.Unknown,
+      mainUtxoHash: Hex.from(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ),
+      walletPublicKey: Hex.from(
+        "0x02633b102417009ae55103798f4d366dfccb081dcf20025088b9bf10a8e15d8ded"
+      ),
+      btcAddress: "tb1qf6jvyd680ncf9dtr5znha9ql5jmw84lupwwuf6",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("0"),
+      },
+      transactions: [],
+      pendingRedemptionsValue: BigNumber.from(0),
+    },
+    event: {
+      blockNumber: 9171960,
+      blockHash: Hex.from(
+        "0xe9a404b724183cb8f77e45718b365051e8d5ccc4a72dfece30af7596eeee4748"
+      ),
+      transactionHash: Hex.from(
+        "0x867f2c985cbe44f92a7ca2c14268b9ae78275e1c339692e1847548725484e72d"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x96975ddd76bbb2e15ed4498de6d92187ec5282913b3af3891a4e2d60581a8787"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x4ea4c237477cf092b563a0a77e941fa4b6e3d7fc"
+      ),
+    },
+  },
+  walletWithPendingRedemption: {
+    data: {
+      state: WalletState.Live,
+      mainUtxoHash: Hex.from(
+        "0xb3024ef698084cfdfba459338864a595d31081748b28aa5eb02312671a720531"
+      ),
+      walletPublicKey: Hex.from(
+        "0x02ab193a63b3523bfab77d3645d11da10722393687458c4213b350b7e08f50b7ee"
+      ),
+      btcAddress: "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
+      mainUtxo: {
+        transactionHash: Hex.from(
+          "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
+        ),
+        outputIndex: 0,
+        value: BigNumber.from("3370000"), // 0.0337 BTC
+      },
+      transactions: [
+        {
+          transactionHash: Hex.from(
+            "0x81c4884a8c2fccbeb57745a5e59f895a9c1bb8fc42eecc82269100a1a46bbb85"
+          ),
+          inputs: [], // not relevant
+          outputs: [
+            {
+              outputIndex: 0,
+              value: BigNumber.from("3370000"), // 0.0337 BTC
+              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
+                "tb1qx2xejtjltdcau5dpks8ucszkhxdg3fj88404lh",
+                BitcoinNetwork.Testnet
+              ),
+            },
+          ],
+        },
+      ],
+      pendingRedemptionsValue: BigNumber.from(2370000), // 0.0237 BTC
+    },
+    event: {
+      blockNumber: 8981644,
+      blockHash: Hex.from(
+        "0x6681b1bb168fb86755c2a796169cb0e06949caac9fc7145d527d94d5209a64ad"
+      ),
+      transactionHash: Hex.from(
+        "0xea3a8853c658145c95165d7847152aeedc3ff29406ec263abfc9b1436402b7b7"
+      ),
+      ecdsaWalletID: Hex.from(
+        "0x7a1437d67f49adfd44e03ddc85be0f6988715d7c39dfb0ca9780f1a88bcdca25"
+      ),
+      walletPublicKeyHash: Hex.from(
+        "0x328d992e5f5b71de51a1b40fcc4056b99a88a647"
+      ),
+    },
+  },
+  pendingRedemption: {
+    redeemer: EthereumAddress.from(
+      "0xeb9af8E66869902476347a4eFe59a527a57240ED"
+    ),
+    // script for testnet P2PKH address mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc
+    redeemerOutputScript: Hex.from(
+      "76a9142cd680318747b720d67bf4246eb7403b476adb3488ac"
+    ),
+    requestedAmount: BigNumber.from(1000000),
+    treasuryFee: BigNumber.from(20000),
+    txMaxFee: BigNumber.from(20000),
+    requestedAt: 1688724606,
   },
 }

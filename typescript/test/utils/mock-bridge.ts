@@ -1,46 +1,61 @@
-import { Bridge, WalletRegistry, GetEvents, Identifier } from "../../src/chain"
 import {
-  DecomposedRawTransaction,
-  Proof,
-  UnspentTransactionOutput,
-} from "../../src/bitcoin"
-import { BigNumberish, BigNumber, utils, constants } from "ethers"
-import { RedemptionRequest } from "../redemption"
-import {
-  Deposit,
+  Bridge,
+  WalletRegistry,
+  GetChainEvents,
+  ChainIdentifier,
+  NewWalletRegisteredEvent,
+  Wallet,
+  RedemptionRequest,
+  RedemptionRequestedEvent,
+  DepositReceipt,
   DepositRevealedEvent,
-  RevealedDeposit,
-} from "../../src/deposit"
-import { computeHash160, TransactionHash } from "../../src/bitcoin"
+  DepositRequest,
+} from "../../src/lib/contracts"
+import {
+  BitcoinRawTxVectors,
+  BitcoinSpvProof,
+  BitcoinUtxo,
+  BitcoinHashUtils,
+  BitcoinTxHash,
+} from "../../src/lib/bitcoin"
+import { BigNumberish, BigNumber, utils, constants } from "ethers"
 import { depositSweepWithNoMainUtxoAndWitnessOutput } from "../data/deposit-sweep"
-import { Address } from "../../src/ethereum"
-import { Hex } from "../../src/hex"
-import { NewWalletRegisteredEvent } from "../../src/wallet"
+import { EthereumAddress } from "../../src/lib/ethereum"
+import { Hex } from "../../src/lib/utils"
 
 interface DepositSweepProofLogEntry {
-  sweepTx: DecomposedRawTransaction
-  sweepProof: Proof
-  mainUtxo: UnspentTransactionOutput
+  sweepTx: BitcoinRawTxVectors
+  sweepProof: BitcoinSpvProof
+  mainUtxo: BitcoinUtxo
 }
 
 interface RevealDepositLogEntry {
-  depositTx: DecomposedRawTransaction
+  depositTx: BitcoinRawTxVectors
   depositOutputIndex: number
-  deposit: Deposit
+  deposit: DepositReceipt
 }
 
 interface RequestRedemptionLogEntry {
-  walletPublicKey: string
-  mainUtxo: UnspentTransactionOutput
-  redeemerOutputScript: string
+  walletPublicKey: Hex
+  mainUtxo: BitcoinUtxo
+  redeemerOutputScript: Hex
   amount: BigNumber
 }
 
 interface RedemptionProofLogEntry {
-  redemptionTx: DecomposedRawTransaction
-  redemptionProof: Proof
-  mainUtxo: UnspentTransactionOutput
-  walletPublicKey: string
+  redemptionTx: BitcoinRawTxVectors
+  redemptionProof: BitcoinSpvProof
+  mainUtxo: BitcoinUtxo
+  walletPublicKey: Hex
+}
+
+interface NewWalletRegisteredEventsLog {
+  options?: GetChainEvents.Options
+  filterArgs: unknown[]
+}
+
+interface WalletLog {
+  walletPublicKeyHash: Hex
 }
 
 /**
@@ -54,8 +69,12 @@ export class MockBridge implements Bridge {
   private _revealDepositLog: RevealDepositLogEntry[] = []
   private _requestRedemptionLog: RequestRedemptionLogEntry[] = []
   private _redemptionProofLog: RedemptionProofLogEntry[] = []
-  private _deposits = new Map<BigNumberish, RevealedDeposit>()
-  private _activeWalletPublicKey: string | undefined
+  private _deposits = new Map<BigNumberish, DepositRequest>()
+  private _activeWalletPublicKey: Hex | undefined
+  private _newWalletRegisteredEvents: NewWalletRegisteredEvent[] = []
+  private _newWalletRegisteredEventsLog: NewWalletRegisteredEventsLog[] = []
+  private _wallets = new Map<string, Wallet>()
+  private _walletsLog: WalletLog[] = []
 
   setPendingRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._pendingRedemptions = value
@@ -63,6 +82,14 @@ export class MockBridge implements Bridge {
 
   setTimedOutRedemptions(value: Map<BigNumberish, RedemptionRequest>) {
     this._timedOutRedemptions = value
+  }
+
+  setWallet(key: string, value: Wallet) {
+    this._wallets.set(key, value)
+  }
+
+  set newWalletRegisteredEvents(value: NewWalletRegisteredEvent[]) {
+    this._newWalletRegisteredEvents = value
   }
 
   get depositSweepProofLog(): DepositSweepProofLogEntry[] {
@@ -81,16 +108,24 @@ export class MockBridge implements Bridge {
     return this._redemptionProofLog
   }
 
-  setDeposits(value: Map<BigNumberish, RevealedDeposit>) {
+  get newWalletRegisteredEventsLog(): NewWalletRegisteredEventsLog[] {
+    return this._newWalletRegisteredEventsLog
+  }
+
+  get walletsLog(): WalletLog[] {
+    return this._walletsLog
+  }
+
+  setDeposits(value: Map<BigNumberish, DepositRequest>) {
     this._deposits = value
   }
 
-  setActiveWalletPublicKey(activeWalletPublicKey: string) {
+  setActiveWalletPublicKey(activeWalletPublicKey: Hex) {
     this._activeWalletPublicKey = activeWalletPublicKey
   }
 
   getDepositRevealedEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<any>
   ): Promise<DepositRevealedEvent[]> {
     const deposit = depositSweepWithNoMainUtxoAndWitnessOutput.deposits[0]
@@ -113,43 +148,49 @@ export class MockBridge implements Bridge {
           walletPublicKeyHash: deposit.data.walletPublicKeyHash,
           refundPublicKeyHash: deposit.data.refundPublicKeyHash,
           refundLocktime: deposit.data.refundLocktime,
-          vault: new Address(constants.AddressZero),
+          vault: EthereumAddress.from(constants.AddressZero),
         },
       ])
     })
   }
 
   submitDepositSweepProof(
-    sweepTx: DecomposedRawTransaction,
-    sweepProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
-    vault?: Identifier
-  ): Promise<void> {
+    sweepTx: BitcoinRawTxVectors,
+    sweepProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
+    vault?: ChainIdentifier
+  ): Promise<Hex> {
     this._depositSweepProofLog.push({ sweepTx, sweepProof, mainUtxo })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      resolve(
+        Hex.from(
+          "01ee2a0061b6bd68b6f478c48b9625fac89a4401e73b49d3ee258f9a60c5e65f"
+        )
+      )
     })
   }
 
   revealDeposit(
-    depositTx: DecomposedRawTransaction,
+    depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
-    deposit: Deposit
-  ): Promise<string> {
+    deposit: DepositReceipt
+  ): Promise<Hex> {
     this._revealDepositLog.push({ depositTx, depositOutputIndex, deposit })
-    return new Promise<string>((resolve, _) => {
+    return new Promise<Hex>((resolve, _) => {
       // random transaction hash
       resolve(
-        "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+        Hex.from(
+          "2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883"
+        )
       )
     })
   }
 
   deposits(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
-  ): Promise<RevealedDeposit> {
-    return new Promise<RevealedDeposit>((resolve, _) => {
+  ): Promise<DepositRequest> {
+    return new Promise<DepositRequest>((resolve, _) => {
       const depositKey = MockBridge.buildDepositKey(
         depositTxHash,
         depositOutputIndex
@@ -157,11 +198,11 @@ export class MockBridge implements Bridge {
 
       resolve(
         this._deposits.has(depositKey)
-          ? (this._deposits.get(depositKey) as RevealedDeposit)
+          ? (this._deposits.get(depositKey) as DepositRequest)
           : {
-              depositor: Address.from(constants.AddressZero),
+              depositor: EthereumAddress.from(constants.AddressZero),
               amount: BigNumber.from(0),
-              vault: Address.from(constants.AddressZero),
+              vault: EthereumAddress.from(constants.AddressZero),
               revealedAt: 0,
               sweptAt: 0,
               treasuryFee: BigNumber.from(0),
@@ -171,7 +212,7 @@ export class MockBridge implements Bridge {
   }
 
   static buildDepositKey(
-    depositTxHash: TransactionHash,
+    depositTxHash: BitcoinTxHash,
     depositOutputIndex: number
   ): string {
     const prefixedReversedDepositTxHash = depositTxHash
@@ -185,36 +226,46 @@ export class MockBridge implements Bridge {
   }
 
   submitRedemptionProof(
-    redemptionTx: DecomposedRawTransaction,
-    redemptionProof: Proof,
-    mainUtxo: UnspentTransactionOutput,
-    walletPublicKey: string
-  ): Promise<void> {
+    redemptionTx: BitcoinRawTxVectors,
+    redemptionProof: BitcoinSpvProof,
+    mainUtxo: BitcoinUtxo,
+    walletPublicKey: Hex
+  ): Promise<Hex> {
     this._redemptionProofLog.push({
       redemptionTx,
       redemptionProof,
       mainUtxo,
       walletPublicKey,
     })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        Hex.from(
+          "4f6ce6af47d547bb9821d28c21261026f21b72e52d506d17ab81502b8021537d"
+        )
+      )
     })
   }
 
   requestRedemption(
-    walletPublicKey: string,
-    mainUtxo: UnspentTransactionOutput,
-    redeemerOutputScript: string,
+    walletPublicKey: Hex,
+    mainUtxo: BitcoinUtxo,
+    redeemerOutputScript: Hex,
     amount: BigNumber
-  ) {
+  ): Promise<Hex> {
     this._requestRedemptionLog.push({
       walletPublicKey,
       mainUtxo,
       redeemerOutputScript,
       amount,
     })
-    return new Promise<void>((resolve, _) => {
-      resolve()
+    return new Promise<Hex>((resolve, _) => {
+      // random transaction hash
+      resolve(
+        Hex.from(
+          "bcbef136592feabdebcc68eb4222a49369a9cfeb7fc5f5ec84583313249025fd"
+        )
+      )
     })
   }
 
@@ -225,8 +276,8 @@ export class MockBridge implements Bridge {
   }
 
   pendingRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
@@ -240,8 +291,8 @@ export class MockBridge implements Bridge {
   }
 
   timedOutRedemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
@@ -255,12 +306,12 @@ export class MockBridge implements Bridge {
   }
 
   private redemptions(
-    walletPublicKey: string,
-    redeemerOutputScript: string,
+    walletPublicKey: Hex,
+    redeemerOutputScript: Hex,
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      computeHash160(walletPublicKey),
+      BitcoinHashUtils.computeHash160(walletPublicKey),
       redeemerOutputScript
     )
 
@@ -269,8 +320,8 @@ export class MockBridge implements Bridge {
     return redemptionsMap.has(redemptionKey)
       ? (redemptionsMap.get(redemptionKey) as RedemptionRequest)
       : {
-          redeemer: Address.from(constants.AddressZero),
-          redeemerOutputScript: "",
+          redeemer: EthereumAddress.from(constants.AddressZero),
+          redeemerOutputScript: Hex.from(""),
           requestedAmount: BigNumber.from(0),
           treasuryFee: BigNumber.from(0),
           txMaxFee: BigNumber.from(0),
@@ -279,12 +330,12 @@ export class MockBridge implements Bridge {
   }
 
   static buildRedemptionKey(
-    walletPublicKeyHash: string,
-    redeemerOutputScript: string
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
   ): string {
-    const prefixedWalletPublicKeyHash = `0x${walletPublicKeyHash}`
+    const prefixedWalletPublicKeyHash = walletPublicKeyHash.toPrefixedString()
 
-    const rawOutputScript = Buffer.from(redeemerOutputScript, "hex")
+    const rawOutputScript = redeemerOutputScript.toBuffer()
 
     const prefixedOutputScript = `0x${Buffer.concat([
       Buffer.from([rawOutputScript.length]),
@@ -300,18 +351,51 @@ export class MockBridge implements Bridge {
     )
   }
 
-  async activeWalletPublicKey(): Promise<string | undefined> {
+  async activeWalletPublicKey(): Promise<Hex | undefined> {
     return this._activeWalletPublicKey
   }
 
   async getNewWalletRegisteredEvents(
-    options?: GetEvents.Options,
+    options?: GetChainEvents.Options,
     ...filterArgs: Array<unknown>
   ): Promise<NewWalletRegisteredEvent[]> {
-    throw new Error("not implemented")
+    this._newWalletRegisteredEventsLog.push({ options, filterArgs })
+    return this._newWalletRegisteredEvents
   }
 
   walletRegistry(): Promise<WalletRegistry> {
     throw new Error("not implemented")
+  }
+
+  async wallets(walletPublicKeyHash: Hex): Promise<Wallet> {
+    this._walletsLog.push({
+      walletPublicKeyHash,
+    })
+    const wallet = this._wallets.get(walletPublicKeyHash.toPrefixedString())
+    return wallet!
+  }
+
+  buildUtxoHash(utxo: BitcoinUtxo): Hex {
+    return Hex.from(
+      utils.solidityKeccak256(
+        ["bytes32", "uint32", "uint64"],
+        [
+          utxo.transactionHash.reverse().toPrefixedString(),
+          utxo.outputIndex,
+          utxo.value,
+        ]
+      )
+    )
+  }
+
+  getRedemptionRequestedEvents(
+    options?: GetChainEvents.Options,
+    ...filterArgs: Array<any>
+  ): Promise<RedemptionRequestedEvent[]> {
+    throw new Error("not implemented")
+  }
+
+  getChainIdentifier(): ChainIdentifier {
+    return EthereumAddress.from("0x894cfd89700040163727828AE20B52099C58F02C")
   }
 }

@@ -2,9 +2,9 @@
 
 = TBTC v2
 
-https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/contracts.yml?branch=main&event=push&label=TBTC%20contracts%20build[TBTC contracts build status]]
-https://github.com/keep-network/tbtc-v2/actions/workflows/typescript.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/typescript.yml?branch=main&event=push&label=TypeScript%20bindings%20build[TypeScript bindings build status]]
-https://github.com/keep-network/tbtc-v2/actions/workflows/yearn.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/yearn.yml?branch=main&vent=push&label=Yearn%20build[Yearn build status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/contracts.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/contracts.yml?branch=main&event=push&label=Core%20contracts%20build[Core contracts build status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/typescript.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/typescript.yml?branch=main&event=push&label=SDK%20build[SDK build status]]
+https://github.com/keep-network/tbtc-v2/actions/workflows/yearn.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/yearn.yml?branch=main&vent=push&label=Yearn%20contracts%20build[Yearn contracts build status]]
 https://github.com/keep-network/tbtc-v2/actions/workflows/system-tests.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/system-tests.yml?branch=main&event=schedule&label=System%20tests[System tests status]]
 https://github.com/keep-network/tbtc-v2/actions/workflows/monitoring.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/tbtc-v2/monitoring.yml?branch=main&event=push&label=Monitoring%20build[Monitoring build status]]
 
@@ -37,17 +37,7 @@ math, not hardware or people. Additionally, TBTC v2 is open and accessible to
 anyone.
   
 TBTC v2 allows anyone to use Bitcoin in the expanding DeFi and Web3 universe
-without a third-party intermediary. 
-
-This repository contains:
-
-- TBTC v2 link:solidity/[Solidity smart contracts],
-- TBTC v2 link:typescript/[Typescript library],
-- TBTC v2 link:system-tests/[System tests]
-- TBTC v2 link:docs/[documentation],
-- TBTC v2 Yearn vault link:yearn/[Solidity smart contracts],
-- TBTC v2 link:monitoring/[monitoring tool],
-- TBTC v2 Cross-chain link:cross-chain/[smart contracts].
+without a third-party intermediary.
 
 toc::[]
 
@@ -64,41 +54,28 @@ Depositing Bitcoin into the tBTCv2 bridge grants a transferable Bank balance, wh
 can be used to mint a supply-pegged ERC-20: TBTC. For an in-depth explanation
 about the design, see link:docs/rfc/rfc-1.adoc[RFC 1: tBTCv2 Design].
 
-== Installation
+== Repository structure
 
-=== Prerequisites
-* clone the repository
-* link:https://nodejs.org/en/[Node.js] v14.21.2
-* yarn: `$ npm install -g yarn`
-* configure git to use https
+This repository contains the following modules:
 
-```
-git config --global url."https://".insteadOf git://
-```
+- link:solidity/[Core smart contracts],
+- link:typescript/[SDK TypeScript library],
+- link:system-tests/[System tests]
+- link:docs/[Documentation],
+- link:yearn/[Yearn vault smart contracts],
+- link:monitoring/[Monitoring tool],
+- link:cross-chain/[Cross-chain smart contracts].
 
-* Python 3.11.1 for `node-gyp`. It is
-  https://opensource.com/article/19/5/python-3-default-mac[suggested] to use
-  `pyenv` to manage multiple Python versions.
-```
-brew install pyenv
-pyenv install 3.11.1
-```
+Please refer module-level README for specific module's installation and
+usage instructions.
 
-=== Install and Test Contracts
+== Contributing
 
-```
-cd solidity
-yarn install --frozen-lockfile
-yarn build
-yarn test
-yarn test:integration
-```
+Contributions are always welcome! Feel free to open any issue or send a
+pull request. Please see link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] to
+learn more.
 
-=== Install and Test TypeScript Library
+== Security
 
-```
-cd typescript
-yarn install --frozen-lockfile
-yarn build
-yarn test
-```
+Please see link:SECURITY.adoc[SECURITY.adoc] to learn more about
+tBTC v2 security policy.

@@ -41,3 +41,9 @@ repos:
         files: "^cross-chain/arbitrum/"
         language: script
         description: "Checks cross-chain/arbitrum directory code according to the formatting configuration"
+      - id: typescript-docs
+        name: "Generate typescript API reference docs"
+        entry: /usr/bin/env bash -c "cd typescript && yarn docs"
+        files: "^typescript/"
+        language: script
+        description: "Generates typescript API reference docs according to the typedoc configuration"

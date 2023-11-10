@@ -1,0 +1,13 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "./api-reference",
+  "plugin": ["typedoc-plugin-markdown"],
+  "githubPages": false,
+  "readme": "none",
+  "gitRevision": "main",
+  "hideBreadcrumbs": true,
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}
