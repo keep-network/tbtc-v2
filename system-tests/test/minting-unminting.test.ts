@@ -382,10 +382,9 @@ describe("System Test - Minting and unminting", () => {
               )}`
             )
 
-            depositorTbtc.tbtcContracts.tbtcToken.requestRedemption(
-              systemTestsContext.depositorBitcoinKeyPair.publicKey.compressed,
-              sweepUtxo,
-              redeemerOutputScript,
+            await depositorTbtc.redemptions.requestRedemption(
+              // Use the depositor's address as the redeemer's address.
+              depositorBitcoinAddress,
               unmintedAmount
             )
 

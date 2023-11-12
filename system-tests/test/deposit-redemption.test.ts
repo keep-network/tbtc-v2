@@ -364,14 +364,15 @@ describe("System Test - Deposit and redemption", () => {
             )}`
           )
 
-          await depositorTbtc.redemptions.requestRedemption(
-            // Use the depositor's address as the redeemer's address.
-            depositorBitcoinAddress,
+          await depositorTbtc.tbtcContracts.bridge.requestRedemption(
+            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
+            sweepUtxo,
+            redeemerOutputScript,
             requestedAmount
           )
 
           console.log(
-            `Requested redemption of amount ${requestedAmount} to script ${redeemerOutputScript} on the bridge`
+            `Requested redemption of ${requestedAmount} satoshis to script ${redeemerOutputScript} on the bridge`
           )
 
           redemptionRequest =
@@ -667,15 +668,14 @@ describe("System Test - Deposit and redemption", () => {
             )}`
           )
 
-          depositorTbtc.tbtcContracts.tbtcToken.requestRedemption(
-            systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
-            sweepUtxo,
-            redeemerOutputScript,
+          await depositorTbtc.redemptions.requestRedemption(
+            // Use the depositor's address as the redeemer's address.
+            depositorBitcoinAddress,
             tbtcBalanceOfDepositor
           )
 
           console.log(
-            `Requested redemption of ${tbtcBalanceOfDepositor} TBTC tokens to script ${redeemerOutputScript} on the bridge`
+            `Requested redemption of ${requestedAmount} satoshis to script ${redeemerOutputScript} on the bridge`
           )
 
           redemptionRequest =
