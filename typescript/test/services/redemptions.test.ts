@@ -43,8 +43,9 @@ describe("Redemptions", () => {
       }
       const redeemerOutputScript =
         data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
+      // Use amount in TBTC token precision (1e18)
       const amount =
-        data.pendingRedemptions[0].pendingRedemption.requestedAmount
+        data.pendingRedemptions[0].pendingRedemption.requestedAmount.mul(1e10)
 
       let tbtcContracts: MockTBTCContracts
       let bitcoinClient: MockBitcoinClient
@@ -129,7 +130,7 @@ describe("Redemptions", () => {
           walletPublicKey,
           mainUtxo,
           redeemerOutputScript,
-          amount,
+          amount: amount.div(1e10),
         })
       })
     })
