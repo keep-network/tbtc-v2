@@ -683,18 +683,18 @@ describe("Deposits", () => {
     describe("getBitcoinAddress", () => {
       let bitcoinClient: MockBitcoinClient
       let tbtcContracts: MockTBTCContracts
-      let depositService: Deposit
+      let deposit: Deposit
       let bitcoinAddress: string
 
       beforeEach(async () => {
         bitcoinClient = new MockBitcoinClient()
         tbtcContracts = new MockTBTCContracts()
-        depositService = await Deposit.fromReceipt(
+        deposit = await Deposit.fromReceipt(
           depositReceipt,
           tbtcContracts,
           bitcoinClient
         )
-        bitcoinAddress = await depositService.getBitcoinAddress()
+        bitcoinAddress = await deposit.getBitcoinAddress()
       })
 
       it("should return correct address", () => {
@@ -707,14 +707,14 @@ describe("Deposits", () => {
     describe("detectFunding", () => {
       let bitcoinClient: MockBitcoinClient
       let tbtcContracts: MockTBTCContracts
-      let depositService: Deposit
+      let deposit: Deposit
       let utxos: BitcoinUtxo[]
 
       beforeEach(async () => {
         bitcoinClient = new MockBitcoinClient()
         tbtcContracts = new MockTBTCContracts()
 
-        depositService = await Deposit.fromReceipt(
+        deposit = await Deposit.fromReceipt(
           depositReceipt,
           tbtcContracts,
           bitcoinClient
@@ -726,7 +726,7 @@ describe("Deposits", () => {
           beforeEach(async () => {
             // Do not set any value for the address stored in the deposit
             // service so that undefined is returned.
-            utxos = await depositService.detectFunding()
+            utxos = await deposit.detectFunding()
           })
 
           it("should return an empty UTXO array", async () => {
@@ -738,12 +738,9 @@ describe("Deposits", () => {
           beforeEach(async () => {
             const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
             // Set an empty array for the address stored in the deposit service.
-            unspentTransactionOutputs.set(
-              await depositService.getBitcoinAddress(),
-              []
-            )
+            unspentTransactionOutputs.set(await deposit.getBitcoinAddress(), [])
             bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
-            utxos = await depositService.detectFunding()
+            utxos = await deposit.detectFunding()
           })
 
           it("should return an empty UTXO array", async () => {
@@ -773,11 +770,11 @@ describe("Deposits", () => {
         beforeEach(async () => {
           const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
           unspentTransactionOutputs.set(
-            await depositService.getBitcoinAddress(),
+            await deposit.getBitcoinAddress(),
             fundingUtxos
           )
           bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
-          utxos = await depositService.detectFunding()
+          utxos = await deposit.detectFunding()
         })
 
         it("should return funding UTXOs stored in the blockchain", async () => {
@@ -788,7 +785,91 @@ describe("Deposits", () => {
 
     describe("initiateMinting", () => {
       describe("auto funding outpoint detection mode", () => {
-        // TODO: Unit test for this case.
+        describe("when no funding UTXOs found", () => {
+          let deposit: Deposit
+
+          beforeEach(async () => {
+            const tbtcContracts = new MockTBTCContracts()
+            const bitcoinClient = new MockBitcoinClient()
+
+            deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+          })
+
+          it("should throw", async () => {
+            await expect(deposit.initiateMinting()).to.be.rejectedWith(
+              "Deposit not funded"
+            )
+          })
+        })
+
+        describe("when funding UTXOs found", () => {
+          let transaction: BitcoinRawTx
+          let depositUtxo: BitcoinUtxo
+          let tbtcContracts: MockTBTCContracts
+          let bitcoinClient: MockBitcoinClient
+
+          beforeEach(async () => {
+            const fee = BigNumber.from(1520)
+            const depositFunding = DepositFunding.fromScript(
+              DepositScript.fromReceipt(depositReceipt)
+            )
+            // Create a deposit transaction.
+            const result = await depositFunding.assembleTransaction(
+              BitcoinNetwork.Testnet,
+              depositAmount,
+              [testnetUTXO],
+              fee,
+              testnetPrivateKey
+            )
+            transaction = result.rawTransaction
+            depositUtxo = result.depositUtxo
+
+            // Initialize the mock Bridge and TBTC contracts.
+            bitcoinClient = new MockBitcoinClient()
+            tbtcContracts = new MockTBTCContracts()
+
+            // Create the deposit.
+            const deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+
+            // Initialize the mock Bitcoin client to return the given deposit
+            // UTXO for the depositor address.
+            const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+            unspentTransactionOutputs.set(await deposit.getBitcoinAddress(), [
+              depositUtxo,
+            ])
+            bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+
+            // Initialize the mock Bitcoin client to return the raw transaction
+            // data for the given deposit UTXO.
+            const rawTransactions = new Map<string, BitcoinRawTx>()
+            rawTransactions.set(
+              depositUtxo.transactionHash.toString(),
+              transaction
+            )
+            bitcoinClient.rawTransactions = rawTransactions
+
+            await deposit.initiateMinting()
+          })
+
+          it("should reveal the deposit to the Bridge", () => {
+            expect(tbtcContracts.bridge.revealDepositLog.length).to.be.equal(1)
+            const revealDepositLogEntry =
+              tbtcContracts.bridge.revealDepositLog[0]
+            expect(revealDepositLogEntry.depositTx).to.be.eql(
+              extractBitcoinRawTxVectors(transaction)
+            )
+            expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
+            expect(revealDepositLogEntry.deposit).to.be.eql(depositReceipt)
+          })
+        })
       })
 
       describe("manual funding outpoint provision mode", () => {

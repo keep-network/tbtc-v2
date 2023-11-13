@@ -109,7 +109,6 @@ export class Deposit {
    * @throws Throws an error if the funding outpoint was already used to
    *         initiate minting (both modes).
    */
-  // TODO: Cover auto funding outpoint detection with unit tests.
   async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<Hex> {
     let resolvedFundingOutpoint: BitcoinTxOutpoint
 
