@@ -449,13 +449,13 @@ describe("System Test - Deposit and redemption", () => {
             })
 
             it("should close the redemption request on the bridge", async () => {
-              const request =
-                await maintainerTbtc.redemptions.getRedemptionRequests(
+              await expect(
+                maintainerTbtc.redemptions.getRedemptionRequests(
                   depositorBitcoinAddress,
                   systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                   "pending"
                 )
-              expect(request.requestedAt).to.be.equal(0)
+              ).to.be.rejectedWith("Redemption request does not exist")
             })
 
             it("should decrease Bridge's balance in the bank", async () => {
@@ -526,7 +526,7 @@ describe("System Test - Deposit and redemption", () => {
         - Output index: ${depositUtxo.outputIndex}
       `)
 
-      await deposit.initiateMinting()
+      await deposit.initiateMinting(depositUtxo)
 
       console.log(`
         Deposit revealed on Ethereum chain
@@ -758,13 +758,13 @@ describe("System Test - Deposit and redemption", () => {
             })
 
             it("should close the redemption request on the bridge", async () => {
-              const request =
-                await maintainerTbtc.redemptions.getRedemptionRequests(
+              await expect(
+                maintainerTbtc.redemptions.getRedemptionRequests(
                   depositorBitcoinAddress,
                   systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                   "pending"
                 )
-              expect(request.requestedAt).to.be.equal(0)
+              ).to.be.rejectedWith("Redemption request does not exist")
             })
 
             it("should decrease Bridge's balance in the bank", async () => {

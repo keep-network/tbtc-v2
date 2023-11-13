@@ -232,7 +232,7 @@ describe("System Test - Minting and unminting", () => {
         // the Bitcoin chain is in sync and then start the revealing process.
         await new Promise((r) => setTimeout(r, 3000))
 
-        await deposit.initiateMinting()
+        await deposit.initiateMinting(depositUtxo)
 
         console.log(`
         Deposit revealed on Ethereum chain
@@ -472,14 +472,14 @@ describe("System Test - Minting and unminting", () => {
               })
 
               it("should close the redemption request on the bridge", async () => {
-                const request =
-                  await maintainerTbtc.redemptions.getRedemptionRequests(
+                await expect(
+                  maintainerTbtc.redemptions.getRedemptionRequests(
                     depositorBitcoinAddress,
                     systemTestsContext.walletBitcoinKeyPair.publicKey
                       .compressed,
                     "pending"
                   )
-                expect(request.requestedAt).to.be.equal(0)
+                ).to.be.rejectedWith("Redemption request does not exist")
               })
 
               it("should decrease Bridge's balance in the bank", async () => {
