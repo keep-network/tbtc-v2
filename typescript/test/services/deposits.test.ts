@@ -38,7 +38,7 @@ describe("Deposits", () => {
 
   const depositAmount = BigNumber.from(10000) // 0.0001 BTC
 
-  const deposit: DepositReceipt = {
+  const depositReceipt: DepositReceipt = {
     depositor: EthereumAddress.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
     walletPublicKeyHash: Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6"),
@@ -130,7 +130,9 @@ describe("Deposits", () => {
     // byte is 0x14 which is 20 in decimal, and this is correct because we
     // have a 20 bytes depositor identifier as subsequent data.
     expect(script.substring(0, 2)).to.be.equal("14")
-    expect(script.substring(2, 42)).to.be.equal(deposit.depositor.identifierHex)
+    expect(script.substring(2, 42)).to.be.equal(
+      depositReceipt.depositor.identifierHex
+    )
 
     // According to https://en.bitcoin.it/wiki/Script#Constants, the
     // OP_DROP opcode is 0x75.
@@ -141,7 +143,7 @@ describe("Deposits", () => {
     // In this case it's 8 bytes.
     expect(script.substring(44, 46)).to.be.equal("08")
     expect(script.substring(46, 62)).to.be.equal(
-      deposit.blindingFactor.toString()
+      depositReceipt.blindingFactor.toString()
     )
 
     // OP_DROP opcode is 0x75.
@@ -158,7 +160,7 @@ describe("Deposits", () => {
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(68, 70)).to.be.equal("14")
     expect(script.substring(70, 110)).to.be.equal(
-      deposit.walletPublicKeyHash.toString()
+      depositReceipt.walletPublicKeyHash.toString()
     )
 
     // OP_EQUAL opcode is 0x87.
@@ -184,7 +186,7 @@ describe("Deposits", () => {
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(122, 124)).to.be.equal("14")
     expect(script.substring(124, 164)).to.be.equal(
-      deposit.refundPublicKeyHash.toString()
+      depositReceipt.refundPublicKeyHash.toString()
     )
 
     // OP_EQUALVERIFY opcode is 0x88.
@@ -243,7 +245,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, true)
+            DepositScript.fromReceipt(depositReceipt, true)
           )
 
           ;({ transactionHash, depositUtxo } =
@@ -288,7 +290,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1410)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, false)
+            DepositScript.fromReceipt(depositReceipt, false)
           )
 
           ;({ transactionHash, depositUtxo } =
@@ -336,7 +338,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, true)
+            DepositScript.fromReceipt(depositReceipt, true)
           )
 
           ;({
@@ -439,7 +441,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1410)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, false)
+            DepositScript.fromReceipt(depositReceipt, false)
           )
 
           ;({
@@ -540,7 +542,7 @@ describe("Deposits", () => {
       let script: Hex
 
       beforeEach(async () => {
-        script = await DepositScript.fromReceipt(deposit).getPlainText()
+        script = await DepositScript.fromReceipt(depositReceipt).getPlainText()
       })
 
       it("should return script with proper structure", async () => {
@@ -553,7 +555,10 @@ describe("Deposits", () => {
         let scriptHash: Buffer
 
         beforeEach(async () => {
-          scriptHash = await DepositScript.fromReceipt(deposit, true).getHash()
+          scriptHash = await DepositScript.fromReceipt(
+            depositReceipt,
+            true
+          ).getHash()
         })
 
         it("should return proper witness script hash", async () => {
@@ -574,7 +579,10 @@ describe("Deposits", () => {
         let scriptHash: Buffer
 
         beforeEach(async () => {
-          scriptHash = await DepositScript.fromReceipt(deposit, false).getHash()
+          scriptHash = await DepositScript.fromReceipt(
+            depositReceipt,
+            false
+          ).getHash()
         })
 
         it("should return proper non-witness script hash", async () => {
@@ -599,7 +607,7 @@ describe("Deposits", () => {
         context("when witness option is true", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               true
             ).deriveAddress(BitcoinNetwork.Mainnet)
           })
@@ -616,7 +624,7 @@ describe("Deposits", () => {
         context("when witness option is false", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               false
             ).deriveAddress(BitcoinNetwork.Mainnet)
           })
@@ -635,7 +643,7 @@ describe("Deposits", () => {
         context("when witness option is true", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               true
             ).deriveAddress(BitcoinNetwork.Testnet)
           })
@@ -652,7 +660,7 @@ describe("Deposits", () => {
         context("when witness option is false", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               false
             ).deriveAddress(BitcoinNetwork.Testnet)
           })
@@ -682,7 +690,7 @@ describe("Deposits", () => {
         bitcoinClient = new MockBitcoinClient()
         tbtcContracts = new MockTBTCContracts()
         depositService = await Deposit.fromReceipt(
-          deposit,
+          depositReceipt,
           tbtcContracts,
           bitcoinClient
         )
@@ -707,7 +715,7 @@ describe("Deposits", () => {
         tbtcContracts = new MockTBTCContracts()
 
         depositService = await Deposit.fromReceipt(
-          deposit,
+          depositReceipt,
           tbtcContracts,
           bitcoinClient
         )
@@ -793,7 +801,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit)
+            DepositScript.fromReceipt(depositReceipt)
           )
 
           // Create a deposit transaction.
@@ -822,7 +830,11 @@ describe("Deposits", () => {
           tbtcContracts = new MockTBTCContracts()
 
           await (
-            await Deposit.fromReceipt(deposit, tbtcContracts, bitcoinClient)
+            await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
           ).initiateMinting(depositUtxo)
         })
 
@@ -834,7 +846,7 @@ describe("Deposits", () => {
             extractBitcoinRawTxVectors(transaction)
           )
           expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
-          expect(revealDepositLogEntry.deposit).to.be.eql(deposit)
+          expect(revealDepositLogEntry.deposit).to.be.eql(depositReceipt)
         })
       })
     })
