@@ -361,6 +361,7 @@ Both are currently used by the wallet client implementation
 living in the `keep-core` repository.
 
 Those readonly functions are beneficial because:
+
 - On-chain validation rules are transparent and not dependent on
   specific wallet client implementations
 - This is a multi-call pattern ensuring all data used to execute the validation
