@@ -1,6 +1,6 @@
 :toc: macro
 
-= RFC 11: Decentralized wallet coordination
+= RFC 12: Decentralized wallet coordination
 
 :icons: font
 :numbered:
@@ -112,7 +112,7 @@ The implementation must meet the proposal goals and be neutral for system
 stakeholders as much as possible. Specifically, the implementation:
 
 - Should be possible to introduce in a live system
-- Should not have any negative impact on key architecture attributes
+- Should not have negative impact on key architecture attributes
   (especially security, reliability, maintainability, and performance)
 - Should involve only wallet signers and leverage secure broadcast channels
   for inter-signer communication, just as for other wallet actions
@@ -122,6 +122,227 @@ solution does not meet the second requirement, as it negatively impacts
 reliability and performance. The proposed implementation is something
 between the current `WalletCoordinator`-based model and a consensus-based
 mechanism. The following sections describe it in detail.
+
+==== Drop the `WalletCoordinator` contract
+
+First and foremost, wallet signers must stop relying on the `WalletCoordinator`
+contract. The wallet client software should no longer listen to events emitted
+from it and should not trigger any actions as a result.
+
+At this point, it is worth mentioning that the `WalletCoordinator` contract
+provides a mechanism of wallet locks, which ensures that an individual wallet
+receives only one proposal at a time, and a fixed time delay is preserved
+before a subsequent one can be submitted. Getting rid of the `WalletCoordinator`
+contract means that the wallet client implementation must handle that problem
+on its own. Fortunately, this is already covered in the wallet client
+implementation living in the `keep-core` repository. Specifically:
+
+- The `walletDispatcher` component ensures that only one action at a time
+is executed by the given wallet
+- The `EnsureWalletSyncedBetweenChains` function ensures that previous wallet
+actions were properly completed
+
+==== Block-based coordination windows
+
+The proposed mechanism is based on **coordination windows**.
+
+Each coordination window starts with a **coordination block** that occurs
+every `coordination_frequency` blocks. To determine if the current block is a
+coordination block, signers of individual wallets check:
+```
+current_block % coordination_frequency == 0
+```
+If this condition is true, the coordination window begins and signers groups
+trigger the **coordination procedure** for their own wallets.
+
+Each coordination window exists for exactly `coordination_duration`
+blocks. Once the coordination window's end block is achieved
+(`coordination_block + coordination_duration`), the coordination procedure
+must either trigger a wallet action or terminate as timed out.
+
+The proposed initial values for:
+
+- `coordination_frequency` is 900 blocks. This corresponds to ~3 hours
+  on Ethereum, assuming an average of 12 seconds per block. This is equivalent
+  to the redemption schedule existing in the current `WalletCoordinator`-based
+  mechanism.
+- `coordination_duration` is 100 blocks. This corresponds to ~20 minutes
+  on Ethereum, assuming an average of 12 seconds per block. This should be
+  enough to execute the coordination procedure along with all necessary network
+  communication.
+
+==== Coordination procedure
+
+===== Coordination seed
+
+The coordination procedure starts by determining the **coordination seed**
+that will be used for pseudo-random operations executed as part of the
+coordination procedure. That seed is computed as:
+```
+coordination_seed = sha256(wallet_public_key_hash | safe_block_hash)
+```
+
+The `wallet_public_key_hash` is the 20-byte public key hash of the wallet
+the coordination procedure is executed for.
+
+The `safe_block_hash` is the 32-byte hash of a safe Ethereum block
+preceding the coordination block. As the coordination block is always
+one of the recent blocks, it is strongly prone to reorganizations, and
+its hash can change. Ethereum needs two epochs (64 blocks) to consider a block
+as finalized, but only one epoch (32 blocks) to consider a block as safe and
+unlikely to be reorged. Therefore, the `safe_block_hash` can be the hash
+of block `coordination_block - 32`. The probability that `safe_block_hash`
+gets changed due to a chain reorg is negligible. Even if such a deep
+reorganization occurs, the impact is limited to a single coordination
+window.
+
+===== Coordination leader and followers
+
+After determining the coordination seed, the next step is designating
+a **coordination leader**. The idea is similar to the one presented in RFC 7.
+
+The first step is building an ordered list of distinct operators that
+control the signers of the given wallet. The ordering algorithm is arbitrary
+but must be the same for everyone
+(e.g. ascending order by numerical value of the operator address). Even if an
+operator controls more than one signer, it appears on the list just once.
+
+For example, if wallets signers are distributed as follows:
+```
+Signer 1 is controlled by `0xAAA`
+Signer 2 is controlled by `0xBBB`
+Signer 3 is controlled by `0xAAA`
+Signer 4 is controlled by `0xDDD`
+Signer 5 is controlled by `0xCCC`
+```
+The ordered list of distinct operators is `[0xAAA, 0xBBB, 0xCCC, 0xDDD]`
+(lexicographic order used as example).
+
+The second step is using the aforementioned coordination seed to build an
+instance of the random number generator and use it to shuffle the ordered
+distinct operators list:
+```
+rng = new RNG(coordination_seed)
+shuffled_operators = rng.shuffle(ordered_distinct_operators)
+```
+
+The first operator from the shuffled list becomes the coordination leader
+of the given wallet for the current coordination window. The communication
+happens on the signer level so, if the coordination leader controls more than
+one signer in the given wallet, it chooses the first (index-wise) signer
+to execute the spokesman duties. Signers controlled by non-leader operators
+take the role of **coordination followers**.
+
+At this point, it's worth to justify two design decisions made so far:
+
+- Selection is performed on the distinct operators' list and not the signers' list
+  to ensure an even distribution of the leader role without favoring operators
+  with higher stake and number of signers (seats) in the given wallet. It is
+  important to hit different operators being distinct physical nodes as often
+  as possible to ensure a high level of fault tolerance and overcome issues
+  of individual nodes.
+- The block hash is used to form RNG's seed instead of just block number
+  in order to make the leader selection as unpredictable as possible.
+  Although this is not ideal due to the 32 blocks shift used to find
+  the safe block, such a design makes any potential collusion harder. The leader
+  is actually known just 32 blocks (~6 min) before the given coordination window
+  begins. Relying on just block numbers will make the leader known for all
+  coordination windows of the given wallet upfront.
+
+===== Coordination leader's routine
+
+The coordination leader must decide on the wallet action to be executed.
+The proposed routine is as follows:
+
+1. Each coordination window, check if redemption action should be executed.
+   If so, propose a redemption. Continue otherwise.
+2. Every `N` coordination windows, check if deposit sweep or moved funds sweep
+   should be executed. If so, propose deposit or moved funds sweep. Continue otherwise.
+3. Every `M` coordination windows, check if moving funds should be executed.
+   If so, propose moving funds. Continue otherwise.
+
+The `N` and `M` parameters can vary depending on the wallet state.
+For example, recent wallets actively looking for deposits can have `N`
+lower than old wallets whose main responsibility is redemption. Conversely,
+old wallets being at the edge of closure, can use lower `M` to execute
+moving funds as quickly as possible. Regardless of the wallet state,
+redemptions are always the top priority and occur every window.
+
+If the given leader's routine execution does not lead to an action proposal,
+the leader can propose to execute a heartbeat. In order to not execute
+heartbeats aggressively, the leader can use the coordination seed and an RNG
+to draw a decision with a specific `heartbeat_probability` of success.
+Using a `heartbeat_probability` of 12.5% seems to be reasonable assuming
+`coordination_frequency` is 900 blocks. That means a completely idle wallet
+will perform a heartbeat every 4 coordination windows on average
+(or 8 in the worst case) so, every 3600 blocks
+(~12 hours assuming 12 seconds per Ethereum block). The `wallet_public_key_hash`
+factor used to build the coordination seed should help avoid multiple wallets
+doing the heartbeat at the same time. Without that, all wallets would use
+the same coordination seed for the given coordination window.
+
+If heartbeat proposal is also not the case, the leader should send
+a **confirmation of activity**.
+
+To summarize, the pseudocode of the coordination leader routine is as follows:
+```
+if current_block % coordination_frequency == 0
+    propose_redemption_or_continue()
+
+    if current_block % (coordination_frequency * N) == 0
+        propose_deposit_sweep_or_continue()
+        propose_moved_funds_sweep_or_continue()
+
+    if current_block % (coordination_frequency * M) == 0
+        propose_moving_funds_or_continue()
+
+    rng = new RNG(coordination_seed)
+    if rng.get_bool_with_probability(12.5)
+        propose_heartbeat()
+
+    conirm_activity()
+```
+
+The coordination leader's routine can be implemented in the wallet client
+using the existing Go code living in the `pkg/maintainer/wallet` package
+of the `keep-core` repository.
+
+===== Communication
+
+Once the coordination leader completes the routine, it uses a dedicated
+secure broadcast channel to communicate the decision to the followers.
+It creates a **coordination message** and signs it using the operator's
+private key. A coordination message should look as follows:
+```
+CoordinationMessage
+    int member_id                // first signer controlled by the coordination leader
+    int coordination_block       // start block for the current coordination window
+    bytes wallet_public_key_hash // 20-byte public key hash of the wallet
+    bytes proposal               // serialized proposal; empty if this is just activity confirmation
+```
+
+Each signer-follower should listen for an incoming coordination message
+from the start of the coordination window until the coordination window ends.
+
+If a coordination message lands during the coordination window, the receiver
+should:
+
+- Make sure the given coordination message actually comes from the current
+  coordination leader. This can be done by knowing the coordination block,
+  coordinated wallet, and the coordination message's signature
+- Schedule the proposed wallet action to be executed at the coordination
+  window's end block. All necessary wallet state and proposal validation should
+  be done at the beginning of this action as a prerequisite of the threshold
+  signing process
+
+If the coordination message does not come from the current coordination leader,
+it should be ignored and its sender should be stored in the **coordination
+faults** cache.
+
+If the coordination message does not come at all, the coordination window
+ends without any action. The current coordination leader who missed its turn
+should be stored in the **coordination faults** cache.
+
 
 
 
