@@ -339,12 +339,91 @@ If the coordination message does not come from the current coordination leader,
 it should be ignored and its sender should be stored in the **coordination
 faults** cache.
 
+If the coordination message comes from the current coordination leader but
+carries an invalid proposal, it should be ignored and the current coordination
+leader should be stored in the **coordination faults** cache.
+
 If the coordination message does not come at all, the coordination window
 ends without any action. The current coordination leader who missed its turn
 should be stored in the **coordination faults** cache.
 
+==== Introduce the `WalletProposalValidator` contract
 
+As stated before, the `WalletCoordinator` contract will no longer be used.
+However, this contract exposes some useful readonly view functions that allow the
+wallet client software to perform an on-chain validation of the incoming
+proposals. Those functions are:
 
+- `validateDepositSweepProposal`
+- `validateRedemptionProposal`
 
+Both are currently used by the wallet client implementation
+living in the `keep-core` repository.
+
+Those readonly functions are beneficial because:
+- On-chain validation rules are transparent and not dependent on
+  specific wallet client implementations
+- This is a multi-call pattern ensuring all data used to execute the validation
+  come from the same block. This reduces the complexity of the wallet client.
+- On-chain validation can be done using a single RPC call. This reduces the
+  infrastructure costs of the wallet client.
+
+Therefore, we propose extracting the aforementioned view functions to
+a new, **entirely readonly** `WalletProposalValidator` smart contract.
+**This contract will be non-upgradeable and will not have any write functions**.
+If there is a need to change the on-chain validation rules of wallet proposals
+(e.g. maximum count of deposits swept at once), a new instance of
+the `WalletProposalValidator` contract should be deployed. Wallet operators
+would have to agree to use the new contract instance by doing an upgrade of
+their wallet client software.
+
+=== Limitations
+
+The presented implementation has some limitations:
+
+- Although the presented mechanism should not have a significant impact on performance
+  in current circumstances, increased network traffic and CPU consumption may
+  emerge once the number of live wallets goes up significantly. However,
+  this should no longer be a problem once the wallet client implementation
+  supports moving funds and uses a faster signing algorithm (e.g. ROAST).
+  The new coordination mechanism can also be fine-tuned to some extent.
+- The presented mechanism is not immune to coordination leader idleness.
+  Misbehavior and inactivity are supposed to be recorded in the coordination
+  faults cache but, discouraging such behavior is beyond the scope of the
+  presented implementation. See the link:#_future_work[Future work] section for
+  possible solutions.
+- The presented mechanism provides poor observability. The currently
+  used `WalletCoordinator`-based mechanism captures the whole proposal history
+  on-chain. This is no longer the case for the new mechanism. Potential
+  debugging will be much harder. A possible solution is capturing
+  an internal proposal history in the wallet client and optionally exposing it
+  through the diagnostics endpoint. Exposing the coordination faults cache
+  may be also helpful. Individual wallet operators may decide whether to expose
+  the history or not.
+
+== Future work
+
+There is some related future work not explored by this RFC:
+
+- Consequences of failed wallet heartbeats. A failed heartbeat should cause
+  a punishment of inactive signers (rewards ineligibility) and/or start
+  the moving funds process for the given wallet. This can be done using
+  the `notifyOperatorInactivity` function exposed by the `WalletRegistry`
+  contract.
+- Consequences of coordination faults. Misbehavior/inactivity of coordination
+  leaders should be discouraged. How to achieve that is an open question.
+  A possible solution is making them ineligible for rewards. An alternative
+  idea is not punishing for inactivity but designating a reserve coordination
+  leader that would take the leader's duties for the given coordination window
+  if needed.
+- Decentralized SPV proof submission. Nowadays, this is handled by authorized
+  maintainers as well. There may be a need to either extend the maintainer set or
+  make SPV proof submission a responsibility of the wallet signers.
+
+== Related Links
+
+- https://github.com/keep-network/tbtc-v2/blob/956fa076c95dcbdd2899a60680b38ffa34045dbe/solidity/contracts/bridge/WalletCoordinator.sol[`WalletCoordinator` contract]
+- https://github.com/keep-network/keep-core/tree/324f66fb3f1003f6cfeb7d4149ae3f1d902dba2e/pkg/tbtc[`keep-core` wallet client]
+- https://www.alchemy.com/overviews/ethereum-commitment-levels[Ethereum commitment levels]
 
 
