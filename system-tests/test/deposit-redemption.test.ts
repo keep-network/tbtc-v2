@@ -4,14 +4,10 @@ import {
   BitcoinTxHash,
   BitcoinNetwork,
   ElectrumClient,
-  EthereumBridge,
-  EthereumTBTCToken,
-  EthereumTBTCVault,
   DepositFunding,
   DepositScript,
   BitcoinAddressConverter,
   WalletTx,
-  EthereumWalletRegistry,
   BitcoinHashUtils,
   EthereumAddress,
   TBTC,
@@ -20,13 +16,15 @@ import { BigNumber, constants, Contract } from "ethers"
 import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 
-import { setupSystemTestsContext } from "./utils/context"
+import {
+  setupSystemTestsContext,
+  createTbtcContractsHandle,
+} from "./utils/context"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
 import type {
   RedemptionRequest,
   BitcoinUtxo,
-  TBTCContracts,
   DepositReceipt,
 } from "@keep-network/tbtc-v2.ts"
 import type { SystemTestsContext } from "./utils/context"
@@ -55,11 +53,7 @@ chai.use(chaiAsPromised)
 describe("System Test - Deposit and redemption", () => {
   let systemTestsContext: SystemTestsContext
 
-  let tbtcTokenAddress: string
   let bridgeAddress: string
-  let vaultAddress: string
-  let walletRegistryAddress: string
-
   let bank: Contract
   let relay: Contract
 
@@ -109,53 +103,22 @@ describe("System Test - Deposit and redemption", () => {
       ELECTRUM_RETRY_BACKOFF_STEP_MS
     )
 
-    tbtcTokenAddress = deployedContracts.TBTC.address
     bridgeAddress = deployedContracts.Bridge.address
-    vaultAddress = deployedContracts.TBTCVault.address
-    walletRegistryAddress = deployedContracts.WalletRegistry.address
 
-    const depositorTbtcContracts: TBTCContracts = {
-      bridge: new EthereumBridge({
-        address: bridgeAddress,
-        signerOrProvider: depositor,
-      }),
-      tbtcToken: new EthereumTBTCToken({
-        address: tbtcTokenAddress,
-        signerOrProvider: depositor,
-      }),
-      tbtcVault: new EthereumTBTCVault({
-        address: vaultAddress,
-        signerOrProvider: depositor,
-      }),
-      walletRegistry: new EthereumWalletRegistry({
-        address: walletRegistryAddress,
-        signerOrProvider: depositor,
-      }),
-    }
+    const depositorTbtcContracts = createTbtcContractsHandle(
+      deployedContracts,
+      depositor
+    )
 
     depositorSdk = await TBTC.initializeCustom(
       depositorTbtcContracts,
       electrumClient
     )
 
-    const maintainerTbtcContracts: TBTCContracts = {
-      bridge: new EthereumBridge({
-        address: bridgeAddress,
-        signerOrProvider: maintainer,
-      }),
-      tbtcToken: new EthereumTBTCToken({
-        address: tbtcTokenAddress,
-        signerOrProvider: maintainer,
-      }),
-      tbtcVault: new EthereumTBTCVault({
-        address: vaultAddress,
-        signerOrProvider: maintainer,
-      }),
-      walletRegistry: new EthereumWalletRegistry({
-        address: walletRegistryAddress,
-        signerOrProvider: maintainer,
-      }),
-    }
+    const maintainerTbtcContracts = createTbtcContractsHandle(
+      deployedContracts,
+      maintainer
+    )
 
     maintainerSdk = await TBTC.initializeCustom(
       maintainerTbtcContracts,
