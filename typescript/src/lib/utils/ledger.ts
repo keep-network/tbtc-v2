@@ -69,7 +69,7 @@ export class LedgerLiveEthereumSigner extends Signer {
   async requestAccount(
     params: { currencyIds?: string[] | undefined } | undefined
   ): Promise<Account> {
-    let account
+    let account: Account
     try {
       this._windowMessageTransport.connect()
       account = await this._walletApiClient.account.request(params)
