@@ -227,13 +227,13 @@ ___
 
 ### EthereumNetwork
 
-Ƭ **EthereumNetwork**: ``"local"`` \| ``"goerli"`` \| ``"mainnet"``
+Ƭ **EthereumNetwork**: ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"``
 
 Supported Ethereum networks.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L74)
+[src/lib/ethereum/index.ts:76](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L76)
 
 ___
 
@@ -716,7 +716,7 @@ Throws an error if the address of the signer is not a proper
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L61)
+[src/lib/ethereum/index.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L63)
 
 ___
 
@@ -796,7 +796,7 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:85](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L85)
+[src/lib/ethereum/index.ts:87](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L87)
 
 ___
 

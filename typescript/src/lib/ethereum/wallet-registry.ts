@@ -19,6 +19,7 @@ import { EthereumAddress } from "./address"
 
 import MainnetWalletRegistryDeployment from "./artifacts/mainnet/WalletRegistry.json"
 import GoerliWalletRegistryDeployment from "./artifacts/goerli/WalletRegistry.json"
+import SepoliaWalletRegistryDeployment from "./artifacts/sepolia/WalletRegistry.json"
 import LocalWalletRegistryDeployment from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 
 /**
@@ -31,7 +32,7 @@ export class EthereumWalletRegistry
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "goerli" | "mainnet" = "local"
+    deploymentType: "local" | "goerli" | "sepolia" | "mainnet" = "local"
   ) {
     let deployment: EthersContractDeployment
 
@@ -41,6 +42,9 @@ export class EthereumWalletRegistry
         break
       case "goerli":
         deployment = GoerliWalletRegistryDeployment
+        break
+      case "sepolia":
+        deployment = SepoliaWalletRegistryDeployment
         break
       case "mainnet":
         deployment = MainnetWalletRegistryDeployment
