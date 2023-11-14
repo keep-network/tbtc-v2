@@ -28,7 +28,7 @@
 - [EthereumTBTCVault](classes/EthereumTBTCVault.md)
 - [EthereumWalletRegistry](classes/EthereumWalletRegistry.md)
 - [Hex](classes/Hex.md)
-- [LedgerLiveAppEthereumSigner](classes/LedgerLiveAppEthereumSigner.md)
+- [LedgerLiveEthereumSigner](classes/LedgerLiveEthereumSigner.md)
 - [MaintenanceService](classes/MaintenanceService.md)
 - [OptimisticMinting](classes/OptimisticMinting.md)
 - [RedemptionsService](classes/RedemptionsService.md)
@@ -102,8 +102,6 @@
 - [ethereumAddressFromSigner](README.md#ethereumaddressfromsigner)
 - [ethereumNetworkFromSigner](README.md#ethereumnetworkfromsigner)
 - [extractBitcoinRawTxVectors](README.md#extractbitcoinrawtxvectors)
-- [getWalletAPIClient](README.md#getwalletapiclient)
-- [getWindowMessageTransport](README.md#getwindowmessagetransport)
 - [loadEthereumContracts](README.md#loadethereumcontracts)
 - [retryAll](README.md#retryall)
 - [skipRetryWhenMatched](README.md#skipretrywhenmatched)
@@ -768,40 +766,6 @@ Transaction data with fields represented as un-prefixed hex strings.
 #### Defined in
 
 [src/lib/bitcoin/tx.ts:133](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L133)
-
-___
-
-### getWalletAPIClient
-
-▸ **getWalletAPIClient**(`windowMessageTransport`): `WalletAPIClient`\<`CustomModule`, (`client`: `WalletAPIClient`\<`CustomModule`, (client: WalletAPIClient\<CustomModule, ...\>) =\> CustomModule \| Record\<string, CustomModule\>\>) => `CustomModule` \| `Record`\<`string`, `CustomModule`\>\>
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `windowMessageTransport` | `default` |
-
-#### Returns
-
-`WalletAPIClient`\<`CustomModule`, (`client`: `WalletAPIClient`\<`CustomModule`, (client: WalletAPIClient\<CustomModule, ...\>) =\> CustomModule \| Record\<string, CustomModule\>\>) => `CustomModule` \| `Record`\<`string`, `CustomModule`\>\>
-
-#### Defined in
-
-[src/lib/utils/ledger.ts:171](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L171)
-
-___
-
-### getWindowMessageTransport
-
-▸ **getWindowMessageTransport**(): `default`
-
-#### Returns
-
-`default`
-
-#### Defined in
-
-[src/lib/utils/ledger.ts:167](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L167)
 
 ___
 

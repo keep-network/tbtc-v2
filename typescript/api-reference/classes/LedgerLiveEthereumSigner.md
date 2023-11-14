@@ -1,69 +1,75 @@
-# Class: LedgerLiveAppEthereumSigner
+# Class: LedgerLiveEthereumSigner
+
+Ethereum signer extended from `ethers` Signer class. The main purpose of it
+is to allow the user to communicate with eth contracts through our tBTC SDK
+inside Ledger Live application, when the app is used there as a Live App.
 
 ## Hierarchy
 
 - `Signer`
 
-  ↳ **`LedgerLiveAppEthereumSigner`**
+  ↳ **`LedgerLiveEthereumSigner`**
 
 ## Table of contents
 
 ### Constructors
 
-- [constructor](LedgerLiveAppEthereumSigner.md#constructor)
+- [constructor](LedgerLiveEthereumSigner.md#constructor)
 
 ### Properties
 
-- [\_account](LedgerLiveAppEthereumSigner.md#_account)
-- [\_isSigner](LedgerLiveAppEthereumSigner.md#_issigner)
-- [\_walletApiClient](LedgerLiveAppEthereumSigner.md#_walletapiclient)
-- [\_windowMessageTransport](LedgerLiveAppEthereumSigner.md#_windowmessagetransport)
-- [provider](LedgerLiveAppEthereumSigner.md#provider)
+- [\_account](LedgerLiveEthereumSigner.md#_account)
+- [\_isSigner](LedgerLiveEthereumSigner.md#_issigner)
+- [\_walletApiClient](LedgerLiveEthereumSigner.md#_walletapiclient)
+- [\_windowMessageTransport](LedgerLiveEthereumSigner.md#_windowmessagetransport)
+- [provider](LedgerLiveEthereumSigner.md#provider)
 
 ### Accessors
 
-- [account](LedgerLiveAppEthereumSigner.md#account)
+- [account](LedgerLiveEthereumSigner.md#account)
 
 ### Methods
 
-- [\_checkProvider](LedgerLiveAppEthereumSigner.md#_checkprovider)
-- [call](LedgerLiveAppEthereumSigner.md#call)
-- [checkTransaction](LedgerLiveAppEthereumSigner.md#checktransaction)
-- [connect](LedgerLiveAppEthereumSigner.md#connect)
-- [estimateGas](LedgerLiveAppEthereumSigner.md#estimategas)
-- [getAccountId](LedgerLiveAppEthereumSigner.md#getaccountid)
-- [getAddress](LedgerLiveAppEthereumSigner.md#getaddress)
-- [getBalance](LedgerLiveAppEthereumSigner.md#getbalance)
-- [getChainId](LedgerLiveAppEthereumSigner.md#getchainid)
-- [getFeeData](LedgerLiveAppEthereumSigner.md#getfeedata)
-- [getGasPrice](LedgerLiveAppEthereumSigner.md#getgasprice)
-- [getTransactionCount](LedgerLiveAppEthereumSigner.md#gettransactioncount)
-- [populateTransaction](LedgerLiveAppEthereumSigner.md#populatetransaction)
-- [requestAccount](LedgerLiveAppEthereumSigner.md#requestaccount)
-- [resolveName](LedgerLiveAppEthereumSigner.md#resolvename)
-- [sendTransaction](LedgerLiveAppEthereumSigner.md#sendtransaction)
-- [setAccount](LedgerLiveAppEthereumSigner.md#setaccount)
-- [signMessage](LedgerLiveAppEthereumSigner.md#signmessage)
-- [signTransaction](LedgerLiveAppEthereumSigner.md#signtransaction)
-- [isSigner](LedgerLiveAppEthereumSigner.md#issigner)
+- [\_catchWalletApiError](LedgerLiveEthereumSigner.md#_catchwalletapierror)
+- [\_checkAccount](LedgerLiveEthereumSigner.md#_checkaccount)
+- [\_checkProvider](LedgerLiveEthereumSigner.md#_checkprovider)
+- [\_checkProviderAndAccount](LedgerLiveEthereumSigner.md#_checkproviderandaccount)
+- [\_getWalletApiEthereumTransaction](LedgerLiveEthereumSigner.md#_getwalletapiethereumtransaction)
+- [call](LedgerLiveEthereumSigner.md#call)
+- [checkTransaction](LedgerLiveEthereumSigner.md#checktransaction)
+- [connect](LedgerLiveEthereumSigner.md#connect)
+- [estimateGas](LedgerLiveEthereumSigner.md#estimategas)
+- [getAccountId](LedgerLiveEthereumSigner.md#getaccountid)
+- [getAddress](LedgerLiveEthereumSigner.md#getaddress)
+- [getBalance](LedgerLiveEthereumSigner.md#getbalance)
+- [getChainId](LedgerLiveEthereumSigner.md#getchainid)
+- [getFeeData](LedgerLiveEthereumSigner.md#getfeedata)
+- [getGasPrice](LedgerLiveEthereumSigner.md#getgasprice)
+- [getTransactionCount](LedgerLiveEthereumSigner.md#gettransactioncount)
+- [populateTransaction](LedgerLiveEthereumSigner.md#populatetransaction)
+- [requestAccount](LedgerLiveEthereumSigner.md#requestaccount)
+- [resolveName](LedgerLiveEthereumSigner.md#resolvename)
+- [sendTransaction](LedgerLiveEthereumSigner.md#sendtransaction)
+- [setAccount](LedgerLiveEthereumSigner.md#setaccount)
+- [signMessage](LedgerLiveEthereumSigner.md#signmessage)
+- [signTransaction](LedgerLiveEthereumSigner.md#signtransaction)
+- [isSigner](LedgerLiveEthereumSigner.md#issigner)
 
 ## Constructors
 
 ### constructor
 
-• **new LedgerLiveAppEthereumSigner**(`provider`, `windowMessageTransport?`, `walletApiClient?`): [`LedgerLiveAppEthereumSigner`](LedgerLiveAppEthereumSigner.md)
+• **new LedgerLiveEthereumSigner**(`provider?`): [`LedgerLiveEthereumSigner`](LedgerLiveEthereumSigner.md)
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
-| `provider` | `Provider` |
-| `windowMessageTransport?` | `default` |
-| `walletApiClient?` | `WalletAPIClient`\<`CustomModule`, (`client`: `WalletAPIClient`\<`CustomModule`, (client: WalletAPIClient\<CustomModule, ...\>) =\> CustomModule \| Record\<string, CustomModule\>\>) => `CustomModule` \| `Record`\<`string`, `CustomModule`\>\> |
+| `provider?` | `Provider` |
 
 #### Returns
 
-[`LedgerLiveAppEthereumSigner`](LedgerLiveAppEthereumSigner.md)
+[`LedgerLiveEthereumSigner`](LedgerLiveEthereumSigner.md)
 
 #### Overrides
 
@@ -71,7 +77,7 @@ Signer.constructor
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:24](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L24)
+[src/lib/utils/ledger.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L31)
 
 ## Properties
 
@@ -81,7 +87,7 @@ Signer.constructor
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:22](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L22)
+[src/lib/utils/ledger.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L29)
 
 ___
 
@@ -105,7 +111,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L20)
+[src/lib/utils/ledger.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L27)
 
 ___
 
@@ -115,7 +121,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L21)
+[src/lib/utils/ledger.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L28)
 
 ___
 
@@ -143,9 +149,44 @@ node_modules/@ethersproject/contracts/node_modules/@ethersproject/abstract-signe
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:37](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L37)
+[src/lib/utils/ledger.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L61)
 
 ## Methods
+
+### \_catchWalletApiError
+
+▸ **_catchWalletApiError**(`error?`, `defaultErrorMessage?`): `void`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `error?` | `any` |
+| `defaultErrorMessage?` | `string` |
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+[src/lib/utils/ledger.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L49)
+
+___
+
+### \_checkAccount
+
+▸ **_checkAccount**(): `void`
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+[src/lib/utils/ledger.ts:38](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L38)
+
+___
 
 ### \_checkProvider
 
@@ -168,6 +209,40 @@ Signer.\_checkProvider
 #### Defined in
 
 node_modules/@ethersproject/contracts/node_modules/@ethersproject/abstract-signer/lib/index.d.ts:42
+
+___
+
+### \_checkProviderAndAccount
+
+▸ **_checkProviderAndAccount**(): `void`
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+[src/lib/utils/ledger.ts:44](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L44)
+
+___
+
+### \_getWalletApiEthereumTransaction
+
+▸ **_getWalletApiEthereumTransaction**(`transaction`): `EthereumTransaction`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `transaction` | `TransactionRequest` |
+
+#### Returns
+
+`EthereumTransaction`
+
+#### Defined in
+
+[src/lib/utils/ledger.ts:98](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L98)
 
 ___
 
@@ -240,7 +315,7 @@ Signer.connect
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:162](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L162)
+[src/lib/utils/ledger.ts:221](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L221)
 
 ___
 
@@ -278,7 +353,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:55](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L55)
+[src/lib/utils/ledger.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L88)
 
 ___
 
@@ -296,7 +371,7 @@ Signer.getAddress
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:62](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L62)
+[src/lib/utils/ledger.ts:93](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L93)
 
 ___
 
@@ -442,7 +517,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L45)
+[src/lib/utils/ledger.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L69)
 
 ___
 
@@ -490,7 +565,7 @@ Signer.sendTransaction
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:117](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L117)
+[src/lib/utils/ledger.ts:185](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L185)
 
 ___
 
@@ -510,7 +585,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L41)
+[src/lib/utils/ledger.ts:65](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L65)
 
 ___
 
@@ -534,7 +609,7 @@ Signer.signMessage
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L69)
+[src/lib/utils/ledger.ts:138](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L138)
 
 ___
 
@@ -558,7 +633,7 @@ Signer.signTransaction
 
 #### Defined in
 
-[src/lib/utils/ledger.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L82)
+[src/lib/utils/ledger.ts:159](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/ledger.ts#L159)
 
 ___
 
