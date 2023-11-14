@@ -64,8 +64,8 @@ describe("System Test - Deposit and redemption", () => {
   let relay: Contract
 
   let electrumClient: ElectrumClient
-  let depositorTbtc: TBTC
-  let maintainerTbtc: TBTC
+  let depositorSdk: TBTC
+  let maintainerSdk: TBTC
   let walletTx: WalletTx
 
   const depositAmount = BigNumber.from(2000000)
@@ -133,7 +133,7 @@ describe("System Test - Deposit and redemption", () => {
       }),
     }
 
-    depositorTbtc = await TBTC.initializeCustom(
+    depositorSdk = await TBTC.initializeCustom(
       depositorTbtcContracts,
       electrumClient
     )
@@ -157,7 +157,7 @@ describe("System Test - Deposit and redemption", () => {
       }),
     }
 
-    maintainerTbtc = await TBTC.initializeCustom(
+    maintainerSdk = await TBTC.initializeCustom(
       maintainerTbtcContracts,
       electrumClient
     )
@@ -169,14 +169,14 @@ describe("System Test - Deposit and redemption", () => {
       BitcoinNetwork.Testnet
     )
 
-    depositorTbtc.deposits.setDefaultDepositor(
+    depositorSdk.deposits.setDefaultDepositor(
       EthereumAddress.from(await depositor.getAddress())
     )
   })
 
   context("when deposit is made and revealed", () => {
     before("make and reveal deposit", async () => {
-      const deposit = await depositorTbtc.deposits.initiateDeposit(
+      const deposit = await depositorSdk.deposits.initiateDeposit(
         // Use the depositor's address as the recovery address.
         depositorBitcoinAddress
       )
@@ -223,7 +223,7 @@ describe("System Test - Deposit and redemption", () => {
       )
 
       // Reveal without providing the vault address.
-      await depositorTbtc.tbtcContracts.bridge.revealDeposit(
+      await depositorSdk.tbtcContracts.bridge.revealDeposit(
         depositRawTxVectors,
         depositUtxo.outputIndex,
         depositReceipt
@@ -242,7 +242,7 @@ describe("System Test - Deposit and redemption", () => {
     })
 
     it("should reveal the deposit to the bridge", async () => {
-      const { revealedAt } = await maintainerTbtc.tbtcContracts.bridge.deposits(
+      const { revealedAt } = await maintainerSdk.tbtcContracts.bridge.deposits(
         depositUtxo.transactionHash,
         depositUtxo.outputIndex
       )
@@ -281,7 +281,7 @@ describe("System Test - Deposit and redemption", () => {
         // TODO: Consider fetching the current wallet main UTXO and passing it
         //       here. This will allow running this test scenario multiple
         //       times for the same wallet.
-        await maintainerTbtc.maintenance.spv.submitDepositSweepProof(
+        await maintainerSdk.maintenance.spv.submitDepositSweepProof(
           sweepUtxo.transactionHash,
           // This is the first sweep of the given wallet so there is no main UTXO.
           {
@@ -305,7 +305,7 @@ describe("System Test - Deposit and redemption", () => {
       })
 
       it("should sweep the deposit on the bridge", async () => {
-        const { sweptAt } = await maintainerTbtc.tbtcContracts.bridge.deposits(
+        const { sweptAt } = await maintainerSdk.tbtcContracts.bridge.deposits(
           depositUtxo.transactionHash,
           depositUtxo.outputIndex
         )
@@ -314,7 +314,7 @@ describe("System Test - Deposit and redemption", () => {
 
       it("should increase depositor's balance in the bank", async () => {
         const { treasuryFee } =
-          await maintainerTbtc.tbtcContracts.bridge.deposits(
+          await maintainerSdk.tbtcContracts.bridge.deposits(
             depositUtxo.transactionHash,
             depositUtxo.outputIndex
           )
@@ -353,7 +353,7 @@ describe("System Test - Deposit and redemption", () => {
             )}`
           )
 
-          await depositorTbtc.tbtcContracts.bridge.requestRedemption(
+          await depositorSdk.tbtcContracts.bridge.requestRedemption(
             systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
             sweepUtxo,
             redeemerOutputScript,
@@ -365,7 +365,7 @@ describe("System Test - Deposit and redemption", () => {
           )
 
           redemptionRequest =
-            await maintainerTbtc.redemptions.getRedemptionRequests(
+            await maintainerSdk.redemptions.getRedemptionRequests(
               depositorBitcoinAddress,
               systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
               "pending"
@@ -418,7 +418,7 @@ describe("System Test - Deposit and redemption", () => {
                   redemptionTxHash
                 )
 
-                await maintainerTbtc.maintenance.spv.submitRedemptionProof(
+                await maintainerSdk.maintenance.spv.submitRedemptionProof(
                   redemptionTxHash,
                   sweepUtxo,
                   systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
@@ -437,7 +437,7 @@ describe("System Test - Deposit and redemption", () => {
 
             it("should close the redemption request on the bridge", async () => {
               await expect(
-                maintainerTbtc.redemptions.getRedemptionRequests(
+                maintainerSdk.redemptions.getRedemptionRequests(
                   depositorBitcoinAddress,
                   systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                   "pending"
