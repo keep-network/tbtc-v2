@@ -1,13 +1,14 @@
 import { ethers, Signer } from "ethers"
 import {
   Account,
+  EthereumTransaction,
   WalletAPIClient,
   WindowMessageTransport,
 } from "@ledgerhq/wallet-api-client"
-import BigNumber from "bignumber.js"
 import { AddressZero } from "@ethersproject/constants"
 import { Deferrable } from "@ethersproject/properties"
 import { Hex } from "./hex"
+import BigNumber from "bignumber.js"
 
 class AccountNotFoundError extends Error {
   constructor() {
@@ -73,6 +74,46 @@ export class LedgerLiveEthereumSigner extends Signer {
     return this._account!.address
   }
 
+  private _getWalletApiEthereumTransaction(
+    transaction: ethers.providers.TransactionRequest
+  ): EthereumTransaction {
+    const {
+      value,
+      to,
+      nonce,
+      data,
+      gasPrice,
+      gasLimit,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    } = transaction
+
+    const ethereumTransaction: EthereumTransaction = {
+      family: "ethereum" as const,
+      amount: value ? new BigNumber(value.toString()) : new BigNumber(0),
+      recipient: to ? to : AddressZero,
+    }
+
+    if (nonce) ethereumTransaction.nonce = Number(nonce)
+    if (data)
+      ethereumTransaction.data = Buffer.from(
+        Hex.from(data.toString()).toString(),
+        "hex"
+      )
+    if (gasPrice)
+      ethereumTransaction.gasPrice = new BigNumber(gasPrice.toString())
+    if (gasLimit)
+      ethereumTransaction.gasLimit = new BigNumber(gasLimit.toString())
+    if (maxFeePerGas)
+      ethereumTransaction.maxFeePerGas = new BigNumber(maxFeePerGas.toString())
+    if (maxPriorityFeePerGas)
+      ethereumTransaction.maxPriorityFeePerGas = new BigNumber(
+        maxPriorityFeePerGas.toString()
+      )
+
+    return ethereumTransaction
+  }
+
   async signMessage(message: string): Promise<string> {
     this._checkAccount()
     this._windowMessageTransport.connect()
@@ -89,24 +130,8 @@ export class LedgerLiveEthereumSigner extends Signer {
   ): Promise<string> {
     this._checkAccount()
 
-    const { value, to, nonce, data, gasPrice, gasLimit } = transaction
-
-    const ethereumTransaction: any = {
-      family: "ethereum" as const,
-      amount: value ? new BigNumber(value.toString()) : new BigNumber(0),
-      recipient: to ? to : AddressZero,
-    }
-
-    if (nonce) ethereumTransaction.nonce = nonce
-    if (data)
-      ethereumTransaction.data = Buffer.from(
-        Hex.from(data.toString()).toString(),
-        "hex"
-      )
-    if (gasPrice)
-      ethereumTransaction.gasPrice = new BigNumber(gasPrice.toString())
-    if (gasLimit)
-      ethereumTransaction.gasLimit = new BigNumber(gasLimit.toString())
+    const ethereumTransaction =
+      this._getWalletApiEthereumTransaction(transaction)
 
     this._windowMessageTransport.connect()
     const buffer = await this._walletApiClient.transaction.sign(
@@ -122,24 +147,9 @@ export class LedgerLiveEthereumSigner extends Signer {
   ): Promise<ethers.providers.TransactionResponse> {
     this._checkProviderAndAccount()
 
-    const { value, to, nonce, data, gasPrice, gasLimit } = transaction
-
-    const ethereumTransaction: any = {
-      family: "ethereum" as const,
-      amount: value ? new BigNumber(value.toString()) : new BigNumber(0),
-      recipient: to ? to : AddressZero,
-    }
-
-    if (nonce) ethereumTransaction.nonce = nonce
-    if (data)
-      ethereumTransaction.data = Buffer.from(
-        Hex.from(data.toString()).toString(),
-        "hex"
-      )
-    if (gasPrice)
-      ethereumTransaction.gasPrice = new BigNumber(gasPrice.toString())
-    if (gasLimit)
-      ethereumTransaction.gasLimit = new BigNumber(gasLimit.toString())
+    const pupulatedTransaction = await this.populateTransaction(transaction)
+    const ethereumTransaction =
+      this._getWalletApiEthereumTransaction(pupulatedTransaction)
 
     this._windowMessageTransport.connect()
     const transactionHash =
