@@ -170,11 +170,11 @@ export class LedgerLiveEthereumSigner extends Signer {
   }
 }
 
-export const getWindowMessageTransport = () => {
+const getWindowMessageTransport = () => {
   return new WindowMessageTransport()
 }
 
-export const getWalletAPIClient = (
+const getWalletAPIClient = (
   windowMessageTransport: WindowMessageTransport
 ) => {
   const walletApiClient = new WalletAPIClient(windowMessageTransport)
