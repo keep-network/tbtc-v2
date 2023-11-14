@@ -328,11 +328,15 @@ CoordinationMessage
     bytes proposal               // serialized proposal; empty if this is just activity confirmation
 ```
 
-Each signer-follower should listen for an incoming coordination message
-from the start of the coordination window until the coordination window ends.
+Each signer-follower should start listening for an incoming coordination
+message upon the start of the coordination window and should continue to do
+so for 80% of the window's duration. The remaining 20% of the window's
+duration should be a buffer allowing for the validation of the received message
+and preparation for action execution. No coordination message should be
+accepted during that time. The 80/20 ratio is an initial proposition and
+can be adjusted if needed.
 
-If a coordination message lands during the coordination window, the receiver
-should:
+If a coordination message lands on time, the receiver should:
 
 - Make sure the given coordination message actually comes from the current
   coordination leader. This can be done by knowing the coordination block,
