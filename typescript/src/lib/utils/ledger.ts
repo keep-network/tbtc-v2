@@ -34,6 +34,17 @@ export class LedgerLiveEthereumSigner extends Signer {
     this._walletApiClient = getWalletAPIClient(this._windowMessageTransport)
   }
 
+  private _checkAccount(): void {
+    if (!this._account || !this._account.id) {
+      throw new AccountNotFoundError()
+    }
+  }
+
+  private _checkProviderAndAccount(): void {
+    this._checkProvider()
+    this._checkAccount()
+  }
+
   get account() {
     return this._account
   }
@@ -53,26 +64,20 @@ export class LedgerLiveEthereumSigner extends Signer {
   }
 
   getAccountId(): string {
-    if (!this._account || !this._account.id) {
-      throw new AccountNotFoundError()
-    }
-    return this._account.id
+    this._checkAccount()
+    return this._account!.id
   }
 
   async getAddress(): Promise<string> {
-    if (!this._account || !this._account.address) {
-      throw new AccountNotFoundError()
-    }
-    return this._account.address
+    this._checkAccount()
+    return this._account!.address
   }
 
   async signMessage(message: string): Promise<string> {
-    if (!this._account || !this._account.address) {
-      throw new AccountNotFoundError()
-    }
+    this._checkAccount()
     this._windowMessageTransport.connect()
     const buffer = await this._walletApiClient.message.sign(
-      this._account.id,
+      this._account!.id,
       Buffer.from(message)
     )
     this._windowMessageTransport.disconnect()
@@ -82,9 +87,7 @@ export class LedgerLiveEthereumSigner extends Signer {
   async signTransaction(
     transaction: ethers.providers.TransactionRequest
   ): Promise<string> {
-    if (!this._account || !this._account.address) {
-      throw new AccountNotFoundError()
-    }
+    this._checkAccount()
 
     const { value, to, nonce, data, gasPrice, gasLimit } = transaction
 
@@ -107,7 +110,7 @@ export class LedgerLiveEthereumSigner extends Signer {
 
     this._windowMessageTransport.connect()
     const buffer = await this._walletApiClient.transaction.sign(
-      this._account.id,
+      this._account!.id,
       ethereumTransaction
     )
     this._windowMessageTransport.disconnect()
@@ -117,9 +120,7 @@ export class LedgerLiveEthereumSigner extends Signer {
   async sendTransaction(
     transaction: Deferrable<ethers.providers.TransactionRequest>
   ): Promise<ethers.providers.TransactionResponse> {
-    if (!this._account || !this._account.address) {
-      throw new AccountNotFoundError()
-    }
+    this._checkProviderAndAccount()
 
     const { value, to, nonce, data, gasPrice, gasLimit } = transaction
 
@@ -143,7 +144,7 @@ export class LedgerLiveEthereumSigner extends Signer {
     this._windowMessageTransport.connect()
     const transactionHash =
       await this._walletApiClient.transaction.signAndBroadcast(
-        this._account.id,
+        this._account!.id,
         ethereumTransaction
       )
     this._windowMessageTransport.disconnect()
