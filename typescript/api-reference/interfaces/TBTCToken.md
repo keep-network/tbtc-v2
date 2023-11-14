@@ -28,7 +28,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L13)
+[src/lib/contracts/tbtc-token.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L13)
 
 ___
 
@@ -58,7 +58,7 @@ Transaction hash of the approve and call transaction.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L40)
+[src/lib/contracts/tbtc-token.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L40)
 
 ___
 
@@ -82,4 +82,4 @@ with 1e8 precision in satoshi.
 
 #### Defined in
 
-[lib/contracts/tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L23)
+[src/lib/contracts/tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L23)
