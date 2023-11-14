@@ -16,7 +16,12 @@ class AccountNotFoundError extends Error {
   }
 }
 
-export class LedgerLiveAppEthereumSigner extends Signer {
+/**
+ * Ethereum signer extended from `ethers` Signer class. The main purpose of it
+ * is to allow the user to communicate with eth contracts through our tBTC SDK
+ * inside Ledger Live application, when the app is used there as a Live App.
+ */
+export class LedgerLiveEthereumSigner extends Signer {
   private _walletApiClient: WalletAPIClient
   private _windowMessageTransport: WindowMessageTransport
   private _account: Account | undefined
@@ -160,7 +165,7 @@ export class LedgerLiveAppEthereumSigner extends Signer {
   }
 
   connect(provider: ethers.providers.Provider): Signer {
-    return new LedgerLiveAppEthereumSigner(provider)
+    return new LedgerLiveEthereumSigner(provider)
   }
 }
 
