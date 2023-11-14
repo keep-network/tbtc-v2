@@ -77,6 +77,8 @@ export class Deposit {
 
   /**
    * Detects Bitcoin funding transactions transferring BTC to this deposit.
+   * The list includes UTXOs from both the blockchain and the mempool, sorted by
+   * age with the newest ones first. Mempool UTXOs are listed at the beginning.
    * @returns Specific UTXOs targeting this deposit. Empty array in case
    *         there are no UTXOs referring this deposit.
    */

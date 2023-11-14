@@ -104,6 +104,8 @@ Handle to tBTC contracts.
 ▸ **detectFunding**(): `Promise`\<[`BitcoinUtxo`](../README.md#bitcoinutxo)[]\>
 
 Detects Bitcoin funding transactions transferring BTC to this deposit.
+The list includes UTXOs from both the blockchain and the mempool, sorted by
+age with the newest ones first. Mempool UTXOs are listed at the beginning.
 
 #### Returns
 
@@ -114,7 +116,7 @@ Specific UTXOs targeting this deposit. Empty array in case
 
 #### Defined in
 
-[services/deposits/deposit.ts:83](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L83)
+[services/deposits/deposit.ts:85](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L85)
 
 ___
 
@@ -190,7 +192,7 @@ Throws an error if the funding outpoint was already used to
 
 #### Defined in
 
-[services/deposits/deposit.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L112)
+[services/deposits/deposit.ts:114](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L114)
 
 ___
 

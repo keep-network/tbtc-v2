@@ -678,8 +678,6 @@ describe("Deposits", () => {
   })
 
   describe("Deposit", () => {
-    // TODO: Implement unit tests for other functions.
-
     describe("getBitcoinAddress", () => {
       let bitcoinClient: MockBitcoinClient
       let tbtcContracts: MockTBTCContracts
