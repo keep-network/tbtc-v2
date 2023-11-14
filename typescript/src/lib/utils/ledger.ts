@@ -46,6 +46,18 @@ export class LedgerLiveEthereumSigner extends Signer {
     this._checkAccount()
   }
 
+  private _catchWalletApiError(error?: any, defaultErrorMessage?: string) {
+    this._windowMessageTransport.disconnect()
+
+    if (typeof error === "string" || error instanceof Error) {
+      throw new Error(error.toString())
+    }
+    throw new Error(
+      defaultErrorMessage ||
+        "Something went wrong when using ledger live singer to interact with out wallet."
+    )
+  }
+
   get account() {
     return this._account
   }
@@ -57,10 +69,19 @@ export class LedgerLiveEthereumSigner extends Signer {
   async requestAccount(
     params: { currencyIds?: string[] | undefined } | undefined
   ): Promise<Account> {
-    this._windowMessageTransport.connect()
-    const account = await this._walletApiClient.account.request(params)
-    this._windowMessageTransport.disconnect()
-    this._account = account
+    let account
+    try {
+      this._windowMessageTransport.connect()
+      account = await this._walletApiClient.account.request(params)
+      this._windowMessageTransport.disconnect()
+    } catch (err) {
+      this._catchWalletApiError(
+        err,
+        "Something went wrong when requesting an account with ledger live signer!"
+      )
+    }
+
+    this._account = account!
     return this._account
   }
 
@@ -116,13 +137,23 @@ export class LedgerLiveEthereumSigner extends Signer {
 
   async signMessage(message: string): Promise<string> {
     this._checkAccount()
-    this._windowMessageTransport.connect()
-    const buffer = await this._walletApiClient.message.sign(
-      this._account!.id,
-      Buffer.from(message)
-    )
-    this._windowMessageTransport.disconnect()
-    return buffer.toString()
+
+    let buffer: Buffer
+    try {
+      this._windowMessageTransport.connect()
+      buffer = await this._walletApiClient.message.sign(
+        this._account!.id,
+        Buffer.from(message)
+      )
+      this._windowMessageTransport.disconnect()
+    } catch (err) {
+      this._catchWalletApiError(
+        err,
+        "Something went wrong when signing a message with ledger live signer!"
+      )
+    }
+
+    return buffer!.toString()
   }
 
   async signTransaction(
@@ -133,13 +164,22 @@ export class LedgerLiveEthereumSigner extends Signer {
     const ethereumTransaction =
       this._getWalletApiEthereumTransaction(transaction)
 
-    this._windowMessageTransport.connect()
-    const buffer = await this._walletApiClient.transaction.sign(
-      this._account!.id,
-      ethereumTransaction
-    )
-    this._windowMessageTransport.disconnect()
-    return buffer.toString()
+    let buffer: Buffer
+    try {
+      this._windowMessageTransport.connect()
+      buffer = await this._walletApiClient.transaction.sign(
+        this._account!.id,
+        ethereumTransaction
+      )
+      this._windowMessageTransport.disconnect()
+    } catch (err) {
+      this._catchWalletApiError(
+        err,
+        "Something went wrong when signing a transaction with ledger live signer!"
+      )
+    }
+
+    return buffer!.toString()
   }
 
   async sendTransaction(
@@ -151,16 +191,24 @@ export class LedgerLiveEthereumSigner extends Signer {
     const ethereumTransaction =
       this._getWalletApiEthereumTransaction(pupulatedTransaction)
 
-    this._windowMessageTransport.connect()
-    const transactionHash =
-      await this._walletApiClient.transaction.signAndBroadcast(
-        this._account!.id,
-        ethereumTransaction
+    let transactionHash: string
+    try {
+      this._windowMessageTransport.connect()
+      transactionHash =
+        await this._walletApiClient.transaction.signAndBroadcast(
+          this._account!.id,
+          ethereumTransaction
+        )
+      this._windowMessageTransport.disconnect()
+    } catch (err) {
+      this._catchWalletApiError(
+        err,
+        "Something went wrong when sending a transaction with ledger live signer!"
       )
-    this._windowMessageTransport.disconnect()
+    }
 
     const transactionResponse = await this.provider?.getTransaction(
-      transactionHash
+      transactionHash!
     )
 
     if (!transactionResponse) {
