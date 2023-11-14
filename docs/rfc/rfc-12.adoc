@@ -32,6 +32,11 @@ currently used by signers, the consensus-based solution would greatly increase
 the time and complexity of the whole signing process. That, in turn, would
 negatively impact system stability and user experience.
 
+Moreover, it is worth noting that even with a more effective signing
+algorithm (e.g. ROAST), a consensus-based solution will still be a major
+challenge. Although effective signing will reduce some overhead, it won't
+make the consensus algorithm simpler.
+
 To address the above challenges and make wallet coordination simple,
 a contract-based coordination mechanism has been used instead. Their central
 point is the `WalletCoordinator` smart contract. This contract is powered
