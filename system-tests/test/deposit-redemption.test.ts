@@ -57,7 +57,6 @@ describe("System Test - Deposit and redemption", () => {
   let bank: Contract
   let relay: Contract
 
-  let electrumClient: ElectrumClient
   let depositorSdk: TBTC
   let maintainerSdk: TBTC
   let walletTx: WalletTx
@@ -96,7 +95,7 @@ describe("System Test - Deposit and redemption", () => {
       maintainer
     )
 
-    electrumClient = ElectrumClient.fromUrl(
+    const electrumClient = ElectrumClient.fromUrl(
       electrumUrl,
       undefined,
       ELECTRUM_RETRIES,
@@ -157,7 +156,7 @@ describe("System Test - Deposit and redemption", () => {
       `)
 
       const depositorUtxos =
-        await electrumClient.findAllUnspentTransactionOutputs(
+        await depositorSdk.bitcoinClient.findAllUnspentTransactionOutputs(
           depositorBitcoinAddress
         )
 
@@ -166,7 +165,7 @@ describe("System Test - Deposit and redemption", () => {
         depositorUtxos,
         depositTxFee,
         systemTestsContext.depositorBitcoinKeyPair.wif,
-        electrumClient
+        depositorSdk.bitcoinClient
       ))
 
       console.log(`
@@ -178,9 +177,10 @@ describe("System Test - Deposit and redemption", () => {
       // Since the reveal deposit logic does not perform SPV proof, we
       // can reveal the deposit transaction immediately without waiting
       // for confirmations.
-      const rawDepositTransaction = await electrumClient.getRawTransaction(
-        depositUtxo.transactionHash
-      )
+      const rawDepositTransaction =
+        await depositorSdk.bitcoinClient.getRawTransaction(
+          depositUtxo.transactionHash
+        )
       const depositRawTxVectors = extractBitcoinRawTxVectors(
         rawDepositTransaction
       )
@@ -199,8 +199,11 @@ describe("System Test - Deposit and redemption", () => {
 
     it("should broadcast the deposit transaction on the Bitcoin network", async () => {
       expect(
-        (await electrumClient.getRawTransaction(depositUtxo.transactionHash))
-          .transactionHex.length
+        (
+          await maintainerSdk.bitcoinClient.getRawTransaction(
+            depositUtxo.transactionHash
+          )
+        ).transactionHex.length
       ).to.be.greaterThan(0)
     })
 
@@ -231,13 +234,13 @@ describe("System Test - Deposit and redemption", () => {
         // transaction to have an enough number of confirmations. This is
         // because the bridge performs the SPV proof of that transaction.
         await waitTransactionConfirmed(
-          electrumClient,
+          maintainerSdk.bitcoinClient,
           sweepUtxo.transactionHash
         )
 
         await fakeRelayDifficulty(
           relay,
-          electrumClient,
+          maintainerSdk.bitcoinClient,
           sweepUtxo.transactionHash
         )
 
@@ -262,8 +265,11 @@ describe("System Test - Deposit and redemption", () => {
 
       it("should broadcast the sweep transaction on the Bitcoin network", async () => {
         expect(
-          (await electrumClient.getRawTransaction(sweepUtxo.transactionHash))
-            .transactionHex.length
+          (
+            await maintainerSdk.bitcoinClient.getRawTransaction(
+              sweepUtxo.transactionHash
+            )
+          ).transactionHex.length
         ).to.be.greaterThan(0)
       })
 
@@ -373,11 +379,14 @@ describe("System Test - Deposit and redemption", () => {
                     `- Transaction hash: ${redemptionTxHash}`
                 )
 
-                await waitTransactionConfirmed(electrumClient, redemptionTxHash)
+                await waitTransactionConfirmed(
+                  maintainerSdk.bitcoinClient,
+                  redemptionTxHash
+                )
 
                 await fakeRelayDifficulty(
                   relay,
-                  electrumClient,
+                  maintainerSdk.bitcoinClient,
                   redemptionTxHash
                 )
 
@@ -393,8 +402,11 @@ describe("System Test - Deposit and redemption", () => {
 
             it("should broadcast the redemption transaction on the Bitcoin network", async () => {
               expect(
-                (await electrumClient.getRawTransaction(redemptionTxHash))
-                  .transactionHex.length
+                (
+                  await maintainerSdk.bitcoinClient.getRawTransaction(
+                    redemptionTxHash
+                  )
+                ).transactionHex.length
               ).to.be.greaterThan(0)
             })
 

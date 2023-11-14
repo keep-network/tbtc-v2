@@ -4,7 +4,7 @@ import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
 import { assembleBitcoinSpvProof, Hex } from "@keep-network/tbtc-v2.ts"
 
-import type { BitcoinTxHash, ElectrumClient } from "@keep-network/tbtc-v2.ts"
+import type { BitcoinTxHash, BitcoinClient } from "@keep-network/tbtc-v2.ts"
 import type { Contract } from "ethers"
 
 /**
@@ -75,7 +75,7 @@ export function keyPairFromWif(wif: string): KeyPair {
  * @returns Empty promise.
  */
 export async function waitTransactionConfirmed(
-  bitcoinClient: ElectrumClient,
+  bitcoinClient: BitcoinClient,
   transactionHash: BitcoinTxHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
   sleep = 30000
@@ -126,7 +126,7 @@ export async function waitTransactionConfirmed(
  */
 export async function fakeRelayDifficulty(
   relay: Contract,
-  bitcoinClient: ElectrumClient,
+  bitcoinClient: BitcoinClient,
   transactionHash: BitcoinTxHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
