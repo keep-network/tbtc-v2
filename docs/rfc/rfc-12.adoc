@@ -6,6 +6,8 @@
 :numbered:
 toc::[]
 
+NOTE: This RFC supersedes link:rfc-7.adoc[RFC 7]
+
 == Background
 
 Currently used wallet coordination mechanism based on the `WalletCoordinator`
