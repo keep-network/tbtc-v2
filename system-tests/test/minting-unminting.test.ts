@@ -3,14 +3,10 @@ import {
   BitcoinTxHash,
   BitcoinNetwork,
   ElectrumClient,
-  EthereumBridge,
-  EthereumTBTCToken,
-  EthereumTBTCVault,
   DepositFunding,
   DepositScript,
   BitcoinAddressConverter,
   WalletTx,
-  EthereumWalletRegistry,
   BitcoinHashUtils,
   EthereumAddress,
   TBTC,
@@ -19,7 +15,10 @@ import { BigNumber, constants, Contract } from "ethers"
 import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 
-import { setupSystemTestsContext } from "./utils/context"
+import {
+  setupSystemTestsContext,
+  createTbtcContractsHandle,
+} from "./utils/context"
 import { fakeRelayDifficulty, waitTransactionConfirmed } from "./utils/bitcoin"
 
 import type { SystemTestsContext } from "./utils/context"
@@ -27,7 +26,6 @@ import type {
   RedemptionRequest,
   BitcoinUtxo,
   DepositReceipt,
-  TBTCContracts,
 } from "@keep-network/tbtc-v2.ts"
 
 chai.use(chaiAsPromised)
@@ -59,18 +57,15 @@ const satoshiMultiplier = 1e10
 describe("System Test - Minting and unminting", () => {
   let systemTestsContext: SystemTestsContext
 
-  let tbtcTokenAddress: string
   let bridgeAddress: string
   let vaultAddress: string
-  let walletRegistryAddress: string
 
   let bank: Contract
   let relay: Contract
   let tbtc: Contract
 
-  let electrumClient: ElectrumClient
-  let depositorTbtc: TBTC
-  let maintainerTbtc: TBTC
+  let depositorSdk: TBTC
+  let maintainerSdk: TBTC
   let walletTx: WalletTx
 
   const depositAmount = BigNumber.from(2000000)
@@ -93,17 +88,15 @@ describe("System Test - Minting and unminting", () => {
     const { electrumUrl, maintainer, depositor, deployedContracts } =
       systemTestsContext
 
-    electrumClient = ElectrumClient.fromUrl(
+    const electrumClient = ElectrumClient.fromUrl(
       electrumUrl,
       undefined,
       ELECTRUM_RETRIES,
       ELECTRUM_RETRY_BACKOFF_STEP_MS
     )
 
-    tbtcTokenAddress = deployedContracts.TBTC.address
     bridgeAddress = deployedContracts.Bridge.address
     vaultAddress = deployedContracts.TBTCVault.address
-    walletRegistryAddress = deployedContracts.WalletRegistry.address
 
     const bankDeploymentInfo = deployedContracts.Bank
     bank = new Contract(
@@ -126,50 +119,22 @@ describe("System Test - Minting and unminting", () => {
       maintainer
     )
 
-    const depositorTbtcContracts: TBTCContracts = {
-      bridge: new EthereumBridge({
-        address: bridgeAddress,
-        signerOrProvider: depositor,
-      }),
-      tbtcToken: new EthereumTBTCToken({
-        address: tbtcTokenAddress,
-        signerOrProvider: depositor,
-      }),
-      tbtcVault: new EthereumTBTCVault({
-        address: vaultAddress,
-        signerOrProvider: depositor,
-      }),
-      walletRegistry: new EthereumWalletRegistry({
-        address: walletRegistryAddress,
-        signerOrProvider: depositor,
-      }),
-    }
+    const depositorTbtcContracts = await createTbtcContractsHandle(
+      deployedContracts,
+      depositor
+    )
 
-    depositorTbtc = await TBTC.initializeCustom(
+    depositorSdk = await TBTC.initializeCustom(
       depositorTbtcContracts,
       electrumClient
     )
 
-    const maintainerTbtcContracts: TBTCContracts = {
-      bridge: new EthereumBridge({
-        address: bridgeAddress,
-        signerOrProvider: maintainer,
-      }),
-      tbtcToken: new EthereumTBTCToken({
-        address: tbtcTokenAddress,
-        signerOrProvider: maintainer,
-      }),
-      tbtcVault: new EthereumTBTCVault({
-        address: vaultAddress,
-        signerOrProvider: maintainer,
-      }),
-      walletRegistry: new EthereumWalletRegistry({
-        address: walletRegistryAddress,
-        signerOrProvider: maintainer,
-      }),
-    }
+    const maintainerTbtcContracts = await createTbtcContractsHandle(
+      deployedContracts,
+      maintainer
+    )
 
-    maintainerTbtc = await TBTC.initializeCustom(
+    maintainerSdk = await TBTC.initializeCustom(
       maintainerTbtcContracts,
       electrumClient
     )
@@ -181,7 +146,7 @@ describe("System Test - Minting and unminting", () => {
       BitcoinNetwork.Testnet
     )
 
-    depositorTbtc.deposits.setDefaultDepositor(
+    depositorSdk.deposits.setDefaultDepositor(
       EthereumAddress.from(await depositor.getAddress())
     )
   })
@@ -190,7 +155,7 @@ describe("System Test - Minting and unminting", () => {
     "when minting is initiated by making and revealing a deposit to the TBTCVault",
     () => {
       before("make and reveal deposit", async () => {
-        const deposit = await depositorTbtc.deposits.initiateDeposit(
+        const deposit = await depositorSdk.deposits.initiateDeposit(
           // Use the depositor's address as the recovery address.
           depositorBitcoinAddress
         )
@@ -208,7 +173,7 @@ describe("System Test - Minting and unminting", () => {
         `)
 
         const depositorUtxos =
-          await electrumClient.findAllUnspentTransactionOutputs(
+          await depositorSdk.bitcoinClient.findAllUnspentTransactionOutputs(
             depositorBitcoinAddress
           )
 
@@ -217,7 +182,7 @@ describe("System Test - Minting and unminting", () => {
           depositorUtxos,
           depositTxFee,
           systemTestsContext.depositorBitcoinKeyPair.wif,
-          electrumClient
+          depositorSdk.bitcoinClient
         ))
 
         console.log(`
@@ -241,14 +206,17 @@ describe("System Test - Minting and unminting", () => {
 
       it("should broadcast the deposit transaction on the Bitcoin network", async () => {
         expect(
-          (await electrumClient.getRawTransaction(depositUtxo.transactionHash))
-            .transactionHex.length
+          (
+            await depositorSdk.bitcoinClient.getRawTransaction(
+              depositUtxo.transactionHash
+            )
+          ).transactionHex.length
         ).to.be.greaterThan(0)
       })
 
       it("should reveal the deposit to the bridge", async () => {
         const { revealedAt } =
-          await maintainerTbtc.tbtcContracts.bridge.deposits(
+          await maintainerSdk.tbtcContracts.bridge.deposits(
             depositUtxo.transactionHash,
             depositUtxo.outputIndex
           )
@@ -256,7 +224,7 @@ describe("System Test - Minting and unminting", () => {
       })
 
       it("should set TBTCVault as target vault of the revealed deposit", async () => {
-        const { vault } = await maintainerTbtc.tbtcContracts.bridge.deposits(
+        const { vault } = await maintainerSdk.tbtcContracts.bridge.deposits(
           depositUtxo.transactionHash,
           depositUtxo.outputIndex
         )
@@ -284,20 +252,20 @@ describe("System Test - Minting and unminting", () => {
           // transaction to have an enough number of confirmations. This is
           // because the bridge performs the SPV proof of that transaction.
           await waitTransactionConfirmed(
-            electrumClient,
+            maintainerSdk.bitcoinClient,
             sweepUtxo.transactionHash
           )
 
           await fakeRelayDifficulty(
             relay,
-            electrumClient,
+            maintainerSdk.bitcoinClient,
             sweepUtxo.transactionHash
           )
 
           // TODO: Consider fetching the current wallet main UTXO and passing it
           //       here. This will allow running this test scenario multiple
           //       times for the same wallet.
-          await maintainerTbtc.maintenance.spv.submitDepositSweepProof(
+          await maintainerSdk.maintenance.spv.submitDepositSweepProof(
             sweepUtxo.transactionHash,
             // This is the first sweep of the given wallet so there is no main UTXO.
             {
@@ -316,23 +284,25 @@ describe("System Test - Minting and unminting", () => {
 
         it("should broadcast the sweep transaction on the Bitcoin network", async () => {
           expect(
-            (await electrumClient.getRawTransaction(sweepUtxo.transactionHash))
-              .transactionHex.length
+            (
+              await maintainerSdk.bitcoinClient.getRawTransaction(
+                sweepUtxo.transactionHash
+              )
+            ).transactionHex.length
           ).to.be.greaterThan(0)
         })
 
         it("should sweep the deposit on the bridge", async () => {
-          const { sweptAt } =
-            await maintainerTbtc.tbtcContracts.bridge.deposits(
-              depositUtxo.transactionHash,
-              depositUtxo.outputIndex
-            )
+          const { sweptAt } = await maintainerSdk.tbtcContracts.bridge.deposits(
+            depositUtxo.transactionHash,
+            depositUtxo.outputIndex
+          )
           expect(sweptAt).to.be.greaterThan(0)
         })
 
         it("should increase TBTCVault's balance in the bank", async () => {
           const { treasuryFee } =
-            await maintainerTbtc.tbtcContracts.bridge.deposits(
+            await maintainerSdk.tbtcContracts.bridge.deposits(
               depositUtxo.transactionHash,
               depositUtxo.outputIndex
             )
@@ -347,7 +317,7 @@ describe("System Test - Minting and unminting", () => {
 
         it("should mint TBTC to the depositor", async () => {
           const { treasuryFee } =
-            await maintainerTbtc.tbtcContracts.bridge.deposits(
+            await maintainerSdk.tbtcContracts.bridge.deposits(
               depositUtxo.transactionHash,
               depositUtxo.outputIndex
             )
@@ -382,7 +352,7 @@ describe("System Test - Minting and unminting", () => {
               )}`
             )
 
-            await depositorTbtc.redemptions.requestRedemption(
+            await depositorSdk.redemptions.requestRedemption(
               // Use the depositor's address as the redeemer's address.
               depositorBitcoinAddress,
               unmintedAmount
@@ -393,7 +363,7 @@ describe("System Test - Minting and unminting", () => {
             )
 
             redemptionRequest =
-              await maintainerTbtc.redemptions.getRedemptionRequests(
+              await maintainerSdk.redemptions.getRedemptionRequests(
                 depositorBitcoinAddress,
                 systemTestsContext.walletBitcoinKeyPair.publicKey.compressed,
                 "pending"
@@ -444,17 +414,17 @@ describe("System Test - Minting and unminting", () => {
                   )
 
                   await waitTransactionConfirmed(
-                    electrumClient,
+                    maintainerSdk.bitcoinClient,
                     redemptionTxHash
                   )
 
                   await fakeRelayDifficulty(
                     relay,
-                    electrumClient,
+                    maintainerSdk.bitcoinClient,
                     redemptionTxHash
                   )
 
-                  await maintainerTbtc.maintenance.spv.submitRedemptionProof(
+                  await maintainerSdk.maintenance.spv.submitRedemptionProof(
                     redemptionTxHash,
                     sweepUtxo,
                     systemTestsContext.walletBitcoinKeyPair.publicKey.compressed
@@ -466,14 +436,17 @@ describe("System Test - Minting and unminting", () => {
 
               it("should broadcast the redemption transaction on the Bitcoin network", async () => {
                 expect(
-                  (await electrumClient.getRawTransaction(redemptionTxHash))
-                    .transactionHex.length
+                  (
+                    await maintainerSdk.bitcoinClient.getRawTransaction(
+                      redemptionTxHash
+                    )
+                  ).transactionHex.length
                 ).to.be.greaterThan(0)
               })
 
               it("should close the redemption request on the bridge", async () => {
                 await expect(
-                  maintainerTbtc.redemptions.getRedemptionRequests(
+                  maintainerSdk.redemptions.getRedemptionRequests(
                     depositorBitcoinAddress,
                     systemTestsContext.walletBitcoinKeyPair.publicKey
                       .compressed,
