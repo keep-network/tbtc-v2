@@ -5,7 +5,6 @@ import {
   EthereumBridge,
   EthereumTBTCToken,
   EthereumTBTCVault,
-  EthereumWalletRegistry,
 } from "@keep-network/tbtc-v2.ts"
 
 import { keyPairFromWif } from "./bitcoin"
@@ -163,26 +162,31 @@ function readBitcoinWif(wifEnvName: string): BitcoinKeyPair {
  * @param signer Signer used when communicating with the contracts.
  * @returns TBTC contract handles.
  */
-export function createTbtcContractsHandle(
+export async function createTbtcContractsHandle(
   deployedContracts: DeployedContracts,
   signer: SignerWithAddress
-): TBTCContracts {
+): Promise<TBTCContracts> {
+  const bridge = new EthereumBridge({
+    address: deployedContracts.Bridge.address,
+    signerOrProvider: signer,
+  })
+
+  const tbtcToken = new EthereumTBTCToken({
+    address: deployedContracts.TBTC.address,
+    signerOrProvider: signer,
+  })
+
+  const tbtcVault = new EthereumTBTCVault({
+    address: deployedContracts.TBTCVault.address,
+    signerOrProvider: signer,
+  })
+
+  const walletRegistry = await bridge.walletRegistry()
+
   return {
-    bridge: new EthereumBridge({
-      address: deployedContracts.Bridge.address,
-      signerOrProvider: signer,
-    }),
-    tbtcToken: new EthereumTBTCToken({
-      address: deployedContracts.TBTC.address,
-      signerOrProvider: signer,
-    }),
-    tbtcVault: new EthereumTBTCVault({
-      address: deployedContracts.TBTCVault.address,
-      signerOrProvider: signer,
-    }),
-    walletRegistry: new EthereumWalletRegistry({
-      address: deployedContracts.WalletRegistry.address,
-      signerOrProvider: signer,
-    }),
+    bridge,
+    tbtcToken,
+    tbtcVault,
+    walletRegistry,
   }
 }

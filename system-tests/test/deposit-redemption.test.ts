@@ -104,7 +104,7 @@ describe("System Test - Deposit and redemption", () => {
 
     bridgeAddress = deployedContracts.Bridge.address
 
-    const depositorTbtcContracts = createTbtcContractsHandle(
+    const depositorTbtcContracts = await createTbtcContractsHandle(
       deployedContracts,
       depositor
     )
@@ -114,7 +114,7 @@ describe("System Test - Deposit and redemption", () => {
       electrumClient
     )
 
-    const maintainerTbtcContracts = createTbtcContractsHandle(
+    const maintainerTbtcContracts = await createTbtcContractsHandle(
       deployedContracts,
       maintainer
     )
