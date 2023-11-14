@@ -27,9 +27,7 @@ export class LedgerLiveEthereumSigner extends Signer {
   private _windowMessageTransport: WindowMessageTransport
   private _account: Account | undefined
 
-  constructor(
-    provider: ethers.providers.Provider
-  ) {
+  constructor(provider: ethers.providers.Provider) {
     super()
     ethers.utils.defineReadOnly(this, "provider", provider || null)
     this._windowMessageTransport = getWindowMessageTransport()
@@ -162,7 +160,12 @@ export class LedgerLiveEthereumSigner extends Signer {
   }
 
   connect(provider: ethers.providers.Provider): Signer {
-    return new LedgerLiveEthereumSigner(provider)
+    const account = this._account
+    const newLedgerLiveEthereumSignerInstance = new LedgerLiveEthereumSigner(
+      provider
+    )
+    newLedgerLiveEthereumSignerInstance.setAccount(account)
+    return newLedgerLiveEthereumSignerInstance
   }
 }
 
@@ -170,9 +173,7 @@ const getWindowMessageTransport = () => {
   return new WindowMessageTransport()
 }
 
-const getWalletAPIClient = (
-  windowMessageTransport: WindowMessageTransport
-) => {
+const getWalletAPIClient = (windowMessageTransport: WindowMessageTransport) => {
   const walletApiClient = new WalletAPIClient(windowMessageTransport)
 
   return walletApiClient
