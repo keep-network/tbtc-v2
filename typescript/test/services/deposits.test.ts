@@ -1032,6 +1032,9 @@ describe("Deposits", () => {
                 ).toNumber()
                 const currentTimestamp = Math.floor(new Date().getTime() / 1000)
                 expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
               })
             })
 
@@ -1060,6 +1063,9 @@ describe("Deposits", () => {
                 ).toNumber()
                 const currentTimestamp = Math.floor(new Date().getTime() / 1000)
                 expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
               })
             })
           })
