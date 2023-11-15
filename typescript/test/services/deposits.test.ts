@@ -18,6 +18,7 @@ import {
   DepositReceipt,
   DepositRefund,
   DepositScript,
+  DepositsService,
   EthereumAddress,
   extractBitcoinRawTxVectors,
 } from "../../src"
@@ -947,7 +948,130 @@ describe("Deposits", () => {
   })
 
   describe("DepositsService", () => {
-    // TODO: Implement unit tests.
+    describe("initiateDeposit", () => {
+      const depositor = EthereumAddress.from(
+        "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+      )
+      const bitcoinClient = new MockBitcoinClient()
+      const tbtcContracts = new MockTBTCContracts()
+      let depositService: DepositsService
+
+      beforeEach(async () => {
+        depositService = new DepositsService(tbtcContracts, bitcoinClient)
+      })
+
+      context("when default depositor is not set", () => {
+        it("should throw", async () => {
+          await expect(
+            depositService.initiateDeposit("mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc")
+          ).to.be.rejectedWith(
+            "Default depositor is not set; use setDefaultDepositor first"
+          )
+        })
+      })
+
+      context("when default depositor is set", () => {
+        beforeEach(async () => {
+          depositService.setDefaultDepositor(depositor)
+        })
+
+        context("when active wallet is not set", () => {
+          it("should throw", async () => {
+            await expect(
+              depositService.initiateDeposit(
+                "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
+              )
+            ).to.be.rejectedWith("Could not get active wallet public key")
+          })
+        })
+
+        context("when active wallet is set", () => {
+          beforeEach(async () => {
+            tbtcContracts.bridge.setActiveWalletPublicKey(
+              Hex.from(
+                "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+              )
+            )
+          })
+
+          context("when recovery address is incorrect", () => {
+            it("should throw", async () => {
+              await expect(
+                depositService.initiateDeposit(
+                  "2N5WZpig3vgpSdjSherS2Lv7GnPuxCvkQjT" // p2sh address
+                )
+              ).to.be.rejectedWith(
+                "Bitcoin recovery address must be P2PKH or P2WPKH"
+              )
+            })
+          })
+
+          context("when recovery address is correct", () => {
+            context("when recovery address is P2PKH", () => {
+              let deposit: Deposit
+
+              beforeEach(async () => {
+                deposit = await depositService.initiateDeposit(
+                  "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
+                )
+              })
+
+              it("should initiate deposit correctly", async () => {
+                // Inspect the deposit object by looking at its receipt.
+                const receipt = deposit.getReceipt()
+                expect(receipt.depositor).to.be.equal(depositor)
+                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                  Hex.from("2cd680318747b720d67bf4246eb7403b476adb34")
+                )
+                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
+                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
+                )
+                // Expect the refund locktime to be in the future.
+                const receiptTimestamp = BigNumber.from(
+                  receipt.refundLocktime.reverse().toPrefixedString()
+                ).toNumber()
+                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
+                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              })
+            })
+
+            context("when recovery address is P2WPKH", () => {
+              let deposit: Deposit
+
+              beforeEach(async () => {
+                deposit = await depositService.initiateDeposit(
+                  "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx"
+                )
+              })
+
+              it("should initiate deposit correctly", async () => {
+                // Inspect the deposit object by looking at its receipt.
+                const receipt = deposit.getReceipt()
+                expect(receipt.depositor).to.be.equal(depositor)
+                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                  Hex.from("e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0")
+                )
+                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
+                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
+                )
+                // Expect the refund locktime to be in the future.
+                const receiptTimestamp = BigNumber.from(
+                  receipt.refundLocktime.reverse().toPrefixedString()
+                ).toNumber()
+                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
+                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              })
+            })
+          })
+        })
+      })
+    })
   })
 
   describe("DepositRefund", () => {

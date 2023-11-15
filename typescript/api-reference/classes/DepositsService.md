@@ -110,7 +110,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:62](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L62)
+[src/services/deposits/deposits-service.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L61)
 
 ___
 
@@ -141,7 +141,7 @@ Throws an error if one of the following occurs:
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L57)
+[src/services/deposits/deposits-service.ts:56](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L56)
 
 ___
 
@@ -170,4 +170,4 @@ Typically, there is no need to use this method when DepositsService
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L125)
+[src/services/deposits/deposits-service.ts:124](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L124)

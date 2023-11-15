@@ -53,7 +53,6 @@ export class DepositsService {
    *         - There are no active wallet in the Bridge contract
    *         - The Bitcoin recovery address is not a valid P2(W)PKH
    */
-  // TODO: Cover with unit tests.
   async initiateDeposit(bitcoinRecoveryAddress: string): Promise<Deposit> {
     const receipt = await this.generateDepositReceipt(bitcoinRecoveryAddress)
     return Deposit.fromReceipt(receipt, this.tbtcContracts, this.bitcoinClient)
