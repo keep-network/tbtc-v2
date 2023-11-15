@@ -42,7 +42,7 @@ Broadcasts the given transaction over the network.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:101](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L101)
+[src/lib/bitcoin/client.ts:103](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L103)
 
 ___
 
@@ -51,6 +51,8 @@ ___
 ▸ **findAllUnspentTransactionOutputs**(`address`): `Promise`\<[`BitcoinUtxo`](../README.md#bitcoinutxo)[]\>
 
 Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
+The list includes UTXOs from both the blockchain and the mempool, sorted by
+age with the newest ones first. Mempool UTXOs are listed at the beginning.
 
 #### Parameters
 
@@ -66,7 +68,7 @@ List of UTXOs.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L21)
+[src/lib/bitcoin/client.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L23)
 
 ___
 
@@ -91,7 +93,7 @@ Concatenation of block headers in a hexadecimal format.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L84)
+[src/lib/bitcoin/client.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L86)
 
 ___
 
@@ -133,7 +135,7 @@ Raw transaction.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:47](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L47)
+[src/lib/bitcoin/client.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L49)
 
 ___
 
@@ -157,7 +159,7 @@ Transaction object.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L40)
+[src/lib/bitcoin/client.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L42)
 
 ___
 
@@ -182,7 +184,7 @@ The number of confirmations.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:55](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L55)
+[src/lib/bitcoin/client.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L57)
 
 ___
 
@@ -208,7 +210,7 @@ at the moment of request.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L33)
+[src/lib/bitcoin/client.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L35)
 
 ___
 
@@ -233,7 +235,7 @@ Merkle branch.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:92](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L92)
+[src/lib/bitcoin/client.ts:94](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L94)
 
 ___
 
@@ -263,7 +265,7 @@ Array of confirmed transaction hashes related to the provided
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L69)
+[src/lib/bitcoin/client.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L71)
 
 ___
 
@@ -281,4 +283,4 @@ Height of the last mined block.
 
 #### Defined in
 
-[src/lib/bitcoin/client.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L75)
+[src/lib/bitcoin/client.ts:77](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L77)

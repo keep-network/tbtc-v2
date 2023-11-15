@@ -13,6 +13,7 @@ import { Hex } from "../../src/lib/utils"
  * Mock Bitcoin client used for test purposes.
  */
 export class MockBitcoinClient implements BitcoinClient {
+  private _network = BitcoinNetwork.Testnet
   private _unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
   private _rawTransactions = new Map<string, BitcoinRawTx>()
   private _transactions = new Map<string, BitcoinTx>()
@@ -27,6 +28,10 @@ export class MockBitcoinClient implements BitcoinClient {
   }
   private _broadcastLog: BitcoinRawTx[] = []
   private _transactionHistory = new Map<string, BitcoinTx[]>()
+
+  set network(value: BitcoinNetwork) {
+    this._network = value
+  }
 
   set unspentTransactionOutputs(value: Map<string, BitcoinUtxo[]>) {
     this._unspentTransactionOutputs = value
@@ -70,7 +75,7 @@ export class MockBitcoinClient implements BitcoinClient {
 
   getNetwork(): Promise<BitcoinNetwork> {
     return new Promise<BitcoinNetwork>((resolve, _) => {
-      resolve(BitcoinNetwork.Testnet)
+      resolve(this._network)
     })
   }
 
