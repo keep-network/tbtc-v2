@@ -679,26 +679,41 @@ describe("Deposits", () => {
 
   describe("Deposit", () => {
     describe("getBitcoinAddress", () => {
-      let bitcoinClient: MockBitcoinClient
-      let tbtcContracts: MockTBTCContracts
-      let deposit: Deposit
+      const testData = [
+        {
+          network: BitcoinNetwork.Mainnet,
+          expectedAddress:
+            "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
+        },
+        {
+          network: BitcoinNetwork.Testnet,
+          expectedAddress:
+            "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
+        },
+      ]
+
       let bitcoinAddress: string
 
-      beforeEach(async () => {
-        bitcoinClient = new MockBitcoinClient()
-        tbtcContracts = new MockTBTCContracts()
-        deposit = await Deposit.fromReceipt(
-          depositReceipt,
-          tbtcContracts,
-          bitcoinClient
-        )
-        bitcoinAddress = await deposit.getBitcoinAddress()
-      })
+      testData.forEach(({ network, expectedAddress }) => {
+        context(`when network is ${network}`, () => {
+          beforeEach(async () => {
+            const bitcoinClient = new MockBitcoinClient()
+            bitcoinClient.network = network
+            const tbtcContracts = new MockTBTCContracts()
 
-      it("should return correct address", () => {
-        expect(bitcoinAddress).to.be.equal(
-          "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05"
-        )
+            const deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+
+            bitcoinAddress = await deposit.getBitcoinAddress()
+          })
+
+          it("should return correct address", () => {
+            expect(bitcoinAddress).to.be.equal(expectedAddress)
+          })
+        })
       })
     })
 
