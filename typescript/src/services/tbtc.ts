@@ -62,7 +62,7 @@ export class TBTC {
   }
 
   /**
-   * Initializes the tBTC v2 SDK entrypoint for Ethereum goerli and Bitcoin testnet.
+   * Initializes the tBTC v2 SDK entrypoint for Ethereum Goerli and Bitcoin testnet.
    * The initialized instance uses default Electrum servers to interact
    * with Bitcoin testnet
    * @param signer Ethereum signer.
@@ -72,6 +72,19 @@ export class TBTC {
    */
   static async initializeGoerli(signer: EthereumSigner): Promise<TBTC> {
     return TBTC.initializeEthereum(signer, "goerli", BitcoinNetwork.Testnet)
+  }
+
+  /**
+   * Initializes the tBTC v2 SDK entrypoint for Ethereum Sepolia and Bitcoin testnet.
+   * The initialized instance uses default Electrum servers to interact
+   * with Bitcoin testnet
+   * @param signer Ethereum signer.
+   * @returns Initialized tBTC v2 SDK entrypoint.
+   * @throws Throws an error if the signer's Ethereum network is other than
+   *         Ethereum mainnet.
+   */
+  static async initializeSepolia(signer: EthereumSigner): Promise<TBTC> {
+    return TBTC.initializeEthereum(signer, "sepolia", BitcoinNetwork.Testnet)
   }
 
   /**
