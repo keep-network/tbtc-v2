@@ -15,6 +15,8 @@ export interface BitcoinClient {
 
   /**
    * Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
+   * The list includes UTXOs from both the blockchain and the mempool, sorted by
+   * age with the newest ones first. Mempool UTXOs are listed at the beginning.
    * @param address - Bitcoin address UTXOs should be determined for.
    * @returns List of UTXOs.
    */

@@ -45,6 +45,8 @@ export async function ethereumNetworkFromSigner(
       return "mainnet"
     case 5:
       return "goerli"
+    case 11155111:
+      return "sepolia"
     default:
       return "local"
   }
@@ -71,7 +73,7 @@ export async function ethereumAddressFromSigner(
 /**
  * Supported Ethereum networks.
  */
-export type EthereumNetwork = "local" | "goerli" | "mainnet"
+export type EthereumNetwork = "local" | "goerli" | "sepolia" | "mainnet"
 
 /**
  * Loads Ethereum implementation of tBTC contracts for the given Ethereum

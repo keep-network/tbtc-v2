@@ -18,6 +18,7 @@ import {
   DepositReceipt,
   DepositRefund,
   DepositScript,
+  DepositsService,
   EthereumAddress,
   extractBitcoinRawTxVectors,
 } from "../../src"
@@ -38,7 +39,7 @@ describe("Deposits", () => {
 
   const depositAmount = BigNumber.from(10000) // 0.0001 BTC
 
-  const deposit: DepositReceipt = {
+  const depositReceipt: DepositReceipt = {
     depositor: EthereumAddress.from("934b98637ca318a4d6e7ca6ffd1690b8e77df637"),
     // HASH160 of 03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9.
     walletPublicKeyHash: Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6"),
@@ -130,7 +131,9 @@ describe("Deposits", () => {
     // byte is 0x14 which is 20 in decimal, and this is correct because we
     // have a 20 bytes depositor identifier as subsequent data.
     expect(script.substring(0, 2)).to.be.equal("14")
-    expect(script.substring(2, 42)).to.be.equal(deposit.depositor.identifierHex)
+    expect(script.substring(2, 42)).to.be.equal(
+      depositReceipt.depositor.identifierHex
+    )
 
     // According to https://en.bitcoin.it/wiki/Script#Constants, the
     // OP_DROP opcode is 0x75.
@@ -141,7 +144,7 @@ describe("Deposits", () => {
     // In this case it's 8 bytes.
     expect(script.substring(44, 46)).to.be.equal("08")
     expect(script.substring(46, 62)).to.be.equal(
-      deposit.blindingFactor.toString()
+      depositReceipt.blindingFactor.toString()
     )
 
     // OP_DROP opcode is 0x75.
@@ -158,7 +161,7 @@ describe("Deposits", () => {
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(68, 70)).to.be.equal("14")
     expect(script.substring(70, 110)).to.be.equal(
-      deposit.walletPublicKeyHash.toString()
+      depositReceipt.walletPublicKeyHash.toString()
     )
 
     // OP_EQUAL opcode is 0x87.
@@ -184,7 +187,7 @@ describe("Deposits", () => {
     // In this case it's 20 bytes which is a correct length for a HASH160.
     expect(script.substring(122, 124)).to.be.equal("14")
     expect(script.substring(124, 164)).to.be.equal(
-      deposit.refundPublicKeyHash.toString()
+      depositReceipt.refundPublicKeyHash.toString()
     )
 
     // OP_EQUALVERIFY opcode is 0x88.
@@ -243,7 +246,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, true)
+            DepositScript.fromReceipt(depositReceipt, true)
           )
 
           ;({ transactionHash, depositUtxo } =
@@ -288,7 +291,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1410)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, false)
+            DepositScript.fromReceipt(depositReceipt, false)
           )
 
           ;({ transactionHash, depositUtxo } =
@@ -336,7 +339,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, true)
+            DepositScript.fromReceipt(depositReceipt, true)
           )
 
           ;({
@@ -439,7 +442,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1410)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit, false)
+            DepositScript.fromReceipt(depositReceipt, false)
           )
 
           ;({
@@ -540,7 +543,7 @@ describe("Deposits", () => {
       let script: Hex
 
       beforeEach(async () => {
-        script = await DepositScript.fromReceipt(deposit).getPlainText()
+        script = await DepositScript.fromReceipt(depositReceipt).getPlainText()
       })
 
       it("should return script with proper structure", async () => {
@@ -553,7 +556,10 @@ describe("Deposits", () => {
         let scriptHash: Buffer
 
         beforeEach(async () => {
-          scriptHash = await DepositScript.fromReceipt(deposit, true).getHash()
+          scriptHash = await DepositScript.fromReceipt(
+            depositReceipt,
+            true
+          ).getHash()
         })
 
         it("should return proper witness script hash", async () => {
@@ -574,7 +580,10 @@ describe("Deposits", () => {
         let scriptHash: Buffer
 
         beforeEach(async () => {
-          scriptHash = await DepositScript.fromReceipt(deposit, false).getHash()
+          scriptHash = await DepositScript.fromReceipt(
+            depositReceipt,
+            false
+          ).getHash()
         })
 
         it("should return proper non-witness script hash", async () => {
@@ -599,7 +608,7 @@ describe("Deposits", () => {
         context("when witness option is true", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               true
             ).deriveAddress(BitcoinNetwork.Mainnet)
           })
@@ -616,7 +625,7 @@ describe("Deposits", () => {
         context("when witness option is false", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               false
             ).deriveAddress(BitcoinNetwork.Mainnet)
           })
@@ -635,7 +644,7 @@ describe("Deposits", () => {
         context("when witness option is true", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               true
             ).deriveAddress(BitcoinNetwork.Testnet)
           })
@@ -652,7 +661,7 @@ describe("Deposits", () => {
         context("when witness option is false", () => {
           beforeEach(async () => {
             address = await DepositScript.fromReceipt(
-              deposit,
+              depositReceipt,
               false
             ).deriveAddress(BitcoinNetwork.Testnet)
           })
@@ -670,11 +679,211 @@ describe("Deposits", () => {
   })
 
   describe("Deposit", () => {
-    // TODO: Implement unit tests for other functions.
+    describe("getBitcoinAddress", () => {
+      const testData = [
+        {
+          network: BitcoinNetwork.Mainnet,
+          expectedAddress:
+            "bc1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhsdxuv4m",
+        },
+        {
+          network: BitcoinNetwork.Testnet,
+          expectedAddress:
+            "tb1qma629cu92skg0t86lftyaf9uflzwhp7jk63h6mpmv3ezh6puvdhs6w2r05",
+        },
+      ]
+
+      let bitcoinAddress: string
+
+      testData.forEach(({ network, expectedAddress }) => {
+        context(`when network is ${network}`, () => {
+          beforeEach(async () => {
+            const bitcoinClient = new MockBitcoinClient()
+            bitcoinClient.network = network
+            const tbtcContracts = new MockTBTCContracts()
+
+            const deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+
+            bitcoinAddress = await deposit.getBitcoinAddress()
+          })
+
+          it("should return correct address", () => {
+            expect(bitcoinAddress).to.be.equal(expectedAddress)
+          })
+        })
+      })
+    })
+
+    describe("detectFunding", () => {
+      let bitcoinClient: MockBitcoinClient
+      let tbtcContracts: MockTBTCContracts
+      let deposit: Deposit
+      let utxos: BitcoinUtxo[]
+
+      beforeEach(async () => {
+        bitcoinClient = new MockBitcoinClient()
+        tbtcContracts = new MockTBTCContracts()
+
+        deposit = await Deposit.fromReceipt(
+          depositReceipt,
+          tbtcContracts,
+          bitcoinClient
+        )
+      })
+
+      context("when there are no UTXOs from funding transactions", () => {
+        context("when Bitcoin client returns undefined", () => {
+          beforeEach(async () => {
+            // Do not set any value for the address stored in the deposit
+            // service so that undefined is returned.
+            utxos = await deposit.detectFunding()
+          })
+
+          it("should return an empty UTXO array", async () => {
+            expect(utxos).to.be.empty
+          })
+        })
+
+        context("when Bitcoin client returns an empty array", () => {
+          beforeEach(async () => {
+            const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+            // Set an empty array for the address stored in the deposit service.
+            unspentTransactionOutputs.set(await deposit.getBitcoinAddress(), [])
+            bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+            utxos = await deposit.detectFunding()
+          })
+
+          it("should return an empty UTXO array", async () => {
+            expect(utxos).to.be.empty
+          })
+        })
+      })
+
+      context("when there are UTXOs from funding transactions", () => {
+        const fundingUtxos: BitcoinUtxo[] = [
+          {
+            transactionHash: BitcoinTxHash.from(
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ),
+            outputIndex: 0,
+            value: BigNumber.from(1111),
+          },
+          {
+            transactionHash: BitcoinTxHash.from(
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ),
+            outputIndex: 1,
+            value: BigNumber.from(2222),
+          },
+        ]
+
+        beforeEach(async () => {
+          const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+          unspentTransactionOutputs.set(
+            await deposit.getBitcoinAddress(),
+            fundingUtxos
+          )
+          bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+          utxos = await deposit.detectFunding()
+        })
+
+        it("should return funding UTXOs stored in the blockchain", async () => {
+          expect(utxos).to.be.equal(fundingUtxos)
+        })
+      })
+    })
 
     describe("initiateMinting", () => {
       describe("auto funding outpoint detection mode", () => {
-        // TODO: Unit test for this case.
+        describe("when no funding UTXOs found", () => {
+          let deposit: Deposit
+
+          beforeEach(async () => {
+            const tbtcContracts = new MockTBTCContracts()
+            const bitcoinClient = new MockBitcoinClient()
+
+            deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+          })
+
+          it("should throw", async () => {
+            await expect(deposit.initiateMinting()).to.be.rejectedWith(
+              "Deposit not funded"
+            )
+          })
+        })
+
+        describe("when funding UTXOs found", () => {
+          let transaction: BitcoinRawTx
+          let depositUtxo: BitcoinUtxo
+          let tbtcContracts: MockTBTCContracts
+          let bitcoinClient: MockBitcoinClient
+
+          beforeEach(async () => {
+            const fee = BigNumber.from(1520)
+            const depositFunding = DepositFunding.fromScript(
+              DepositScript.fromReceipt(depositReceipt)
+            )
+            // Create a deposit transaction.
+            const result = await depositFunding.assembleTransaction(
+              BitcoinNetwork.Testnet,
+              depositAmount,
+              [testnetUTXO],
+              fee,
+              testnetPrivateKey
+            )
+            transaction = result.rawTransaction
+            depositUtxo = result.depositUtxo
+
+            // Initialize the mock Bridge and TBTC contracts.
+            bitcoinClient = new MockBitcoinClient()
+            tbtcContracts = new MockTBTCContracts()
+
+            // Create the deposit.
+            const deposit = await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
+
+            // Initialize the mock Bitcoin client to return the given deposit
+            // UTXO for the depositor address.
+            const unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
+            unspentTransactionOutputs.set(await deposit.getBitcoinAddress(), [
+              depositUtxo,
+            ])
+            bitcoinClient.unspentTransactionOutputs = unspentTransactionOutputs
+
+            // Initialize the mock Bitcoin client to return the raw transaction
+            // data for the given deposit UTXO.
+            const rawTransactions = new Map<string, BitcoinRawTx>()
+            rawTransactions.set(
+              depositUtxo.transactionHash.toString(),
+              transaction
+            )
+            bitcoinClient.rawTransactions = rawTransactions
+
+            await deposit.initiateMinting()
+          })
+
+          it("should reveal the deposit to the Bridge", () => {
+            expect(tbtcContracts.bridge.revealDepositLog.length).to.be.equal(1)
+            const revealDepositLogEntry =
+              tbtcContracts.bridge.revealDepositLog[0]
+            expect(revealDepositLogEntry.depositTx).to.be.eql(
+              extractBitcoinRawTxVectors(transaction)
+            )
+            expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
+            expect(revealDepositLogEntry.deposit).to.be.eql(depositReceipt)
+          })
+        })
       })
 
       describe("manual funding outpoint provision mode", () => {
@@ -687,7 +896,7 @@ describe("Deposits", () => {
           const fee = BigNumber.from(1520)
 
           const depositFunding = DepositFunding.fromScript(
-            DepositScript.fromReceipt(deposit)
+            DepositScript.fromReceipt(depositReceipt)
           )
 
           // Create a deposit transaction.
@@ -716,7 +925,11 @@ describe("Deposits", () => {
           tbtcContracts = new MockTBTCContracts()
 
           await (
-            await Deposit.fromReceipt(deposit, tbtcContracts, bitcoinClient)
+            await Deposit.fromReceipt(
+              depositReceipt,
+              tbtcContracts,
+              bitcoinClient
+            )
           ).initiateMinting(depositUtxo)
         })
 
@@ -728,14 +941,137 @@ describe("Deposits", () => {
             extractBitcoinRawTxVectors(transaction)
           )
           expect(revealDepositLogEntry.depositOutputIndex).to.be.equal(0)
-          expect(revealDepositLogEntry.deposit).to.be.eql(deposit)
+          expect(revealDepositLogEntry.deposit).to.be.eql(depositReceipt)
         })
       })
     })
   })
 
   describe("DepositsService", () => {
-    // TODO: Implement unit tests.
+    describe("initiateDeposit", () => {
+      const depositor = EthereumAddress.from(
+        "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+      )
+      const bitcoinClient = new MockBitcoinClient()
+      const tbtcContracts = new MockTBTCContracts()
+      let depositService: DepositsService
+
+      beforeEach(async () => {
+        depositService = new DepositsService(tbtcContracts, bitcoinClient)
+      })
+
+      context("when default depositor is not set", () => {
+        it("should throw", async () => {
+          await expect(
+            depositService.initiateDeposit("mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc")
+          ).to.be.rejectedWith(
+            "Default depositor is not set; use setDefaultDepositor first"
+          )
+        })
+      })
+
+      context("when default depositor is set", () => {
+        beforeEach(async () => {
+          depositService.setDefaultDepositor(depositor)
+        })
+
+        context("when active wallet is not set", () => {
+          it("should throw", async () => {
+            await expect(
+              depositService.initiateDeposit(
+                "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
+              )
+            ).to.be.rejectedWith("Could not get active wallet public key")
+          })
+        })
+
+        context("when active wallet is set", () => {
+          beforeEach(async () => {
+            tbtcContracts.bridge.setActiveWalletPublicKey(
+              Hex.from(
+                "03989d253b17a6a0f41838b84ff0d20e8898f9d7b1a98f2564da4cc29dcf8581d9"
+              )
+            )
+          })
+
+          context("when recovery address is incorrect", () => {
+            it("should throw", async () => {
+              await expect(
+                depositService.initiateDeposit(
+                  "2N5WZpig3vgpSdjSherS2Lv7GnPuxCvkQjT" // p2sh address
+                )
+              ).to.be.rejectedWith(
+                "Bitcoin recovery address must be P2PKH or P2WPKH"
+              )
+            })
+          })
+
+          context("when recovery address is correct", () => {
+            context("when recovery address is P2PKH", () => {
+              let deposit: Deposit
+
+              beforeEach(async () => {
+                deposit = await depositService.initiateDeposit(
+                  "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
+                )
+              })
+
+              it("should initiate deposit correctly", async () => {
+                // Inspect the deposit object by looking at its receipt.
+                const receipt = deposit.getReceipt()
+                expect(receipt.depositor).to.be.equal(depositor)
+                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                  Hex.from("2cd680318747b720d67bf4246eb7403b476adb34")
+                )
+                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
+                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
+                )
+                // Expect the refund locktime to be in the future.
+                const receiptTimestamp = BigNumber.from(
+                  receipt.refundLocktime.reverse().toPrefixedString()
+                ).toNumber()
+                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
+                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              })
+            })
+
+            context("when recovery address is P2WPKH", () => {
+              let deposit: Deposit
+
+              beforeEach(async () => {
+                deposit = await depositService.initiateDeposit(
+                  "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx"
+                )
+              })
+
+              it("should initiate deposit correctly", async () => {
+                // Inspect the deposit object by looking at its receipt.
+                const receipt = deposit.getReceipt()
+                expect(receipt.depositor).to.be.equal(depositor)
+                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                  Hex.from("e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0")
+                )
+                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
+                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
+                )
+                // Expect the refund locktime to be in the future.
+                const receiptTimestamp = BigNumber.from(
+                  receipt.refundLocktime.reverse().toPrefixedString()
+                ).toNumber()
+                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
+                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+                // Expect blinding factor to be set and 8-byte long.
+                expect(receipt.blindingFactor).not.to.be.undefined
+                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              })
+            })
+          })
+        })
+      })
+    })
   })
 
   describe("DepositRefund", () => {

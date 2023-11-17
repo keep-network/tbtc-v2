@@ -1,12 +1,18 @@
 import fs from "fs"
 
 import { helpers, network } from "hardhat"
+import {
+  EthereumBridge,
+  EthereumTBTCToken,
+  EthereumTBTCVault,
+} from "@keep-network/tbtc-v2.ts"
 
 import { keyPairFromWif } from "./bitcoin"
 
 import type { ContractExport, Export } from "hardhat-deploy/dist/types"
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { KeyPair as BitcoinKeyPair } from "./bitcoin"
+import type { TBTCContracts } from "@keep-network/tbtc-v2.ts"
 
 // TODO: For now, the context and its setup is global and identical for each
 //       scenario. Once more scenarios is added, this should be probably
@@ -148,4 +154,39 @@ function readBitcoinWif(wifEnvName: string): BitcoinKeyPair {
   }
 
   return keyPairFromWif(wif)
+}
+
+/**
+ * Creates TBTC contract handles for the given signer.
+ * @param deployedContracts Deployed contracts info.
+ * @param signer Signer used when communicating with the contracts.
+ * @returns TBTC contract handles.
+ */
+export async function createTbtcContractsHandle(
+  deployedContracts: DeployedContracts,
+  signer: SignerWithAddress
+): Promise<TBTCContracts> {
+  const bridge = new EthereumBridge({
+    address: deployedContracts.Bridge.address,
+    signerOrProvider: signer,
+  })
+
+  const tbtcToken = new EthereumTBTCToken({
+    address: deployedContracts.TBTC.address,
+    signerOrProvider: signer,
+  })
+
+  const tbtcVault = new EthereumTBTCVault({
+    address: deployedContracts.TBTCVault.address,
+    signerOrProvider: signer,
+  })
+
+  const walletRegistry = await bridge.walletRegistry()
+
+  return {
+    bridge,
+    tbtcToken,
+    tbtcVault,
+    walletRegistry,
+  }
 }
