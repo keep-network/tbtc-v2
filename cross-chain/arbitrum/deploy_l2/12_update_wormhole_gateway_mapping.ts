@@ -8,6 +8,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // See https://book.wormhole.com/reference/contracts.html
   // This ID is valid for both Arbitrum Goerli and Mainnet
+  // TODO: check if id is correct for Arbitrum Sepolia as well (once Wormhole
+  // supports that testnet)
   const wormholeChainID = 23
 
   const ArbitrumWormholeGateway = await deployments.get(
