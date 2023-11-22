@@ -44,6 +44,15 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan"],
     },
+    sepolia: {
+      url: process.env.PARENTCHAIN_API_URL || "",
+      chainId: 11155111,
+      deploy: ["deploy_parentchain"],
+      accounts: process.env.PARENTCHAIN_ACCOUNTS_PRIVATE_KEYS
+        ? process.env.PARENTCHAIN_ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
+      tags: ["etherscan"],
+    },
     mainnet: {
       url: process.env.PARENTCHAIN_API_URL || "",
       chainId: 1,
@@ -65,6 +74,8 @@ const config: HardhatUserConfig = {
       //   parentchain: "goerli",
       // },
     },
+    // TODO: add new L2 Polygon testnet once it's annunced
+    // https://www.alchemy.com/overviews/migrate-to-sepolia#sepolia-testnets-on-alchemy
     polygon: {
       url: process.env.SIDECHAIN_API_URL || "",
       chainId: 137,
@@ -82,24 +93,30 @@ const config: HardhatUserConfig = {
   external: {
     deployments: {
       goerli: ["./external/goerli"],
+      sepolia: ["./external/sepolia"],
       mainnet: ["./external/mainnet"],
       mumbai: ["./external/mumbai"],
+      // TODO: add new L2 Polygon testnet once it's annunced
       polygon: ["./external/polygon"],
     },
   },
 
   deploymentArtifactsExport: {
     goerli: "artifacts/parentchain",
+    sepolia: "artifacts/parentchain",
     mainnet: "artifacts/parentchain",
     mumbai: "artifacts/sidechain",
+    // TODO: add new L2 Polygon testnet once it's annunced
     polygon: "artifacts/sidechain",
   },
 
   etherscan: {
     apiKey: {
       goerli: process.env.ETHERSCAN_API_KEY,
+      sepolia: process.env.ETHERSCAN_API_KEY,
       mainnet: process.env.ETHERSCAN_API_KEY,
       polygonMumbai: process.env.POLYGONSCAN_API_KEY,
+      // TODO: add new L2 Polygon testnet once it's annunced
       polygon: process.env.POLYGONSCAN_API_KEY,
     },
   },
@@ -108,14 +125,18 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
       goerli: 0,
+      sepolia: 0,
       mumbai: 0,
+      // TODO: add new L2 Polygon testnet once it's annunced
       mainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
       polygon: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
     },
     governance: {
       default: 2,
       goerli: 0,
+      sepolia: 0,
       mumbai: 0,
+      // TODO: add new L2 Polygon testnet once it's annunced
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
       polygon: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
