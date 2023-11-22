@@ -11,6 +11,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base
   // This ID is valid for both Base Testnet and Mainnet
+  // TODO: check if id is correct for Arbitrum Sepolia as well (once Wormhole
+  // supports that testnet)
   const baseWormholeChainID = 30
 
   const baseWormholeGateway = await deployments.getOrNull("BaseWormholeGateway")
