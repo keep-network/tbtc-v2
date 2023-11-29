@@ -135,7 +135,7 @@ This function is especially useful for local development as it gives
 
 #### Defined in
 
-[src/services/tbtc.ts:130](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L130)
+[src/services/tbtc.ts:117](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L117)
 
 ___
 
@@ -168,7 +168,7 @@ Throws an error if the underlying signer's Ethereum network is
 
 #### Defined in
 
-[src/services/tbtc.ts:101](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L101)
+[src/services/tbtc.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L88)
 
 ___
 
@@ -230,4 +230,4 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[src/services/tbtc.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L86)
+[src/services/tbtc.ts:73](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L73)
