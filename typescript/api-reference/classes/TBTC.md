@@ -20,7 +20,6 @@ Entrypoint component of the tBTC v2 SDK.
 
 - [initializeCustom](TBTC.md#initializecustom)
 - [initializeEthereum](TBTC.md#initializeethereum)
-- [initializeGoerli](TBTC.md#initializegoerli)
 - [initializeMainnet](TBTC.md#initializemainnet)
 - [initializeSepolia](TBTC.md#initializesepolia)
 
@@ -170,37 +169,6 @@ Throws an error if the underlying signer's Ethereum network is
 #### Defined in
 
 [src/services/tbtc.ts:101](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L101)
-
-___
-
-### initializeGoerli
-
-▸ **initializeGoerli**(`signer`): `Promise`\<[`TBTC`](TBTC.md)\>
-
-Initializes the tBTC v2 SDK entrypoint for Ethereum Goerli and Bitcoin testnet.
-The initialized instance uses default Electrum servers to interact
-with Bitcoin testnet
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | Ethereum signer. |
-
-#### Returns
-
-`Promise`\<[`TBTC`](TBTC.md)\>
-
-Initialized tBTC v2 SDK entrypoint.
-
-**`Throws`**
-
-Throws an error if the signer's Ethereum network is other than
-        Ethereum mainnet.
-
-#### Defined in
-
-[src/services/tbtc.ts:73](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L73)
 
 ___
 

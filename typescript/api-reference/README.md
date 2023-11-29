@@ -227,7 +227,7 @@ ___
 
 ### EthereumNetwork
 
-Ƭ **EthereumNetwork**: ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"``
+Ƭ **EthereumNetwork**: ``"local"`` \| ``"sepolia"`` \| ``"mainnet"``
 
 Supported Ethereum networks.
 

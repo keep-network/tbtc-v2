@@ -57,7 +57,7 @@ for reference.
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
 
 #### Returns
 
