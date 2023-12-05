@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@keep-network/tbtc-v2-mainnet": "npm:@keep-network/tbtc-v2@mainnet",
-    "@keep-network/tbtc-v2-testnet": "npm:@keep-network/tbtc-v2@goerli",
-    "@keep-network/tbtc-v2.ts": "development",
+    "@keep-network/tbtc-v2-testnet": "npm:@keep-network/tbtc-v2@sepolia",
+    "@keep-network/tbtc-v2.ts": "1.4.0-dev.1",
     "@sentry/node": "^7.33.0",
     "axios": "^1.3.2",
     "ethers": "^5.5.2",
