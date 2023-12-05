@@ -81,6 +81,19 @@ contract WalletProposalValidator {
         bytes4 refundLocktime;
     }
 
+    /// @notice Helper structure representing a redemption proposal.
+    struct RedemptionProposal {
+        // 20-byte public key hash of the target wallet.
+        bytes20 walletPubKeyHash;
+        // Array of the redeemers' output scripts that should be part of
+        // the redemption. Each output script MUST BE prefixed by its byte
+        // length, i.e. passed in the exactly same format as during the
+        // `Bridge.requestRedemption` transaction.
+        bytes[] redeemersOutputScripts;
+        // Proposed BTC fee for the entire transaction.
+        uint256 redemptionTxFee;
+    }
+
     /// @notice Handle to the Bridge contract.
     Bridge public immutable bridge;
 
@@ -116,6 +129,39 @@ contract WalletProposalValidator {
     /// @notice The maximum count of deposits that can be swept within a
     ///         single sweep.
     uint16 public constant DEPOSIT_SWEEP_MAX_SIZE = 20;
+
+    /// @notice The minimum time that must elapse since the redemption request
+    ///         creation before a request becomes eligible for a processing.
+    ///
+    ///         For example, if a request was created at 9 am and
+    ///         REDEMPTION_REQUEST_MIN_AGE is 2 hours, the request is
+    ///         eligible for processing after 11 am.
+    ///
+    /// @dev Forcing request minimum age ensures block finality for Ethereum.
+    uint32 public constant REDEMPTION_REQUEST_MIN_AGE = 600; // 10 minutes or ~50 blocks.
+
+    /// @notice Each redemption request can be technically handled until it
+    ///         reaches its timeout timestamp after which it can be reported
+    ///         as timed out. However, allowing the wallet to handle requests
+    ///         that are close to their timeout timestamp may cause a race
+    ///         between the wallet and the redeemer. In result, the wallet may
+    ///         redeem the requested funds even though the redeemer already
+    ///         received back their tBTC (locked during redemption request) upon
+    ///         reporting the request timeout. In effect, the redeemer may end
+    ///         out with both tBTC and redeemed BTC in their hands which has
+    ///         a negative impact on the tBTC <-> BTC peg. In order to mitigate
+    ///         that problem, this parameter determines a safety margin that
+    ///         puts the latest moment a request can be handled far before the
+    ///         point after which the request can be reported as timed out.
+    ///
+    ///         For example, if a request times out after 8 pm and
+    ///         REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN is 2 hours, the
+    ///         request is valid for processing only before 6 pm.
+    uint32 public constant REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN = 2 hours;
+
+    /// @notice The maximum count of redemption requests that can be processed
+    ///         within a single redemption.
+    uint16 public constant REDEMPTION_MAX_SIZE = 20;
 
     constructor(Bridge _bridge) {
         bridge = _bridge;
@@ -389,5 +435,147 @@ contract WalletProposalValidator {
         }
 
         revert("Extra info funding output script does not match");
+    }
+
+    /// @notice View function encapsulating the main rules of a valid redemption
+    ///         proposal. This function is meant to facilitate the off-chain
+    ///         validation of the incoming proposals. Thanks to it, most
+    ///         of the work can be done using a single readonly contract call.
+    /// @param proposal The redemption proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - The target wallet must be in the Live state,
+    ///      - The number of redemption requests included in the redemption
+    ///        proposal must be in the range [1, `redemptionMaxSize`],
+    ///      - The proposed redemption tx fee must be grater than zero,
+    ///      - The proposed redemption tx fee must be lesser than or equal to
+    ///        the maximum total fee allowed by the Bridge
+    ///        (`Bridge.redemptionTxMaxTotalFee`),
+    ///      - The proposed maximum per-request redemption tx fee share must be
+    ///        lesser than or equal to the maximum fee share allowed by the
+    ///        given request (`RedemptionRequest.txMaxFee`),
+    ///      - Each request must be a pending request registered in the Bridge,
+    ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
+    ///        elapsed since their creation time,
+    ///      - Each request must have the timeout safety margin preserved,
+    ///      - Each request must be unique.
+    function validateRedemptionProposal(RedemptionProposal calldata proposal)
+        external
+        view
+        returns (bool)
+    {
+        require(
+            bridge.wallets(proposal.walletPubKeyHash).state ==
+                Wallets.WalletState.Live,
+            "Wallet is not in Live state"
+        );
+
+        uint256 requestsCount = proposal.redeemersOutputScripts.length;
+
+        require(requestsCount > 0, "Redemption below the min size");
+
+        require(
+            requestsCount <= REDEMPTION_MAX_SIZE,
+            "Redemption exceeds the max size"
+        );
+
+        (
+            ,
+            ,
+            ,
+            uint64 redemptionTxMaxTotalFee,
+            uint32 redemptionTimeout,
+            ,
+
+        ) = bridge.redemptionParameters();
+
+        require(
+            proposal.redemptionTxFee > 0,
+            "Proposed transaction fee cannot be zero"
+        );
+
+        // Make sure the proposed fee does not exceed the total fee limit.
+        require(
+            proposal.redemptionTxFee <= redemptionTxMaxTotalFee,
+            "Proposed transaction fee is too high"
+        );
+
+        // Compute the indivisible remainder that remains after dividing the
+        // redemption transaction fee over all requests evenly.
+        uint256 redemptionTxFeeRemainder = proposal.redemptionTxFee %
+            requestsCount;
+        // Compute the transaction fee per request by dividing the redemption
+        // transaction fee (reduced by the remainder) by the number of requests.
+        uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
+            redemptionTxFeeRemainder) / requestsCount;
+
+        uint256[] memory processedRedemptionKeys = new uint256[](requestsCount);
+
+        for (uint256 i = 0; i < requestsCount; i++) {
+            bytes memory script = proposal.redeemersOutputScripts[i];
+
+            // As the wallet public key hash is part of the redemption key,
+            // we have an implicit guarantee that all requests being part
+            // of the proposal target the same wallet.
+            uint256 redemptionKey = uint256(
+                keccak256(
+                    abi.encodePacked(
+                        keccak256(script),
+                        proposal.walletPubKeyHash
+                    )
+                )
+            );
+
+            // slither-disable-next-line calls-loop
+            Redemption.RedemptionRequest memory redemptionRequest = bridge
+                .pendingRedemptions(redemptionKey);
+
+            require(
+                redemptionRequest.requestedAt != 0,
+                "Not a pending redemption request"
+            );
+
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp >
+                    redemptionRequest.requestedAt + REDEMPTION_REQUEST_MIN_AGE,
+                "Redemption request min age not achieved yet"
+            );
+
+            // Calculate the timeout the given request times out at.
+            uint32 requestTimeout = redemptionRequest.requestedAt +
+                redemptionTimeout;
+            // Make sure we are far enough from the moment the request times out.
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp <
+                    requestTimeout - REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN,
+                "Redemption request timeout safety margin is not preserved"
+            );
+
+            uint256 feePerRequest = redemptionTxFeePerRequest;
+            // The last request incurs the fee remainder.
+            if (i == requestsCount - 1) {
+                feePerRequest += redemptionTxFeeRemainder;
+            }
+            // Make sure the redemption transaction fee share incurred by
+            // the given request fits in the limit for that request.
+            require(
+                feePerRequest <= redemptionRequest.txMaxFee,
+                "Proposed transaction per-request fee share is too high"
+            );
+
+            // Make sure there are no duplicates in the requests list.
+            for (uint256 j = 0; j < i; j++) {
+                require(
+                    processedRedemptionKeys[j] != redemptionKey,
+                    "Duplicated request"
+                );
+            }
+
+            processedRedemptionKeys[i] = redemptionKey;
+        }
+
+        return true;
     }
 }

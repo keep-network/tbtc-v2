@@ -1200,6 +1200,699 @@ describe("WalletProposalValidator", () => {
       })
     })
   })
+
+  describe("validateRedemptionProposal", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+    const ecdsaWalletID =
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863"
+
+    const bridgeRedemptionTxMaxTotalFee = 10000
+    const bridgeRedemptionTimeout = 5 * 86400 // 5 days
+
+    before(async () => {
+      await createSnapshot()
+
+      bridge.redemptionParameters.returns([
+        0,
+        0,
+        0,
+        bridgeRedemptionTxMaxTotalFee,
+        bridgeRedemptionTimeout,
+        0,
+        0,
+      ])
+    })
+
+    after(async () => {
+      bridge.redemptionParameters.reset()
+
+      await restoreSnapshot()
+    })
+
+    context("when wallet is not Live", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is MovingFunds",
+          walletState: walletState.MovingFunds,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: HashZero,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              // Only walletPubKeyHash argument is relevant in this scenario.
+              walletProposalValidator.validateRedemptionProposal({
+                walletPubKeyHash,
+                redeemersOutputScripts: [],
+                redemptionTxFee: 0,
+              })
+            ).to.be.revertedWith("Wallet is not in Live state")
+          })
+        })
+      })
+    })
+
+    context("when wallet is Live", () => {
+      before(async () => {
+        await createSnapshot()
+
+        bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+          ecdsaWalletID,
+          mainUtxoHash: HashZero,
+          pendingRedemptionsValue: 0,
+          createdAt: 0,
+          movingFundsRequestedAt: 0,
+          closingStartedAt: 0,
+          pendingMovedFundsSweepRequestsCount: 0,
+          state: walletState.Live,
+          movingFundsTargetWalletsCommitmentHash: HashZero,
+        })
+      })
+
+      after(async () => {
+        bridge.wallets.reset()
+
+        await restoreSnapshot()
+      })
+
+      context("when redemption is below the min size", () => {
+        it("should revert", async () => {
+          await expect(
+            walletProposalValidator.validateRedemptionProposal({
+              walletPubKeyHash,
+              redeemersOutputScripts: [], // Set size to 0.
+              redemptionTxFee: 0, // Not relevant in this scenario.
+            })
+          ).to.be.revertedWith("Redemption below the min size")
+        })
+      })
+
+      context("when redemption is above the min size", () => {
+        context("when redemption exceeds the max size", () => {
+          it("should revert", async () => {
+            const maxSize = await walletProposalValidator.REDEMPTION_MAX_SIZE()
+
+            // Pick more redemption requests than allowed.
+            const redeemersOutputScripts = new Array(maxSize + 1).fill(
+              createTestRedemptionRequest(walletPubKeyHash).key
+                .redeemerOutputScript
+            )
+
+            await expect(
+              walletProposalValidator.validateRedemptionProposal({
+                walletPubKeyHash,
+                redeemersOutputScripts,
+                redemptionTxFee: 0, // Not relevant in this scenario.
+              })
+            ).to.be.revertedWith("Redemption exceeds the max size")
+          })
+        })
+
+        context("when redemption does not exceed the max size", () => {
+          context("when proposed redemption tx fee is invalid", () => {
+            context("when proposed redemption tx fee is zero", () => {
+              it("should revert", async () => {
+                await expect(
+                  walletProposalValidator.validateRedemptionProposal({
+                    walletPubKeyHash,
+                    redeemersOutputScripts: [
+                      createTestRedemptionRequest(walletPubKeyHash).key
+                        .redeemerOutputScript,
+                    ],
+                    redemptionTxFee: 0,
+                  })
+                ).to.be.revertedWith("Proposed transaction fee cannot be zero")
+              })
+            })
+
+            context(
+              "when proposed redemption tx fee is greater than the allowed total fee",
+              () => {
+                it("should revert", async () => {
+                  await expect(
+                    walletProposalValidator.validateRedemptionProposal({
+                      walletPubKeyHash,
+                      redeemersOutputScripts: [
+                        createTestRedemptionRequest(walletPubKeyHash).key
+                          .redeemerOutputScript,
+                      ],
+                      // Exceed the max per-request fee by one.
+                      redemptionTxFee: bridgeRedemptionTxMaxTotalFee + 1,
+                    })
+                  ).to.be.revertedWith("Proposed transaction fee is too high")
+                })
+              }
+            )
+
+            // The context block covering the per-redemption fee checks is
+            // declared at the end of the `validateRedemptionProposal` test suite
+            // due to the actual order of checks performed by this function.
+            // See: "when there is a request that incurs an unacceptable tx fee share"
+          })
+
+          context("when proposed redemption tx fee is valid", () => {
+            const redemptionTxFee = 9000
+
+            context("when there is a non-pending request", () => {
+              let requestOne
+              let requestTwo
+
+              before(async () => {
+                await createSnapshot()
+
+                requestOne = createTestRedemptionRequest(
+                  walletPubKeyHash,
+                  5000 // necessary to pass the fee share validation
+                )
+                requestTwo = createTestRedemptionRequest(walletPubKeyHash)
+
+                // Request one is a proper one.
+                bridge.pendingRedemptions
+                  .whenCalledWith(
+                    redemptionKey(
+                      requestOne.key.walletPubKeyHash,
+                      requestOne.key.redeemerOutputScript
+                    )
+                  )
+                  .returns(requestOne.content)
+
+                // Simulate the request two is non-pending.
+                bridge.pendingRedemptions
+                  .whenCalledWith(
+                    redemptionKey(
+                      requestTwo.key.walletPubKeyHash,
+                      requestTwo.key.redeemerOutputScript
+                    )
+                  )
+                  .returns({
+                    ...requestTwo.content,
+                    requestedAt: 0,
+                  })
+              })
+
+              after(async () => {
+                bridge.pendingRedemptions.reset()
+
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                const proposal = {
+                  walletPubKeyHash,
+                  redeemersOutputScripts: [
+                    requestOne.key.redeemerOutputScript,
+                    requestTwo.key.redeemerOutputScript,
+                  ],
+                  redemptionTxFee,
+                }
+
+                await expect(
+                  walletProposalValidator.validateRedemptionProposal(proposal)
+                ).to.be.revertedWith("Not a pending redemption request")
+              })
+            })
+
+            context("when all requests are pending", () => {
+              context("when there is an immature request", () => {
+                let requestOne
+                let requestTwo
+
+                before(async () => {
+                  await createSnapshot()
+
+                  requestOne = createTestRedemptionRequest(
+                    walletPubKeyHash,
+                    5000 // necessary to pass the fee share validation
+                  )
+                  requestTwo = createTestRedemptionRequest(walletPubKeyHash)
+
+                  // Request one is a proper one.
+                  bridge.pendingRedemptions
+                    .whenCalledWith(
+                      redemptionKey(
+                        requestOne.key.walletPubKeyHash,
+                        requestOne.key.redeemerOutputScript
+                      )
+                    )
+                    .returns(requestOne.content)
+
+                  // Simulate the request two has just been created thus not
+                  // achieved the min age yet.
+                  bridge.pendingRedemptions
+                    .whenCalledWith(
+                      redemptionKey(
+                        requestTwo.key.walletPubKeyHash,
+                        requestTwo.key.redeemerOutputScript
+                      )
+                    )
+                    .returns({
+                      ...requestTwo.content,
+                      requestedAt: await lastBlockTime(),
+                    })
+                })
+
+                after(async () => {
+                  bridge.pendingRedemptions.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  const proposal = {
+                    walletPubKeyHash,
+                    redeemersOutputScripts: [
+                      requestOne.key.redeemerOutputScript,
+                      requestTwo.key.redeemerOutputScript,
+                    ],
+                    redemptionTxFee,
+                  }
+
+                  await expect(
+                    walletProposalValidator.validateRedemptionProposal(proposal)
+                  ).to.be.revertedWith(
+                    "Redemption request min age not achieved yet"
+                  )
+                })
+              })
+
+              context("when all requests achieved the min age", () => {
+                context(
+                  "when there is a request that violates the timeout safety margin",
+                  () => {
+                    let requestOne
+                    let requestTwo
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      // Request one is a proper one.
+                      requestOne = createTestRedemptionRequest(
+                        walletPubKeyHash,
+                        5000 // necessary to pass the fee share validation
+                      )
+
+                      // Simulate that request two violates the timeout safety margin.
+                      // In order to do so, we need to use `createTestRedemptionRequest`
+                      // with a custom request creation time that will produce
+                      // a timeout timestamp being closer to the current
+                      // moment than allowed by the refund safety margin.
+                      const safetyMarginViolatedAt = await lastBlockTime()
+                      const requestTimedOutAt =
+                        safetyMarginViolatedAt +
+                        (await walletProposalValidator.REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN())
+                      const requestCreatedAt =
+                        requestTimedOutAt - bridgeRedemptionTimeout
+
+                      requestTwo = createTestRedemptionRequest(
+                        walletPubKeyHash,
+                        0,
+                        requestCreatedAt
+                      )
+
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestOne.key.walletPubKeyHash,
+                            requestOne.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(requestOne.content)
+
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestTwo.key.walletPubKeyHash,
+                            requestTwo.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(requestTwo.content)
+                    })
+
+                    after(async () => {
+                      bridge.pendingRedemptions.reset()
+
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      const proposal = {
+                        walletPubKeyHash,
+                        redeemersOutputScripts: [
+                          requestOne.key.redeemerOutputScript,
+                          requestTwo.key.redeemerOutputScript,
+                        ],
+                        redemptionTxFee,
+                      }
+
+                      await expect(
+                        walletProposalValidator.validateRedemptionProposal(
+                          proposal
+                        )
+                      ).to.be.revertedWith(
+                        "Redemption request timeout safety margin is not preserved"
+                      )
+                    })
+                  }
+                )
+
+                context(
+                  "when all requests preserve the timeout safety margin",
+                  () => {
+                    context(
+                      "when there is a request that incurs an unacceptable tx fee share",
+                      () => {
+                        context("when there is no fee remainder", () => {
+                          let requestOne
+                          let requestTwo
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Request one is a proper one.
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              4500 // necessary to pass the fee share validation
+                            )
+
+                            // Simulate that request two takes an unacceptable
+                            // tx fee share. Because redemptionTxFee used
+                            // in the proposal is 9000, the actual fee share
+                            // per-request is 4500. In order to test this case
+                            // the second request must allow for 4499 as allowed
+                            // fee share at maximum.
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              4499
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                              ],
+                              redemptionTxFee,
+                            }
+
+                            await expect(
+                              walletProposalValidator.validateRedemptionProposal(
+                                proposal
+                              )
+                            ).to.be.revertedWith(
+                              "Proposed transaction per-request fee share is too high"
+                            )
+                          })
+                        })
+
+                        context("when there is a fee remainder", () => {
+                          let requestOne
+                          let requestTwo
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            // Request one is a proper one.
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              4500 // necessary to pass the fee share validation
+                            )
+
+                            // Simulate that request two takes an unacceptable
+                            // tx fee share. Because redemptionTxFee used
+                            // in the proposal is 9001, the actual fee share
+                            // per-request is 4500 and 4501 for the last request
+                            // which takes the remainder. In order to test this
+                            // case the second (last) request must allow for
+                            // 4500 as allowed fee share at maximum.
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              4500
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                              ],
+                              redemptionTxFee: 9001,
+                            }
+
+                            await expect(
+                              walletProposalValidator.validateRedemptionProposal(
+                                proposal
+                              )
+                            ).to.be.revertedWith(
+                              "Proposed transaction per-request fee share is too high"
+                            )
+                          })
+                        })
+                      }
+                    )
+
+                    context(
+                      "when all requests incur an acceptable tx fee share",
+                      () => {
+                        context("when there are duplicated requests", () => {
+                          let requestOne
+                          let requestTwo
+                          let requestThree
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
+                            )
+
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
+                            )
+
+                            requestThree = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              2500 // necessary to pass the fee share validation
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestThree.key.walletPubKeyHash,
+                                  requestThree.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestThree.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should revert", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                                requestThree.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript, // duplicate
+                              ],
+                              redemptionTxFee,
+                            }
+
+                            await expect(
+                              walletProposalValidator.validateRedemptionProposal(
+                                proposal
+                              )
+                            ).to.be.revertedWith("Duplicated request")
+                          })
+                        })
+
+                        context("when all requests are unique", () => {
+                          let requestOne
+                          let requestTwo
+
+                          before(async () => {
+                            await createSnapshot()
+
+                            requestOne = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              5000 // necessary to pass the fee share validation
+                            )
+
+                            requestTwo = createTestRedemptionRequest(
+                              walletPubKeyHash,
+                              5000 // necessary to pass the fee share validation
+                            )
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestOne.key.walletPubKeyHash,
+                                  requestOne.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestOne.content)
+
+                            bridge.pendingRedemptions
+                              .whenCalledWith(
+                                redemptionKey(
+                                  requestTwo.key.walletPubKeyHash,
+                                  requestTwo.key.redeemerOutputScript
+                                )
+                              )
+                              .returns(requestTwo.content)
+                          })
+
+                          after(async () => {
+                            bridge.pendingRedemptions.reset()
+
+                            await restoreSnapshot()
+                          })
+
+                          it("should succeed", async () => {
+                            const proposal = {
+                              walletPubKeyHash,
+                              redeemersOutputScripts: [
+                                requestOne.key.redeemerOutputScript,
+                                requestTwo.key.redeemerOutputScript,
+                              ],
+                              redemptionTxFee,
+                            }
+
+                            const result =
+                              await walletProposalValidator.validateRedemptionProposal(
+                                proposal
+                              )
+
+                            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                            expect(result).to.be.true
+                          })
+                        })
+                      }
+                    )
+                  }
+                )
+              })
+            })
+          })
+        })
+      })
+    })
+  })
 })
 
 const depositKey = (
@@ -1299,6 +1992,54 @@ const createTestDeposit = (
       walletPubKeyHash,
       refundPubKeyHash,
       refundLocktime,
+    },
+  }
+}
+
+const redemptionKey = (
+  walletPubKeyHash: BytesLike,
+  redeemerOutputScript: BytesLike
+) => {
+  const scriptHash = ethers.utils.solidityKeccak256(
+    ["bytes"],
+    [redeemerOutputScript]
+  )
+
+  return ethers.utils.solidityKeccak256(
+    ["bytes32", "bytes20"],
+    [scriptHash, walletPubKeyHash]
+  )
+}
+
+const createTestRedemptionRequest = (
+  walletPubKeyHash: string,
+  txMaxFee?: BigNumberish,
+  requestedAt?: number
+) => {
+  let resolvedRequestedAt = requestedAt
+
+  if (!resolvedRequestedAt) {
+    // If the request creation time is not explicitly set, use `now - 1 day` to
+    // ensure request minimum age is achieved by default.
+    const now = Math.floor(Date.now() / 1000)
+    resolvedRequestedAt = now - day
+  }
+
+  const redeemer = `0x${crypto.randomBytes(20).toString("hex")}`
+
+  const redeemerOutputScript = `0x${crypto.randomBytes(32).toString("hex")}`
+
+  return {
+    key: {
+      walletPubKeyHash,
+      redeemerOutputScript,
+    },
+    content: {
+      redeemer,
+      requestedAmount: 0, // not relevant
+      treasuryFee: 0, // not relevant
+      txMaxFee: txMaxFee ?? 0,
+      requestedAt: resolvedRequestedAt,
     },
   }
 }
