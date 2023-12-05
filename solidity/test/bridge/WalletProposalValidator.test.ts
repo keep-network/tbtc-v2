@@ -1893,6 +1893,31 @@ describe("WalletProposalValidator", () => {
       })
     })
   })
+
+  describe("validateHeartbeatProposal", () => {
+    context("when message is not valid", () => {
+      it("should revert", async () => {
+        await expect(
+          walletProposalValidator.validateHeartbeatProposal({
+            walletPubKeyHash: AddressZero,
+            message: "0xfffffffffffffff21111111111111111",
+          })
+        ).to.be.revertedWith("Not a valid heartbeat message")
+      })
+    })
+
+    context("when message is valid", () => {
+      it("should succeed", async () => {
+        const result = await walletProposalValidator.validateHeartbeatProposal({
+          walletPubKeyHash: AddressZero,
+          message: "0xffffffffffffffff1111111111111111",
+        })
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(result).to.be.true
+      })
+    })
+  })
 })
 
 const depositKey = (

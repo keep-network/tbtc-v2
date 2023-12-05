@@ -94,6 +94,14 @@ contract WalletProposalValidator {
         uint256 redemptionTxFee;
     }
 
+    /// @notice Helper structure representing a heartbeat proposal.
+    struct HeartbeatProposal {
+        // 20-byte public key hash of the target wallet.
+        bytes20 walletPubKeyHash;
+        // Message to be signed as part of the heartbeat.
+        bytes message;
+    }
+
     /// @notice Handle to the Bridge contract.
     Bridge public immutable bridge;
 
@@ -575,6 +583,27 @@ contract WalletProposalValidator {
 
             processedRedemptionKeys[i] = redemptionKey;
         }
+
+        return true;
+    }
+
+    /// @notice View function encapsulating the main rules of a valid heartbeat
+    ///         proposal. This function is meant to facilitate the off-chain
+    ///         validation of the incoming proposals. Thanks to it, most
+    ///         of the work can be done using a single readonly contract call.
+    /// @param proposal The heartbeat proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - The message to sign is a valid heartbeat message.
+    function validateHeartbeatProposal(HeartbeatProposal calldata proposal)
+        external
+        view
+        returns (bool)
+    {
+        require(
+            Heartbeat.isValidHeartbeatMessage(proposal.message),
+            "Not a valid heartbeat message"
+        );
 
         return true;
     }
