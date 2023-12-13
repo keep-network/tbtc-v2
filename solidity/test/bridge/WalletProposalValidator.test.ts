@@ -5,6 +5,7 @@ import { FakeContract, smock } from "@defi-wonderland/smock"
 import { BigNumber, BigNumberish, BytesLike } from "ethers"
 import type { Bridge, WalletProposalValidator } from "../../typechain"
 import { walletState } from "../fixtures"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 
 chai.use(smock.matchers)
 
@@ -1891,6 +1892,94 @@ describe("WalletProposalValidator", () => {
           })
         })
       })
+    })
+  })
+
+  describe("validateMovingFundsProposal", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+    const ecdsaWalletID =
+      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863"
+
+    before(async () => {
+      await createSnapshot()
+
+      // TODO: Fill with appropriate parameters.
+      bridge.movingFundsParameters.returns([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    })
+
+    after(async () => {
+      bridge.movingFundsParameters.reset()
+
+      await restoreSnapshot()
+    })
+
+    context("when wallet's state is not MovingFunds", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: HashZero,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              // Only walletPubKeyHash argument is relevant in this scenario.
+              walletProposalValidator.validateMovingFundsProposal(
+                {
+                  walletPubKeyHash,
+                  movingFundsTxFee: 0,
+                  targetWallets: [],
+                },
+                NO_MAIN_UTXO
+              )
+            ).to.be.revertedWith("Source wallet is not in MovingFunds state")
+          })
+        })
+      })
+    })
+
+    context("when wallet's state is MovingFunds", () => {
+      // TODO: Implement
     })
   })
 
