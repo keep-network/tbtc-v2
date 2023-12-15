@@ -110,7 +110,8 @@ library Deposit {
         bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
-        address vault
+        address vault,
+        bytes32 extraData
     );
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -152,6 +153,16 @@ library Deposit {
         BitcoinTx.Info calldata fundingTx,
         DepositRevealInfo calldata reveal
     ) external {
+        revealDeposit(self, fundingTx, reveal, bytes32(0));
+    }
+
+    // TODO: Documentation and think about better name.
+    function revealDeposit(
+        BridgeState.Storage storage self,
+        BitcoinTx.Info calldata fundingTx,
+        DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) internal {
         require(
             self.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
@@ -167,33 +178,70 @@ library Deposit {
             validateDepositRefundLocktime(self, reveal.refundLocktime);
         }
 
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            msg.sender,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            reveal.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            reveal.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
+        bytes memory expectedScript;
+
+        if (extraData == bytes32(0)) {
+            // Regular deposit without 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                msg.sender,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                reveal.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                reveal.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        } else {
+            // Deposit with 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                msg.sender,
+                hex"75", // OP_DROP
+                hex"20", // Byte length of extra data.
+                extraData,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                reveal.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                reveal.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        }
 
         bytes memory fundingOutput = fundingTx
             .outputVector
@@ -268,8 +316,23 @@ library Deposit {
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
             reveal.refundLocktime,
-            reveal.vault
+            reveal.vault,
+            extraData
         );
+    }
+
+    // TODO: Documentation and tests.
+    function revealDepositWithExtraData(
+        BridgeState.Storage storage self,
+        BitcoinTx.Info calldata fundingTx,
+        DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) external {
+        // Strong requirement in order to differentiate from the regular
+        // reveal flow and reduce potential attack surface.
+        require(extraData != bytes32(0), "Extra data must not be empty");
+
+        revealDeposit(self, fundingTx, reveal, extraData);
     }
 
     /// @notice Validates the deposit refund locktime. The validation passes

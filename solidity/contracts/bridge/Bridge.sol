@@ -82,7 +82,8 @@ contract Bridge is
         bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
-        address vault
+        address vault,
+        bytes32 extraData
     );
 
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
@@ -374,6 +375,15 @@ contract Bridge is
         Deposit.DepositRevealInfo calldata reveal
     ) external {
         self.revealDeposit(fundingTx, reveal);
+    }
+
+    // TODO: Documentation and tests.
+    function revealDepositWithExtraData(
+        BitcoinTx.Info calldata fundingTx,
+        Deposit.DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) external {
+        self.revealDepositWithExtraData(fundingTx, reveal, extraData);
     }
 
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
