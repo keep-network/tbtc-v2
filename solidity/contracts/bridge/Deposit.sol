@@ -153,11 +153,11 @@ library Deposit {
         BitcoinTx.Info calldata fundingTx,
         DepositRevealInfo calldata reveal
     ) external {
-        revealDeposit(self, fundingTx, reveal, bytes32(0));
+        _revealDeposit(self, fundingTx, reveal, bytes32(0));
     }
 
     // TODO: Documentation and think about better name.
-    function revealDeposit(
+    function _revealDeposit(
         BridgeState.Storage storage self,
         BitcoinTx.Info calldata fundingTx,
         DepositRevealInfo calldata reveal,
@@ -306,6 +306,27 @@ library Deposit {
         deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
             ? fundingOutputAmount / self.depositTreasuryFeeDivisor
             : 0;
+
+        _emitDepositRevealedEvent(
+            fundingTxHash,
+            fundingOutputAmount,
+            reveal,
+            extraData
+        );
+    }
+
+    /// @notice Emits the `DepositRevealed` event.
+    /// @param fundingTxHash The funding transaction hash.
+    /// @param fundingOutputAmount The funding output amount in satoshi.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @param extraData The 32-byte deposit extra data.
+    /// @dev This function is extracted to overcome the stack too deep error.
+    function _emitDepositRevealedEvent(
+        bytes32 fundingTxHash,
+        uint64 fundingOutputAmount,
+        DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) internal {
         // slither-disable-next-line reentrancy-events
         emit DepositRevealed(
             fundingTxHash,
@@ -332,7 +353,7 @@ library Deposit {
         // reveal flow and reduce potential attack surface.
         require(extraData != bytes32(0), "Extra data must not be empty");
 
-        revealDeposit(self, fundingTx, reveal, extraData);
+        _revealDeposit(self, fundingTx, reveal, extraData);
     }
 
     /// @notice Validates the deposit refund locktime. The validation passes
