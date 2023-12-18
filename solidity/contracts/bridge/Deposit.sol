@@ -96,6 +96,8 @@ library Deposit {
         // the time when the sweep proof was delivered to the Ethereum chain.
         // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 sweptAt;
+        // The 32-byte deposit extra data. Optional, can be bytes32(0).
+        bytes32 extraData;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
         // not contiguous with other values.
@@ -110,8 +112,7 @@ library Deposit {
         bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
-        address vault,
-        bytes32 extraData
+        address vault
     );
 
     /// @notice Used by the depositor to reveal information about their P2(W)SH
@@ -306,26 +307,20 @@ library Deposit {
         deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
             ? fundingOutputAmount / self.depositTreasuryFeeDivisor
             : 0;
+        deposit.extraData = extraData;
 
-        _emitDepositRevealedEvent(
-            fundingTxHash,
-            fundingOutputAmount,
-            reveal,
-            extraData
-        );
+        _emitDepositRevealedEvent(fundingTxHash, fundingOutputAmount, reveal);
     }
 
     /// @notice Emits the `DepositRevealed` event.
     /// @param fundingTxHash The funding transaction hash.
     /// @param fundingOutputAmount The funding output amount in satoshi.
     /// @param reveal Deposit reveal data, see `RevealInfo struct.
-    /// @param extraData The 32-byte deposit extra data.
     /// @dev This function is extracted to overcome the stack too deep error.
     function _emitDepositRevealedEvent(
         bytes32 fundingTxHash,
         uint64 fundingOutputAmount,
-        DepositRevealInfo calldata reveal,
-        bytes32 extraData
+        DepositRevealInfo calldata reveal
     ) internal {
         // slither-disable-next-line reentrancy-events
         emit DepositRevealed(
@@ -337,8 +332,7 @@ library Deposit {
             reveal.walletPubKeyHash,
             reveal.refundPubKeyHash,
             reveal.refundLocktime,
-            reveal.vault,
-            extraData
+            reveal.vault
         );
     }
 

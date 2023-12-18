@@ -82,8 +82,7 @@ contract Bridge is
         bytes20 indexed walletPubKeyHash,
         bytes20 refundPubKeyHash,
         bytes4 refundLocktime,
-        address vault,
-        bytes32 extraData
+        address vault
     );
 
     event DepositsSwept(bytes20 walletPubKeyHash, bytes32 sweepTxHash);
