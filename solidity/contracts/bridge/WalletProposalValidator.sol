@@ -274,6 +274,7 @@ contract WalletProposalValidator {
             validateDepositExtraInfo(
                 depositKey,
                 depositRequest.depositor,
+                depositRequest.extraData,
                 depositExtraInfo
             );
 
@@ -357,6 +358,7 @@ contract WalletProposalValidator {
     ///         is heavily based on `Deposit.revealDeposit` function.
     /// @param depositKey Key of the given deposit.
     /// @param depositor Depositor that revealed the deposit.
+    /// @param extraData 32-byte deposit extra data. Optional, can be bytes32(0).
     /// @param depositExtraInfo Extra data being subject of the validation.
     /// @dev Requirements:
     ///      - The transaction hash computed using `depositExtraInfo.fundingTx`
@@ -372,6 +374,7 @@ contract WalletProposalValidator {
     function validateDepositExtraInfo(
         DepositKey memory depositKey,
         address depositor,
+        bytes32 extraData,
         DepositExtraInfo memory depositExtraInfo
     ) internal view {
         bytes32 depositExtraFundingTxHash = abi
@@ -389,33 +392,70 @@ contract WalletProposalValidator {
             revert("Extra info funding tx hash does not match");
         }
 
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            depositor,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            depositExtraInfo.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtraInfo.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtraInfo.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            depositExtraInfo.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
+        bytes memory expectedScript;
+
+        if (extraData == bytes32(0)) {
+            // Regular deposit without 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                depositor,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                depositExtraInfo.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                depositExtraInfo.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        } else {
+            // Deposit with 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                depositor,
+                hex"75", // OP_DROP
+                hex"20", // Byte length of extra data.
+                extraData,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                depositExtraInfo.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                depositExtraInfo.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        }
 
         bytes memory fundingOutput = depositExtraInfo
             .fundingTx
