@@ -2010,6 +2010,7 @@ const createTestDeposit = (
       vault,
       treasuryFee: 0, // not relevant
       sweptAt: 0, // important to pass the validation
+      extraData: ethers.constants.HashZero, // not relevant
     },
     extraInfo: {
       fundingTx,
