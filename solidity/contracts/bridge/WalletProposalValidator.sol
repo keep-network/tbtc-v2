@@ -603,100 +603,49 @@ contract WalletProposalValidator {
     ///         most of the work can be done using a single readonly contract
     ///         call.
     /// @param proposal The moving funds proposal to validate.
-    /// @param walletMainUtxo The main UTXO of the source wallet.
     /// @return True if the proposal is valid. Reverts otherwise.
-    /// @dev Requirements:
-    ///     - The source wallet must be in the MovingFunds state,
-    ///     - The source wallet must not have any pending redemptions,
-    ///     - The source wallet must not have any pending moved funds sweep
-    ///       requests,
-    ///     - The source wallet's BTC balance must be greater than zero,
-    ///     - The number of target wallets in the proposal must match the
-    ///       expected count, based on the Live wallets count, source wallet's
-    ///       BTC balance and maximum BTC transfer limit,
-    ///     - All target wallets must be in the Live state and ordered correctly
-    ///       (i.e. no duplicates and in ascending order of wallet addresses),
-    ///     - The proposed moving funds transaction fee must be greater than
-    ///       zero,
-    ///     - The proposed moving funds transaction fee must not exceed the
-    ///       maximum total fee allowed for moving funds.
-    function validateMovingFundsProposal(
-        MovingFundsProposal calldata proposal,
-        BitcoinTx.UTXO calldata walletMainUtxo
-    ) external view returns (bool) {
+    /// @dev Notice that this function is meant to be invoked after the moving
+    ///      funds commitment has already been submitted. This function skips
+    ///      some checks related to the moving funds procedure as they were
+    ///      already checked on the commitment submission.
+    ///      Requirements:
+    ///      - The source wallet must be in the MovingFunds state,
+    ///      - The target wallets commitment must be submitted,
+    ///      - The target wallets commitment hash must match the target wallets
+    ///        from the proposal,
+    ///      - The proposed moving funds transaction fee must be greater than
+    ///        zero,
+    ///      - The proposed moving funds transaction fee must not exceed the
+    ///        maximum total fee allowed for moving funds.
+    function validateMovingFundsProposal(MovingFundsProposal calldata proposal)
+        external
+        view
+        returns (bool)
+    {
         Wallets.Wallet memory sourceWallet = bridge.wallets(
             proposal.walletPubKeyHash
         );
 
-        // Make sure the source wallet is eligible for moving funds.
+        // Make sure the source wallet is in MovingFunds state.
         require(
             sourceWallet.state == Wallets.WalletState.MovingFunds,
             "Source wallet is not in MovingFunds state"
         );
 
+        // Make sure the moving funds commitment has been submitted and
+        // the commitment hash matches the target wallets from the proposal.
         require(
-            sourceWallet.pendingRedemptionsValue == 0,
-            "Source wallet has pending redemptions"
-        );
-
-        require(
-            sourceWallet.pendingMovedFundsSweepRequestsCount == 0,
-            "Source wallet has pending moved funds sweep requests"
-        );
-
-        // Make sure the number of target wallets is correct.
-        uint64 sourceWalletBtcBalance = getWalletBtcBalance(
-            sourceWallet.mainUtxoHash,
-            walletMainUtxo
+            sourceWallet.movingFundsTargetWalletsCommitmentHash != bytes32(0),
+            "Target wallets commitment is not submitted"
         );
 
         require(
-            sourceWalletBtcBalance > 0,
-            "Source wallet BTC balance is zero"
+            sourceWallet.movingFundsTargetWalletsCommitmentHash ==
+                keccak256(abi.encodePacked(proposal.targetWallets)),
+            "Target wallets do not match target wallets commitment hash"
         );
 
-        uint32 liveWalletsCount = bridge.liveWalletsCount();
-
-        (, , , , , uint64 walletMaxBtcTransfer, ) = bridge.walletParameters();
-
-        uint256 expectedTargetWalletsCount = Math.min(
-            liveWalletsCount,
-            Math.ceilDiv(sourceWalletBtcBalance, walletMaxBtcTransfer)
-        );
-
-        require(expectedTargetWalletsCount > 0, "No target wallets available");
-
-        require(
-            proposal.targetWallets.length == expectedTargetWalletsCount,
-            "Submitted target wallets count is other than expected"
-        );
-
-        // Make sure the target wallets are Live and are ordered correctly.
-        uint160 lastProcessedTargetWallet = 0;
-
-        for (uint256 i = 0; i < proposal.targetWallets.length; i++) {
-            bytes20 targetWallet = proposal.targetWallets[i];
-
-            require(
-                targetWallet != proposal.walletPubKeyHash,
-                "Target wallet is equal to source wallet"
-            );
-
-            require(
-                uint160(targetWallet) > lastProcessedTargetWallet,
-                "Target wallet order is incorrect"
-            );
-
-            // slither-disable-next-line calls-loop
-            require(
-                bridge.wallets(targetWallet).state == Wallets.WalletState.Live,
-                "Target wallet is not in Live state"
-            );
-
-            lastProcessedTargetWallet = uint160(targetWallet);
-        }
-
-        // Make sure the proposed fee does not exceed the total fee limit.
+        // Make sure the proposed fee is valid.
         (uint64 movingFundsTxMaxTotalFee, , , , , , , , , , ) = bridge
             .movingFundsParameters();
 
@@ -711,36 +660,6 @@ contract WalletProposalValidator {
         );
 
         return true;
-    }
-
-    /// @notice Calculates the Bitcoin balance of a wallet based on its main
-    ///         UTXO.
-    /// @param walletMainUtxoHash The hash of the wallet's main UTXO.
-    /// @param walletMainUtxo The detailed data of the wallet's main UTXO.
-    /// @return walletBtcBalance The calculated Bitcoin balance of the wallet.
-    function getWalletBtcBalance(
-        bytes32 walletMainUtxoHash,
-        BitcoinTx.UTXO calldata walletMainUtxo
-    ) internal view returns (uint64 walletBtcBalance) {
-        // If the wallet has a main UTXO hash set, cross-check it with the
-        // provided plain-text parameter and get the transaction output value
-        // as BTC balance. Otherwise, the BTC balance is just zero.
-        if (walletMainUtxoHash != bytes32(0)) {
-            require(
-                keccak256(
-                    abi.encodePacked(
-                        walletMainUtxo.txHash,
-                        walletMainUtxo.txOutputIndex,
-                        walletMainUtxo.txOutputValue
-                    )
-                ) == walletMainUtxoHash,
-                "Invalid wallet main UTXO data"
-            );
-
-            walletBtcBalance = walletMainUtxo.txOutputValue;
-        }
-
-        return walletBtcBalance;
     }
 
     /// @notice View function encapsulating the main rules of a valid heartbeat

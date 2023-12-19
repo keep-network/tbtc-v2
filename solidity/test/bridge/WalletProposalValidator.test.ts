@@ -1897,10 +1897,15 @@ describe("WalletProposalValidator", () => {
 
   describe("validateMovingFundsProposal", () => {
     const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
-    const ecdsaWalletID =
-      "0x4ad6b3ccbca81645865d8d0d575797a15528e98ced22f29a6f906d3259569863"
+    const targetWallets = [
+      "0x84a70187011e156686788e0a2bc50944a4721e83",
+      "0xf64a45c07e3778b8ce58cb0058477c821c543aad",
+      "0xcaea95433d9bfa80bb8dc8819a48e2a9aa96147c",
+    ]
+    // Hash calculated from the above target wallets.
+    const targetWalletsHash =
+      "0x16311d424d513a1743fbc9c0e4fea5b70eddefd15f54613503e5cdfab24f8877"
     const movingFundsTxMaxTotalFee = 20000
-    const walletMaxBtcTransfer = 30000000
 
     before(async () => {
       await createSnapshot()
@@ -1918,12 +1923,10 @@ describe("WalletProposalValidator", () => {
         0,
         0,
       ])
-      bridge.walletParameters.returns([0, 0, 0, 0, 0, walletMaxBtcTransfer, 0])
     })
 
     after(async () => {
       bridge.movingFundsParameters.reset()
-      bridge.walletParameters.reset()
 
       await restoreSnapshot()
     })
@@ -1958,7 +1961,7 @@ describe("WalletProposalValidator", () => {
             await createSnapshot()
 
             bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-              ecdsaWalletID,
+              ecdsaWalletID: HashZero,
               mainUtxoHash: HashZero,
               pendingRedemptionsValue: 0,
               createdAt: 0,
@@ -1978,15 +1981,11 @@ describe("WalletProposalValidator", () => {
 
           it("should revert", async () => {
             await expect(
-              // Only walletPubKeyHash argument is relevant in this scenario.
-              walletProposalValidator.validateMovingFundsProposal(
-                {
-                  walletPubKeyHash,
-                  movingFundsTxFee: 0,
-                  targetWallets: [],
-                },
-                NO_MAIN_UTXO
-              )
+              walletProposalValidator.validateMovingFundsProposal({
+                walletPubKeyHash,
+                movingFundsTxFee: 0,
+                targetWallets: [],
+              })
             ).to.be.revertedWith("Source wallet is not in MovingFunds state")
           })
         })
@@ -1994,19 +1993,20 @@ describe("WalletProposalValidator", () => {
     })
 
     context("when wallet's state is MovingFunds", () => {
-      context("when the wallet has pending redemptions", () => {
+      context("when moving funds commitment has not been submitted", () => {
         before(async () => {
           await createSnapshot()
 
           bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-            ecdsaWalletID,
+            ecdsaWalletID: HashZero,
             mainUtxoHash: HashZero,
-            pendingRedemptionsValue: 10000, // Make the value positive.
+            pendingRedemptionsValue: 0,
             createdAt: 0,
             movingFundsRequestedAt: 0,
             closingStartedAt: 0,
             pendingMovedFundsSweepRequestsCount: 0,
             state: walletState.MovingFunds,
+            // Indicate the commitment has not been submitted.
             movingFundsTargetWalletsCommitmentHash: HashZero,
           })
         })
@@ -2019,451 +2019,115 @@ describe("WalletProposalValidator", () => {
 
         it("should revert", async () => {
           await expect(
-            walletProposalValidator.validateMovingFundsProposal(
-              {
-                walletPubKeyHash,
-                movingFundsTxFee: 0,
-                targetWallets: [],
-              },
-              NO_MAIN_UTXO
-            )
-          ).to.be.revertedWith("Source wallet has pending redemptions")
+            walletProposalValidator.validateMovingFundsProposal({
+              walletPubKeyHash,
+              movingFundsTxFee: 0,
+              targetWallets: [],
+            })
+          ).to.be.revertedWith("Target wallets commitment is not submitted")
         })
       })
 
-      context("when the wallet does not have pending redemptions", () => {
-        context(
-          "when the wallet has pending moved funds sweep requests",
-          () => {
-            before(async () => {
-              await createSnapshot()
+      context("when moving funds commitment has been submitted", () => {
+        context("when commitment hash does not match target wallets", () => {
+          before(async () => {
+            await createSnapshot()
 
-              bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-                ecdsaWalletID,
-                mainUtxoHash: HashZero,
-                pendingRedemptionsValue: 0,
-                createdAt: 0,
-                movingFundsRequestedAt: 0,
-                closingStartedAt: 0,
-                pendingMovedFundsSweepRequestsCount: 1, // Make the value positive.
-                state: walletState.MovingFunds,
-                movingFundsTargetWalletsCommitmentHash: HashZero,
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: walletState.MovingFunds,
+              // Set a hash that does not match the target wallets.
+              movingFundsTargetWalletsCommitmentHash:
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              walletProposalValidator.validateMovingFundsProposal({
+                walletPubKeyHash,
+                movingFundsTxFee: 0,
+                targetWallets,
               })
+            ).to.be.revertedWith(
+              "Target wallets do not match target wallets commitment hash"
+            )
+          })
+        })
+
+        context("when commitment hash matches target wallets", () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: walletState.MovingFunds,
+              // Set the correct hash.
+              movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
             })
+          })
 
-            after(async () => {
-              bridge.wallets.reset()
+          after(async () => {
+            bridge.wallets.reset()
 
-              await restoreSnapshot()
-            })
+            await restoreSnapshot()
+          })
 
+          context("when transaction fee is zero", () => {
             it("should revert", async () => {
               await expect(
-                walletProposalValidator.validateMovingFundsProposal(
-                  {
-                    walletPubKeyHash,
-                    movingFundsTxFee: 0,
-                    targetWallets: [],
-                  },
-                  NO_MAIN_UTXO
-                )
-              ).to.be.revertedWith(
-                "Source wallet has pending moved funds sweep requests"
-              )
+                walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: 0,
+                  targetWallets,
+                })
+              ).to.be.revertedWith("Proposed transaction fee cannot be zero")
             })
-          }
-        )
+          })
 
-        context(
-          "when the wallet does not have pending moved funds sweep requests",
-          () => {
-            context("when the provided main UTXO is invalid", () => {
-              before(async () => {
-                await createSnapshot()
-
-                bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-                  ecdsaWalletID,
-                  mainUtxoHash:
-                    // Use any non-zero hash to indicate the wallet has a main UTXO.
-                    "0x1111111111111111111111111111111111111111111111111111111111111111",
-                  pendingRedemptionsValue: 0,
-                  createdAt: 0,
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.MovingFunds,
-                  movingFundsTargetWalletsCommitmentHash: HashZero,
+          context("when transaction fee is too high", () => {
+            it("should revert", async () => {
+              await expect(
+                walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: movingFundsTxMaxTotalFee + 1,
+                  targetWallets,
                 })
-              })
-
-              after(async () => {
-                bridge.wallets.reset()
-
-                await restoreSnapshot()
-              })
-
-              it("should revert", async () => {
-                await expect(
-                  walletProposalValidator.validateMovingFundsProposal(
-                    {
-                      walletPubKeyHash,
-                      movingFundsTxFee: 0,
-                      targetWallets: [],
-                    },
-                    {
-                      txHash:
-                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                      txOutputIndex: 0,
-                      txOutputValue: 1000,
-                    }
-                  )
-                ).to.be.revertedWith("Invalid wallet main UTXO data")
-              })
+              ).to.be.revertedWith("Proposed transaction fee is too high")
             })
+          })
 
-            context("when the provided main UTXO is valid", () => {
-              context("when the wallet's balance is zero", () => {
-                before(async () => {
-                  await createSnapshot()
-
-                  bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-                    ecdsaWalletID,
-                    // Use zero hash so that the wallet's main is considered not
-                    // set.
-                    mainUtxoHash: HashZero,
-                    pendingRedemptionsValue: 0,
-                    createdAt: 0,
-                    movingFundsRequestedAt: 0,
-                    closingStartedAt: 0,
-                    pendingMovedFundsSweepRequestsCount: 0,
-                    state: walletState.MovingFunds,
-                    movingFundsTargetWalletsCommitmentHash: HashZero,
-                  })
+          context("when transaction fee is valid", () => {
+            it("should pass validation", async () => {
+              const result =
+                await walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: movingFundsTxMaxTotalFee,
+                  targetWallets,
                 })
-
-                after(async () => {
-                  bridge.wallets.reset()
-
-                  await restoreSnapshot()
-                })
-
-                it("should revert", async () => {
-                  await expect(
-                    walletProposalValidator.validateMovingFundsProposal(
-                      {
-                        walletPubKeyHash,
-                        movingFundsTxFee: 0,
-                        targetWallets: [],
-                      },
-                      NO_MAIN_UTXO
-                    )
-                  ).to.be.revertedWith("Source wallet BTC balance is zero")
-                })
-              })
-
-              context("when the wallet's balance is positive", () => {
-                const targetWallets = [
-                  "0x1111111111111111111111111111111111111111",
-                  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                ]
-
-                before(async () => {
-                  await createSnapshot()
-
-                  // Set the source wallet.
-                  bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-                    ecdsaWalletID,
-                    mainUtxoHash:
-                      "0x2cd9812b371968dc7e244c6757778d436cda256db583909a1758cac47c5d3df9",
-                    pendingRedemptionsValue: 0,
-                    createdAt: 0,
-                    movingFundsRequestedAt: 0,
-                    closingStartedAt: 0,
-                    pendingMovedFundsSweepRequestsCount: 0,
-                    state: walletState.MovingFunds,
-                    movingFundsTargetWalletsCommitmentHash: HashZero,
-                  })
-
-                  // Set target wallets.
-                  targetWallets.forEach((targetWallet) => {
-                    bridge.wallets.whenCalledWith(targetWallet).returns({
-                      ecdsaWalletID,
-                      mainUtxoHash: HashZero,
-                      pendingRedemptionsValue: 0,
-                      createdAt: 0,
-                      movingFundsRequestedAt: 0,
-                      closingStartedAt: 0,
-                      pendingMovedFundsSweepRequestsCount: 0,
-                      state: walletState.Live,
-                      movingFundsTargetWalletsCommitmentHash: HashZero,
-                    })
-                  })
-                })
-
-                after(async () => {
-                  bridge.wallets.reset()
-
-                  await restoreSnapshot()
-                })
-
-                context("when there are no target wallets available", () => {
-                  before(async () => {
-                    await createSnapshot()
-
-                    bridge.liveWalletsCount.returns(0)
-                  })
-
-                  after(async () => {
-                    bridge.liveWalletsCount.reset()
-
-                    await restoreSnapshot()
-                  })
-
-                  it("should revert", async () => {
-                    await expect(
-                      walletProposalValidator.validateMovingFundsProposal(
-                        {
-                          walletPubKeyHash,
-                          movingFundsTxFee: 0,
-                          targetWallets: [],
-                        },
-                        {
-                          txHash:
-                            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                          txOutputIndex: 0,
-                          txOutputValue: 100000000,
-                        }
-                      )
-                    ).to.be.revertedWith("No target wallets available")
-                  })
-                })
-
-                context("when there are target wallets available", () => {
-                  before(async () => {
-                    await createSnapshot()
-
-                    bridge.liveWalletsCount.returns(3)
-                  })
-
-                  after(async () => {
-                    bridge.liveWalletsCount.reset()
-
-                    await restoreSnapshot()
-                  })
-
-                  context(
-                    "when the number of target wallets is other than expected",
-                    () => {
-                      it("should revert", async () => {
-                        await expect(
-                          walletProposalValidator.validateMovingFundsProposal(
-                            {
-                              walletPubKeyHash,
-                              movingFundsTxFee: 0,
-                              targetWallets: [
-                                // Provide one target wallet instead of three.
-                                targetWallets[0],
-                              ],
-                            },
-                            {
-                              txHash:
-                                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                              txOutputIndex: 0,
-                              txOutputValue: 100000000,
-                            }
-                          )
-                        ).to.be.revertedWith(
-                          "Submitted target wallets count is other than expected"
-                        )
-                      })
-                    }
-                  )
-
-                  context(
-                    "when the number of target wallets is expected",
-                    () => {
-                      context(
-                        "when the source wallet is used as a target wallet",
-                        () => {
-                          it("should revert", async () => {
-                            await expect(
-                              walletProposalValidator.validateMovingFundsProposal(
-                                {
-                                  walletPubKeyHash,
-                                  movingFundsTxFee: 0,
-                                  targetWallets: [
-                                    "0x1111111111111111111111111111111111111111",
-                                    walletPubKeyHash, // Use source wallet.
-                                    "0x3333333333333333333333333333333333333333",
-                                  ],
-                                },
-                                {
-                                  txHash:
-                                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                  txOutputIndex: 0,
-                                  txOutputValue: 100000000,
-                                }
-                              )
-                            ).to.be.revertedWith(
-                              "Target wallet is equal to source wallet"
-                            )
-                          })
-                        }
-                      )
-
-                      context(
-                        "when the source wallet is not used as a target wallet",
-                        () => {
-                          context(
-                            "when the order of target wallets is incorrect",
-                            () => {
-                              it("should revert", async () => {
-                                await expect(
-                                  walletProposalValidator.validateMovingFundsProposal(
-                                    {
-                                      walletPubKeyHash,
-                                      movingFundsTxFee: 0,
-                                      targetWallets: [
-                                        // Change order.
-                                        targetWallets[0],
-                                        targetWallets[2],
-                                        targetWallets[1],
-                                      ],
-                                    },
-                                    {
-                                      txHash:
-                                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                      txOutputIndex: 0,
-                                      txOutputValue: 100000000,
-                                    }
-                                  )
-                                ).to.be.revertedWith(
-                                  "Target wallet order is incorrect"
-                                )
-                              })
-                            }
-                          )
-
-                          context(
-                            "when the order of target wallets is correct",
-                            () => {
-                              context(
-                                "when one of the target wallets is not Live",
-                                () => {
-                                  it("should revert", async () => {
-                                    await expect(
-                                      walletProposalValidator.validateMovingFundsProposal(
-                                        {
-                                          walletPubKeyHash,
-                                          movingFundsTxFee: 0,
-                                          targetWallets: [
-                                            targetWallets[0],
-                                            targetWallets[1],
-                                            // Use unknown wallet, so that its state is not Unknown.
-                                            "0xcccccccccccccccccccccccccccccccccccccccc",
-                                          ],
-                                        },
-                                        {
-                                          txHash:
-                                            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                          txOutputIndex: 0,
-                                          txOutputValue: 100000000,
-                                        }
-                                      )
-                                    ).to.be.revertedWith(
-                                      "Target wallet is not in Live state"
-                                    )
-                                  })
-                                }
-                              )
-
-                              context(
-                                "when all the target wallets are Live",
-                                () => {
-                                  context(
-                                    "when the provided transaction fee is incorrect",
-                                    () => {
-                                      it("should revert", async () => {
-                                        await expect(
-                                          walletProposalValidator.validateMovingFundsProposal(
-                                            {
-                                              walletPubKeyHash,
-                                              movingFundsTxFee: 0,
-                                              targetWallets,
-                                            },
-                                            {
-                                              txHash:
-                                                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                              txOutputIndex: 0,
-                                              txOutputValue: 100000000,
-                                            }
-                                          )
-                                        ).to.be.revertedWith(
-                                          "Proposed transaction fee cannot be zero"
-                                        )
-                                      })
-
-                                      it("should revert", async () => {
-                                        await expect(
-                                          walletProposalValidator.validateMovingFundsProposal(
-                                            {
-                                              walletPubKeyHash,
-                                              movingFundsTxFee:
-                                                movingFundsTxMaxTotalFee + 1,
-                                              targetWallets,
-                                            },
-                                            {
-                                              txHash:
-                                                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                              txOutputIndex: 0,
-                                              txOutputValue: 100000000,
-                                            }
-                                          )
-                                        ).to.be.revertedWith(
-                                          "Proposed transaction fee is too high"
-                                        )
-                                      })
-                                    }
-                                  )
-
-                                  context(
-                                    "when the provided transaction fee is correct",
-                                    () => {
-                                      it("should pass validation", async () => {
-                                        const result =
-                                          await walletProposalValidator.validateMovingFundsProposal(
-                                            {
-                                              walletPubKeyHash,
-                                              movingFundsTxFee:
-                                                movingFundsTxMaxTotalFee,
-                                              targetWallets,
-                                            },
-                                            {
-                                              txHash:
-                                                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                              txOutputIndex: 0,
-                                              txOutputValue: 100000000,
-                                            }
-                                          )
-                                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                                        expect(result).to.be.true
-                                      })
-                                    }
-                                  )
-                                }
-                              )
-                            }
-                          )
-                        }
-                      )
-                    }
-                  )
-                })
-              })
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              expect(result).to.be.true
             })
-          }
-        )
+          })
+        })
       })
     })
   })
