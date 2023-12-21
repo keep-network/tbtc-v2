@@ -181,7 +181,7 @@ team’s attention. The default action is making sure that the redemption is
 not a result of a malicious action, and if not, that the redemption is
 handled correctly by the system.
 
-=== Stale redemption
+==== Stale redemption
 
 A *warning system event* indicating that a redemption request became stale, i.e.
 was not handled within the expected time. This event is sent to Sentry hub and
