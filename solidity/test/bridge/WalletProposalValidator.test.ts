@@ -1896,6 +1896,8 @@ describe("WalletProposalValidator", () => {
   })
 
   describe("validateMovingFundsProposal", () => {
+    const movingFundsTxMaxTotalFee = 20000
+    const movingFundsDustThreshold = 5000
     const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
     const targetWallets = [
       "0x84a70187011e156686788e0a2bc50944a4721e83",
@@ -1905,14 +1907,22 @@ describe("WalletProposalValidator", () => {
     // Hash calculated from the above target wallets.
     const targetWalletsHash =
       "0x16311d424d513a1743fbc9c0e4fea5b70eddefd15f54613503e5cdfab24f8877"
-    const movingFundsTxMaxTotalFee = 20000
+    const walletMainUtxo = {
+      txHash:
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      txOutputIndex: 0,
+      txOutputValue: movingFundsDustThreshold,
+    }
+    // Hash calculated from the above main UTXO.
+    const walletMainUtxoHash =
+      "0x4cfb92c890e30ff736656e519167cbfcacb408c730fd21bec415359b45769d20"
 
     before(async () => {
       await createSnapshot()
 
       bridge.movingFundsParameters.returns([
         movingFundsTxMaxTotalFee,
-        0,
+        movingFundsDustThreshold,
         0,
         0,
         0,
@@ -1981,11 +1991,14 @@ describe("WalletProposalValidator", () => {
 
           it("should revert", async () => {
             await expect(
-              walletProposalValidator.validateMovingFundsProposal({
-                walletPubKeyHash,
-                movingFundsTxFee: 0,
-                targetWallets: [],
-              })
+              walletProposalValidator.validateMovingFundsProposal(
+                {
+                  walletPubKeyHash,
+                  movingFundsTxFee: 0,
+                  targetWallets: [],
+                },
+                NO_MAIN_UTXO
+              )
             ).to.be.revertedWith("Source wallet is not in MovingFunds state")
           })
         })
@@ -2019,11 +2032,14 @@ describe("WalletProposalValidator", () => {
 
         it("should revert", async () => {
           await expect(
-            walletProposalValidator.validateMovingFundsProposal({
-              walletPubKeyHash,
-              movingFundsTxFee: 0,
-              targetWallets: [],
-            })
+            walletProposalValidator.validateMovingFundsProposal(
+              {
+                walletPubKeyHash,
+                movingFundsTxFee: 0,
+                targetWallets: [],
+              },
+              NO_MAIN_UTXO
+            )
           ).to.be.revertedWith("Target wallets commitment is not submitted")
         })
       })
@@ -2056,11 +2072,14 @@ describe("WalletProposalValidator", () => {
 
           it("should revert", async () => {
             await expect(
-              walletProposalValidator.validateMovingFundsProposal({
-                walletPubKeyHash,
-                movingFundsTxFee: 0,
-                targetWallets,
-              })
+              walletProposalValidator.validateMovingFundsProposal(
+                {
+                  walletPubKeyHash,
+                  movingFundsTxFee: 0,
+                  targetWallets,
+                },
+                NO_MAIN_UTXO
+              )
             ).to.be.revertedWith(
               "Target wallets do not match target wallets commitment hash"
             )
@@ -2068,64 +2087,211 @@ describe("WalletProposalValidator", () => {
         })
 
         context("when commitment hash matches target wallets", () => {
-          before(async () => {
-            await createSnapshot()
+          context("when the passed main UTXO is incorrect", () => {
+            before(async () => {
+              await createSnapshot()
 
-            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-              ecdsaWalletID: HashZero,
-              mainUtxoHash: HashZero,
-              pendingRedemptionsValue: 0,
-              createdAt: 0,
-              movingFundsRequestedAt: 0,
-              closingStartedAt: 0,
-              pendingMovedFundsSweepRequestsCount: 0,
-              state: walletState.MovingFunds,
-              // Set the correct hash.
-              movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+              bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+                ecdsaWalletID: HashZero,
+                mainUtxoHash:
+                  // Use any non-zero hash to indicate the wallet has a main UTXO.
+                  "0x1111111111111111111111111111111111111111111111111111111111111111",
+                pendingRedemptionsValue: 0,
+                createdAt: 0,
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.MovingFunds,
+                movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+              })
             })
-          })
 
-          after(async () => {
-            bridge.wallets.reset()
+            after(async () => {
+              bridge.wallets.reset()
 
-            await restoreSnapshot()
-          })
+              await restoreSnapshot()
+            })
 
-          context("when transaction fee is zero", () => {
             it("should revert", async () => {
               await expect(
-                walletProposalValidator.validateMovingFundsProposal({
-                  walletPubKeyHash,
-                  movingFundsTxFee: 0,
-                  targetWallets,
-                })
-              ).to.be.revertedWith("Proposed transaction fee cannot be zero")
+                walletProposalValidator.validateMovingFundsProposal(
+                  {
+                    walletPubKeyHash,
+                    movingFundsTxFee: 0,
+                    targetWallets,
+                  },
+                  {
+                    txHash:
+                      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    txOutputIndex: 0,
+                    txOutputValue: 1000,
+                  }
+                )
+              ).to.be.revertedWith("Invalid wallet main UTXO data")
             })
           })
 
-          context("when transaction fee is too high", () => {
-            it("should revert", async () => {
-              await expect(
-                walletProposalValidator.validateMovingFundsProposal({
-                  walletPubKeyHash,
-                  movingFundsTxFee: movingFundsTxMaxTotalFee + 1,
-                  targetWallets,
-                })
-              ).to.be.revertedWith("Proposed transaction fee is too high")
-            })
-          })
+          context("when the passed main UTXO is correct", () => {
+            context("when source wallet BTC balance is zero", () => {
+              before(async () => {
+                await createSnapshot()
 
-          context("when transaction fee is valid", () => {
-            it("should pass validation", async () => {
-              const result =
-                await walletProposalValidator.validateMovingFundsProposal({
-                  walletPubKeyHash,
-                  movingFundsTxFee: movingFundsTxMaxTotalFee,
-                  targetWallets,
+                bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+                  ecdsaWalletID: HashZero,
+                  // Use zero hash so that the wallet's main is considered not
+                  // set.
+                  mainUtxoHash: HashZero,
+                  pendingRedemptionsValue: 0,
+                  createdAt: 0,
+                  movingFundsRequestedAt: 0,
+                  closingStartedAt: 0,
+                  pendingMovedFundsSweepRequestsCount: 0,
+                  state: walletState.MovingFunds,
+                  movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
                 })
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              expect(result).to.be.true
+              })
+
+              after(async () => {
+                bridge.wallets.reset()
+
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  walletProposalValidator.validateMovingFundsProposal(
+                    {
+                      walletPubKeyHash,
+                      movingFundsTxFee: 0,
+                      targetWallets,
+                    },
+                    NO_MAIN_UTXO
+                  )
+                ).to.be.revertedWith("Source wallet BTC balance is zero")
+              })
             })
+
+            context(
+              "when source wallet BTC balance is below dust threshold",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+                    ecdsaWalletID: HashZero,
+                    mainUtxoHash:
+                      "0x757a5ca2a1e5fff2f2a51c073cb88c097603285fcfa52cb58473704647fa7edb",
+                    pendingRedemptionsValue: 0,
+                    createdAt: 0,
+                    movingFundsRequestedAt: 0,
+                    closingStartedAt: 0,
+                    pendingMovedFundsSweepRequestsCount: 0,
+                    state: walletState.MovingFunds,
+                    movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+                  })
+                })
+
+                after(async () => {
+                  bridge.wallets.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    walletProposalValidator.validateMovingFundsProposal(
+                      {
+                        walletPubKeyHash,
+                        movingFundsTxFee: 0,
+                        targetWallets,
+                      },
+                      {
+                        txHash:
+                          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        txOutputIndex: 0,
+                        txOutputValue: movingFundsDustThreshold - 1,
+                      }
+                    )
+                  ).to.be.revertedWith(
+                    "Source wallet BTC balance is below the moving funds dust threshold"
+                  )
+                })
+              }
+            )
+
+            context(
+              "when source wallet BTC balance is equal to or greater that dust threshold",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+                  bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+                    ecdsaWalletID: HashZero,
+                    mainUtxoHash: walletMainUtxoHash,
+                    pendingRedemptionsValue: 0,
+                    createdAt: 0,
+                    movingFundsRequestedAt: 0,
+                    closingStartedAt: 0,
+                    pendingMovedFundsSweepRequestsCount: 0,
+                    state: walletState.MovingFunds,
+                    movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+                  })
+                })
+
+                after(async () => {
+                  bridge.wallets.reset()
+
+                  await restoreSnapshot()
+                })
+
+                context("when transaction fee is zero", () => {
+                  it("should revert", async () => {
+                    await expect(
+                      walletProposalValidator.validateMovingFundsProposal(
+                        {
+                          walletPubKeyHash,
+                          movingFundsTxFee: 0,
+                          targetWallets,
+                        },
+                        walletMainUtxo
+                      )
+                    ).to.be.revertedWith(
+                      "Proposed transaction fee cannot be zero"
+                    )
+                  })
+                })
+
+                context("when transaction fee is too high", () => {
+                  it("should revert", async () => {
+                    await expect(
+                      walletProposalValidator.validateMovingFundsProposal(
+                        {
+                          walletPubKeyHash,
+                          movingFundsTxFee: movingFundsTxMaxTotalFee + 1,
+                          targetWallets,
+                        },
+                        walletMainUtxo
+                      )
+                    ).to.be.revertedWith("Proposed transaction fee is too high")
+                  })
+                })
+
+                context("when transaction fee is valid", () => {
+                  it("should pass validation", async () => {
+                    const result =
+                      await walletProposalValidator.validateMovingFundsProposal(
+                        {
+                          walletPubKeyHash,
+                          movingFundsTxFee: movingFundsTxMaxTotalFee,
+                          targetWallets,
+                        },
+                        walletMainUtxo
+                      )
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                    expect(result).to.be.true
+                  })
+                })
+              }
+            )
           })
         })
       })
