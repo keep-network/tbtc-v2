@@ -196,7 +196,7 @@ describe("WalletProposalValidator", () => {
         })
 
         context("when sweep does not exceed the max size", () => {
-          context("when deposit extra data length does not match", () => {
+          context("when deposit extra info length does not match", () => {
             it("should revert", async () => {
               // The proposal contains one deposit.
               const proposal = {
@@ -206,7 +206,7 @@ describe("WalletProposalValidator", () => {
                 depositsRevealBlocks: [], // Not relevant in this scenario.
               }
 
-              // The extra data array contains two items.
+              // The extra info array contains two items.
               const depositsExtraInfo = [
                 emptyDepositExtraInfo,
                 emptyDepositExtraInfo,
@@ -218,12 +218,12 @@ describe("WalletProposalValidator", () => {
                   depositsExtraInfo
                 )
               ).to.be.revertedWith(
-                "Each deposit key must have matching extra data"
+                "Each deposit key must have matching extra info"
               )
             })
           })
 
-          context("when deposit extra data length matches", () => {
+          context("when deposit extra info length matches", () => {
             context("when proposed sweep tx fee is invalid", () => {
               context("when proposed sweep tx fee is zero", () => {
                 let depositOne
@@ -564,7 +564,7 @@ describe("WalletProposalValidator", () => {
 
                   context("when all deposits are not swept yet", () => {
                     context(
-                      "when there is a deposit with invalid extra data",
+                      "when there is a deposit with invalid extra info",
                       () => {
                         context("when funding tx hashes don't match", () => {
                           let deposit
@@ -602,7 +602,7 @@ describe("WalletProposalValidator", () => {
                               depositsRevealBlocks: [], // Not relevant in this scenario.
                             }
 
-                            // Corrupt the extra data by setting a different
+                            // Corrupt the extra info by setting a different
                             // version than 0x01000000 used to produce the hash.
                             const depositsExtraInfo = [
                               {
@@ -663,7 +663,7 @@ describe("WalletProposalValidator", () => {
                                 depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
-                              // Corrupt the extra data by reversing the proper
+                              // Corrupt the extra info by reversing the proper
                               // blinding factor used to produce the script.
                               const depositsExtraInfo = [
                                 {
@@ -729,7 +729,7 @@ describe("WalletProposalValidator", () => {
                                 depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
-                              // Corrupt the extra data by reversing the proper
+                              // Corrupt the extra info by reversing the proper
                               // blinding factor used to produce the script.
                               const depositsExtraInfo = [
                                 {
@@ -759,7 +759,7 @@ describe("WalletProposalValidator", () => {
                       }
                     )
 
-                    context("when all deposits extra data are valid", () => {
+                    context("when all deposits extra info are valid", () => {
                       context(
                         "when there is a deposit that violates the refund safety margin",
                         () => {
