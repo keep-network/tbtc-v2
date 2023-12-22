@@ -731,6 +731,25 @@ contract WalletProposalValidator {
         return walletBtcBalance;
     }
 
+    /// @notice View function encapsulating the main rules of a valid moved
+    ///         funds sweep proposal. This function is meant to facilitate the
+    ///         off-chain validation of the incoming proposals. Thanks to it,
+    ///         most of the work can be done using a single readonly contract
+    ///         call.
+    /// @param proposal The moved funds sweep proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - The source wallet must be in the Live or MovingFunds state,
+    ///      - The moved funds sweep request identified by the proposed
+    ///        transaction hash and output index must be in the Pending state,
+    ///      - The transaction hash and output index from the proposal must
+    ///        identify a moved funds sweep request in the Pending state,
+    ///      - The transaction hash and output index from the proposal must
+    ///        identify a moved funds sweep request that belongs to the wallet,
+    ///      - The proposed moved funds sweep transaction fee must be greater
+    ///        than zero,
+    ///      - The proposed moved funds sweep transaction fee must not exceed
+    ///        the maximum total fee allowed for moved funds sweep.
     function validateMovedFundsSweepProposal(
         MovedFundsSweepProposal calldata proposal
     ) external view returns (bool) {
