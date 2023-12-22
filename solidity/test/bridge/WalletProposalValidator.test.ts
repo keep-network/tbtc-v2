@@ -5,6 +5,7 @@ import { FakeContract, smock } from "@defi-wonderland/smock"
 import { BigNumber, BigNumberish, BytesLike } from "ethers"
 import type { Bridge, WalletProposalValidator } from "../../typechain"
 import { walletState } from "../fixtures"
+import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 
 chai.use(smock.matchers)
 
@@ -1910,6 +1911,243 @@ describe("WalletProposalValidator", () => {
                   }
                 )
               })
+            })
+          })
+        })
+      })
+    })
+  })
+
+  describe("validateMovingFundsProposal", () => {
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+    const targetWallets = [
+      "0x84a70187011e156686788e0a2bc50944a4721e83",
+      "0xf64a45c07e3778b8ce58cb0058477c821c543aad",
+      "0xcaea95433d9bfa80bb8dc8819a48e2a9aa96147c",
+    ]
+    // Hash calculated from the above target wallets.
+    const targetWalletsHash =
+      "0x16311d424d513a1743fbc9c0e4fea5b70eddefd15f54613503e5cdfab24f8877"
+    const movingFundsTxMaxTotalFee = 20000
+
+    before(async () => {
+      await createSnapshot()
+
+      bridge.movingFundsParameters.returns([
+        movingFundsTxMaxTotalFee,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      ])
+    })
+
+    after(async () => {
+      bridge.movingFundsParameters.reset()
+
+      await restoreSnapshot()
+    })
+
+    context("when wallet's state is not MovingFunds", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: HashZero,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              walletProposalValidator.validateMovingFundsProposal({
+                walletPubKeyHash,
+                movingFundsTxFee: 0,
+                targetWallets: [],
+              })
+            ).to.be.revertedWith("Source wallet is not in MovingFunds state")
+          })
+        })
+      })
+    })
+
+    context("when wallet's state is MovingFunds", () => {
+      context("when moving funds commitment has not been submitted", () => {
+        before(async () => {
+          await createSnapshot()
+
+          bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+            ecdsaWalletID: HashZero,
+            mainUtxoHash: HashZero,
+            pendingRedemptionsValue: 0,
+            createdAt: 0,
+            movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
+            state: walletState.MovingFunds,
+            // Indicate the commitment has not been submitted.
+            movingFundsTargetWalletsCommitmentHash: HashZero,
+          })
+        })
+
+        after(async () => {
+          bridge.wallets.reset()
+
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            walletProposalValidator.validateMovingFundsProposal({
+              walletPubKeyHash,
+              movingFundsTxFee: 0,
+              targetWallets: [],
+            })
+          ).to.be.revertedWith("Target wallets commitment is not submitted")
+        })
+      })
+
+      context("when moving funds commitment has been submitted", () => {
+        context("when commitment hash does not match target wallets", () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: walletState.MovingFunds,
+              // Set a hash that does not match the target wallets.
+              movingFundsTargetWalletsCommitmentHash:
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              walletProposalValidator.validateMovingFundsProposal({
+                walletPubKeyHash,
+                movingFundsTxFee: 0,
+                targetWallets,
+              })
+            ).to.be.revertedWith(
+              "Target wallets do not match target wallets commitment hash"
+            )
+          })
+        })
+
+        context("when commitment hash matches target wallets", () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: walletState.MovingFunds,
+              // Set the correct hash.
+              movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          context("when transaction fee is zero", () => {
+            it("should revert", async () => {
+              await expect(
+                walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: 0,
+                  targetWallets,
+                })
+              ).to.be.revertedWith("Proposed transaction fee cannot be zero")
+            })
+          })
+
+          context("when transaction fee is too high", () => {
+            it("should revert", async () => {
+              await expect(
+                walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: movingFundsTxMaxTotalFee + 1,
+                  targetWallets,
+                })
+              ).to.be.revertedWith("Proposed transaction fee is too high")
+            })
+          })
+
+          context("when transaction fee is valid", () => {
+            it("should pass validation", async () => {
+              const result =
+                await walletProposalValidator.validateMovingFundsProposal({
+                  walletPubKeyHash,
+                  movingFundsTxFee: movingFundsTxMaxTotalFee,
+                  targetWallets,
+                })
+              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+              expect(result).to.be.true
             })
           })
         })

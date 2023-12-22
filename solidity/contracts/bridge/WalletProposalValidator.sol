@@ -94,6 +94,16 @@ contract WalletProposalValidator {
         uint256 redemptionTxFee;
     }
 
+    /// @notice Helper structure representing a moving funds proposal.
+    struct MovingFundsProposal {
+        // 20-byte public key hash of the source wallet.
+        bytes20 walletPubKeyHash;
+        // List of 20-byte public key hashes of target wallets.
+        bytes20[] targetWallets;
+        // Proposed BTC fee for the entire transaction.
+        uint256 movingFundsTxFee;
+    }
+
     /// @notice Helper structure representing a heartbeat proposal.
     struct HeartbeatProposal {
         // 20-byte public key hash of the target wallet.
@@ -623,6 +633,71 @@ contract WalletProposalValidator {
 
             processedRedemptionKeys[i] = redemptionKey;
         }
+
+        return true;
+    }
+
+    /// @notice View function encapsulating the main rules of a valid moving
+    ///         funds proposal. This function is meant to facilitate the
+    ///         off-chain validation of the incoming proposals. Thanks to it,
+    ///         most of the work can be done using a single readonly contract
+    ///         call.
+    /// @param proposal The moving funds proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Notice that this function is meant to be invoked after the moving
+    ///      funds commitment has already been submitted. This function skips
+    ///      some checks related to the moving funds procedure as they were
+    ///      already checked on the commitment submission.
+    ///      Requirements:
+    ///      - The source wallet must be in the MovingFunds state,
+    ///      - The target wallets commitment must be submitted,
+    ///      - The target wallets commitment hash must match the target wallets
+    ///        from the proposal,
+    ///      - The proposed moving funds transaction fee must be greater than
+    ///        zero,
+    ///      - The proposed moving funds transaction fee must not exceed the
+    ///        maximum total fee allowed for moving funds.
+    function validateMovingFundsProposal(MovingFundsProposal calldata proposal)
+        external
+        view
+        returns (bool)
+    {
+        Wallets.Wallet memory sourceWallet = bridge.wallets(
+            proposal.walletPubKeyHash
+        );
+
+        // Make sure the source wallet is in MovingFunds state.
+        require(
+            sourceWallet.state == Wallets.WalletState.MovingFunds,
+            "Source wallet is not in MovingFunds state"
+        );
+
+        // Make sure the moving funds commitment has been submitted and
+        // the commitment hash matches the target wallets from the proposal.
+        require(
+            sourceWallet.movingFundsTargetWalletsCommitmentHash != bytes32(0),
+            "Target wallets commitment is not submitted"
+        );
+
+        require(
+            sourceWallet.movingFundsTargetWalletsCommitmentHash ==
+                keccak256(abi.encodePacked(proposal.targetWallets)),
+            "Target wallets do not match target wallets commitment hash"
+        );
+
+        // Make sure the proposed fee is valid.
+        (uint64 movingFundsTxMaxTotalFee, , , , , , , , , , ) = bridge
+            .movingFundsParameters();
+
+        require(
+            proposal.movingFundsTxFee > 0,
+            "Proposed transaction fee cannot be zero"
+        );
+
+        require(
+            proposal.movingFundsTxFee <= movingFundsTxMaxTotalFee,
+            "Proposed transaction fee is too high"
+        );
 
         return true;
     }
