@@ -614,7 +614,6 @@ contract WalletProposalValidator {
     ///      - The target wallets commitment must be submitted,
     ///      - The target wallets commitment hash must match the target wallets
     ///        from the proposal,
-    ///      - The source wallet BTC balance must be positive,
     ///      - The source wallet BTC balance must be equal to or greater than
     ///        `movingFundsDustThreshold`,
     ///      - The proposed moving funds transaction fee must be greater than
@@ -666,11 +665,6 @@ contract WalletProposalValidator {
         uint64 sourceWalletBtcBalance = getWalletBtcBalance(
             sourceWallet.mainUtxoHash,
             walletMainUtxo
-        );
-
-        require(
-            sourceWalletBtcBalance > 0,
-            "Source wallet BTC balance is zero"
         );
 
         require(

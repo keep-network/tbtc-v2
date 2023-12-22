@@ -2087,6 +2087,48 @@ describe("WalletProposalValidator", () => {
         })
 
         context("when commitment hash matches target wallets", () => {
+          context("when no main UTXO is passed", () => {
+            before(async () => {
+              await createSnapshot()
+
+              bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+                ecdsaWalletID: HashZero,
+                // Use zero hash so that the wallet's main UTXO is considered
+                // not set. This will be interpreted as the wallet having BTC
+                // balance of zero.
+                mainUtxoHash: HashZero,
+                pendingRedemptionsValue: 0,
+                createdAt: 0,
+                movingFundsRequestedAt: 0,
+                closingStartedAt: 0,
+                pendingMovedFundsSweepRequestsCount: 0,
+                state: walletState.MovingFunds,
+                movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
+              })
+            })
+
+            after(async () => {
+              bridge.wallets.reset()
+
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                walletProposalValidator.validateMovingFundsProposal(
+                  {
+                    walletPubKeyHash,
+                    movingFundsTxFee: 0,
+                    targetWallets,
+                  },
+                  NO_MAIN_UTXO
+                )
+              ).to.be.revertedWith(
+                "Source wallet BTC balance is below the moving funds dust threshold"
+              )
+            })
+          })
+
           context("when the passed main UTXO is incorrect", () => {
             before(async () => {
               await createSnapshot()
@@ -2132,45 +2174,6 @@ describe("WalletProposalValidator", () => {
           })
 
           context("when the passed main UTXO is correct", () => {
-            context("when source wallet BTC balance is zero", () => {
-              before(async () => {
-                await createSnapshot()
-
-                bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
-                  ecdsaWalletID: HashZero,
-                  // Use zero hash so that the wallet's main is considered not
-                  // set.
-                  mainUtxoHash: HashZero,
-                  pendingRedemptionsValue: 0,
-                  createdAt: 0,
-                  movingFundsRequestedAt: 0,
-                  closingStartedAt: 0,
-                  pendingMovedFundsSweepRequestsCount: 0,
-                  state: walletState.MovingFunds,
-                  movingFundsTargetWalletsCommitmentHash: targetWalletsHash,
-                })
-              })
-
-              after(async () => {
-                bridge.wallets.reset()
-
-                await restoreSnapshot()
-              })
-
-              it("should revert", async () => {
-                await expect(
-                  walletProposalValidator.validateMovingFundsProposal(
-                    {
-                      walletPubKeyHash,
-                      movingFundsTxFee: 0,
-                      targetWallets,
-                    },
-                    NO_MAIN_UTXO
-                  )
-                ).to.be.revertedWith("Source wallet BTC balance is zero")
-              })
-            })
-
             context(
               "when source wallet BTC balance is below dust threshold",
               () => {
