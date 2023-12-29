@@ -4,7 +4,7 @@ import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { BigNumber, BigNumberish, BytesLike } from "ethers"
 import type { Bridge, WalletProposalValidator } from "../../typechain"
-import { walletState } from "../fixtures"
+import { walletState, movedFundsSweepRequestState } from "../fixtures"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 
 chai.use(smock.matchers)
@@ -2301,6 +2301,275 @@ describe("WalletProposalValidator", () => {
     })
   })
 
+  describe("validateMovedFundsSweepProposal", () => {
+    const movedFundsSweepTxMaxTotalFee = 20000
+    const walletPubKeyHash = "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726"
+
+    // Hash and index representing a pending moved funds sweep request.
+    const movingFundsTxHash =
+      "0xfedaee64895aebdd94d21d932960f96fcdb95d17ca64b25aee0450631a1291a9"
+    const movingFundsTxOutputIndex = 0
+
+    before(async () => {
+      await createSnapshot()
+
+      bridge.movingFundsParameters.returns([
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        movedFundsSweepTxMaxTotalFee,
+        0,
+        0,
+        0,
+      ])
+    })
+
+    after(async () => {
+      bridge.movingFundsParameters.reset()
+
+      await restoreSnapshot()
+    })
+
+    context("when wallet's state is incorrect", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Unknown",
+          walletState: walletState.Unknown,
+        },
+        {
+          testName: "when wallet state is Closing",
+          walletState: walletState.Closing,
+        },
+        {
+          testName: "when wallet state is Closed",
+          walletState: walletState.Closed,
+        },
+        {
+          testName: "when wallet state is Terminated",
+          walletState: walletState.Terminated,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: HashZero,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              walletProposalValidator.validateMovedFundsSweepProposal({
+                walletPubKeyHash,
+                movingFundsTxHash,
+                movingFundsTxOutputIndex,
+                movedFundsSweepTxFee: 0,
+              })
+            ).to.be.revertedWith(
+              "Source wallet is not in Live or MovingFunds state"
+            )
+          })
+        })
+      })
+    })
+
+    context("when wallet's state is correct", () => {
+      const testData = [
+        {
+          testName: "when wallet state is Live",
+          walletState: walletState.Live,
+        },
+        {
+          testName: "when wallet state is MovingFunds",
+          walletState: walletState.MovingFunds,
+        },
+      ]
+
+      testData.forEach((test) => {
+        context(test.testName, () => {
+          before(async () => {
+            await createSnapshot()
+
+            bridge.wallets.whenCalledWith(walletPubKeyHash).returns({
+              ecdsaWalletID: HashZero,
+              mainUtxoHash: HashZero,
+              pendingRedemptionsValue: 0,
+              createdAt: 0,
+              movingFundsRequestedAt: 0,
+              closingStartedAt: 0,
+              pendingMovedFundsSweepRequestsCount: 0,
+              state: test.walletState,
+              movingFundsTargetWalletsCommitmentHash: HashZero,
+            })
+          })
+
+          after(async () => {
+            bridge.wallets.reset()
+
+            await restoreSnapshot()
+          })
+
+          context(
+            "when moved funds sweep request's state is not Pending",
+            () => {
+              it("should revert", async () => {
+                // Use hash and index without setting a sweep request in the Bridge.
+                await expect(
+                  walletProposalValidator.validateMovedFundsSweepProposal({
+                    walletPubKeyHash,
+                    movingFundsTxHash,
+                    movingFundsTxOutputIndex,
+                    movedFundsSweepTxFee: 0,
+                  })
+                ).to.be.revertedWith("Sweep request is not in Pending state")
+              })
+            }
+          )
+
+          context("when moved funds sweep request's state is Pending", () => {
+            context(
+              "when moved funds sweep request does not belong to the wallet",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  const requestKey = movedFundsSweepRequestKey(
+                    movingFundsTxHash,
+                    movingFundsTxOutputIndex
+                  )
+
+                  bridge.movedFundsSweepRequests
+                    .whenCalledWith(requestKey)
+                    .returns({
+                      // Use random wallet public key hash.
+                      walletPubKeyHash:
+                        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      value: 0,
+                      createdAt: 0,
+                      state: movedFundsSweepRequestState.Pending,
+                    })
+                })
+
+                after(async () => {
+                  bridge.movedFundsSweepRequests.reset()
+
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    walletProposalValidator.validateMovedFundsSweepProposal({
+                      walletPubKeyHash,
+                      movingFundsTxHash,
+                      movingFundsTxOutputIndex,
+                      movedFundsSweepTxFee: 0,
+                    })
+                  ).to.be.revertedWith(
+                    "Sweep request does not belong to the wallet"
+                  )
+                })
+              }
+            )
+
+            context(
+              "when moved funds sweep request belongs to the wallet",
+              () => {
+                before(async () => {
+                  await createSnapshot()
+
+                  const requestKey = movedFundsSweepRequestKey(
+                    movingFundsTxHash,
+                    movingFundsTxOutputIndex
+                  )
+
+                  bridge.movedFundsSweepRequests
+                    .whenCalledWith(requestKey)
+                    .returns({
+                      walletPubKeyHash,
+                      value: 0,
+                      createdAt: 0,
+                      state: movedFundsSweepRequestState.Pending,
+                    })
+                })
+
+                after(async () => {
+                  bridge.movedFundsSweepRequests.reset()
+
+                  await restoreSnapshot()
+                })
+
+                context("when transaction fee is zero", () => {
+                  it("should revert", async () => {
+                    await expect(
+                      walletProposalValidator.validateMovedFundsSweepProposal({
+                        walletPubKeyHash,
+                        movingFundsTxHash,
+                        movingFundsTxOutputIndex,
+                        movedFundsSweepTxFee: 0,
+                      })
+                    ).to.be.revertedWith(
+                      "Proposed transaction fee cannot be zero"
+                    )
+                  })
+                })
+
+                context("when transaction fee is too high", () => {
+                  it("should revert", async () => {
+                    await expect(
+                      walletProposalValidator.validateMovedFundsSweepProposal({
+                        walletPubKeyHash,
+                        movingFundsTxHash,
+                        movingFundsTxOutputIndex,
+                        movedFundsSweepTxFee: movedFundsSweepTxMaxTotalFee + 1,
+                      })
+                    ).to.be.revertedWith("Proposed transaction fee is too high")
+                  })
+                })
+
+                context("when transaction fee is valid", () => {
+                  it("should pass validation", async () => {
+                    const result =
+                      await walletProposalValidator.validateMovedFundsSweepProposal(
+                        {
+                          walletPubKeyHash,
+                          movingFundsTxHash,
+                          movingFundsTxOutputIndex,
+                          movedFundsSweepTxFee: movedFundsSweepTxMaxTotalFee,
+                        }
+                      )
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                    expect(result).to.be.true
+                  })
+                })
+              }
+            )
+          })
+        })
+      })
+    })
+  })
+
   describe("validateHeartbeatProposal", () => {
     context("when message is not valid", () => {
       it("should revert", async () => {
@@ -2475,3 +2744,12 @@ const createTestRedemptionRequest = (
     },
   }
 }
+
+const movedFundsSweepRequestKey = (
+  movingFundsTxHash: BytesLike,
+  movingFundsTxOutputIndex: number
+) =>
+  ethers.utils.solidityKeccak256(
+    ["bytes32", "uint32"],
+    [movingFundsTxHash, movingFundsTxOutputIndex]
+  )
