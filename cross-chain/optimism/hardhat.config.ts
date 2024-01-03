@@ -81,9 +81,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.L2_ACCOUNTS_PRIVATE_KEYS
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
-      // TODO: uncomment below line once `hardhat-verify` supports OP Sepolia
-      // (tracked in https://github.com/NomicFoundation/hardhat/issues/4607)
-      // tags: ["optimism_etherscan"],
+      tags: ["optimism_etherscan"],
       // companionNetworks: {
       //   l1: "sepolia",
       // },
@@ -131,6 +129,16 @@ const config: HardhatUserConfig = {
       optimisticSepolia: process.env.OPTIMISM_ETHERSCAN_API_KEY,
       optimisticEthereum: process.env.OPTIMISM_ETHERSCAN_API_KEY,
     },
+    customChains: [
+      {
+        network: "optimisticGoerli",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://sepolia-optimism.etherscan.io/",
+        },
+      },
+    ],
   },
 
   namedAccounts: {
