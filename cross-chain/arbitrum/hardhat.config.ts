@@ -81,8 +81,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.L2_ACCOUNTS_PRIVATE_KEYS
         ? process.env.L2_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
-      // TODO: uncomment below line once https://github.com/NomicFoundation/hardhat/issues/4582 is resolved
-      // tags: ["arbiscan"],
+      tags: ["arbiscan"],
       // companionNetworks: {
       //   l1: "sepolia",
       // },
@@ -130,6 +129,16 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: process.env.ARBISCAN_API_KEY,
       arbitrumOne: process.env.ARBISCAN_API_KEY,
     },
+    customChains: [
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+    ],
   },
 
   namedAccounts: {
