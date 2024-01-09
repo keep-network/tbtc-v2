@@ -197,7 +197,7 @@ describe("WalletProposalValidator", () => {
         })
 
         context("when sweep does not exceed the max size", () => {
-          context("when deposit extra data length does not match", () => {
+          context("when deposit extra info length does not match", () => {
             it("should revert", async () => {
               // The proposal contains one deposit.
               const proposal = {
@@ -207,7 +207,7 @@ describe("WalletProposalValidator", () => {
                 depositsRevealBlocks: [], // Not relevant in this scenario.
               }
 
-              // The extra data array contains two items.
+              // The extra info array contains two items.
               const depositsExtraInfo = [
                 emptyDepositExtraInfo,
                 emptyDepositExtraInfo,
@@ -219,12 +219,12 @@ describe("WalletProposalValidator", () => {
                   depositsExtraInfo
                 )
               ).to.be.revertedWith(
-                "Each deposit key must have matching extra data"
+                "Each deposit key must have matching extra info"
               )
             })
           })
 
-          context("when deposit extra data length matches", () => {
+          context("when deposit extra info length matches", () => {
             context("when proposed sweep tx fee is invalid", () => {
               context("when proposed sweep tx fee is zero", () => {
                 let depositOne
@@ -565,7 +565,7 @@ describe("WalletProposalValidator", () => {
 
                   context("when all deposits are not swept yet", () => {
                     context(
-                      "when there is a deposit with invalid extra data",
+                      "when there is a deposit with invalid extra info",
                       () => {
                         context("when funding tx hashes don't match", () => {
                           let deposit
@@ -603,7 +603,7 @@ describe("WalletProposalValidator", () => {
                               depositsRevealBlocks: [], // Not relevant in this scenario.
                             }
 
-                            // Corrupt the extra data by setting a different
+                            // Corrupt the extra info by setting a different
                             // version than 0x01000000 used to produce the hash.
                             const depositsExtraInfo = [
                               {
@@ -664,7 +664,7 @@ describe("WalletProposalValidator", () => {
                                 depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
-                              // Corrupt the extra data by reversing the proper
+                              // Corrupt the extra info by reversing the proper
                               // blinding factor used to produce the script.
                               const depositsExtraInfo = [
                                 {
@@ -730,7 +730,7 @@ describe("WalletProposalValidator", () => {
                                 depositsRevealBlocks: [], // Not relevant in this scenario.
                               }
 
-                              // Corrupt the extra data by reversing the proper
+                              // Corrupt the extra info by reversing the proper
                               // blinding factor used to produce the script.
                               const depositsExtraInfo = [
                                 {
@@ -760,7 +760,7 @@ describe("WalletProposalValidator", () => {
                       }
                     )
 
-                    context("when all deposits extra data are valid", () => {
+                    context("when all deposits extra info are valid", () => {
                       context(
                         "when there is a deposit that violates the refund safety margin",
                         () => {
@@ -1117,6 +1117,7 @@ describe("WalletProposalValidator", () => {
                                     () => {
                                       let depositOne
                                       let depositTwo
+                                      let depositThree
 
                                       before(async () => {
                                         await createSnapshot()
@@ -1131,6 +1132,16 @@ describe("WalletProposalValidator", () => {
                                           walletPubKeyHash,
                                           vault,
                                           false
+                                        )
+
+                                        // Use a deposit with embedded 32-byte extra data
+                                        // to make sure validation handles them correctly.
+                                        depositThree = createTestDeposit(
+                                          walletPubKeyHash,
+                                          vault,
+                                          true,
+                                          undefined,
+                                          "0xa9b38ea6435c8941d6eda6a46b68e3e2117196995bd154ab55196396b03d9bda"
                                         )
 
                                         bridge.deposits
@@ -1150,6 +1161,16 @@ describe("WalletProposalValidator", () => {
                                             )
                                           )
                                           .returns(depositTwo.request)
+
+                                        bridge.deposits
+                                          .whenCalledWith(
+                                            depositKey(
+                                              depositThree.key.fundingTxHash,
+                                              depositThree.key
+                                                .fundingOutputIndex
+                                            )
+                                          )
+                                          .returns(depositThree.request)
                                       })
 
                                       after(async () => {
@@ -1164,6 +1185,7 @@ describe("WalletProposalValidator", () => {
                                           depositsKeys: [
                                             depositOne.key,
                                             depositTwo.key,
+                                            depositThree.key,
                                           ],
                                           sweepTxFee,
                                           depositsRevealBlocks: [], // Not relevant in this scenario.
@@ -1172,6 +1194,7 @@ describe("WalletProposalValidator", () => {
                                         const depositsExtraInfo = [
                                           depositOne.extraInfo,
                                           depositTwo.extraInfo,
+                                          depositThree.extraInfo,
                                         ]
 
                                         const result =
@@ -2609,7 +2632,8 @@ const createTestDeposit = (
   walletPubKeyHash: string,
   vault: string,
   witness = true,
-  revealedAt?: number
+  revealedAt?: number,
+  extraData?: string
 ) => {
   let resolvedRevealedAt = revealedAt
 
@@ -2639,10 +2663,28 @@ const createTestDeposit = (
   const blindingFactor = `0x${crypto.randomBytes(8).toString("hex")}`
   const refundPubKeyHash = `0x${crypto.randomBytes(20).toString("hex")}`
 
-  const depositScript =
-    `0x14${depositor.substring(2)}7508${blindingFactor.substring(2)}7576a914` +
-    `${walletPubKeyHash.substring(2)}8763ac6776a914` +
-    `${refundPubKeyHash.substring(2)}8804${refundLocktime.substring(2)}b175ac68`
+  let depositScript
+
+  if (extraData) {
+    depositScript =
+      `0x14${depositor.substring(2)}75` +
+      `20${extraData.substring(2)}75` +
+      `08${blindingFactor.substring(2)}75` +
+      `76a914${walletPubKeyHash.substring(2)}87` +
+      "63ac67" +
+      `76a914${refundPubKeyHash.substring(2)}88` +
+      `04${refundLocktime.substring(2)}b175` +
+      "ac68"
+  } else {
+    depositScript =
+      `0x14${depositor.substring(2)}75` +
+      `08${blindingFactor.substring(2)}75` +
+      `76a914${walletPubKeyHash.substring(2)}87` +
+      "63ac67" +
+      `76a914${refundPubKeyHash.substring(2)}88` +
+      `04${refundLocktime.substring(2)}b175` +
+      "ac68"
+  }
 
   let depositScriptHash
   if (witness) {
@@ -2686,6 +2728,7 @@ const createTestDeposit = (
       vault,
       treasuryFee: 0, // not relevant
       sweptAt: 0, // important to pass the validation
+      extraData: extraData ?? ethers.constants.HashZero,
     },
     extraInfo: {
       fundingTx,

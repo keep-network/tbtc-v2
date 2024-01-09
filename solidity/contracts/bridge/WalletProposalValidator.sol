@@ -66,7 +66,7 @@ contract WalletProposalValidator {
         uint32 fundingOutputIndex;
     }
 
-    /// @notice Helper structure holding deposit extra data required during
+    /// @notice Helper structure holding deposit extra info required during
     ///         deposit sweep proposal validation. Basically, this structure
     ///         is a combination of BitcoinTx.Info and relevant parts of
     ///         Deposit.DepositRevealInfo.
@@ -213,7 +213,7 @@ contract WalletProposalValidator {
     ///         complexity. Instead of that, each off-chain wallet member is
     ///         supposed to do that check on their own.
     /// @param proposal The sweeping proposal to validate.
-    /// @param depositsExtraInfo Deposits extra data required to perform the validation.
+    /// @param depositsExtraInfo Deposits extra info required to perform the validation.
     /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
     ///      - The target wallet must be in the Live state,
@@ -221,7 +221,7 @@ contract WalletProposalValidator {
     ///        the range [1, `DEPOSIT_SWEEP_MAX_SIZE`],
     ///      - The length of `depositsExtraInfo` array must be equal to the
     ///        length of `proposal.depositsKeys`, i.e. each deposit must
-    ///        have exactly one set of corresponding extra data,
+    ///        have exactly one set of corresponding extra info,
     ///      - The proposed sweep tx fee must be grater than zero,
     ///      - The proposed maximum per-deposit sweep tx fee must be lesser than
     ///        or equal the maximum fee allowed by the Bridge (`Bridge.depositTxMaxFee`),
@@ -229,7 +229,7 @@ contract WalletProposalValidator {
     ///      - Each deposit must be old enough, i.e. at least `DEPOSIT_MIN_AGE
     ///        elapsed since their reveal time,
     ///      - Each deposit must not be swept yet,
-    ///      - Each deposit must have valid extra data (see `validateDepositExtraInfo`),
+    ///      - Each deposit must have valid extra info (see `validateDepositExtraInfo`),
     ///      - Each deposit must have the refund safety margin preserved,
     ///      - Each deposit must be controlled by the same wallet,
     ///      - Each deposit must target the same vault,
@@ -257,7 +257,7 @@ contract WalletProposalValidator {
 
         require(
             proposal.depositsKeys.length == depositsExtraInfo.length,
-            "Each deposit key must have matching extra data"
+            "Each deposit key must have matching extra info"
         );
 
         validateSweepTxFee(proposal.sweepTxFee, proposal.depositsKeys.length);
@@ -299,6 +299,7 @@ contract WalletProposalValidator {
             validateDepositExtraInfo(
                 depositKey,
                 depositRequest.depositor,
+                depositRequest.extraData,
                 depositExtraInfo
             );
 
@@ -378,11 +379,12 @@ contract WalletProposalValidator {
         );
     }
 
-    /// @notice Validates the extra data for the given deposit. This function
+    /// @notice Validates the extra info for the given deposit. This function
     ///         is heavily based on `Deposit.revealDeposit` function.
     /// @param depositKey Key of the given deposit.
     /// @param depositor Depositor that revealed the deposit.
-    /// @param depositExtraInfo Extra data being subject of the validation.
+    /// @param extraData 32-byte deposit extra data. Optional, can be bytes32(0).
+    /// @param depositExtraInfo Extra info being subject of the validation.
     /// @dev Requirements:
     ///      - The transaction hash computed using `depositExtraInfo.fundingTx`
     ///        must match the `depositKey.fundingTxHash`. This requirement
@@ -392,11 +394,12 @@ contract WalletProposalValidator {
     ///      - The P2(W)SH script inferred from `depositExtraInfo` is actually
     ///        used to lock funds by the `depositKey.fundingOutputIndex` output
     ///        of the `depositExtraInfo.fundingTx` transaction. This requirement
-    ///        ensures the reveal data provided in the extra data container
+    ///        ensures the reveal data provided in the extra info container
     ///        actually matches the given deposit.
     function validateDepositExtraInfo(
         DepositKey memory depositKey,
         address depositor,
+        bytes32 extraData,
         DepositExtraInfo memory depositExtraInfo
     ) internal view {
         bytes32 depositExtraFundingTxHash = abi
@@ -408,39 +411,76 @@ contract WalletProposalValidator {
             )
             .hash256View();
 
-        // Make sure the funding tx provided as part of deposit extra data
+        // Make sure the funding tx provided as part of deposit extra info
         // actually matches the deposit referred by the given deposit key.
         if (depositKey.fundingTxHash != depositExtraFundingTxHash) {
             revert("Extra info funding tx hash does not match");
         }
 
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            depositor,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            depositExtraInfo.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtraInfo.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            depositExtraInfo.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            depositExtraInfo.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
+        bytes memory expectedScript;
+
+        if (extraData == bytes32(0)) {
+            // Regular deposit without 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                depositor,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                depositExtraInfo.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                depositExtraInfo.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        } else {
+            // Deposit with 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                depositor,
+                hex"75", // OP_DROP
+                hex"20", // Byte length of extra data.
+                extraData,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                depositExtraInfo.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                depositExtraInfo.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                depositExtraInfo.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        }
 
         bytes memory fundingOutput = depositExtraInfo
             .fundingTx
@@ -448,7 +488,7 @@ contract WalletProposalValidator {
             .extractOutputAtIndex(depositKey.fundingOutputIndex);
         bytes memory fundingOutputHash = fundingOutput.extractHash();
 
-        // Path that checks the deposit extra data validity in case the
+        // Path that checks the deposit extra info validity in case the
         // referred deposit is a P2SH.
         if (
             // slither-disable-next-line calls-loop
@@ -458,7 +498,7 @@ contract WalletProposalValidator {
             return;
         }
 
-        // Path that checks the deposit extra data validity in case the
+        // Path that checks the deposit extra info validity in case the
         // referred deposit is a P2WSH.
         if (
             fundingOutputHash.length == 32 &&
