@@ -22,6 +22,7 @@ import "./BitcoinTx.sol";
 import "./Bridge.sol";
 import "./Deposit.sol";
 import "./Redemption.sol";
+import "./MovingFunds.sol";
 import "./Wallets.sol";
 
 /// @title Wallet proposal validator.
@@ -102,6 +103,20 @@ contract WalletProposalValidator {
         bytes20[] targetWallets;
         // Proposed BTC fee for the entire transaction.
         uint256 movingFundsTxFee;
+    }
+
+    /// @notice Helper structure representing a moved funds sweep proposal.
+    struct MovedFundsSweepProposal {
+        // 20-byte public key hash of the wallet.
+        bytes20 walletPubKeyHash;
+        // 32-byte hash of the moving funds transaction that caused the sweep
+        // request to be created.
+        bytes32 movingFundsTxHash;
+        // Index of the moving funds transaction output that is subject of the
+        // sweep request.
+        uint32 movingFundsTxOutputIndex;
+        // Proposed BTC fee for the entire transaction.
+        uint256 movedFundsSweepTxFee;
     }
 
     /// @notice Helper structure representing a heartbeat proposal.
@@ -643,6 +658,7 @@ contract WalletProposalValidator {
     ///         most of the work can be done using a single readonly contract
     ///         call.
     /// @param proposal The moving funds proposal to validate.
+    /// @param walletMainUtxo The main UTXO of the source wallet.
     /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Notice that this function is meant to be invoked after the moving
     ///      funds commitment has already been submitted. This function skips
@@ -653,15 +669,16 @@ contract WalletProposalValidator {
     ///      - The target wallets commitment must be submitted,
     ///      - The target wallets commitment hash must match the target wallets
     ///        from the proposal,
+    ///      - The source wallet BTC balance must be equal to or greater than
+    ///        `movingFundsDustThreshold`,
     ///      - The proposed moving funds transaction fee must be greater than
     ///        zero,
     ///      - The proposed moving funds transaction fee must not exceed the
     ///        maximum total fee allowed for moving funds.
-    function validateMovingFundsProposal(MovingFundsProposal calldata proposal)
-        external
-        view
-        returns (bool)
-    {
+    function validateMovingFundsProposal(
+        MovingFundsProposal calldata proposal,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external view returns (bool) {
         Wallets.Wallet memory sourceWallet = bridge.wallets(
             proposal.walletPubKeyHash
         );
@@ -685,10 +702,32 @@ contract WalletProposalValidator {
             "Target wallets do not match target wallets commitment hash"
         );
 
-        // Make sure the proposed fee is valid.
-        (uint64 movingFundsTxMaxTotalFee, , , , , , , , , , ) = bridge
-            .movingFundsParameters();
+        (
+            uint64 movingFundsTxMaxTotalFee,
+            uint64 movingFundsDustThreshold,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
 
+        ) = bridge.movingFundsParameters();
+
+        // Make sure the source wallet balance is correct.
+        uint64 sourceWalletBtcBalance = getWalletBtcBalance(
+            sourceWallet.mainUtxoHash,
+            walletMainUtxo
+        );
+
+        require(
+            sourceWalletBtcBalance >= movingFundsDustThreshold,
+            "Source wallet BTC balance is below the moving funds dust threshold"
+        );
+
+        // Make sure the proposed fee is valid.
         require(
             proposal.movingFundsTxFee > 0,
             "Proposed transaction fee cannot be zero"
@@ -696,6 +735,110 @@ contract WalletProposalValidator {
 
         require(
             proposal.movingFundsTxFee <= movingFundsTxMaxTotalFee,
+            "Proposed transaction fee is too high"
+        );
+
+        return true;
+    }
+
+    /// @notice Calculates the Bitcoin balance of a wallet based on its main
+    ///         UTXO.
+    /// @param walletMainUtxoHash The hash of the wallet's main UTXO.
+    /// @param walletMainUtxo The detailed data of the wallet's main UTXO.
+    /// @return walletBtcBalance The calculated Bitcoin balance of the wallet.
+    function getWalletBtcBalance(
+        bytes32 walletMainUtxoHash,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) internal view returns (uint64 walletBtcBalance) {
+        // If the wallet has a main UTXO hash set, cross-check it with the
+        // provided plain-text parameter and get the transaction output value
+        // as BTC balance. Otherwise, the BTC balance is just zero.
+        if (walletMainUtxoHash != bytes32(0)) {
+            require(
+                keccak256(
+                    abi.encodePacked(
+                        walletMainUtxo.txHash,
+                        walletMainUtxo.txOutputIndex,
+                        walletMainUtxo.txOutputValue
+                    )
+                ) == walletMainUtxoHash,
+                "Invalid wallet main UTXO data"
+            );
+
+            walletBtcBalance = walletMainUtxo.txOutputValue;
+        }
+
+        return walletBtcBalance;
+    }
+
+    /// @notice View function encapsulating the main rules of a valid moved
+    ///         funds sweep proposal. This function is meant to facilitate the
+    ///         off-chain validation of the incoming proposals. Thanks to it,
+    ///         most of the work can be done using a single readonly contract
+    ///         call.
+    /// @param proposal The moved funds sweep proposal to validate.
+    /// @return True if the proposal is valid. Reverts otherwise.
+    /// @dev Requirements:
+    ///      - The source wallet must be in the Live or MovingFunds state,
+    ///      - The moved funds sweep request identified by the proposed
+    ///        transaction hash and output index must be in the Pending state,
+    ///      - The transaction hash and output index from the proposal must
+    ///        identify a moved funds sweep request in the Pending state,
+    ///      - The transaction hash and output index from the proposal must
+    ///        identify a moved funds sweep request that belongs to the wallet,
+    ///      - The proposed moved funds sweep transaction fee must be greater
+    ///        than zero,
+    ///      - The proposed moved funds sweep transaction fee must not exceed
+    ///        the maximum total fee allowed for moved funds sweep.
+    function validateMovedFundsSweepProposal(
+        MovedFundsSweepProposal calldata proposal
+    ) external view returns (bool) {
+        Wallets.Wallet memory wallet = bridge.wallets(
+            proposal.walletPubKeyHash
+        );
+
+        // Make sure the wallet is in Live or MovingFunds state.
+        require(
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds,
+            "Source wallet is not in Live or MovingFunds state"
+        );
+
+        // Make sure the moved funds sweep request is valid.
+        uint256 sweepRequestKeyUint = uint256(
+            keccak256(
+                abi.encodePacked(
+                    proposal.movingFundsTxHash,
+                    proposal.movingFundsTxOutputIndex
+                )
+            )
+        );
+
+        MovingFunds.MovedFundsSweepRequest memory sweepRequest = bridge
+            .movedFundsSweepRequests(sweepRequestKeyUint);
+
+        require(
+            sweepRequest.state ==
+                MovingFunds.MovedFundsSweepRequestState.Pending,
+            "Sweep request is not in Pending state"
+        );
+
+        require(
+            sweepRequest.walletPubKeyHash == proposal.walletPubKeyHash,
+            "Sweep request does not belong to the wallet"
+        );
+
+        // Make sure the proposed fee is valid.
+        (, , , , , , , uint64 movedFundsSweepTxMaxTotalFee, , , ) = bridge
+            .movingFundsParameters();
+
+        require(
+            proposal.movedFundsSweepTxFee > 0,
+            "Proposed transaction fee cannot be zero"
+        );
+
+        require(
+            proposal.movedFundsSweepTxFee <= movedFundsSweepTxMaxTotalFee,
             "Proposed transaction fee is too high"
         );
 
