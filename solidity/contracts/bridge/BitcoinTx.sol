@@ -139,6 +139,11 @@ library BitcoinTx {
         /// @notice Single byte-string of 80-byte bitcoin headers,
         ///         lowest height first.
         bytes bitcoinHeaders;
+        /// @notice The sha256 preimage of the coinbase tx hash
+        ///         i.e. the sha256 hash of the coinbase transaction.
+        bytes32 coinbasePreimage;
+        /// @notice The merkle proof of the coinbase transaction.
+        bytes coinbaseProof;
         // This struct doesn't contain `__gap` property as the structure is not
         // stored, it is used as a function's calldata argument.
     }
@@ -186,6 +191,10 @@ library BitcoinTx {
             txInfo.outputVector.validateVout(),
             "Invalid output vector provided"
         );
+        require(
+            proof.merkleProof.length == proof.coinbaseProof.length,
+            "Tx not on same level of merkle tree as coinbase"
+        );
 
         txHash = abi
             .encodePacked(
@@ -196,13 +205,26 @@ library BitcoinTx {
             )
             .hash256View();
 
+        bytes32 root = proof.bitcoinHeaders.extractMerkleRootLE();
+
         require(
             txHash.prove(
-                proof.bitcoinHeaders.extractMerkleRootLE(),
+                root,
                 proof.merkleProof,
                 proof.txIndexInBlock
             ),
             "Tx merkle proof is not valid for provided header and tx hash"
+        );
+
+        bytes32 coinbaseHash = sha256(abi.encodePacked(proof.coinbasePreimage));
+
+        require(
+            coinbaseHash.prove(
+                root,
+                proof.coinbaseProof,
+                0
+            ),
+            "Coinbase merkle proof is not valid for provided header and hash"
         );
 
         evaluateProofDifficulty(self, proof.bitcoinHeaders);
