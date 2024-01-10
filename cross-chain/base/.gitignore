@@ -9,6 +9,7 @@
 /deployments/*
 !/deployments/mainnet/
 !/deployments/base/
+!/deployments/baseGoerli/
 
 # OZ
 /.openzeppelin/unknown-*.json
