@@ -219,11 +219,6 @@ const config: HardhatUserConfig = {
       sepolia: 0,
       // We are not setting SPV maintainer for mainnet in deployment scripts.
     },
-    coordinator: {
-      default: 9,
-      sepolia: "0x4815cd81fFc21039a25aCFbD97CE75cCE8579042",
-      mainnet: "0x0595acCca29654c43Bd67E18578b30a405265234",
-    },
     v1Redeemer: {
       default: 10,
       sepolia: 0,
