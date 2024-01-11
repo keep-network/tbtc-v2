@@ -3395,6 +3395,18 @@ describe("Bridge - Deposit", () => {
                   "0x0000e020fbeb3a876746438f1fd793add061b0b7af2f88a387ee" +
                   "f5b38600000000000000933a0cec98a028727df04dafbbe691c8ad" +
                   "442351db7321c9f7cc169aa9f64a9a7af6f361cbcd001a65073028",
+                coinbasePreimage:
+                  "0xe774cd2615268932bf6124630c72313bd7f89f1a8ea2e18e09f1" +
+                  "efefdb78b57c",
+                coinbaseProof:
+                  "0x1b37fa565263a660309b37f0388d9851bde7c555030091a511af" +
+                  "3f76e547f998364e95feeb9b08f5792ed93641ee32ac35b6cc5d7a" +
+                  "e003634203101f249628a72a30e79e606506ca0c8603f2ad5f8bcf" +
+                  "94b16de2dda71889317fbb1d370863e0cf4e8b68b37a1d56d186b1" +
+                  "d0937333b5e219a5aeac722cab81dcf99dbf44c0063190440e6a92" +
+                  "4fd5622bd7c1e192a8413dabc931f974fde0e2d8bd0dda33264182" +
+                  "be8dab2401ec758a705b648724f93d14c3b72ce4fb3cd7d414e8a1" +
+                  "75ef173e",
               }
 
               await expect(
@@ -3429,7 +3441,7 @@ describe("Bridge - Deposit", () => {
           it("should revert", async () => {
             // To test this case, an arbitrary transaction with two
             // outputs is used. Used transaction:
-            // https://live.blockcypher.com/btc-testnet/tx/af56cae479215c5e44a6a4db0eeb10a1abdd98020a6c01b9c26ea7b829aa2809
+            // https://live.blockcypher.com/btc-testnet/tx/c580e0e352570d90e303d912a506055ceeb0ee06f97dce6988c69941374f5479
             const sweepTx = {
               version: "0x01000000",
               inputVector:
@@ -3462,6 +3474,16 @@ describe("Bridge - Deposit", () => {
                 "e49585b4cd8a94daeeb926c6f1e96151c74ae1ae0b18c6a6d564000000" +
                 "0065c05d9ea40cace1b6b0ad0b8a9a18646096b54484fbdd96b1596560" +
                 "f6999194a815da612ac0001a2e4c6405",
+              coinbasePreimage:
+                "0x35175fcdae1fc3d708454466b4512536495526328679c1eb65d6068d" +
+                "f25119a9",
+              coinbaseProof:
+                "0x6c4b2539848240a0e5ebe398adb6f1e12b6c097055b50f7421fe9a33" +
+                "1129b11f14c82d817a4f9ca5c6713f8a2d660f7f4364833c5a8452d1fb" +
+                "f0529c889bec6b20fc2c08cfba8c87c53db2595c19a6721968bb858ea8" +
+                "4da7e0dbcb9647fa55054cd5775e08a11ad69238c23f9d5a4349672691" +
+                "b6d7a9b04462a16bb3dc7ab4b0f8b7276402b6c114000c59149494f852" +
+                "84507c253bbc505fec7ea50f370aa150",
             }
 
             await expect(
