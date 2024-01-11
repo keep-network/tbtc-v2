@@ -66,6 +66,21 @@ describe("BitcoinTx", () => {
             "7a2bb2caa00000020e2d4f0edd5edd80bdcb880535443747c6b22b48fb620" +
             "0d0000000000000000001d3799aa3eb8d18916f46bf2cf807cb89a9b1b4c5" +
             "6c3f2693711bf1064d9a32435429c5ba1192817752e49ae",
+          coinbasePreimage:
+            "0x77b98a5e6643973bba49dda18a75140306d2d8694b66f2dcb3561ad5aff" +
+            "0b0c7",
+          coinbaseProof:
+            "0xdc20dadef477faab2852f2f8ae0c826aa7e05c4de0d36f0e63630429554" +
+            "884c371da5974b6f34fa2c3536738f031b49f34e0c9d084d7280f26212e39" +
+            "007ebe9ea0870c312745b58128a00a6557851e987ece02294d156f0020336" +
+            "e158928e8964292642c6c4dc469f34b7bacf2d8c42115bab6afc9067f2ed3" +
+            "0e8749729b63e0889e203ee58e355903c1e71f78c008df6c3597b2cc66d0b" +
+            "8aae1a4a33caa775498e531cfb6af58e87db99e0f536dd226d18f43e38641" +
+            "48ba5b7faca5c775f10bc810c602e1af2195a34577976921ce009a4ddc0a0" +
+            "7f605c96b0f5fcf580831ebbe01a31fa29bde884609d286dccfa5ba8e558c" +
+            "e3125bd4c3a19e888cf26852286202d2a7d302c75e0ff5ca8fe7299fb0d9d" +
+            "1132bf2c56c2e3b73df799286193d60c109b187d64571efbaa8047be85821" +
+            "f8e67e0e85f2f5894bc63d00c2ed9d64",
         },
         txHash:
           "0x48e5a1a0e616d8fd92b4ef228c424e0c816799a256c6a90892195ccfc53300d6",
@@ -93,8 +108,8 @@ describe("BitcoinTx", () => {
           )
       })
 
-      it("should consume around 80000 gas", async () => {
-        await assertGasUsed(tx, 80000, 1000)
+      it("should consume around 95000 gas", async () => {
+        await assertGasUsed(tx, 95000, 1000)
       })
     })
   })
