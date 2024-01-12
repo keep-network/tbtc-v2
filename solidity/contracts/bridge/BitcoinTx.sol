@@ -208,22 +208,14 @@ library BitcoinTx {
         bytes32 root = proof.bitcoinHeaders.extractMerkleRootLE();
 
         require(
-            txHash.prove(
-                root,
-                proof.merkleProof,
-                proof.txIndexInBlock
-            ),
+            txHash.prove(root, proof.merkleProof, proof.txIndexInBlock),
             "Tx merkle proof is not valid for provided header and tx hash"
         );
 
         bytes32 coinbaseHash = sha256(abi.encodePacked(proof.coinbasePreimage));
 
         require(
-            coinbaseHash.prove(
-                root,
-                proof.coinbaseProof,
-                0
-            ),
+            coinbaseHash.prove(root, proof.coinbaseProof, 0),
             "Coinbase merkle proof is not valid for provided header and hash"
         );
 
