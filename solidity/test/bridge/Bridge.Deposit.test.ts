@@ -3582,6 +3582,47 @@ describe("Bridge - Deposit", () => {
           })
         })
 
+        context(
+          "when transaction is not on same level of merkle tree as coinbase",
+          () => {
+            const data: DepositSweepTestData = JSON.parse(
+              JSON.stringify(SingleP2SHDeposit)
+            )
+            // Take wallet public key hash from first deposit. All
+            // deposits in same sweep batch should have the same value
+            // of that field.
+            const { walletPubKeyHash } = data.deposits[0].reveal
+
+            before(async () => {
+              await createSnapshot()
+
+              // Simulate the wallet is a Live one and is known in
+              // the system.
+              await bridge.setWallet(walletPubKeyHash, {
+                ...walletDraft,
+                state: walletState.Live,
+              })
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              // Simulate that the proven transaction is deeper in the merkle tree
+              // than the coinbase. This is achieved by appending additional
+              // hashes to the merkle proof.
+              data.sweepProof.merkleProof +=
+                ethers.utils.sha256("0x01").substring(2) +
+                ethers.utils.sha256("0x02").substring(2)
+
+              await expect(runDepositSweepScenario(data)).to.be.revertedWith(
+                "Tx not on same level of merkle tree as coinbase"
+              )
+            })
+          }
+        )
+
         context("when merkle proof is not valid", () => {
           const data: DepositSweepTestData = JSON.parse(
             JSON.stringify(SingleP2SHDeposit)
@@ -3613,6 +3654,42 @@ describe("Bridge - Deposit", () => {
 
             await expect(runDepositSweepScenario(data)).to.be.revertedWith(
               "Tx merkle proof is not valid for provided header and tx hash"
+            )
+          })
+        })
+
+        context("when coinbase merkle proof is not valid", () => {
+          const data: DepositSweepTestData = JSON.parse(
+            JSON.stringify(SingleP2SHDeposit)
+          )
+          // Take wallet public key hash from first deposit. All
+          // deposits in same sweep batch should have the same value
+          // of that field.
+          const { walletPubKeyHash } = data.deposits[0].reveal
+
+          before(async () => {
+            await createSnapshot()
+
+            // Simulate the wallet is a Live one and is known in
+            // the system.
+            await bridge.setWallet(walletPubKeyHash, {
+              ...walletDraft,
+              state: walletState.Live,
+            })
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            // Corrupt the coinbase preimage.
+            data.sweepProof.coinbasePreimage = ethers.utils.sha256(
+              data.sweepProof.coinbasePreimage
+            )
+
+            await expect(runDepositSweepScenario(data)).to.be.revertedWith(
+              "Coinbase merkle proof is not valid for provided header and hash"
             )
           })
         })
