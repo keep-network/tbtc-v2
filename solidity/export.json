@@ -7206,7 +7206,7 @@
       ]
     },
     "MaintainerProxy": {
-      "address": "0xcF29Ff894674775841F60Aa2a3c373DE27A8df2b",
+      "address": "0x535E01F948458E0b64F9dB2A01Da6F32E240140f",
       "abi": [
         {
           "inputs": [
@@ -7852,6 +7852,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -7949,6 +7959,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -8040,6 +8060,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
@@ -8137,6 +8167,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
