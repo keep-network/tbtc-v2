@@ -286,6 +286,8 @@ export class EthereumBridge
       merkleProof: sweepProof.merkleProof.toPrefixedString(),
       txIndexInBlock: sweepProof.txIndexInBlock,
       bitcoinHeaders: sweepProof.bitcoinHeaders.toPrefixedString(),
+      coinbasePreimage: sweepProof.coinbasePreimage.toPrefixedString(),
+      coinbaseProof: sweepProof.coinbaseProof.toPrefixedString(),
     }
 
     const mainUtxoParam = {
@@ -391,9 +393,11 @@ export class EthereumBridge
     }
 
     const redemptionProofParam = {
-      merkleProof: `0x${redemptionProof.merkleProof}`,
+      merkleProof: redemptionProof.merkleProof.toPrefixedString(),
       txIndexInBlock: redemptionProof.txIndexInBlock,
-      bitcoinHeaders: `0x${redemptionProof.bitcoinHeaders}`,
+      bitcoinHeaders: redemptionProof.bitcoinHeaders.toPrefixedString(),
+      coinbasePreimage: redemptionProof.coinbasePreimage.toPrefixedString(),
+      coinbaseProof: redemptionProof.coinbaseProof.toPrefixedString(),
     }
 
     const mainUtxoParam = {

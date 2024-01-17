@@ -203,6 +203,10 @@ describe("Ethereum", () => {
             merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
             bitcoinHeaders: Hex.from("66666666"),
+            coinbasePreimage: BitcoinHashUtils.computeSha256(
+              Hex.from("77777777")
+            ),
+            coinbaseProof: Hex.from("88888888"),
           },
           {
             transactionHash: BitcoinTxHash.from(
@@ -227,6 +231,10 @@ describe("Ethereum", () => {
             merkleProof: "0x44444444",
             txIndexInBlock: 5,
             bitcoinHeaders: "0x66666666",
+            coinbasePreimage: BitcoinHashUtils.computeSha256(
+              Hex.from("77777777")
+            ).toPrefixedString(),
+            coinbaseProof: "0x88888888",
           },
           {
             txHash:
@@ -301,6 +309,10 @@ describe("Ethereum", () => {
             merkleProof: Hex.from("44444444"),
             txIndexInBlock: 5,
             bitcoinHeaders: Hex.from("66666666"),
+            coinbasePreimage: BitcoinHashUtils.computeSha256(
+              Hex.from("77777777")
+            ),
+            coinbaseProof: Hex.from("88888888"),
           },
           {
             transactionHash: BitcoinTxHash.from(
@@ -327,6 +339,10 @@ describe("Ethereum", () => {
             merkleProof: "0x44444444",
             txIndexInBlock: 5,
             bitcoinHeaders: "0x66666666",
+            coinbasePreimage: BitcoinHashUtils.computeSha256(
+              Hex.from("77777777")
+            ).toPrefixedString(),
+            coinbaseProof: "0x88888888",
           },
           {
             txHash:
@@ -357,6 +373,8 @@ describe("Ethereum", () => {
               revealedAt: 1654774330,
               sweptAt: 1655033516,
               treasuryFee: BigNumber.from(200),
+              extraData:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
             } as any)
         })
 
@@ -400,6 +418,8 @@ describe("Ethereum", () => {
               revealedAt: 1654774330,
               sweptAt: 1655033516,
               treasuryFee: BigNumber.from(200),
+              extraData:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
             } as any)
         })
 
