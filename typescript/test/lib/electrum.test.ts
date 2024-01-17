@@ -274,6 +274,15 @@ describe("Electrum", () => {
             )
           })
         })
+
+        describe("getCoinbaseTxHash", () => {
+          it("should return proper coinbase tx hash", async () => {
+            const result = await electrumClient.getCoinbaseTxHash(2135502)
+            expect(result.toString()).to.be.equal(
+              "1f523d1ce7553ec609bae104812dede95aa38eb13d2c2c6b64ffe868bbc1a54c"
+            )
+          })
+        })
       })
     })
 
