@@ -611,7 +611,7 @@ Bitcoin transaction along with the inclusion proof.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L64)
+[src/lib/bitcoin/spv.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L75)
 
 ___
 
@@ -686,7 +686,7 @@ Electrum script hash as a hex string.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:649](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L649)
+[src/lib/electrum/client.ts:667](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L667)
 
 ___
 
@@ -957,7 +957,7 @@ The function should be used within a try-catch block.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:145](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L145)
+[src/lib/bitcoin/spv.ts:180](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L180)
 
 ___
 
