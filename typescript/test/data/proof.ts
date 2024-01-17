@@ -20,6 +20,8 @@ export interface ProofTestData {
     latestBlockHeight: number
     headersChain: Hex
     transactionMerkleBranch: BitcoinTxMerkleBranch
+    coinbaseRawTransaction: BitcoinRawTx
+    coinbaseMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedProof: BitcoinSpvProof & BitcoinTx
 }
@@ -115,6 +117,44 @@ export const singleInputProofTestData: ProofTestData = {
       ],
       position: 11,
     },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "02000000000101000000000000000000000000000000000000000000000000000" +
+        "0000000000000ffffffff4803b8052104e0c01c62425443506f6f6cfabe6d6d56" +
+        "06828fa0322cc81efd5fdbf7f100c7a8497e88dbc102097b30e08f13465bd9040" +
+        "000000d6531d503040db19f2e020000000000ffffffff0297814e000000000017" +
+        "a9147bef0b4a4dafa77b2ec52b81659cbcf0d9a91487870000000000000000266" +
+        "a24aa21a9ed4a673a4a13930bcc67727968c29960bf8ba07b218ff3811edf3ef3" +
+        "cc196707880120000000000000000000000000000000000000000000000000000" +
+        "000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 2164152,
+      merkle: [
+        Hex.from(
+          "095b539f725018c6afd940281d22f523ae74f9b07fe685b4f3decf130a6e3d7a"
+        ),
+        Hex.from(
+          "ad6a634865b1e61051b6ecf819d98110db0cf5747eaf2205fe9e82db47318b95"
+        ),
+        Hex.from(
+          "0c99d031690fa507e27c4068516c752297ea7df9a5b7482bfc0c44705c059024"
+        ),
+        Hex.from(
+          "352a81a4e75ea8c39060a6a383a4bd19245d86cf38918d9d49cafd4e54dfba7e"
+        ),
+        Hex.from(
+          "43ad3aadad675e398c59eb846a8e037cf7de8ba3b38f3388175f25d84b777c80"
+        ),
+        Hex.from(
+          "6969c227128793b3c9e99c05f20fb9b91fdb73458fd53151b5fe29d30c10cf9a"
+        ),
+        Hex.from(
+          "0a76bc4d8c3d532357be4d188ba89e9ae364a7d3c365e690e3cb07359b86129c"
+        ),
+      ],
+      position: 0,
+    },
   },
   expectedProof: {
     transactionHash: BitcoinTxHash.from(
@@ -164,6 +204,18 @@ export const singleInputProofTestData: ProofTestData = {
         "56f9f4ea67cea1c51c62ed3e031a9d7bf3ac000000203f16d450c51853a4cd9569" +
         "d225028aa08ab6139eee31f4f67a010000000000004cda79bc48b970de2fb29c3f" +
         "38626eb9d70d8bae7b92aad09f2a0ad2d2f334d35bca1c62ffff001d048fc217"
+    ),
+    coinbasePreimage: Hex.from(
+      "8e690235847a80c4d300542a2d27b90bfd13d77b3421c1b5590f4220718cd3fd"
+    ),
+    coinbaseProof: Hex.from(
+      "7a3d6e0a13cfdef3b485e67fb0f974ae23f5221d2840d9afc61850729f535b0995" +
+        "8b3147db829efe0522af7e74f50cdb1081d919f8ecb65110e6b16548636aad2490" +
+        "055c70440cfc2b48b7a5f97dea9722756c5168407ce207a50f6931d0990c7ebadf" +
+        "544efdca499d8d9138cf865d2419bda483a3a66090c3a85ee7a4812a35807c774b" +
+        "d8255f1788338fb3a38bdef77c038e6a84eb598c395e67adad3aad439acf100cd3" +
+        "29feb55131d58f4573db1fb9b90ff2059ce9c9b393871227c269699c12869b3507" +
+        "cbe390e665c3d3a764e39a9ea88b184dbe5723533d8c4dbc760a"
     ),
   },
 }
@@ -295,6 +347,38 @@ export const multipleInputsProofTestData: ProofTestData = {
       ],
       position: 6,
     },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "02000000000101000000000000000000000000000000000000000000000000000" +
+        "0000000000000ffffffff4803bb05210445c21c62425443506f6f6cfabe6d6d97" +
+        "92ca7580b0dccdb4465ab26f697e165c536838032a466ef25b25bb7bebb3ae040" +
+        "000000d6531d503040db15755000000000000ffffffff0212304d000000000017" +
+        "a9147bef0b4a4dafa77b2ec52b81659cbcf0d9a91487870000000000000000266" +
+        "a24aa21a9ed8a716e1e3e8691cfc14df968505d88fae2e240b7f4ca4d59871992" +
+        "a63c9900640120000000000000000000000000000000000000000000000000000" +
+        "000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 2164155,
+      merkle: [
+        Hex.from(
+          "d654db76daa53b61becba19a542c6156a725d0bce3d0f3a57d713c9a9498ab95"
+        ),
+        Hex.from(
+          "df2a8c9cded17679ecacc119d92bfa5dc795bb80284e320e80e4f9f93d0e5ba4"
+        ),
+        Hex.from(
+          "b7d63f60c09609472aa68fbb6380cffc87b4d921a26edc8b2626154145d603be"
+        ),
+        Hex.from(
+          "a51612d3f3f857e95803a4d86aa6dbbe2e756dc2ed6cc0e04630e8baf597e377"
+        ),
+        Hex.from(
+          "a00501650e0c4f8a1e07a5d6d5bc5e75e4c75de61a65f0410cce354bbae78686"
+        ),
+      ],
+      position: 0,
+    },
   },
   expectedProof: {
     transactionHash: BitcoinTxHash.from(
@@ -364,6 +448,16 @@ export const multipleInputsProofTestData: ProofTestData = {
         "99b8e9db517e36f000000000000a494b8034039e7855b75563ab83c9410dd67e89b" +
         "b58e6cd93b85290a885dd749f4d61c62ed3e031ad9a83746"
     ),
+    coinbasePreimage: Hex.from(
+      "0248a67dec36c38a485ad920afd89dcf082e7e570390380890e3a9465662f449"
+    ),
+    coinbaseProof: Hex.from(
+      "95ab98949a3c717da5f3d0e3bcd025a756612c549aa1cbbe613ba5da76db54d6a45" +
+        "b0e3df9f9e4800e324e2880bb95c75dfa2bd919c1acec7976d1de9c8c2adfbe03d6" +
+        "45411526268bdc6ea221d9b487fccf8063bb8fa62a470996c0603fd6b777e397f5b" +
+        "ae83046e0c06cedc26d752ebedba66ad8a40358e957f8f3d31216a58686e7ba4b35" +
+        "ce0c41f0651ae65dc7e4755ebcd5d6a5071e8a4f0c0e650105a0"
+    ),
   },
 }
 
@@ -378,6 +472,8 @@ export interface TransactionProofData {
     latestBlockHeight: number
     headersChain: Hex
     transactionMerkleBranch: BitcoinTxMerkleBranch
+    coinbaseRawTransaction: BitcoinRawTx
+    coinbaseMerkleBranch: BitcoinTxMerkleBranch
     previousDifficulty: BigNumber
     currentDifficulty: BigNumber
   }
@@ -499,6 +595,56 @@ export const transactionConfirmationsInOneEpochData: TransactionProofData = {
       ],
       position: 17,
     },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "010000000001010000000000000000000000000000000000000000000000000000000" +
+        "000000000ffffffff6003e6d70b192f5669614254432f4d696e656420627920736368" +
+        "756c747a2f2cfabe6d6dcb674c098d80e8456c9cebe631a3ae9ec16e47185c0684b0c" +
+        "2fbab45827d4b79100000000000000010548e591b518d91e94608772cd43615000000" +
+        "0000ffffffff0290519d25000000001976a914536ffa992491508dca0354e52f32a3a" +
+        "7a679a53a88ac0000000000000000266a24aa21a9edca238b73df37d6eba6f22606c9" +
+        "38f46786f95c861e96acf85fdc6b61d4b3ecc10120000000000000000000000000000" +
+        "000000000000000000000000000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 776166,
+      merkle: [
+        Hex.from(
+          "438e7c04ee74dd2e79ffd3ace87c45a7b275e3f95783954ba321081e3f92fe99"
+        ),
+        Hex.from(
+          "02c8dcc4cb7b50857853ff31610700cd538e435002a433b318f4efc976912002"
+        ),
+        Hex.from(
+          "43e1894ff1469105951c529a622370460b666c722c84d05d73712e5af84bfd09"
+        ),
+        Hex.from(
+          "bdd6e6d69540a45185b4ad6dbfd108b7dfebc4d6ae7030d2d3bd139e9b2c1e28"
+        ),
+        Hex.from(
+          "cffed70dd62cab291f132fb90c5d6cd11af589db122df862585c6dd43c667d4f"
+        ),
+        Hex.from(
+          "13bdefbf92421aa7861528e16e7046b569d25ee0f4b7649492e42e9ea2331c39"
+        ),
+        Hex.from(
+          "df429494c5eef971a7ab80c8a0f7f9cdfa30148afef706f07923bd93d5a7e22a"
+        ),
+        Hex.from(
+          "c8a3f1bc73146bd4a1a0e848f2b0b4a21be86e4930f239d856af8e9646014236"
+        ),
+        Hex.from(
+          "1f514df87fe2c400e508e01cd8967657ef76db9681f65dc82b0bc6d4004b575f"
+        ),
+        Hex.from(
+          "e463950c8efd9114237189f07ddf1cfdb72658bad23bce667c269652bd0ade3c"
+        ),
+        Hex.from(
+          "3d7ae6df787807320fdc397a7055e86c932a7c36ab1d1f942b92c53bf2a1d2f9"
+        ),
+      ],
+      position: 0,
+    },
     previousDifficulty: BigNumber.from(39156400059293),
     currentDifficulty: BigNumber.from(39350942467772),
   },
@@ -596,6 +742,54 @@ export const transactionConfirmationsInTwoEpochsData: TransactionProofData = {
       ],
       position: 262,
     },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "010000000001010000000000000000000000000000000000000000000000000000000" +
+        "000000000ffffffff5003fecf0b1362696e616e63652f383235f10213007dfea192fa" +
+        "be6d6def5afc5d3971282911709ed7cb7d9142bb531ae9cc453036b2b77afa95dc878" +
+        "304000000000000000000d483e700000000000000ffffffff03599476250000000017" +
+        "a914ca35b1f4d02907314852f09935b9604507f8d700870000000000000000266a24a" +
+        "a21a9eddfad2eae7dcecafd0a22651c8e9d197143b7811e503dc77d7fe70931d2fd7f" +
+        "7600000000000000002b6a2952534b424c4f434b3aed6626f157d5eaf68037ee382bd" +
+        "47af82d62aab3b7aab4b79058b234004c6cf401200000000000000000000000000000" +
+        "00000000000000000000000000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 774142,
+      merkle: [
+        Hex.from(
+          "294dca224d25b5637e2520e07a5b5942a1e56a91532927f9611b49ce73e8e674"
+        ),
+        Hex.from(
+          "69e58cb5e60eafa3faff8a4a691bb80d6bf541c40eba3d06868a28873b29089d"
+        ),
+        Hex.from(
+          "12b7ab7aae471f8a2208ffb88e2624a9107e99dfe52d653e0237149c08505794"
+        ),
+        Hex.from(
+          "11df9abc347cb8ae1f61e86b5713966780cc052704b145e26ec9591c3c6b819e"
+        ),
+        Hex.from(
+          "19ca1d35c20828cde2e933e0058f7666c2f5b428d135392bc4c444046f06831f"
+        ),
+        Hex.from(
+          "d112040dc1d4952db1f6079f9a79cd18e695495adac9e742b8b28f0adb30f2eb"
+        ),
+        Hex.from(
+          "ea5cbc9f966c8c69e0ecca2719d26fe834dd308e6fe620036d200f0c46454804"
+        ),
+        Hex.from(
+          "5bd7afaed89f37bf36978b52d634c57451215eecdf1780de3b5274f27ce5508b"
+        ),
+        Hex.from(
+          "73a7ab1687e76798fb48089d3965f678b72c74d8dee7d814761f08fa489e15f9"
+        ),
+        Hex.from(
+          "e7e530e181683d272293f19fe18a33f1dc05eded12ec27945b49311b2e14ee42"
+        ),
+      ],
+      position: 0,
+    },
     previousDifficulty: BigNumber.from(37590453655497),
     currentDifficulty: BigNumber.from(39350942467772),
   },
@@ -682,6 +876,41 @@ export const testnetTransactionData: TransactionProofData = {
         ),
       ],
       position: 4,
+    },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "010000000001010000000000000000000000000000000000000000000000000000000" +
+        "000000000ffffffff0403bdf124ffffffff02c92638000000000016001416761a41f7" +
+        "452e32f987702b6deb87f68cd7aa7a0000000000000000266a24aa21a9ed270d869bd" +
+        "7697384d2e4810cb6a24ba31390e2cc3c02fd60fd3f70e1997d63ec01200000000000" +
+        "00000000000000000000000000000000000000000000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 2421181,
+      merkle: [
+        Hex.from(
+          "9f6f47ff0bc14890fe99236695c3cf5dde83ee93f196737618a81480a3232bc3"
+        ),
+        Hex.from(
+          "6938bd629f8e0fc641d6438ee0d0f5100931cb68f48abf28a8b9a34321904d8b"
+        ),
+        Hex.from(
+          "27598cb2cc1e2131cd718bc8ecc1388d3b2f04c0e641bbb59876267ea465d5c7"
+        ),
+        Hex.from(
+          "0eebd6daa03f6db4a27541a91bcf86612c97d100bc37c3eb321d64d943adb2a5"
+        ),
+        Hex.from(
+          "b25854f31fc046eb0f53cddbf2b6de3d54d52710acd79a796c78c3be235f031a"
+        ),
+        Hex.from(
+          "1fc5ab77039f59ac2494791fc05c75fb53e2dacf57a20f67e7d6727b38778825"
+        ),
+        Hex.from(
+          "5b0acfdbb89af64a583a88e92252b8634bd4da06ee102ecd34c2662955e9f1c7"
+        ),
+      ],
+      position: 0,
     },
     previousDifficulty: BigNumber.from(1),
     currentDifficulty: BigNumber.from(1),

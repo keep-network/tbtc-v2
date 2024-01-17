@@ -18,6 +18,8 @@ import {
   BitcoinSpvProof,
   assembleBitcoinSpvProof,
   validateBitcoinSpvProof,
+  BitcoinRawTx,
+  BitcoinTxMerkleBranch,
 } from "../../src"
 import { BigNumber } from "ethers"
 import { btcAddresses, btcAddressFromPublicKey } from "../data/bitcoin"
@@ -924,6 +926,10 @@ describe("Bitcoin", () => {
         expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
         expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
+        expect(proof.coinbasePreimage).to.deep.equal(
+          expectedProof.coinbasePreimage
+        )
+        expect(proof.coinbaseProof).to.deep.equal(expectedProof.coinbaseProof)
       })
     })
 
@@ -944,6 +950,10 @@ describe("Bitcoin", () => {
         expect(proof.merkleProof).to.deep.equal(expectedProof.merkleProof)
         expect(proof.txIndexInBlock).to.equal(expectedProof.txIndexInBlock)
         expect(proof.bitcoinHeaders).to.deep.equal(expectedProof.bitcoinHeaders)
+        expect(proof.coinbasePreimage).to.deep.equal(
+          expectedProof.coinbasePreimage
+        )
+        expect(proof.coinbaseProof).to.deep.equal(expectedProof.coinbaseProof)
       })
     })
 
@@ -974,16 +984,51 @@ describe("Bitcoin", () => {
         data.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
+
       bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
+
       bitcoinClient.headersChain = data.bitcoinChainData.headersChain
-      bitcoinClient.transactionMerkle =
+
+      const txBlockHeight =
+        data.bitcoinChainData.latestBlockHeight -
+        data.bitcoinChainData.accumulatedTxConfirmations +
+        1
+
+      const transactionMerkle = new Map<string, BitcoinTxMerkleBranch>()
+      transactionMerkle.set(
+        `${transactionHash.toString()}${txBlockHeight.toString(16)}`,
         data.bitcoinChainData.transactionMerkleBranch
+      )
+
       const confirmations = new Map<string, number>()
       confirmations.set(
         transactionHash.toString(),
         data.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
+
+      const coinbaseTxHash = BitcoinTxHash.from(
+        BitcoinHashUtils.computeHash256(
+          Hex.from(data.bitcoinChainData.coinbaseRawTransaction.transactionHex)
+        ).toString()
+      )
+
+      const coinbaseHashes = new Map<number, BitcoinTxHash>()
+      coinbaseHashes.set(txBlockHeight, coinbaseTxHash)
+      bitcoinClient.coinbaseHashes = coinbaseHashes
+
+      const rawTransactions = new Map<string, BitcoinRawTx>()
+      rawTransactions.set(
+        coinbaseTxHash.toString(),
+        data.bitcoinChainData.coinbaseRawTransaction
+      )
+      bitcoinClient.rawTransactions = rawTransactions
+
+      transactionMerkle.set(
+        `${coinbaseTxHash.toString()}${txBlockHeight.toString(16)}`,
+        data.bitcoinChainData.coinbaseMerkleBranch
+      )
+      bitcoinClient.transactionMerkle = transactionMerkle
 
       const proof = await assembleBitcoinSpvProof(
         transactionHash,
@@ -1089,6 +1134,14 @@ describe("Bitcoin", () => {
             merkle[merkle.length - 1].toString() + "ff"
           )
 
+          const coinbaseMerkle = [
+            ...transactionConfirmationsInOneEpochData.bitcoinChainData
+              .coinbaseMerkleBranch.merkle,
+          ]
+          coinbaseMerkle[coinbaseMerkle.length - 1] = Hex.from(
+            coinbaseMerkle[coinbaseMerkle.length - 1].toString() + "ff"
+          )
+
           const corruptedProofData: TransactionProofData = {
             ...transactionConfirmationsInOneEpochData,
             bitcoinChainData: {
@@ -1096,6 +1149,11 @@ describe("Bitcoin", () => {
               transactionMerkleBranch: {
                 ...transactionConfirmationsInOneEpochData.bitcoinChainData
                   .transactionMerkleBranch,
+                merkle: merkle,
+              },
+              coinbaseMerkleBranch: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .coinbaseMerkleBranch,
                 merkle: merkle,
               },
             },
@@ -1117,6 +1175,11 @@ describe("Bitcoin", () => {
               transactionMerkleBranch: {
                 ...transactionConfirmationsInOneEpochData.bitcoinChainData
                   .transactionMerkleBranch,
+                merkle: [],
+              },
+              coinbaseMerkleBranch: {
+                ...transactionConfirmationsInOneEpochData.bitcoinChainData
+                  .coinbaseMerkleBranch,
                 merkle: [],
               },
             },
@@ -1252,16 +1315,51 @@ describe("Bitcoin", () => {
         data.bitcoinChainData.transaction
       )
       bitcoinClient.transactions = transactions
+
       bitcoinClient.latestHeight = data.bitcoinChainData.latestBlockHeight
+
       bitcoinClient.headersChain = data.bitcoinChainData.headersChain
-      bitcoinClient.transactionMerkle =
+
+      const txBlockHeight =
+        data.bitcoinChainData.latestBlockHeight -
+        data.bitcoinChainData.accumulatedTxConfirmations +
+        1
+
+      const transactionMerkle = new Map<string, BitcoinTxMerkleBranch>()
+      transactionMerkle.set(
+        `${transactionHash.toString()}${txBlockHeight.toString(16)}`,
         data.bitcoinChainData.transactionMerkleBranch
+      )
+
       const confirmations = new Map<string, number>()
       confirmations.set(
         transactionHash.toString(),
         data.bitcoinChainData.accumulatedTxConfirmations
       )
       bitcoinClient.confirmations = confirmations
+
+      const coinbaseTxHash = BitcoinTxHash.from(
+        BitcoinHashUtils.computeHash256(
+          Hex.from(data.bitcoinChainData.coinbaseRawTransaction.transactionHex)
+        ).toString()
+      )
+
+      const coinbaseHashes = new Map<number, BitcoinTxHash>()
+      coinbaseHashes.set(txBlockHeight, coinbaseTxHash)
+      bitcoinClient.coinbaseHashes = coinbaseHashes
+
+      const rawTransactions = new Map<string, BitcoinRawTx>()
+      rawTransactions.set(
+        coinbaseTxHash.toString(),
+        data.bitcoinChainData.coinbaseRawTransaction
+      )
+      bitcoinClient.rawTransactions = rawTransactions
+
+      transactionMerkle.set(
+        `${coinbaseTxHash.toString()}${txBlockHeight.toString(16)}`,
+        data.bitcoinChainData.coinbaseMerkleBranch
+      )
+      bitcoinClient.transactionMerkle = transactionMerkle
 
       await validateBitcoinSpvProof(
         data.bitcoinChainData.transaction.transactionHash,
