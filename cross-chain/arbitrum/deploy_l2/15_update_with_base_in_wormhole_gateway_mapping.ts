@@ -9,11 +9,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Fake BaseWormholeGateway for local development purposes only.
   const fakeBaseWormholeGateway = "0x1af5DC16568EFF2d480a43A77E6C409e497FcFb9"
 
-  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base
-  // This ID is valid for both Base Testnet and Mainnet
-  // TODO: check if id is correct for Base Sepolia as well (once Wormhole
-  // supports that testnet)
-  const baseWormholeChainID = 30
+  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base and
+  // https://docs.wormhole.com/wormhole/blockchain-environments/evm#base-sepolia
+  // The value `30` is valid for both Base Goerli and Base Mainnet. The value
+  // for Base Sepolia is `10004`.
+  const baseWormholeChainID =
+    hre.network.name === "arbitrumSepolia" ? 10004 : 30
 
   const baseWormholeGateway = await deployments.getOrNull("BaseWormholeGateway")
 
