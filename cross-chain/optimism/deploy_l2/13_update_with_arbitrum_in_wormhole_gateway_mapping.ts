@@ -10,11 +10,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const fakeArbitrumWormholeGateway =
     "0x1af5DC16568EFF2d480a43A77E6C409e497FcFb9"
 
-  // See https://book.wormhole.com/reference/contracts.html
-  // This ID is valid for both Arbitrum Goerli and Mainnet
-  // TODO: check if id is correct for Arbitrum Sepolia as well (once Wormhole
-  // supports that testnet)
-  const arbitrumWormholeChainID = 23
+  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#arbitrum
+  // and https://docs.wormhole.com/wormhole/blockchain-environments/evm#arbitrum-sepolia
+  // The value `23` is valid for both Arbitrum Goerli and Arbitrum Mainnet. The
+  // value for Arbitrum Sepolia is `10003`.
+  const arbitrumWormholeChainID =
+    hre.network.name === "arbitrumSepolia" ? 10003 : 23
 
   const arbitrumWormholeGateway = await deployments.getOrNull(
     "ArbitrumWormholeGateway"
