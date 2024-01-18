@@ -6,11 +6,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { execute } = deployments
   const { deployer } = await getNamedAccounts()
 
-  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base
-  // This ID is valid for both Base Goerli and Base Mainnet
-  // TODO: check if id is correct for Base Sepolia as well (once Wormhole
-  // supports that testnet)
-  const wormholeChainID = 30
+  // See https://docs.wormhole.com/wormhole/blockchain-environments/evm#base and
+  // https://docs.wormhole.com/wormhole/blockchain-environments/evm#base-sepolia
+  // The value `30` is valid for both Base Goerli and Base Mainnet. The value
+  // for Base Sepolia is `10004`.
+  const wormholeChainID = hre.network.name === "baseSepolia" ? 10004 : 30
 
   const baseWormholeGateway = await deployments.get("BaseWormholeGateway")
 
