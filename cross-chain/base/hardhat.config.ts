@@ -170,7 +170,7 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 1,
       goerli: 0,
-      sepolia:0,
+      sepolia: 0,
       baseGoerli: 0,
       baseSepolia: 0,
       mainnet: "0x123694886DBf5Ac94DDA07135349534536D14cAf",
@@ -179,7 +179,7 @@ const config: HardhatUserConfig = {
     governance: {
       default: 2,
       goerli: 0,
-      sepolia:0,
+      sepolia: 0,
       baseGoerli: 0,
       baseSepolia: 0,
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f", // Threshold Council
