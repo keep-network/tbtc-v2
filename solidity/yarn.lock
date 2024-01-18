@@ -1484,10 +1484,10 @@
   resolved "https://registry.yarnpkg.com/@keep-network/bitcoin-spv-sol/-/bitcoin-spv-sol-3.4.0-solc-0.8.tgz#8b44c246ffab8ea993efe196f6bf385b1a3b84dc"
   integrity sha512-KlpY9BbasyLvYXSS7dsJktgRChu/yjdFLOX8ldGA/pltLicCm/l0F4oqxL8wSws9XD12vq9x0B5qzPygVLB2TQ==
 
-"@keep-network/ecdsa@2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.0.tgz#96d301cd272e61334bec173b5c4945758fc80853"
-  integrity sha512-KXSUOkZIKHR3I4H99CpgkPtuneI9AxgGo8+DmqGR56QB28kJCEXm7GC/yTInWS1lb7LzDwkjIm9VYAIGdLrsZw==
+"@keep-network/ecdsa@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@keep-network/ecdsa/-/ecdsa-2.0.1.tgz#f9de5e4ae68c48493b8a46d1d956c8bc157b1145"
+  integrity sha512-51Ef0FGak9dzuTF4e80ed1G2+3v+kQYPieYa3hX7eKg3XG0/C/xOtMSpIOxU7IMdYBHeeH+hRIqDiL5AuOidOg==
   dependencies:
     "@keep-network/random-beacon" "2.0.0"
     "@keep-network/sortition-pools" "2.0.0"
