@@ -253,10 +253,16 @@ export class EthereumBridge
       vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
     }
 
-    // TODO: If deposit contains extra data, reveal using `revealDepositWithExtraData`.
-
     const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
+        if (typeof deposit.extraData !== "undefined") {
+          return await this._instance.revealDepositWithExtraData(
+            depositTxParam,
+            revealParam,
+            deposit.extraData.toPrefixedString()
+          )
+        }
+
         return await this._instance.revealDeposit(depositTxParam, revealParam)
       },
       this._totalRetryAttempts,
