@@ -16,6 +16,7 @@ import {
   Deposit,
   DepositFunding,
   DepositorProxy,
+  DepositReceipt,
   DepositRefund,
   DepositScript,
   DepositsService,
@@ -1669,65 +1670,123 @@ describe("Deposits", () => {
           })
 
           context("when recovery address is correct", () => {
-            context("when recovery address is P2PKH", () => {
-              let deposit: Deposit
+            const assertCommonDepositProperties = (receipt: DepositReceipt) => {
+              expect(receipt.depositor).to.be.equal(depositor)
 
-              beforeEach(async () => {
-                deposit = await depositService.initiateDeposit(
-                  "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
-                )
+              expect(receipt.walletPublicKeyHash).to.be.deep.equal(
+                Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
+              )
+
+              // Expect the refund locktime to be in the future.
+              const receiptTimestamp = BigNumber.from(
+                receipt.refundLocktime.reverse().toPrefixedString()
+              ).toNumber()
+              const currentTimestamp = Math.floor(new Date().getTime() / 1000)
+              expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
+
+              // Expect blinding factor to be set and 8-byte long.
+              expect(receipt.blindingFactor).not.to.be.undefined
+              expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+            }
+
+            context("when optional extra data is not provided", () => {
+              context("when recovery address is P2PKH", () => {
+                let deposit: Deposit
+
+                beforeEach(async () => {
+                  deposit = await depositService.initiateDeposit(
+                    "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc"
+                  )
+                })
+
+                it("should initiate deposit correctly", async () => {
+                  // Inspect the deposit object by looking at its receipt.
+                  const receipt = deposit.getReceipt()
+
+                  assertCommonDepositProperties(receipt)
+
+                  expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                    Hex.from("2cd680318747b720d67bf4246eb7403b476adb34")
+                  )
+                  expect(receipt.extraData).to.be.undefined
+                })
               })
 
-              it("should initiate deposit correctly", async () => {
-                // Inspect the deposit object by looking at its receipt.
-                const receipt = deposit.getReceipt()
-                expect(receipt.depositor).to.be.equal(depositor)
-                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
-                  Hex.from("2cd680318747b720d67bf4246eb7403b476adb34")
-                )
-                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
-                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
-                )
-                // Expect the refund locktime to be in the future.
-                const receiptTimestamp = BigNumber.from(
-                  receipt.refundLocktime.reverse().toPrefixedString()
-                ).toNumber()
-                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
-                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
-                // Expect blinding factor to be set and 8-byte long.
-                expect(receipt.blindingFactor).not.to.be.undefined
-                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              context("when recovery address is P2WPKH", () => {
+                let deposit: Deposit
+
+                beforeEach(async () => {
+                  deposit = await depositService.initiateDeposit(
+                    "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx"
+                  )
+                })
+
+                it("should initiate deposit correctly", async () => {
+                  // Inspect the deposit object by looking at its receipt.
+                  const receipt = deposit.getReceipt()
+
+                  assertCommonDepositProperties(receipt)
+
+                  expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                    Hex.from("e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0")
+                  )
+                  expect(receipt.extraData).to.be.undefined
+                })
               })
             })
 
-            context("when recovery address is P2WPKH", () => {
-              let deposit: Deposit
-
-              beforeEach(async () => {
-                deposit = await depositService.initiateDeposit(
-                  "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx"
-                )
+            context("when optional extra data is provided", () => {
+              context("when extra data is not 32-byte", () => {
+                it("should throw", async () => {
+                  await expect(
+                    depositService.initiateDeposit(
+                      "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
+                      Hex.from("11")
+                    )
+                  ).to.be.rejectedWith("Extra data is not 32-byte")
+                })
               })
 
-              it("should initiate deposit correctly", async () => {
-                // Inspect the deposit object by looking at its receipt.
-                const receipt = deposit.getReceipt()
-                expect(receipt.depositor).to.be.equal(depositor)
-                expect(receipt.refundPublicKeyHash).to.be.deep.equal(
-                  Hex.from("e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0")
-                )
-                expect(receipt.walletPublicKeyHash).to.be.deep.equal(
-                  Hex.from("8db50eb52063ea9d98b3eac91489a90f738986f6")
-                )
-                // Expect the refund locktime to be in the future.
-                const receiptTimestamp = BigNumber.from(
-                  receipt.refundLocktime.reverse().toPrefixedString()
-                ).toNumber()
-                const currentTimestamp = Math.floor(new Date().getTime() / 1000)
-                expect(receiptTimestamp).to.be.greaterThan(currentTimestamp)
-                // Expect blinding factor to be set and 8-byte long.
-                expect(receipt.blindingFactor).not.to.be.undefined
-                expect(receipt.blindingFactor.toBuffer().length).to.be.equal(8)
+              context("when extra data is 32-byte but all-zero", () => {
+                it("should throw", async () => {
+                  await expect(
+                    depositService.initiateDeposit(
+                      "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
+                      Hex.from(
+                        "0000000000000000000000000000000000000000000000000000000000000000"
+                      )
+                    )
+                  ).to.be.rejectedWith("Extra data contains only zero bytes")
+                })
+              })
+
+              context("when extra data is 32-byte and non-zero", () => {
+                let deposit: Deposit
+
+                beforeEach(async () => {
+                  deposit = await depositService.initiateDeposit(
+                    "tb1qumuaw3exkxdhtut0u85latkqfz4ylgwstkdzsx",
+                    Hex.from(
+                      "1111111111111111222222222222222211111111111111112222222222222222"
+                    )
+                  )
+                })
+
+                it("should initiate deposit correctly", async () => {
+                  // Inspect the deposit object by looking at its receipt.
+                  const receipt = deposit.getReceipt()
+
+                  assertCommonDepositProperties(receipt)
+
+                  expect(receipt.refundPublicKeyHash).to.be.deep.equal(
+                    Hex.from("e6f9d74726b19b75f16fe1e9feaec048aa4fa1d0")
+                  )
+                  expect(receipt.extraData).to.be.eql(
+                    Hex.from(
+                      "1111111111111111222222222222222211111111111111112222222222222222"
+                    )
+                  )
+                })
               })
             })
           })
