@@ -21,7 +21,7 @@ export class MockDepositorProxy implements DepositorProxy {
   }
 
   getChainIdentifier(): ChainIdentifier {
-    return EthereumAddress.from("0x774cfd89700040163727828AE20B52099C58F02C")
+    return EthereumAddress.from("0xEdA7bE2D82566ce2546b150447b5cb0E4320a1B2")
   }
 
   revealDeposit(
