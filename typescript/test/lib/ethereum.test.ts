@@ -139,52 +139,112 @@ describe("Ethereum", () => {
     })
 
     describe("revealDeposit", () => {
-      beforeEach(async () => {
-        await bridgeContract.mock.revealDeposit.returns()
+      context("when deposit does not have optional extra data", () => {
+        beforeEach(async () => {
+          await bridgeContract.mock.revealDeposit.returns()
 
-        await bridgeHandle.revealDeposit(
-          // Just short byte strings for clarity.
-          {
-            version: Hex.from("00000000"),
-            inputs: Hex.from("11111111"),
-            outputs: Hex.from("22222222"),
-            locktime: Hex.from("33333333"),
-          },
-          2,
-          {
-            depositor: EthereumAddress.from(
-              "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
-            ),
-            walletPublicKeyHash: Hex.from(
-              "8db50eb52063ea9d98b3eac91489a90f738986f6"
-            ),
-            refundPublicKeyHash: Hex.from(
-              "28e081f285138ccbe389c1eb8985716230129f89"
-            ),
-            blindingFactor: Hex.from("f9f0c90d00039523"),
-            refundLocktime: Hex.from("60bcea61"),
-          },
-          EthereumAddress.from("82883a4c7a8dd73ef165deb402d432613615ced4")
-        )
+          await bridgeHandle.revealDeposit(
+            // Just short byte strings for clarity.
+            {
+              version: Hex.from("00000000"),
+              inputs: Hex.from("11111111"),
+              outputs: Hex.from("22222222"),
+              locktime: Hex.from("33333333"),
+            },
+            2,
+            {
+              depositor: EthereumAddress.from(
+                "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+              ),
+              walletPublicKeyHash: Hex.from(
+                "8db50eb52063ea9d98b3eac91489a90f738986f6"
+              ),
+              refundPublicKeyHash: Hex.from(
+                "28e081f285138ccbe389c1eb8985716230129f89"
+              ),
+              blindingFactor: Hex.from("f9f0c90d00039523"),
+              refundLocktime: Hex.from("60bcea61"),
+            },
+            EthereumAddress.from("82883a4c7a8dd73ef165deb402d432613615ced4")
+          )
+        })
+
+        it("should reveal the deposit", async () => {
+          assertContractCalledWith(bridgeContract, "revealDeposit", [
+            {
+              version: "0x00000000",
+              inputVector: "0x11111111",
+              outputVector: "0x22222222",
+              locktime: "0x33333333",
+            },
+            {
+              fundingOutputIndex: 2,
+              blindingFactor: "0xf9f0c90d00039523",
+              walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+              refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
+              refundLocktime: "0x60bcea61",
+              vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+            },
+          ])
+        })
       })
 
-      it("should reveal the deposit", async () => {
-        assertContractCalledWith(bridgeContract, "revealDeposit", [
-          {
-            version: "0x00000000",
-            inputVector: "0x11111111",
-            outputVector: "0x22222222",
-            locktime: "0x33333333",
-          },
-          {
-            fundingOutputIndex: 2,
-            blindingFactor: "0xf9f0c90d00039523",
-            walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
-            refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
-            refundLocktime: "0x60bcea61",
-            vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
-          },
-        ])
+      context("when deposit has optional extra data", () => {
+        beforeEach(async () => {
+          await bridgeContract.mock.revealDepositWithExtraData.returns()
+
+          await bridgeHandle.revealDeposit(
+            // Just short byte strings for clarity.
+            {
+              version: Hex.from("00000000"),
+              inputs: Hex.from("11111111"),
+              outputs: Hex.from("22222222"),
+              locktime: Hex.from("33333333"),
+            },
+            2,
+            {
+              depositor: EthereumAddress.from(
+                "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+              ),
+              walletPublicKeyHash: Hex.from(
+                "8db50eb52063ea9d98b3eac91489a90f738986f6"
+              ),
+              refundPublicKeyHash: Hex.from(
+                "28e081f285138ccbe389c1eb8985716230129f89"
+              ),
+              blindingFactor: Hex.from("f9f0c90d00039523"),
+              refundLocktime: Hex.from("60bcea61"),
+              extraData: Hex.from(
+                "aebfb5afc9ee6432374ed39b58b8cf87797f9468eca40569b67ac8d59415c9c0"
+              ),
+            },
+            EthereumAddress.from("82883a4c7a8dd73ef165deb402d432613615ced4")
+          )
+        })
+
+        it("should reveal the deposit", async () => {
+          assertContractCalledWith(
+            bridgeContract,
+            "revealDepositWithExtraData",
+            [
+              {
+                version: "0x00000000",
+                inputVector: "0x11111111",
+                outputVector: "0x22222222",
+                locktime: "0x33333333",
+              },
+              {
+                fundingOutputIndex: 2,
+                blindingFactor: "0xf9f0c90d00039523",
+                walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
+                refundLocktime: "0x60bcea61",
+                vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+              },
+              "0xaebfb5afc9ee6432374ed39b58b8cf87797f9468eca40569b67ac8d59415c9c0",
+            ]
+          )
+        })
       })
     })
 
