@@ -237,25 +237,24 @@ export class EthereumBridge
     deposit: DepositReceipt,
     vault?: ChainIdentifier
   ): Promise<Hex> {
-    const depositTxParam = {
-      version: depositTx.version.toPrefixedString(),
-      inputVector: depositTx.inputs.toPrefixedString(),
-      outputVector: depositTx.outputs.toPrefixedString(),
-      locktime: depositTx.locktime.toPrefixedString(),
-    }
-
-    const revealParam = {
-      fundingOutputIndex: depositOutputIndex,
-      blindingFactor: deposit.blindingFactor.toPrefixedString(),
-      walletPubKeyHash: deposit.walletPublicKeyHash.toPrefixedString(),
-      refundPubKeyHash: deposit.refundPublicKeyHash.toPrefixedString(),
-      refundLocktime: deposit.refundLocktime.toPrefixedString(),
-      vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
-    }
+    const { fundingTx, reveal, extraData } = packRevealDepositParameters(
+      depositTx,
+      depositOutputIndex,
+      deposit,
+      vault
+    )
 
     const tx = await EthersTransactionUtils.sendWithRetry<ContractTransaction>(
       async () => {
-        return await this._instance.revealDeposit(depositTxParam, revealParam)
+        if (typeof extraData !== "undefined") {
+          return await this._instance.revealDepositWithExtraData(
+            fundingTx,
+            reveal,
+            extraData
+          )
+        }
+
+        return await this._instance.revealDeposit(fundingTx, reveal)
       },
       this._totalRetryAttempts,
       undefined,
@@ -675,5 +674,47 @@ export class EthereumBridge
         txMaxFee: BigNumber.from(event.args!.txMaxFee),
       }
     })
+  }
+}
+
+/**
+ * Packs deposit parameters to match the ABI of the revealDeposit and
+ * revealDepositWithExtraData functions of the Ethereum Bridge contract.
+ * @param depositTx - Deposit transaction data
+ * @param depositOutputIndex - Index of the deposit transaction output that
+ *        funds the revealed deposit
+ * @param deposit - Data of the revealed deposit
+ * @param vault - Optional parameter denoting the vault the given deposit
+ *        should be routed to
+ * @returns Packed parameters.
+ */
+export function packRevealDepositParameters(
+  depositTx: BitcoinRawTxVectors,
+  depositOutputIndex: number,
+  deposit: DepositReceipt,
+  vault?: ChainIdentifier
+) {
+  const fundingTx = {
+    version: depositTx.version.toPrefixedString(),
+    inputVector: depositTx.inputs.toPrefixedString(),
+    outputVector: depositTx.outputs.toPrefixedString(),
+    locktime: depositTx.locktime.toPrefixedString(),
+  }
+
+  const reveal = {
+    fundingOutputIndex: depositOutputIndex,
+    blindingFactor: deposit.blindingFactor.toPrefixedString(),
+    walletPubKeyHash: deposit.walletPublicKeyHash.toPrefixedString(),
+    refundPubKeyHash: deposit.refundPublicKeyHash.toPrefixedString(),
+    refundLocktime: deposit.refundLocktime.toPrefixedString(),
+    vault: vault ? `0x${vault.identifierHex}` : constants.AddressZero,
+  }
+
+  const extraData: string | undefined = deposit.extraData?.toPrefixedString()
+
+  return {
+    fundingTx,
+    reveal,
+    extraData,
   }
 }

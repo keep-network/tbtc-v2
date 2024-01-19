@@ -9,6 +9,7 @@ to build a unique deposit address on Bitcoin chain.
 
 - [blindingFactor](DepositReceipt.md#blindingfactor)
 - [depositor](DepositReceipt.md#depositor)
+- [extraData](DepositReceipt.md#extradata)
 - [refundLocktime](DepositReceipt.md#refundlocktime)
 - [refundPublicKeyHash](DepositReceipt.md#refundpublickeyhash)
 - [walletPublicKeyHash](DepositReceipt.md#walletpublickeyhash)
@@ -37,6 +38,18 @@ Depositor's chain identifier.
 #### Defined in
 
 [src/lib/contracts/bridge.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L192)
+
+___
+
+### extraData
+
+• `Optional` **extraData**: [`Hex`](../classes/Hex.md)
+
+Optional 32-byte extra data.
+
+#### Defined in
+
+[src/lib/contracts/bridge.ts:223](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L223)
 
 ___
 
