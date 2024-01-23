@@ -983,6 +983,11 @@
               "internalType": "uint32",
               "name": "sweptAt",
               "type": "uint32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "extraData",
+              "type": "bytes32"
             }
           ],
           "internalType": "struct Deposit.DepositRequest",
@@ -1694,6 +1699,83 @@
     {
       "inputs": [
         {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "version",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "bytes",
+              "name": "inputVector",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "outputVector",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "locktime",
+              "type": "bytes4"
+            }
+          ],
+          "internalType": "struct BitcoinTx.Info",
+          "name": "fundingTx",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint32",
+              "name": "fundingOutputIndex",
+              "type": "uint32"
+            },
+            {
+              "internalType": "bytes8",
+              "name": "blindingFactor",
+              "type": "bytes8"
+            },
+            {
+              "internalType": "bytes20",
+              "name": "walletPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes20",
+              "name": "refundPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "refundLocktime",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "address",
+              "name": "vault",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Deposit.DepositRevealInfo",
+          "name": "reveal",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "extraData",
+          "type": "bytes32"
+        }
+      ],
+      "name": "revealDepositWithExtraData",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "spvMaintainer",
           "type": "address"
@@ -1790,6 +1872,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -1914,6 +2006,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2044,6 +2146,16 @@
               "internalType": "bytes",
               "name": "bitcoinHeaders",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
+              "type": "bytes"
             }
           ],
           "internalType": "struct BitcoinTx.Proof",
@@ -2127,6 +2239,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2580,81 +2702,45 @@
       "type": "function"
     }
   ],
-  "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
+  "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
   "receipt": {
-    "to": null,
+    "to": "0x39f60B25C4598Caf7e922d6fC063E9002db45845",
     "from": "0x68ad60CC5e8f3B7cC53beaB321cf0e6036962dBc",
-    "contractAddress": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
-    "transactionIndex": 31,
-    "gasUsed": "972366",
-    "logsBloom": "0x00000000000000000000000000000000408000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000800000008000000000000000000000000000001000000000000000000800000000000000000000000000000000000000000000000001000000000000000000080000000000000820000000000000000000000000000000400000020000000000000000000000000000000000020000000000000000000040000000000000400000000000000000000000000000000000000000800000000000000000000000000000000000000000000",
-    "blockHash": "0xb6a6c187a255cdcb078dcb0fce165df240d8adeed7b3e0280d65d562fb6490bd",
-    "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
+    "contractAddress": null,
+    "transactionIndex": 10,
+    "gasUsed": "38760",
+    "logsBloom": "0x00000000000000000000000000000000408000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000220000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xc130afc0dd68742cb1a7de16a0befc5fd6b04e0fe99fdf88f4b82ff966e3d748",
+    "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
     "logs": [
       {
-        "transactionIndex": 31,
-        "blockNumber": 4553028,
-        "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
+        "transactionIndex": 10,
+        "blockNumber": 4929904,
+        "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
         "address": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x0000000000000000000000002a2b232b189fc03bd918d547e74635cca1bbfa0c"
+          "0x000000000000000000000000219b0b14b961b703f5cfd07f83c9d911f181e2ae"
         ],
         "data": "0x",
-        "logIndex": 79,
-        "blockHash": "0xb6a6c187a255cdcb078dcb0fce165df240d8adeed7b3e0280d65d562fb6490bd"
-      },
-      {
-        "transactionIndex": 31,
-        "blockNumber": 4553028,
-        "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
-        "address": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
-        "topics": [
-          "0x5f56bee8cffbe9a78652a74a60705edede02af10b0bbb888ca44b79a0d42ce80"
-        ],
-        "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000068ad60cc5e8f3b7cc53beab321cf0e6036962dbc",
-        "logIndex": 80,
-        "blockHash": "0xb6a6c187a255cdcb078dcb0fce165df240d8adeed7b3e0280d65d562fb6490bd"
-      },
-      {
-        "transactionIndex": 31,
-        "blockNumber": 4553028,
-        "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
-        "address": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
-        "topics": [
-          "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"
-        ],
-        "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "logIndex": 81,
-        "blockHash": "0xb6a6c187a255cdcb078dcb0fce165df240d8adeed7b3e0280d65d562fb6490bd"
-      },
-      {
-        "transactionIndex": 31,
-        "blockNumber": 4553028,
-        "transactionHash": "0xa4ec0ca4e87fb3569ac34272e4b4398e283063825d61a9c9c786a7b7f72e07fb",
-        "address": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
-        "topics": [
-          "0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f"
-        ],
-        "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000039f60b25c4598caf7e922d6fc063e9002db45845",
-        "logIndex": 82,
-        "blockHash": "0xb6a6c187a255cdcb078dcb0fce165df240d8adeed7b3e0280d65d562fb6490bd"
+        "logIndex": 10,
+        "blockHash": "0xc130afc0dd68742cb1a7de16a0befc5fd6b04e0fe99fdf88f4b82ff966e3d748"
       }
     ],
-    "blockNumber": 4553028,
-    "cumulativeGasUsed": "6118880",
+    "blockNumber": 4929904,
+    "cumulativeGasUsed": "2196491",
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 1,
+  "numDeployments": 4,
   "libraries": {
-    "Deposit": "0xFC2377c8B2735d0985C3cB8E819FF92B3d8cfB37",
-    "DepositSweep": "0x75Eb93Ab755D89851656805c32e174759688C93B",
-    "Redemption": "0x1B11F1f1B7B9E96C236e50e29Fea715Dc01bf3f5",
+    "Deposit": "0xb9cD067b78B4D9769837a46486464638893D4C70",
+    "DepositSweep": "0xA5157Fcd7067D93e037F85B35ce2598fB1Fb7BEd",
+    "Redemption": "0x0672276D7aC52AFa6e75Acaa20a3f05902173897",
     "Wallets": "0x2A2e6C3B5B135A6128a9EF454a058C1f9DBfaB44",
     "Fraud": "0x5bd37811daea439B94B62b7178Fe574f94Bcb5bC",
-    "MovingFunds": "0x461E2FF959ab71BC6c1Fb3B699fFA30F2bB1E5C6"
+    "MovingFunds": "0xAce37767d828b8EE7e40591c6b5C5399ce586D85"
   },
-  "implementation": "0x2A2B232B189fC03Bd918d547e74635CCA1bbfA0C",
+  "implementation": "0xeaA95421a1811E61A3Ff5b8F34E855fd28431eEE",
   "devdoc": "Contract deployed as upgradable proxy"
 }
