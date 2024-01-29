@@ -155,6 +155,7 @@ abstract contract TBTCDepositorProxy is Initializable {
 
     /// @notice Initializes the contract. MUST BE CALLED from the child
     ///         contract initializer.
+    // slither-disable-next-line dead-code
     function __TBTCDepositorProxy_initialize(
         address _bridge,
         address _tbtcVault
@@ -178,6 +179,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///      - The revealed vault address must match the TBTCVault address,
     ///      - All requirements from {Bridge#revealDepositWithExtraData}
     ///        function must be met.
+    // slither-disable-next-line dead-code
     function initializeDeposit(
         BitcoinTx.Info calldata fundingTx,
         Deposit.DepositRevealInfo calldata reveal,
@@ -216,6 +218,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///        (in the context of this contract) yet.
     ///      - The deposit must be finalized on the Bridge side. That means the
     ///        deposit must be either swept or optimistically minted.
+    // slither-disable-next-line dead-code
     function finalizeDeposit(uint256 depositKey) internal {
         require(pendingDeposits[depositKey], "Deposit not initialized");
 
@@ -234,6 +237,7 @@ abstract contract TBTCDepositorProxy is Initializable {
         // allow to reveal the same deposit twice. Deleting the deposit from
         // the mapping will also prevent the finalizeDeposit function from
         // being called again for the same deposit.
+        // slither-disable-next-line reentrancy-no-eth
         delete pendingDeposits[depositKey];
 
         uint256 tbtcAmount = calculateTbtcAmount(
@@ -241,6 +245,7 @@ abstract contract TBTCDepositorProxy is Initializable {
             deposit.treasuryFee
         );
 
+        // slither-disable-next-line reentrancy-events
         emit DepositFinalized(
             depositKey,
             tbtcAmount,
@@ -278,6 +283,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///      to wait for finalization until the reserve is refilled by subsequent
     ///      deposits or a manual top-up. The integrator is responsible for
     ///      handling such cases.
+    // slither-disable-next-line dead-code
     function calculateTbtcAmount(
         uint64 depositAmountSat,
         uint64 depositTreasuryFeeSat
@@ -310,6 +316,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     /// @dev IMPORTANT NOTE: The tbtcAmount passed to this function is an
     ///      approximation. See documentation of the `calculateTbtcAmount`
     ///      responsible for calculating this value for more details.
+    // slither-disable-next-line unimplemented-functions
     function onDepositFinalized(
         uint256 depositKey,
         uint256 tbtcAmount,
@@ -324,6 +331,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///         `keccak256(fundingTxHash | reveal.fundingOutputIndex)`. This
     ///         key can be used to refer to the deposit in the Bridge and
     ///         TBTCVault contracts.
+    // slither-disable-next-line dead-code
     function calculateDepositKey(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
@@ -338,6 +346,7 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///         transaction data.
     /// @param txInfo Bitcoin transaction data, see `BitcoinTx.Info` struct.
     /// @return txHash Bitcoin transaction hash.
+    // slither-disable-next-line dead-code
     function calculateBitcoinTxHash(BitcoinTx.Info calldata txInfo)
         internal
         view
