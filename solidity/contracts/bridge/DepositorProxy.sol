@@ -22,7 +22,6 @@ import "./Bridge.sol";
 import "./Deposit.sol";
 import "./../vault/TBTCVault.sol";
 import "./../vault/TBTCOptimisticMinting.sol";
-import "./../token/TBTC.sol";
 
 // TODO: Make it safe for upgradeable contracts.
 // TODO: Document the contract.
@@ -35,7 +34,6 @@ abstract contract DepositorProxy {
 
     Bridge public bridge;
     TBTCVault public tbtcVault;
-    TBTC public tbtcToken;
 
     mapping(uint256 => bool) public pendingDeposits;
 
@@ -50,10 +48,9 @@ abstract contract DepositorProxy {
         uint32 finalizedAt
     );
 
-    constructor(address _bridge, address _tbtcVault, address _tbtcToken) {
+    constructor(address _bridge, address _tbtcVault) {
         bridge = Bridge(_bridge);
         tbtcVault = TBTCVault(_tbtcVault);
-        tbtcToken = TBTC(_tbtcToken);
     }
 
     function initializeDeposit(
