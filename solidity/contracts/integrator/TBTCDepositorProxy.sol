@@ -261,13 +261,12 @@ abstract contract TBTCDepositorProxy is Initializable {
     /// @return tbtcAmount Approximate amount of TBTC minted for the deposit.
     /// @dev IMPORTANT NOTE: The tbtcAmount returned by this function may
     ///      not correspond to the actual amount of TBTC minted for the deposit.
-    ///      The amount of TBTC minted for the deposit is calculated using an
-    ///      accurate value of the treasury fee that was cut upon minting.
-    ///      However, there is no possibility to do the same for the optimistic
-    ///      minting fee and the Bitcoin transaction fee. To overcome this,
-    ///      this contract just takes the current maximum values of both fees
-    ///      upon deposit finalization. For the great majority of the deposits,
-    ///      such an algorithm will return a tbtcAmount slightly lesser than the
+    ///      Although the treasury fee cut upon minting is known precisely,
+    ///      this is not the case for the optimistic minting fee and the Bitcoin
+    ///      transaction fee. To overcome that problem, this function just takes
+    ///      the current maximum values of both fees, at the moment of deposit
+    ///      finalization. For the great majority of the deposits, such an
+    ///      algorithm will return a tbtcAmount slightly lesser than the
     ///      actual amount of TBTC minted for the deposit. This will cause
     ///      some TBTC to be left in the contract and ensure there is enough
     ///      liquidity to finalize the deposit. However, in some rare cases,
