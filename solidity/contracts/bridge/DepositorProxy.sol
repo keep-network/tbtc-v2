@@ -57,7 +57,7 @@ abstract contract DepositorProxy {
         BitcoinTx.Info calldata fundingTx,
         Deposit.DepositRevealInfo calldata reveal,
         bytes32 extraData
-    ) internal {
+    ) internal returns (uint256) {
         require(reveal.vault == address(tbtcVault), "Vault address mismatch");
 
         uint256 depositKey = calculateDepositKey(
@@ -78,6 +78,8 @@ abstract contract DepositorProxy {
         // if the deposit has already been revealed so, there is no need to do
         // an explicit check here.
         bridge.revealDepositWithExtraData(fundingTx, reveal, extraData);
+
+        return depositKey;
     }
 
     function finalizeDeposit(uint256 depositKey) internal {
