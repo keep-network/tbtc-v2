@@ -101,4 +101,10 @@ export interface BitcoinClient {
    * @param transaction - Transaction to broadcast.
    */
   broadcast(transaction: BitcoinRawTx): Promise<void>
+
+  /**
+   * Gets the hash of the coinbase transaction for the given block height.
+   * @param blockHeight - Height of the block.
+   */
+  getCoinbaseTxHash(blockHeight: number): Promise<BitcoinTxHash>
 }

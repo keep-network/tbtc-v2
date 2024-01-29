@@ -24,6 +24,7 @@
 - [ElectrumClient](classes/ElectrumClient.md)
 - [EthereumAddress](classes/EthereumAddress.md)
 - [EthereumBridge](classes/EthereumBridge.md)
+- [EthereumDepositorProxy](classes/EthereumDepositorProxy.md)
 - [EthereumTBTCToken](classes/EthereumTBTCToken.md)
 - [EthereumTBTCVault](classes/EthereumTBTCVault.md)
 - [EthereumWalletRegistry](classes/EthereumWalletRegistry.md)
@@ -52,6 +53,7 @@
 - [ChainIdentifier](interfaces/ChainIdentifier.md)
 - [DepositReceipt](interfaces/DepositReceipt.md)
 - [DepositRequest](interfaces/DepositRequest.md)
+- [DepositorProxy](interfaces/DepositorProxy.md)
 - [ElectrumCredentials](interfaces/ElectrumCredentials.md)
 - [EthereumContractConfig](interfaces/EthereumContractConfig.md)
 - [RedemptionRequest](interfaces/RedemptionRequest.md)
@@ -103,6 +105,7 @@
 - [ethereumNetworkFromSigner](README.md#ethereumnetworkfromsigner)
 - [extractBitcoinRawTxVectors](README.md#extractbitcoinrawtxvectors)
 - [loadEthereumContracts](README.md#loadethereumcontracts)
+- [packRevealDepositParameters](README.md#packrevealdepositparameters)
 - [retryAll](README.md#retryall)
 - [skipRetryWhenMatched](README.md#skipretrywhenmatched)
 - [toBitcoinJsLibNetwork](README.md#tobitcoinjslibnetwork)
@@ -144,7 +147,7 @@ Represents an event emitted on deposit reveal to the on-chain bridge.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:283](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L283)
+[src/lib/contracts/bridge.ts:293](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L293)
 
 ___
 
@@ -233,7 +236,7 @@ Supported Ethereum networks.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L74)
+[src/lib/ethereum/index.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L75)
 
 ___
 
@@ -247,7 +250,7 @@ or a Provider that works only in the read-only mode.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L25)
+[src/lib/ethereum/index.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L26)
 
 ___
 
@@ -285,7 +288,7 @@ Represents an event emitted when new wallet is registered on the on-chain bridge
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:445](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L445)
+[src/lib/contracts/bridge.ts:455](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L455)
 
 ___
 
@@ -356,7 +359,7 @@ Represents an event emitted on redemption request.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:334](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L334)
+[src/lib/contracts/bridge.ts:344](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L344)
 
 ___
 
@@ -407,7 +410,7 @@ Convenience type aggregating all TBTC contracts handles.
 
 #### Defined in
 
-[src/lib/contracts/index.ts:16](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/index.ts#L16)
+[src/lib/contracts/index.ts:17](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/index.ts#L17)
 
 ## Variables
 
@@ -611,7 +614,7 @@ Bitcoin transaction along with the inclusion proof.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L64)
+[src/lib/bitcoin/spv.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L75)
 
 ___
 
@@ -686,7 +689,7 @@ Electrum script hash as a hex string.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:649](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L649)
+[src/lib/electrum/client.ts:667](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L667)
 
 ___
 
@@ -716,7 +719,7 @@ Throws an error if the address of the signer is not a proper
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L61)
+[src/lib/ethereum/index.ts:62](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L62)
 
 ___
 
@@ -740,7 +743,7 @@ Ethereum network.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L32)
+[src/lib/ethereum/index.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L33)
 
 ___
 
@@ -796,7 +799,51 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:85](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L85)
+[src/lib/ethereum/index.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L86)
+
+___
+
+### packRevealDepositParameters
+
+▸ **packRevealDepositParameters**(`depositTx`, `depositOutputIndex`, `deposit`, `vault?`): `Object`
+
+Packs deposit parameters to match the ABI of the revealDeposit and
+revealDepositWithExtraData functions of the Ethereum Bridge contract.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `depositTx` | [`BitcoinRawTxVectors`](interfaces/BitcoinRawTxVectors.md) | Deposit transaction data |
+| `depositOutputIndex` | `number` | Index of the deposit transaction output that funds the revealed deposit |
+| `deposit` | [`DepositReceipt`](interfaces/DepositReceipt.md) | Data of the revealed deposit |
+| `vault?` | [`ChainIdentifier`](interfaces/ChainIdentifier.md) | Optional parameter denoting the vault the given deposit should be routed to |
+
+#### Returns
+
+`Object`
+
+Packed parameters.
+
+| Name | Type |
+| :------ | :------ |
+| `extraData` | `undefined` \| `string` |
+| `fundingTx` | \{ `inputVector`: `string` ; `locktime`: `string` ; `outputVector`: `string` ; `version`: `string`  } |
+| `fundingTx.inputVector` | `string` |
+| `fundingTx.locktime` | `string` |
+| `fundingTx.outputVector` | `string` |
+| `fundingTx.version` | `string` |
+| `reveal` | \{ `blindingFactor`: `string` ; `fundingOutputIndex`: `number` = depositOutputIndex; `refundLocktime`: `string` ; `refundPubKeyHash`: `string` ; `vault`: `string` ; `walletPubKeyHash`: `string`  } |
+| `reveal.blindingFactor` | `string` |
+| `reveal.fundingOutputIndex` | `number` |
+| `reveal.refundLocktime` | `string` |
+| `reveal.refundPubKeyHash` | `string` |
+| `reveal.vault` | `string` |
+| `reveal.walletPubKeyHash` | `string` |
+
+#### Defined in
+
+[src/lib/ethereum/bridge.ts:687](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L687)
 
 ___
 
@@ -957,7 +1004,7 @@ The function should be used within a try-catch block.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:145](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L145)
+[src/lib/bitcoin/spv.ts:180](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L180)
 
 ___
 
@@ -984,4 +1031,4 @@ This function does not validate the depositor's identifier as its
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:228](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L228)
+[src/lib/contracts/bridge.ts:233](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L233)

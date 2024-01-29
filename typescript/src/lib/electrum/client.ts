@@ -638,6 +638,24 @@ export class ElectrumClient implements BitcoinClient {
       })
     })
   }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {BitcoinClient#getCoinbaseTxHash}
+   */
+  getCoinbaseTxHash(blockHeight: number): Promise<BitcoinTxHash> {
+    return this.withElectrum<BitcoinTxHash>(async (electrum: Electrum) => {
+      const txHash = await this.withBackoffRetrier<string>()(async () => {
+        return await electrum.request("blockchain.transaction.id_from_pos", [
+          blockHeight,
+          0,
+          false,
+        ])
+      })
+
+      return BitcoinTxHash.from(txHash)
+    })
+  }
 }
 
 /**
