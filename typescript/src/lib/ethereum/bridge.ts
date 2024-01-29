@@ -40,7 +40,6 @@ import { EthereumAddress } from "./address"
 import { EthereumWalletRegistry } from "./wallet-registry"
 
 import MainnetBridgeDeployment from "./artifacts/mainnet/Bridge.json"
-import GoerliBridgeDeployment from "./artifacts/goerli/Bridge.json"
 import SepoliaBridgeDeployment from "./artifacts/sepolia/Bridge.json"
 import LocalBridgeDeployment from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 
@@ -59,16 +58,13 @@ export class EthereumBridge
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "goerli" | "sepolia" | "mainnet" = "local"
+    deploymentType: "local" | "sepolia" | "mainnet" = "local"
   ) {
     let deployment: EthersContractDeployment
 
     switch (deploymentType) {
       case "local":
         deployment = LocalBridgeDeployment
-        break
-      case "goerli":
-        deployment = GoerliBridgeDeployment
         break
       case "sepolia":
         deployment = SepoliaBridgeDeployment

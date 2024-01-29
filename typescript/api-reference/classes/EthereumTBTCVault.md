@@ -57,7 +57,7 @@ for reference.
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
 
 #### Returns
 
@@ -69,7 +69,7 @@ EthersContractHandle\&lt;TBTCVaultTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L41)
+[src/lib/ethereum/tbtc-vault.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L40)
 
 ## Properties
 
@@ -146,7 +146,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:153](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L153)
+[src/lib/ethereum/tbtc-vault.ts:149](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L149)
 
 ___
 
@@ -173,7 +173,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:176](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L176)
+[src/lib/ethereum/tbtc-vault.ts:172](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L172)
 
 ___
 
@@ -215,7 +215,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L71)
+[src/lib/ethereum/tbtc-vault.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L67)
 
 ___
 
@@ -269,7 +269,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:93](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L93)
+[src/lib/ethereum/tbtc-vault.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L89)
 
 ___
 
@@ -296,7 +296,7 @@ TBTCVault.getOptimisticMintingCancelledEvents
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:271](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L271)
+[src/lib/ethereum/tbtc-vault.ts:267](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L267)
 
 ___
 
@@ -323,7 +323,7 @@ TBTCVault.getOptimisticMintingFinalizedEvents
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:298](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L298)
+[src/lib/ethereum/tbtc-vault.ts:294](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L294)
 
 ___
 
@@ -350,7 +350,7 @@ TBTCVault.getOptimisticMintingRequestedEvents
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:238](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L238)
+[src/lib/ethereum/tbtc-vault.ts:234](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L234)
 
 ___
 
@@ -376,7 +376,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:117](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L117)
+[src/lib/ethereum/tbtc-vault.ts:113](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L113)
 
 ___
 
@@ -402,7 +402,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:107](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L107)
+[src/lib/ethereum/tbtc-vault.ts:103](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L103)
 
 ___
 
@@ -422,7 +422,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:79](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L79)
+[src/lib/ethereum/tbtc-vault.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L75)
 
 ___
 
@@ -449,7 +449,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:202](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L202)
+[src/lib/ethereum/tbtc-vault.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L198)
 
 ___
 
@@ -473,7 +473,7 @@ Parsed optimistic minting request.
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:225](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L225)
+[src/lib/ethereum/tbtc-vault.ts:221](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L221)
 
 ___
 
@@ -500,4 +500,4 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-vault.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L127)
+[src/lib/ethereum/tbtc-vault.ts:123](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-vault.ts#L123)
