@@ -100,9 +100,28 @@ abstract contract DepositorProxy {
         // being called again for the same deposit.
         delete pendingDeposits[depositKey];
 
+        uint256 tbtcAmount = calculateTbtcAmount(
+            deposit.amount,
+            deposit.treasuryFee
+        );
+
+        emit DepositFinalized(
+            depositKey,
+            tbtcAmount,
+            /* solhint-disable-next-line not-rely-on-time */
+            uint32(block.timestamp)
+        );
+
+        onDepositFinalized(depositKey, tbtcAmount, deposit.extraData);
+    }
+
+    function calculateTbtcAmount(
+        uint64 depositAmountSat,
+        uint64 depositTreasuryFeeSat
+    ) internal virtual view returns (uint256) {
         // Both deposit amount and treasury fee are in the 1e8 satoshi precision.
         // We need to convert them to the 1e18 TBTC precision.
-        uint256 amountSubTreasury = (deposit.amount - deposit.treasuryFee) *
+        uint256 amountSubTreasury = (depositAmountSat - depositTreasuryFeeSat) *
                     SATOSHI_MULTIPLIER;
 
         uint256 omFeeDivisor = tbtcVault.optimisticMintingFeeDivisor();
@@ -113,16 +132,7 @@ abstract contract DepositorProxy {
         (,,uint64 depositTxMaxFee,) = bridge.depositParameters();
         uint256 txMaxFee = depositTxMaxFee * SATOSHI_MULTIPLIER;
 
-        uint256 tbtcAmount = amountSubTreasury - omFee - txMaxFee;
-
-        emit DepositFinalized(
-            depositKey,
-            tbtcAmount,
-            /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp)
-        );
-
-        onDepositFinalized(depositKey, tbtcAmount, deposit.extraData);
+        return amountSubTreasury - omFee - txMaxFee;
     }
 
     function onDepositFinalized(
