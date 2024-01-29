@@ -16,6 +16,7 @@
 pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./../bridge/BitcoinTx.sol";
 import "./../bridge/Bridge.sol";
@@ -23,9 +24,8 @@ import "./../bridge/Deposit.sol";
 import "./../vault/TBTCVault.sol";
 import "./../vault/TBTCOptimisticMinting.sol";
 
-// TODO: Make it safe for upgradeable contracts.
 // TODO: Document the contract.
-abstract contract TBTCDepositorProxy {
+abstract contract TBTCDepositorProxy is Initializable {
     using BTCUtils for bytes;
 
     /// @notice Multiplier to convert satoshi to TBTC token units.
@@ -35,6 +35,14 @@ abstract contract TBTCDepositorProxy {
     TBTCVault public tbtcVault;
 
     mapping(uint256 => bool) public pendingDeposits;
+
+    // Reserved storage space that allows adding more variables without affecting
+    // the storage layout of the child contracts. The convention from OpenZeppelin
+    // suggests the storage space should add up to 50 slots. If more variables are
+    // added in the upcoming versions one need to reduce the array size accordingly.
+    // See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    // slither-disable-next-line unused-state
+    uint256[47] private __gap;
 
     event DepositInitialized(
         uint256 indexed depositKey,
@@ -47,7 +55,13 @@ abstract contract TBTCDepositorProxy {
         uint32 finalizedAt
     );
 
-    constructor(address _bridge, address _tbtcVault) {
+    function __TBTCDepositorProxy_initialize(
+        address _bridge,
+        address _tbtcVault
+    ) internal onlyInitializing {
+        require(_bridge != address(0), "Bridge address cannot be zero");
+        require(_tbtcVault != address(0), "TBTCVault address cannot be zero");
+
         bridge = Bridge(_bridge);
         tbtcVault = TBTCVault(_tbtcVault);
     }
