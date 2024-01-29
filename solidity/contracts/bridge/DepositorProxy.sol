@@ -95,7 +95,9 @@ abstract contract DepositorProxy {
 
         // We can safely delete the deposit from the pending deposits mapping.
         // This deposit cannot be initialized again because the bridge does not
-        // allow to reveal the same deposit twice.
+        // allow to reveal the same deposit twice. Deleting the deposit from
+        // the mapping will also prevent the finalizeDeposit function from
+        // being called again for the same deposit.
         delete pendingDeposits[depositKey];
 
         // Both deposit amount and treasury fee are in the 1e8 satoshi precision.
