@@ -17,16 +17,15 @@ pragma solidity 0.8.17;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import "./BitcoinTx.sol";
-import "./Bridge.sol";
-import "./Deposit.sol";
+import "./../bridge/BitcoinTx.sol";
+import "./../bridge/Bridge.sol";
+import "./../bridge/Deposit.sol";
 import "./../vault/TBTCVault.sol";
 import "./../vault/TBTCOptimisticMinting.sol";
 
 // TODO: Make it safe for upgradeable contracts.
 // TODO: Document the contract.
-// TODO: Move to another directory?
-abstract contract DepositorProxy {
+abstract contract TBTCDepositorProxy {
     using BTCUtils for bytes;
 
     /// @notice Multiplier to convert satoshi to TBTC token units.
