@@ -270,12 +270,12 @@ abstract contract TBTCDepositorProxy is Initializable {
     ///      actual amount of TBTC minted for the deposit. This will cause
     ///      some TBTC to be left in the contract and ensure there is enough
     ///      liquidity to finalize the deposit. However, in some rare cases,
-    ///      where the actual values of those fee change between the deposit
+    ///      where the actual values of those fees change between the deposit
     ///      minting and finalization, the tbtcAmount returned by this function
     ///      may be greater than the actual amount of TBTC minted for the deposit.
     ///      If this happens and the reserve coming from previous deposits
     ///      leftovers does not provide enough liquidity, the deposit will have
-    ///      wait for finalization until the reserve is refilled by subsequent
+    ///      to wait for finalization until the reserve is refilled by subsequent
     ///      deposits or a manual top-up. The integrator is responsible for
     ///      handling such cases.
     function calculateTbtcAmount(
