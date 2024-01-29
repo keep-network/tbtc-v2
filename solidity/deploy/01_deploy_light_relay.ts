@@ -6,9 +6,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   function resolveRelayContract() {
-    if (hre.network.name === "goerli") {
-      return "GoerliLightRelay"
-    }
     if (hre.network.name === "sepolia") {
       return "SepoliaLightRelay"
     }

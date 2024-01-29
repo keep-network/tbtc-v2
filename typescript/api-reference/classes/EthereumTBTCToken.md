@@ -49,7 +49,7 @@ for reference.
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
 
 #### Returns
 
@@ -61,7 +61,7 @@ EthersContractHandle\&lt;TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L27)
+[src/lib/ethereum/tbtc-token.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L26)
 
 ## Properties
 
@@ -142,7 +142,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:139](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L139)
+[src/lib/ethereum/tbtc-token.ts:135](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L135)
 
 ___
 
@@ -165,7 +165,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:108](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L108)
+[src/lib/ethereum/tbtc-token.ts:104](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L104)
 
 ___
 
@@ -207,7 +207,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L57)
+[src/lib/ethereum/tbtc-token.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L53)
 
 ___
 
@@ -270,7 +270,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L75)
+[src/lib/ethereum/tbtc-token.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L71)
 
 ___
 
@@ -296,4 +296,4 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:65](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L65)
+[src/lib/ethereum/tbtc-token.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L61)

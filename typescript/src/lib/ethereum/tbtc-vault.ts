@@ -21,7 +21,6 @@ import { EthereumAddress } from "./address"
 import { EthereumBridge } from "./bridge"
 
 import MainnetTBTCVaultDeployment from "./artifacts/mainnet/TBTCVault.json"
-import GoerliTBTCVaultDeployment from "./artifacts/goerli/TBTCVault.json"
 import SepoliaTBTCVaultDeployment from "./artifacts/sepolia/TBTCVault.json"
 import LocalTBTCVaultDeployment from "@keep-network/tbtc-v2/artifacts/TBTCVault.json"
 
@@ -40,16 +39,13 @@ export class EthereumTBTCVault
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "goerli" | "sepolia" | "mainnet" = "local"
+    deploymentType: "local" | "sepolia" | "mainnet" = "local"
   ) {
     let deployment: EthersContractDeployment
 
     switch (deploymentType) {
       case "local":
         deployment = LocalTBTCVaultDeployment
-        break
-      case "goerli":
-        deployment = GoerliTBTCVaultDeployment
         break
       case "sepolia":
         deployment = SepoliaTBTCVaultDeployment
