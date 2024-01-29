@@ -41,7 +41,7 @@ abstract contract DepositorProxy {
 
     event DepositInitialized(
         uint256 indexed depositKey,
-        uint32 initiatedAt
+        uint32 initializedAt
     );
 
     event DepositFinalized(
