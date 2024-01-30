@@ -58,6 +58,11 @@ describe("TBTCDepositorProxy", () => {
     )
     depositorProxy = await TestTBTCDepositorProxy.deploy()
     await depositorProxy.initialize(bridge.address, tbtcVault.address)
+
+    // Assert that contract initializer works as expected.
+    await expect(
+      depositorProxy.initialize(bridge.address, tbtcVault.address)
+    ).to.be.revertedWith("TBTCDepositorProxy already initialized")
   })
 
   describe("initializeDeposit", () => {

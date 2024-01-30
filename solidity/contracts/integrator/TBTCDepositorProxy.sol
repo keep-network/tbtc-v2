@@ -16,7 +16,6 @@
 pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../bridge/BitcoinTx.sol";
 import "../bridge/Deposit.sol";
@@ -38,7 +37,7 @@ import "./ITBTCVault.sol";
 /// @dev Example usage:
 ///      ```
 ///      // Example upgradeable integrator contract.
-///      contract ExampleTBTCIntegrator is TBTCDepositorProxy {
+///      contract ExampleTBTCIntegrator is TBTCDepositorProxy, Initializable {
 ///          /// @custom:oz-upgrades-unsafe-allow constructor
 ///          constructor() {
 ///              // Prevents the contract from being initialized again.
@@ -83,7 +82,7 @@ import "./ITBTCVault.sol";
 ///              // embedded in the extraData.
 ///          }
 ///      }
-abstract contract TBTCDepositorProxy is Initializable {
+abstract contract TBTCDepositorProxy {
     using BTCUtils for bytes;
 
     /// @notice Multiplier to convert satoshi to TBTC token units.
@@ -121,7 +120,12 @@ abstract contract TBTCDepositorProxy is Initializable {
     function __TBTCDepositorProxy_initialize(
         address _bridge,
         address _tbtcVault
-    ) internal onlyInitializing {
+    ) internal {
+        require(
+            address(bridge) == address(0) && address(tbtcVault) == address(0),
+            "TBTCDepositorProxy already initialized"
+        );
+
         require(_bridge != address(0), "Bridge address cannot be zero");
         require(_tbtcVault != address(0), "TBTCVault address cannot be zero");
 

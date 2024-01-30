@@ -18,10 +18,7 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
         bytes32 extraData
     );
 
-    function initialize(address _bridge, address _tbtcVault)
-        external
-        initializer
-    {
+    function initialize(address _bridge, address _tbtcVault) external {
         __TBTCDepositorProxy_initialize(_bridge, _tbtcVault);
     }
 
