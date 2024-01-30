@@ -20,47 +20,9 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 import "../bridge/BitcoinTx.sol";
 import "../bridge/Deposit.sol";
-import "../vault/TBTCOptimisticMinting.sol";
 
-/// @notice Interface of the Bridge contract.
-/// @dev See bridge/Bridge.sol
-interface IBridge {
-    /// @dev See {Bridge#revealDepositWithExtraData}
-    function revealDepositWithExtraData(
-        BitcoinTx.Info calldata fundingTx,
-        Deposit.DepositRevealInfo calldata reveal,
-        bytes32 extraData
-    ) external;
-
-    /// @dev See {Bridge#deposits}
-    function deposits(uint256 depositKey)
-        external
-        view
-        returns (Deposit.DepositRequest memory);
-
-    /// @dev See {Bridge#depositParameters}
-    function depositParameters()
-        external
-        view
-        returns (
-            uint64 depositDustThreshold,
-            uint64 depositTreasuryFeeDivisor,
-            uint64 depositTxMaxFee,
-            uint32 depositRevealAheadPeriod
-        );
-}
-
-/// @notice Interface of the TBTCVault contract.
-/// @dev See vault/TBTCVault.sol
-interface ITBTCVault {
-    /// @dev See {TBTCVault#optimisticMintingRequests}
-    function optimisticMintingRequests(uint256 depositKey)
-        external
-        returns (uint64 requestedAt, uint64 finalizedAt);
-
-    /// @dev See {TBTCVault#optimisticMintingFeeDivisor}
-    function optimisticMintingFeeDivisor() external view returns (uint32);
-}
+import "./IBridge.sol";
+import "./ITBTCVault.sol";
 
 /// @title Abstract TBTCDepositorProxy contract.
 /// @notice This abstract contract is meant to facilitate integration of protocols
