@@ -4,12 +4,9 @@ pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import {TBTCDepositorProxy} from "../integrator/TBTCDepositorProxy.sol";
-import {IBridge} from "../integrator/IBridge.sol";
-import {ITBTCVault} from "../integrator/ITBTCVault.sol";
-
-import "../bridge/BitcoinTx.sol";
-import "../bridge/Deposit.sol";
+import "../integrator/TBTCDepositorProxy.sol";
+import "../integrator/IBridge.sol";
+import "../integrator/ITBTCVault.sol";
 
 contract TestTBTCDepositorProxy is TBTCDepositorProxy {
     event InitializeDepositReturned(uint256 depositKey);
@@ -21,8 +18,8 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
     }
 
     function initializeDepositPublic(
-        BitcoinTx.Info calldata fundingTx,
-        Deposit.DepositRevealInfo calldata reveal,
+        IBridgeTypes.BitcoinTxInfo calldata fundingTx,
+        IBridgeTypes.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) external {
         uint256 depositKey = _initializeDeposit(fundingTx, reveal, extraData);
@@ -45,15 +42,15 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
 contract MockBridge is IBridge {
     using BTCUtils for bytes;
 
-    mapping(uint256 => Deposit.DepositRequest) internal _deposits;
+    mapping(uint256 => IBridgeTypes.DepositRequest) internal _deposits;
 
     uint64 internal _depositTxMaxFee = 1 * 1e7; // 0.1 BTC
 
     event DepositRevealed(uint256 depositKey);
 
     function revealDepositWithExtraData(
-        BitcoinTx.Info calldata fundingTx,
-        Deposit.DepositRevealInfo calldata reveal,
+        IBridgeTypes.BitcoinTxInfo calldata fundingTx,
+        IBridgeTypes.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) external {
         bytes32 fundingTxHash = abi
@@ -76,7 +73,7 @@ contract MockBridge is IBridge {
             "Deposit already revealed"
         );
 
-        Deposit.DepositRequest memory request;
+        IBridgeTypes.DepositRequest memory request;
 
         request.depositor = msg.sender;
         request.amount = uint64(10 * 1e8); // 10 BTC
@@ -102,7 +99,7 @@ contract MockBridge is IBridge {
     function deposits(uint256 depositKey)
         external
         view
-        returns (Deposit.DepositRequest memory)
+        returns (IBridgeTypes.DepositRequest memory)
     {
         return _deposits[depositKey];
     }

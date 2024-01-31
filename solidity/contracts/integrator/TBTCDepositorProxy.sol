@@ -17,9 +17,6 @@ pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import "../bridge/BitcoinTx.sol";
-import "../bridge/Deposit.sol";
-
 import "./IBridge.sol";
 import "./ITBTCVault.sol";
 
@@ -51,8 +48,8 @@ import "./ITBTCVault.sol";
 ///          }
 ///
 ///          function startProcess(
-///              BitcoinTx.Info calldata fundingTx,
-///              Deposit.DepositRevealInfo calldata reveal
+///              IBridgeTypes.BitcoinTxInfo calldata fundingTx,
+///              IBridgeTypes.DepositRevealInfo calldata reveal
 ///          ) external {
 ///              // Embed necessary context as extra data.
 ///              bytes32 extraData = ...;
@@ -125,8 +122,8 @@ abstract contract TBTCDepositorProxy {
     }
 
     /// @notice Initializes a deposit by revealing it to the Bridge.
-    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
-    /// @param reveal Deposit reveal data, see `Deposit.DepositRevealInfo` struct.
+    /// @param fundingTx Bitcoin funding transaction data, see `IBridgeTypes.BitcoinTxInfo`.
+    /// @param reveal Deposit reveal data, see `IBridgeTypes.DepositRevealInfo` struct.
     /// @param extraData 32-byte deposit extra data.
     /// @return depositKey Deposit key computed as
     ///         `keccak256(fundingTxHash | reveal.fundingOutputIndex)`. This
@@ -138,8 +135,8 @@ abstract contract TBTCDepositorProxy {
     ///        function must be met.
     // slither-disable-next-line dead-code
     function _initializeDeposit(
-        BitcoinTx.Info calldata fundingTx,
-        Deposit.DepositRevealInfo calldata reveal,
+        IBridgeTypes.BitcoinTxInfo calldata fundingTx,
+        IBridgeTypes.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) internal returns (uint256) {
         require(reveal.vault == address(tbtcVault), "Vault address mismatch");
@@ -187,7 +184,9 @@ abstract contract TBTCDepositorProxy {
     {
         require(pendingDeposits[depositKey], "Deposit not initialized");
 
-        Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
+        IBridgeTypes.DepositRequest memory deposit = bridge.deposits(
+            depositKey
+        );
         (, uint64 finalizedAt) = tbtcVault.optimisticMintingRequests(
             depositKey
         );
@@ -289,10 +288,10 @@ abstract contract TBTCDepositorProxy {
 
     /// @notice Calculates the Bitcoin transaction hash for the given Bitcoin
     ///         transaction data.
-    /// @param txInfo Bitcoin transaction data, see `BitcoinTx.Info` struct.
+    /// @param txInfo Bitcoin transaction data, see `IBridgeTypes.BitcoinTxInfo` struct.
     /// @return txHash Bitcoin transaction hash.
     // slither-disable-next-line dead-code
-    function _calculateBitcoinTxHash(BitcoinTx.Info calldata txInfo)
+    function _calculateBitcoinTxHash(IBridgeTypes.BitcoinTxInfo calldata txInfo)
         internal
         view
         returns (bytes32)
