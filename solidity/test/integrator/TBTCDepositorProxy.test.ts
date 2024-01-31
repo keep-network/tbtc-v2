@@ -65,7 +65,7 @@ describe("TBTCDepositorProxy", () => {
     ).to.be.revertedWith("TBTCDepositorProxy already initialized")
   })
 
-  describe("initializeDeposit", () => {
+  describe("_initializeDeposit", () => {
     context("when revealed vault does not match", () => {
       it("should revert", async () => {
         // Load the fixture with a different vault address.
@@ -153,7 +153,7 @@ describe("TBTCDepositorProxy", () => {
     })
   })
 
-  describe("finalizeDeposit", () => {
+  describe("_finalizeDeposit", () => {
     context("when deposit is not initialized", () => {
       it("should revert", async () => {
         await expect(
@@ -214,10 +214,10 @@ describe("TBTCDepositorProxy", () => {
       context("when deposit is finalized by the Bridge", () => {
         // The expected tbtcAmount is calculated as follows:
         //
-        // - Deposited amount = 10 BTC (hardcoded in MockBridge)
+        // - Deposit amount = 10 BTC (hardcoded in MockBridge)
         // - Treasury fee = 1 BTC (hardcoded in MockBridge)
-        // - Optimistic minting fee = 1%  (hardcoded in MockTBTCVault)
-        // - Transaction max fee = 0.1 BTC (hardcoded in MockBridge)
+        // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
+        // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
         //
         // ((10 BTC - 1 BTC) * 0.99) - 0.1 BTC = 8.81 BTC = 8.81 * 1e8 sat = 8.81 * 1e18 TBTC
         const expectedTbtcAmount = to1ePrecision(881, 16).toString()
@@ -308,6 +308,165 @@ describe("TBTCDepositorProxy", () => {
               .to.emit(depositorProxy, "FinalizeDepositReturned")
               .withArgs(expectedTbtcAmount, fixture.extraData)
           })
+        })
+      })
+    })
+  })
+
+  describe("_calculateTbtcAmount", () => {
+    context("when all fees are non-zero", () => {
+      it("should return the correct amount", async () => {
+        const depositAmount = to1ePrecision(10, 8) // 10 BTC
+        const treasuryFee = to1ePrecision(1, 8) // 1 BTC
+
+        // The expected tbtcAmount is calculated as follows:
+        //
+        // - Deposit amount = 10 BTC
+        // - Treasury fee = 1 BTC
+        // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
+        // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+        //
+        // ((10 BTC - 1 BTC) * 0.99) - 0.1 BTC = 8.81 BTC = 8.81 * 1e8 sat = 8.81 * 1e18 TBTC
+        const expectedTbtcAmount = to1ePrecision(881, 16)
+
+        expect(
+          await depositorProxy.calculateTbtcAmountPublic(
+            depositAmount,
+            treasuryFee
+          )
+        ).to.equal(expectedTbtcAmount)
+      })
+    })
+
+    context("when all fees are zero", () => {
+      before(async () => {
+        await createSnapshot()
+
+        // Set the transaction max fee to 0.
+        await bridge.setDepositTxMaxFee(0)
+        // Set the optimistic minting fee to 0%.
+        await tbtcVault.setOptimisticMintingFeeDivisor(0)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      it("should return the correct amount", async () => {
+        const depositAmount = to1ePrecision(10, 8) // 10 BTC
+        const treasuryFee = BigNumber.from(0)
+
+        // The expected tbtcAmount is calculated as follows:
+        //
+        // - Deposit amount = 10 BTC
+        // - Treasury fee = 0 BTC
+        // - Optimistic minting fee = 0%  (set in MockTBTCVault)
+        // - Transaction max fee = 0 BTC (set in MockBridge)
+        //
+        // ((10 BTC - 0 BTC) * 1) - 0 BTC = 10 BTC = 10 * 1e18 TBTC
+        const expectedTbtcAmount = to1ePrecision(10, 18)
+
+        expect(
+          await depositorProxy.calculateTbtcAmountPublic(
+            depositAmount,
+            treasuryFee
+          )
+        ).to.equal(expectedTbtcAmount)
+      })
+    })
+
+    context("when one of the fees is zero", () => {
+      context("when treasury fee is zero", () => {
+        it("should return the correct amount", async () => {
+          const depositAmount = to1ePrecision(10, 8) // 10 BTC
+          const treasuryFee = BigNumber.from(0)
+
+          // The expected tbtcAmount is calculated as follows:
+          //
+          // - Deposit amount = 10 BTC
+          // - Treasury fee = 0 BTC
+          // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
+          // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+          //
+          // ((10 BTC - 0 BTC) * 0.99) - 0.1 BTC = 9.8 BTC = 9.8 * 1e8 sat = 9.8 * 1e18 TBTC
+          const expectedTbtcAmount = to1ePrecision(98, 17)
+
+          expect(
+            await depositorProxy.calculateTbtcAmountPublic(
+              depositAmount,
+              treasuryFee
+            )
+          ).to.equal(expectedTbtcAmount)
+        })
+      })
+
+      context("when optimistic minting fee is zero", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set the optimistic minting fee to 0%.
+          await tbtcVault.setOptimisticMintingFeeDivisor(0)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should return the correct amount", async () => {
+          const depositAmount = to1ePrecision(10, 8) // 10 BTC
+          const treasuryFee = to1ePrecision(1, 8) // 1 BTC
+
+          // The expected tbtcAmount is calculated as follows:
+          //
+          // - Deposit amount = 10 BTC
+          // - Treasury fee = 1 BTC
+          // - Optimistic minting fee = 0%  (set in MockTBTCVault)
+          // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+          //
+          // ((10 BTC - 1 BTC) * 1) - 0.1 BTC = 8.9 BTC = 8.9 * 1e8 sat = 8.9 * 1e18 TBTC
+          const expectedTbtcAmount = to1ePrecision(89, 17)
+
+          expect(
+            await depositorProxy.calculateTbtcAmountPublic(
+              depositAmount,
+              treasuryFee
+            )
+          ).to.equal(expectedTbtcAmount)
+        })
+      })
+
+      context("when transaction max fee is zero", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set the transaction max fee to 0.
+          await bridge.setDepositTxMaxFee(0)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should return the correct amount", async () => {
+          const depositAmount = to1ePrecision(10, 8) // 10 BTC
+          const treasuryFee = to1ePrecision(1, 8) // 1 BTC
+
+          // The expected tbtcAmount is calculated as follows:
+          //
+          // - Deposit amount = 10 BTC
+          // - Treasury fee = 1 BTC
+          // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
+          // - Transaction max fee = 0 BTC (set in MockBridge)
+          //
+          // ((10 BTC - 1 BTC) * 0.99) - 0 BTC = 8.91 BTC = 8.91 * 1e8 sat = 8.91 * 1e18 TBTC
+          const expectedTbtcAmount = to1ePrecision(891, 16)
+
+          expect(
+            await depositorProxy.calculateTbtcAmountPublic(
+              depositAmount,
+              treasuryFee
+            )
+          ).to.equal(expectedTbtcAmount)
         })
       })
     })

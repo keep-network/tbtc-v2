@@ -33,6 +33,13 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
         (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
         emit FinalizeDepositReturned(tbtcAmount, extraData);
     }
+
+    function calculateTbtcAmountPublic(
+        uint64 depositAmountSat,
+        uint64 depositTreasuryFeeSat
+    ) external view returns (uint256) {
+        return _calculateTbtcAmount(depositAmountSat, depositTreasuryFeeSat);
+    }
 }
 
 contract MockBridge is IBridge {
@@ -115,6 +122,10 @@ contract MockBridge is IBridge {
         depositTxMaxFee = _depositTxMaxFee;
         depositRevealAheadPeriod = 0;
     }
+
+    function setDepositTxMaxFee(uint64 value) external {
+        _depositTxMaxFee = value;
+    }
 }
 
 contract MockTBTCVault is ITBTCVault {
@@ -155,5 +166,9 @@ contract MockTBTCVault is ITBTCVault {
         );
         /* solhint-disable-next-line not-rely-on-time */
         _requests[depositKey].finalizedAt = uint64(block.timestamp);
+    }
+
+    function setOptimisticMintingFeeDivisor(uint32 value) external {
+        optimisticMintingFeeDivisor = value;
     }
 }
