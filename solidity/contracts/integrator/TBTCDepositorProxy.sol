@@ -29,9 +29,8 @@ import "./ITBTCVault.sol";
 ///
 ///         Such an integrator is supposed to:
 ///         - Create a child contract inheriting from this abstract contract
-///         - Implement the `onDepositFinalized`abstract function
 ///         - Call the `__TBTCDepositorProxy_initialize` initializer function
-///         - Use the `initializeDeposit` and `finalizeDeposit` as part of their
+///         - Use the `_initializeDeposit` and `_finalizeDeposit` as part of their
 ///           business logic in order to initialize and finalize deposits.
 ///
 /// @dev Example usage:
@@ -58,7 +57,7 @@ import "./ITBTCVault.sol";
 ///              // Embed necessary context as extra data.
 ///              bytes32 extraData = ...;
 ///
-///              uint256 depositKey = initializeDeposit(
+///              uint256 depositKey = _initializeDeposit(
 ///                  fundingTx,
 ///                  reveal,
 ///                  extraData
@@ -68,16 +67,8 @@ import "./ITBTCVault.sol";
 ///          }
 ///
 ///          function finalizeProcess(uint256 depositKey) external {
-///              // Finalize the deposit. This call will invoke the
-///              // `onDepositFinalized` function.
-///              finalizeDeposit(depositKey);
-///          }
+///              (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
 ///
-///          function onDepositFinalized(
-///              uint256 depositKey,
-///              uint256 tbtcAmount,
-///              bytes32 extraData
-///          ) internal override {
 ///              // Do something with the minted TBTC using context
 ///              // embedded in the extraData.
 ///          }
@@ -146,15 +137,15 @@ abstract contract TBTCDepositorProxy {
     ///      - All requirements from {Bridge#revealDepositWithExtraData}
     ///        function must be met.
     // slither-disable-next-line dead-code
-    function initializeDeposit(
+    function _initializeDeposit(
         BitcoinTx.Info calldata fundingTx,
         Deposit.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) internal returns (uint256) {
         require(reveal.vault == address(tbtcVault), "Vault address mismatch");
 
-        uint256 depositKey = calculateDepositKey(
-            calculateBitcoinTxHash(fundingTx),
+        uint256 depositKey = _calculateDepositKey(
+            _calculateBitcoinTxHash(fundingTx),
             reveal.fundingOutputIndex
         );
 
@@ -179,13 +170,21 @@ abstract contract TBTCDepositorProxy {
     ///         for the deposit and calling the `onDepositFinalized` callback
     ///         function.
     /// @param depositKey Deposit key identifying the deposit.
+    /// @return tbtcAmount Approximate amount of TBTC minted for the deposit.
+    /// @return extraData 32-byte deposit extra data.
     /// @dev Requirements:
     ///      - The deposit must be initialized but not finalized
     ///        (in the context of this contract) yet.
     ///      - The deposit must be finalized on the Bridge side. That means the
     ///        deposit must be either swept or optimistically minted.
+    /// @dev IMPORTANT NOTE: The tbtcAmount returned by this function is an
+    ///      approximation. See documentation of the `calculateTbtcAmount`
+    ///      responsible for calculating this value for more details.
     // slither-disable-next-line dead-code
-    function finalizeDeposit(uint256 depositKey) internal {
+    function _finalizeDeposit(uint256 depositKey)
+        internal
+        returns (uint256 tbtcAmount, bytes32 extraData)
+    {
         require(pendingDeposits[depositKey], "Deposit not initialized");
 
         Deposit.DepositRequest memory deposit = bridge.deposits(depositKey);
@@ -206,10 +205,7 @@ abstract contract TBTCDepositorProxy {
         // slither-disable-next-line reentrancy-no-eth
         delete pendingDeposits[depositKey];
 
-        uint256 tbtcAmount = calculateTbtcAmount(
-            deposit.amount,
-            deposit.treasuryFee
-        );
+        tbtcAmount = _calculateTbtcAmount(deposit.amount, deposit.treasuryFee);
 
         // slither-disable-next-line reentrancy-events
         emit DepositFinalized(
@@ -219,7 +215,7 @@ abstract contract TBTCDepositorProxy {
             uint32(block.timestamp)
         );
 
-        onDepositFinalized(depositKey, tbtcAmount, deposit.extraData);
+        extraData = deposit.extraData;
     }
 
     /// @notice Calculates the amount of TBTC minted for the deposit.
@@ -250,7 +246,7 @@ abstract contract TBTCDepositorProxy {
     ///      deposits or a manual top-up. The integrator is responsible for
     ///      handling such cases.
     // slither-disable-next-line dead-code
-    function calculateTbtcAmount(
+    function _calculateTbtcAmount(
         uint64 depositAmountSat,
         uint64 depositTreasuryFeeSat
     ) internal view virtual returns (uint256) {
@@ -272,23 +268,6 @@ abstract contract TBTCDepositorProxy {
         return amountSubTreasury - omFee - txMaxFee;
     }
 
-    /// @notice Callback function called when a deposit is finalized.
-    /// @param depositKey Deposit key identifying the deposit.
-    /// @param tbtcAmount Approximate amount of TBTC minted for the deposit.
-    /// @param extraData 32-byte deposit extra data.
-    /// @dev This function is called by the `finalizeDeposit` function.
-    ///      The integrator is supposed to implement this function according
-    ///      to their business logic.
-    /// @dev IMPORTANT NOTE: The tbtcAmount passed to this function is an
-    ///      approximation. See documentation of the `calculateTbtcAmount`
-    ///      responsible for calculating this value for more details.
-    // slither-disable-next-line unimplemented-functions
-    function onDepositFinalized(
-        uint256 depositKey,
-        uint256 tbtcAmount,
-        bytes32 extraData
-    ) internal virtual;
-
     /// @notice Calculates the deposit key for the given funding transaction
     ///         hash and funding output index.
     /// @param fundingTxHash Funding transaction hash.
@@ -298,7 +277,7 @@ abstract contract TBTCDepositorProxy {
     ///         key can be used to refer to the deposit in the Bridge and
     ///         TBTCVault contracts.
     // slither-disable-next-line dead-code
-    function calculateDepositKey(
+    function _calculateDepositKey(
         bytes32 fundingTxHash,
         uint32 fundingOutputIndex
     ) internal pure returns (uint256) {
@@ -313,7 +292,7 @@ abstract contract TBTCDepositorProxy {
     /// @param txInfo Bitcoin transaction data, see `BitcoinTx.Info` struct.
     /// @return txHash Bitcoin transaction hash.
     // slither-disable-next-line dead-code
-    function calculateBitcoinTxHash(BitcoinTx.Info calldata txInfo)
+    function _calculateBitcoinTxHash(BitcoinTx.Info calldata txInfo)
         internal
         view
         returns (bytes32)

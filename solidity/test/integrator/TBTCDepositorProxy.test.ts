@@ -143,6 +143,12 @@ describe("TBTCDepositorProxy", () => {
             .to.emit(depositorProxy, "DepositInitialized")
             .withArgs(fixture.expectedDepositKey, await lastBlockTime())
         })
+
+        it("should return proper values", async () => {
+          await expect(tx)
+            .to.emit(depositorProxy, "InitializeDepositReturned")
+            .withArgs(fixture.expectedDepositKey)
+        })
       })
     })
   })
@@ -250,14 +256,10 @@ describe("TBTCDepositorProxy", () => {
               )
           })
 
-          it("should call onDepositFinalized with proper params", async () => {
+          it("should return proper values", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "OnDepositFinalizedCalled")
-              .withArgs(
-                fixture.expectedDepositKey,
-                expectedTbtcAmount,
-                fixture.extraData
-              )
+              .to.emit(depositorProxy, "FinalizeDepositReturned")
+              .withArgs(expectedTbtcAmount, fixture.extraData)
           })
         })
 
@@ -301,14 +303,10 @@ describe("TBTCDepositorProxy", () => {
               )
           })
 
-          it("should call onDepositFinalized with proper params", async () => {
+          it("should return proper values", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "OnDepositFinalizedCalled")
-              .withArgs(
-                fixture.expectedDepositKey,
-                expectedTbtcAmount,
-                fixture.extraData
-              )
+              .to.emit(depositorProxy, "FinalizeDepositReturned")
+              .withArgs(expectedTbtcAmount, fixture.extraData)
           })
         })
       })

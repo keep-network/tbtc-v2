@@ -12,11 +12,9 @@ import "../bridge/BitcoinTx.sol";
 import "../bridge/Deposit.sol";
 
 contract TestTBTCDepositorProxy is TBTCDepositorProxy {
-    event OnDepositFinalizedCalled(
-        uint256 depositKey,
-        uint256 tbtcAmount,
-        bytes32 extraData
-    );
+    event InitializeDepositReturned(uint256 depositKey);
+
+    event FinalizeDepositReturned(uint256 tbtcAmount, bytes32 extraData);
 
     function initialize(address _bridge, address _tbtcVault) external {
         __TBTCDepositorProxy_initialize(_bridge, _tbtcVault);
@@ -27,19 +25,13 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
         Deposit.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) external {
-        initializeDeposit(fundingTx, reveal, extraData);
+        uint256 depositKey = _initializeDeposit(fundingTx, reveal, extraData);
+        emit InitializeDepositReturned(depositKey);
     }
 
     function finalizeDepositPublic(uint256 depositKey) external {
-        finalizeDeposit(depositKey);
-    }
-
-    function onDepositFinalized(
-        uint256 depositKey,
-        uint256 tbtcAmount,
-        bytes32 extraData
-    ) internal override {
-        emit OnDepositFinalizedCalled(depositKey, tbtcAmount, extraData);
+        (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
+        emit FinalizeDepositReturned(tbtcAmount, extraData);
     }
 }
 
