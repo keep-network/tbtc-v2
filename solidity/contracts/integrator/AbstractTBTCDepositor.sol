@@ -20,20 +20,20 @@ import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import "./IBridge.sol";
 import "./ITBTCVault.sol";
 
-/// @title Abstract TBTCDepositorProxy contract.
+/// @title Abstract AbstractTBTCDepositor contract.
 /// @notice This abstract contract is meant to facilitate integration of protocols
 ///         aiming to use tBTC as an underlying Bitcoin bridge.
 ///
 ///         Such an integrator is supposed to:
 ///         - Create a child contract inheriting from this abstract contract
-///         - Call the `__TBTCDepositorProxy_initialize` initializer function
+///         - Call the `__AbstractTBTCDepositor_initialize` initializer function
 ///         - Use the `_initializeDeposit` and `_finalizeDeposit` as part of their
 ///           business logic in order to initialize and finalize deposits.
 ///
 /// @dev Example usage:
 ///      ```
 ///      // Example upgradeable integrator contract.
-///      contract ExampleTBTCIntegrator is TBTCDepositorProxy, Initializable {
+///      contract ExampleTBTCIntegrator is AbstractTBTCDepositor, Initializable {
 ///          /// @custom:oz-upgrades-unsafe-allow constructor
 ///          constructor() {
 ///              // Prevents the contract from being initialized again.
@@ -44,7 +44,7 @@ import "./ITBTCVault.sol";
 ///              address _bridge,
 ///              address _tbtcVault
 ///          ) external initializer {
-///              __TBTCDepositorProxy_initialize(_bridge, _tbtcVault);
+///              __AbstractTBTCDepositor_initialize(_bridge, _tbtcVault);
 ///          }
 ///
 ///          function startProcess(
@@ -74,7 +74,7 @@ import "./ITBTCVault.sol";
 ///              // embedded in the extraData.
 ///          }
 ///      }
-abstract contract TBTCDepositorProxy {
+abstract contract AbstractTBTCDepositor {
     using BTCUtils for bytes;
 
     /// @notice Multiplier to convert satoshi to TBTC token units.
@@ -109,13 +109,13 @@ abstract contract TBTCDepositorProxy {
     /// @notice Initializes the contract. MUST BE CALLED from the child
     ///         contract initializer.
     // slither-disable-next-line dead-code
-    function __TBTCDepositorProxy_initialize(
+    function __AbstractTBTCDepositor_initialize(
         address _bridge,
         address _tbtcVault
     ) internal {
         require(
             address(bridge) == address(0) && address(tbtcVault) == address(0),
-            "TBTCDepositorProxy already initialized"
+            "AbstractTBTCDepositor already initialized"
         );
 
         require(_bridge != address(0), "Bridge address cannot be zero");
@@ -168,8 +168,7 @@ abstract contract TBTCDepositorProxy {
     }
 
     /// @notice Finalizes a deposit by calculating the amount of TBTC minted
-    ///         for the deposit and calling the `onDepositFinalized` callback
-    ///         function.
+    ///         for the deposit
     /// @param depositKey Deposit key identifying the deposit.
     /// @return initialDepositAmount Amount of funding transaction deposit. In
     ///         TBTC token decimals precision.
@@ -243,7 +242,7 @@ abstract contract TBTCDepositorProxy {
     ///      Although the treasury fee cut upon minting is known precisely,
     ///      this is not the case for the optimistic minting fee and the Bitcoin
     ///      transaction fee. To overcome that problem, this function just takes
-    ///      the current maximum values of both fees, at the moment of deposit
+    ///      the current maximum allowed values of both fees, at the moment of deposit
     ///      finalization. For the great majority of the deposits, such an
     ///      algorithm will return a tbtcAmount slightly lesser than the
     ///      actual amount of TBTC minted for the deposit. This will cause
