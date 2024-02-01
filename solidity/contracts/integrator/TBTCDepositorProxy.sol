@@ -64,7 +64,11 @@ import "./ITBTCVault.sol";
 ///          }
 ///
 ///          function finalizeProcess(uint256 depositKey) external {
-///              (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
+///              (
+///                  uint256 initialDepositAmount,
+///                  uint256 tbtcAmount,
+///                  bytes32 extraData
+///              ) = _finalizeDeposit(depositKey);
 ///
 ///              // Do something with the minted TBTC using context
 ///              // embedded in the extraData.
