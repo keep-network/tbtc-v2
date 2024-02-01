@@ -164,8 +164,7 @@ abstract contract TBTCDepositorProxy {
     }
 
     /// @notice Finalizes a deposit by calculating the amount of TBTC minted
-    ///         for the deposit and calling the `onDepositFinalized` callback
-    ///         function.
+    ///         for the deposit
     /// @param depositKey Deposit key identifying the deposit.
     /// @return tbtcAmount Approximate amount of TBTC minted for the deposit.
     /// @return extraData 32-byte deposit extra data.
