@@ -89,7 +89,7 @@ contract MockBridge is IBridge {
         emit DepositRevealed(depositKey);
     }
 
-    function sweepDeposit(uint256 depositKey) external {
+    function sweepDeposit(uint256 depositKey) public {
         require(_deposits[depositKey].revealedAt != 0, "Deposit not revealed");
         require(_deposits[depositKey].sweptAt == 0, "Deposit already swept");
         /* solhint-disable-next-line not-rely-on-time */
@@ -152,7 +152,7 @@ contract MockTBTCVault is ITBTCVault {
         _requests[depositKey].requestedAt = uint64(block.timestamp);
     }
 
-    function finalizeOptimisticMintingRequest(uint256 depositKey) external {
+    function finalizeOptimisticMintingRequest(uint256 depositKey) public {
         require(
             _requests[depositKey].requestedAt != 0,
             "Request does not exist"
