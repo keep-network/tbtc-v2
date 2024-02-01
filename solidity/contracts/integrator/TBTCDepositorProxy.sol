@@ -167,7 +167,10 @@ abstract contract TBTCDepositorProxy {
     ///         for the deposit and calling the `onDepositFinalized` callback
     ///         function.
     /// @param depositKey Deposit key identifying the deposit.
-    /// @return tbtcAmount Approximate amount of TBTC minted for the deposit.
+    /// @return initialDepositAmount Amount of funding transaction deposit. In
+    ///         TBTC token decimals precision.
+    /// @return tbtcAmount Approximate amount of TBTC minted for the deposit. In
+    ///         TBTC token decimals precision.
     /// @return extraData 32-byte deposit extra data.
     /// @dev Requirements:
     ///      - The deposit must be initialized but not finalized
@@ -178,9 +181,15 @@ abstract contract TBTCDepositorProxy {
     ///      approximation. See documentation of the `calculateTbtcAmount`
     ///      responsible for calculating this value for more details.
     // slither-disable-next-line dead-code
-    function _finalizeDeposit(uint256 depositKey)
+    function _finalizeDeposit(
+        uint256 depositKey
+    )
         internal
-        returns (uint256 tbtcAmount, bytes32 extraData)
+        returns (
+            uint256 initialDepositAmount,
+            uint256 tbtcAmount,
+            bytes32 extraData
+        )
     {
         require(pendingDeposits[depositKey], "Deposit not initialized");
 
@@ -203,6 +212,8 @@ abstract contract TBTCDepositorProxy {
         // being called again for the same deposit.
         // slither-disable-next-line reentrancy-no-eth
         delete pendingDeposits[depositKey];
+
+        initialDepositAmount = deposit.amount * SATOSHI_MULTIPLIER;
 
         tbtcAmount = _calculateTbtcAmount(deposit.amount, deposit.treasuryFee);
 
