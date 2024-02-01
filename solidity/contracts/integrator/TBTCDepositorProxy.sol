@@ -181,9 +181,7 @@ abstract contract TBTCDepositorProxy {
     ///      approximation. See documentation of the `calculateTbtcAmount`
     ///      responsible for calculating this value for more details.
     // slither-disable-next-line dead-code
-    function _finalizeDeposit(
-        uint256 depositKey
-    )
+    function _finalizeDeposit(uint256 depositKey)
         internal
         returns (
             uint256 initialDepositAmount,

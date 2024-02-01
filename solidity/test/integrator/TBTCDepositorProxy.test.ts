@@ -323,17 +323,17 @@ describe("TBTCDepositorProxy", () => {
   })
 
   describe("_calculateTbtcAmount", () => {
-      before(async () => {
-        await createSnapshot()
-            
-        // Set the transaction max fee to 0.1 BTC.
-        await bridge.setDepositTxMaxFee(10000000)
-      })
+    before(async () => {
+      await createSnapshot()
 
-      after(async () => {
-        await restoreSnapshot()
-      })
-    
+      // Set the transaction max fee to 0.1 BTC.
+      await bridge.setDepositTxMaxFee(10000000)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when all fees are non-zero", () => {
       it("should return the correct amount", async () => {
         const depositAmount = to1ePrecision(10, 8) // 10 BTC
