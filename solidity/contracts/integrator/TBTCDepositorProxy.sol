@@ -229,7 +229,7 @@ abstract contract TBTCDepositorProxy {
     ///      Although the treasury fee cut upon minting is known precisely,
     ///      this is not the case for the optimistic minting fee and the Bitcoin
     ///      transaction fee. To overcome that problem, this function just takes
-    ///      the current maximum values of both fees, at the moment of deposit
+    ///      the current maximum allowed values of both fees, at the moment of deposit
     ///      finalization. For the great majority of the deposits, such an
     ///      algorithm will return a tbtcAmount slightly lesser than the
     ///      actual amount of TBTC minted for the deposit. This will cause
