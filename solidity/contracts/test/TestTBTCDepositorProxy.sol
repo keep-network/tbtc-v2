@@ -44,6 +44,7 @@ contract MockBridge is IBridge {
 
     mapping(uint256 => IBridgeTypes.DepositRequest) internal _deposits;
 
+    uint64 internal _depositTreasuryFeeDivisor = 100; // 1/100 == 100 bps == 1% == 0.01
     uint64 internal _depositTxMaxFee = 1 * 1e7; // 0.1 BTC
 
     event DepositRevealed(uint256 depositKey);
@@ -80,7 +81,9 @@ contract MockBridge is IBridge {
         /* solhint-disable-next-line not-rely-on-time */
         request.revealedAt = uint32(block.timestamp);
         request.vault = reveal.vault;
-        request.treasuryFee = uint64(1 * 1e8); // 1 BTC
+        request.treasuryFee = _depositTreasuryFeeDivisor > 0
+            ? fundingOutputAmount / _depositTreasuryFeeDivisor
+            : 0;
         request.sweptAt = 0;
         request.extraData = extraData;
 
@@ -118,6 +121,10 @@ contract MockBridge is IBridge {
         depositTreasuryFeeDivisor = 0;
         depositTxMaxFee = _depositTxMaxFee;
         depositRevealAheadPeriod = 0;
+    }
+
+    function setDepositTreasuryFeeDivisor(uint64 value) external {
+        _depositTreasuryFeeDivisor = value;
     }
 
     function setDepositTxMaxFee(uint64 value) external {
