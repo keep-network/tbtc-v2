@@ -56,8 +56,8 @@ contract MockBridge is IBridge {
 
     mapping(uint256 => IBridgeTypes.DepositRequest) internal _deposits;
 
-    uint64 internal _depositTreasuryFeeDivisor = 100; // 1/100 == 100 bps == 1% == 0.01
-    uint64 internal _depositTxMaxFee = 1 * 1e7; // 0.1 BTC
+    uint64 internal _depositTreasuryFeeDivisor = 50; // 1/50 == 100 bps == 2% == 0.02
+    uint64 internal _depositTxMaxFee = 1000; // 1000 satoshi = 0.00001 BTC
 
     event DepositRevealed(uint256 depositKey);
 
