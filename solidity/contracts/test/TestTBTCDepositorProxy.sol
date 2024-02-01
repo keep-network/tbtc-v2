@@ -74,10 +74,16 @@ contract MockBridge is IBridge {
             "Deposit already revealed"
         );
 
+        bytes memory fundingOutput = fundingTx
+            .outputVector
+            .extractOutputAtIndex(reveal.fundingOutputIndex);
+
+        uint64 fundingOutputAmount = fundingOutput.extractValue();
+
         IBridgeTypes.DepositRequest memory request;
 
         request.depositor = msg.sender;
-        request.amount = uint64(10 * 1e8); // 10 BTC
+        request.amount = fundingOutputAmount;
         /* solhint-disable-next-line not-rely-on-time */
         request.revealedAt = uint32(block.timestamp);
         request.vault = reveal.vault;
