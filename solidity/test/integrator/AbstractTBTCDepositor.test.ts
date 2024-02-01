@@ -4,7 +4,7 @@ import { BigNumber, ContractTransaction } from "ethers"
 import type {
   MockBridge,
   MockTBTCVault,
-  TestTBTCDepositorProxy,
+  TestTBTCDepositor,
 } from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
@@ -37,10 +37,10 @@ const loadFixture = (vault: string) => ({
     "0xebff13c2304229ab4a97bfbfabeac82c9c0704e4aae2acf022252ac8dc1101d1",
 })
 
-describe("TBTCDepositorProxy", () => {
+describe("AbstractTBTCDepositor", () => {
   let bridge: MockBridge
   let tbtcVault: MockTBTCVault
-  let depositorProxy: TestTBTCDepositorProxy
+  let depositor: TestTBTCDepositor
 
   let fixture
 
@@ -53,16 +53,16 @@ describe("TBTCDepositorProxy", () => {
 
     fixture = loadFixture(tbtcVault.address)
 
-    const TestTBTCDepositorProxy = await ethers.getContractFactory(
-      "TestTBTCDepositorProxy"
+    const TestTBTCDepositor = await ethers.getContractFactory(
+      "TestTBTCDepositor"
     )
-    depositorProxy = await TestTBTCDepositorProxy.deploy()
-    await depositorProxy.initialize(bridge.address, tbtcVault.address)
+    depositor = await TestTBTCDepositor.deploy()
+    await depositor.initialize(bridge.address, tbtcVault.address)
 
     // Assert that contract initializer works as expected.
     await expect(
-      depositorProxy.initialize(bridge.address, tbtcVault.address)
-    ).to.be.revertedWith("TBTCDepositorProxy already initialized")
+      depositor.initialize(bridge.address, tbtcVault.address)
+    ).to.be.revertedWith("AbstractTBTCDepositor already initialized")
   })
 
   describe("_initializeDeposit", () => {
@@ -74,7 +74,7 @@ describe("TBTCDepositorProxy", () => {
         )
 
         await expect(
-          depositorProxy.initializeDepositPublic(fundingTx, reveal, extraData)
+          depositor.initializeDepositPublic(fundingTx, reveal, extraData)
         ).to.be.revertedWith("Vault address mismatch")
       })
     })
@@ -85,7 +85,7 @@ describe("TBTCDepositorProxy", () => {
           await createSnapshot()
 
           // Pre-reveal the deposit to cause a revert on the second attempt
-          // made by the TBTCDepositorProxy.
+          // made by the AbstractTBTCDepositor.
           await bridge.revealDepositWithExtraData(
             fixture.fundingTx,
             fixture.reveal,
@@ -99,7 +99,7 @@ describe("TBTCDepositorProxy", () => {
 
         it("should revert", async () => {
           await expect(
-            depositorProxy.initializeDepositPublic(
+            depositor.initializeDepositPublic(
               fixture.fundingTx,
               fixture.reveal,
               fixture.extraData
@@ -114,7 +114,7 @@ describe("TBTCDepositorProxy", () => {
         before(async () => {
           await createSnapshot()
 
-          tx = await depositorProxy.initializeDepositPublic(
+          tx = await depositor.initializeDepositPublic(
             fixture.fundingTx,
             fixture.reveal,
             fixture.extraData
@@ -133,20 +133,19 @@ describe("TBTCDepositorProxy", () => {
 
         it("should store the deposit as pending", async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(
-            await depositorProxy.pendingDeposits(fixture.expectedDepositKey)
-          ).to.be.true
+          expect(await depositor.pendingDeposits(fixture.expectedDepositKey)).to
+            .be.true
         })
 
         it("should emit the DepositInitialized event", async () => {
           await expect(tx)
-            .to.emit(depositorProxy, "DepositInitialized")
+            .to.emit(depositor, "DepositInitialized")
             .withArgs(fixture.expectedDepositKey, await lastBlockTime())
         })
 
         it("should return proper values", async () => {
           await expect(tx)
-            .to.emit(depositorProxy, "InitializeDepositReturned")
+            .to.emit(depositor, "InitializeDepositReturned")
             .withArgs(fixture.expectedDepositKey)
         })
       })
@@ -157,7 +156,7 @@ describe("TBTCDepositorProxy", () => {
     context("when deposit is not initialized", () => {
       it("should revert", async () => {
         await expect(
-          depositorProxy.finalizeDepositPublic(fixture.expectedDepositKey)
+          depositor.finalizeDepositPublic(fixture.expectedDepositKey)
         ).to.be.revertedWith("Deposit not initialized")
       })
     })
@@ -166,7 +165,7 @@ describe("TBTCDepositorProxy", () => {
       before(async () => {
         await createSnapshot()
 
-        await depositorProxy.initializeDepositPublic(
+        await depositor.initializeDepositPublic(
           fixture.fundingTx,
           fixture.reveal,
           fixture.extraData
@@ -174,7 +173,7 @@ describe("TBTCDepositorProxy", () => {
 
         await bridge.sweepDeposit(fixture.expectedDepositKey)
 
-        await depositorProxy.finalizeDepositPublic(fixture.expectedDepositKey)
+        await depositor.finalizeDepositPublic(fixture.expectedDepositKey)
       })
 
       after(async () => {
@@ -183,7 +182,7 @@ describe("TBTCDepositorProxy", () => {
 
       it("should revert", async () => {
         await expect(
-          depositorProxy.finalizeDepositPublic(fixture.expectedDepositKey)
+          depositor.finalizeDepositPublic(fixture.expectedDepositKey)
         ).to.be.revertedWith("Deposit not initialized")
       })
     })
@@ -192,7 +191,7 @@ describe("TBTCDepositorProxy", () => {
       before(async () => {
         await createSnapshot()
 
-        await depositorProxy.initializeDepositPublic(
+        await depositor.initializeDepositPublic(
           fixture.fundingTx,
           fixture.reveal,
           fixture.extraData
@@ -206,7 +205,7 @@ describe("TBTCDepositorProxy", () => {
       context("when deposit is not finalized by the Bridge", () => {
         it("should revert", async () => {
           await expect(
-            depositorProxy.finalizeDepositPublic(fixture.expectedDepositKey)
+            depositor.finalizeDepositPublic(fixture.expectedDepositKey)
           ).to.be.revertedWith("Deposit not finalized by the bridge")
         })
       })
@@ -230,7 +229,7 @@ describe("TBTCDepositorProxy", () => {
 
             await bridge.sweepDeposit(fixture.expectedDepositKey)
 
-            tx = await depositorProxy.finalizeDepositPublic(
+            tx = await depositor.finalizeDepositPublic(
               fixture.expectedDepositKey
             )
           })
@@ -241,14 +240,13 @@ describe("TBTCDepositorProxy", () => {
 
           it("should remove the deposit from pending", async () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(
-              await depositorProxy.pendingDeposits(fixture.expectedDepositKey)
-            ).to.be.false
+            expect(await depositor.pendingDeposits(fixture.expectedDepositKey))
+              .to.be.false
           })
 
           it("should emit the DepositFinalized event", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "DepositFinalized")
+              .to.emit(depositor, "DepositFinalized")
               .withArgs(
                 fixture.expectedDepositKey,
                 expectedTbtcAmount,
@@ -258,7 +256,7 @@ describe("TBTCDepositorProxy", () => {
 
           it("should return proper values", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "FinalizeDepositReturned")
+              .to.emit(depositor, "FinalizeDepositReturned")
               .withArgs(expectedTbtcAmount, fixture.extraData)
           })
         })
@@ -277,7 +275,7 @@ describe("TBTCDepositorProxy", () => {
               fixture.expectedDepositKey
             )
 
-            tx = await depositorProxy.finalizeDepositPublic(
+            tx = await depositor.finalizeDepositPublic(
               fixture.expectedDepositKey
             )
           })
@@ -288,14 +286,13 @@ describe("TBTCDepositorProxy", () => {
 
           it("should remove the deposit from pending", async () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(
-              await depositorProxy.pendingDeposits(fixture.expectedDepositKey)
-            ).to.be.false
+            expect(await depositor.pendingDeposits(fixture.expectedDepositKey))
+              .to.be.false
           })
 
           it("should emit the DepositFinalized event", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "DepositFinalized")
+              .to.emit(depositor, "DepositFinalized")
               .withArgs(
                 fixture.expectedDepositKey,
                 expectedTbtcAmount,
@@ -305,7 +302,7 @@ describe("TBTCDepositorProxy", () => {
 
           it("should return proper values", async () => {
             await expect(tx)
-              .to.emit(depositorProxy, "FinalizeDepositReturned")
+              .to.emit(depositor, "FinalizeDepositReturned")
               .withArgs(expectedTbtcAmount, fixture.extraData)
           })
         })
@@ -330,10 +327,7 @@ describe("TBTCDepositorProxy", () => {
         const expectedTbtcAmount = to1ePrecision(881, 16)
 
         expect(
-          await depositorProxy.calculateTbtcAmountPublic(
-            depositAmount,
-            treasuryFee
-          )
+          await depositor.calculateTbtcAmountPublic(depositAmount, treasuryFee)
         ).to.equal(expectedTbtcAmount)
       })
     })
@@ -367,10 +361,7 @@ describe("TBTCDepositorProxy", () => {
         const expectedTbtcAmount = to1ePrecision(10, 18)
 
         expect(
-          await depositorProxy.calculateTbtcAmountPublic(
-            depositAmount,
-            treasuryFee
-          )
+          await depositor.calculateTbtcAmountPublic(depositAmount, treasuryFee)
         ).to.equal(expectedTbtcAmount)
       })
     })
@@ -392,7 +383,7 @@ describe("TBTCDepositorProxy", () => {
           const expectedTbtcAmount = to1ePrecision(98, 17)
 
           expect(
-            await depositorProxy.calculateTbtcAmountPublic(
+            await depositor.calculateTbtcAmountPublic(
               depositAmount,
               treasuryFee
             )
@@ -427,7 +418,7 @@ describe("TBTCDepositorProxy", () => {
           const expectedTbtcAmount = to1ePrecision(89, 17)
 
           expect(
-            await depositorProxy.calculateTbtcAmountPublic(
+            await depositor.calculateTbtcAmountPublic(
               depositAmount,
               treasuryFee
             )
@@ -462,7 +453,7 @@ describe("TBTCDepositorProxy", () => {
           const expectedTbtcAmount = to1ePrecision(891, 16)
 
           expect(
-            await depositorProxy.calculateTbtcAmountPublic(
+            await depositor.calculateTbtcAmountPublic(
               depositAmount,
               treasuryFee
             )

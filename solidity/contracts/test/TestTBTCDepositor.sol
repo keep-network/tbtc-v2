@@ -4,17 +4,17 @@ pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import "../integrator/TBTCDepositorProxy.sol";
+import "../integrator/AbstractTBTCDepositor.sol";
 import "../integrator/IBridge.sol";
 import "../integrator/ITBTCVault.sol";
 
-contract TestTBTCDepositorProxy is TBTCDepositorProxy {
+contract TestTBTCDepositor is AbstractTBTCDepositor {
     event InitializeDepositReturned(uint256 depositKey);
 
     event FinalizeDepositReturned(uint256 tbtcAmount, bytes32 extraData);
 
     function initialize(address _bridge, address _tbtcVault) external {
-        __TBTCDepositorProxy_initialize(_bridge, _tbtcVault);
+        __AbstractTBTCDepositor_initialize(_bridge, _tbtcVault);
     }
 
     function initializeDepositPublic(
