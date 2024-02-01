@@ -11,7 +11,11 @@ import "../integrator/ITBTCVault.sol";
 contract TestTBTCDepositorProxy is TBTCDepositorProxy {
     event InitializeDepositReturned(uint256 depositKey);
 
-    event FinalizeDepositReturned(uint256 tbtcAmount, bytes32 extraData);
+    event FinalizeDepositReturned(
+        uint256 initialDepositAmount,
+        uint256 tbtcAmount,
+        bytes32 extraData
+    );
 
     function initialize(address _bridge, address _tbtcVault) external {
         __TBTCDepositorProxy_initialize(_bridge, _tbtcVault);
@@ -27,8 +31,16 @@ contract TestTBTCDepositorProxy is TBTCDepositorProxy {
     }
 
     function finalizeDepositPublic(uint256 depositKey) external {
-        (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
-        emit FinalizeDepositReturned(tbtcAmount, extraData);
+        (
+            uint256 initialDepositAmount,
+            uint256 tbtcAmount,
+            bytes32 extraData
+        ) = _finalizeDeposit(depositKey);
+        emit FinalizeDepositReturned(
+            initialDepositAmount,
+            tbtcAmount,
+            extraData
+        );
     }
 
     function calculateTbtcAmountPublic(
