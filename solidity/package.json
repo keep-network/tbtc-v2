@@ -6,7 +6,6 @@
     "artifacts/",
     "build/contracts/",
     "contracts/",
-    "!**/test/",
     "deploy/",
     "export/",
     "tasks/",
