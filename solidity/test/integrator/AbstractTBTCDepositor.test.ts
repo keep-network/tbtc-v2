@@ -213,13 +213,14 @@ describe("AbstractTBTCDepositor", () => {
       context("when deposit is finalized by the Bridge", () => {
         // The expected tbtcAmount is calculated as follows:
         //
-        // - Deposit amount = 10 BTC (hardcoded in MockBridge)
-        // - Treasury fee = 1 BTC (hardcoded in MockBridge)
-        // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
-        // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+        // - Deposit amount = 10000 satoshi (hardcoded in funding transaction fixture)
+        // - Treasury fee = 2% (default value used in MockBridge)
+        // - Optimistic minting fee = 1% (default value used in MockTBTCVault)
+        // - Transaction max fee = 1000 satoshi (default value used in MockBridge)
         //
-        // ((10 BTC - 1 BTC) * 0.99) - 0.1 BTC = 8.81 BTC = 8.81 * 1e8 sat = 8.81 * 1e18 TBTC
-        const expectedTbtcAmount = to1ePrecision(881, 16).toString()
+        // ((10000 sat - 200 sat) * 0.99) - 2000 sat = 8702 sat = 8702 * 1e10 TBTC
+        const expectedInitialDepositAmount = to1ePrecision(10000, 10)
+        const expectedTbtcAmount = to1ePrecision(8702, 10).toString()
 
         context("when the deposit is swept", () => {
           let tx: ContractTransaction
@@ -257,7 +258,11 @@ describe("AbstractTBTCDepositor", () => {
           it("should return proper values", async () => {
             await expect(tx)
               .to.emit(depositor, "FinalizeDepositReturned")
-              .withArgs(expectedTbtcAmount, fixture.extraData)
+              .withArgs(
+                expectedInitialDepositAmount,
+                expectedTbtcAmount,
+                fixture.extraData
+              )
           })
         })
 
@@ -303,7 +308,11 @@ describe("AbstractTBTCDepositor", () => {
           it("should return proper values", async () => {
             await expect(tx)
               .to.emit(depositor, "FinalizeDepositReturned")
-              .withArgs(expectedTbtcAmount, fixture.extraData)
+              .withArgs(
+                expectedInitialDepositAmount,
+                expectedTbtcAmount,
+                fixture.extraData
+              )
           })
         })
       })
@@ -311,6 +320,17 @@ describe("AbstractTBTCDepositor", () => {
   })
 
   describe("_calculateTbtcAmount", () => {
+    before(async () => {
+      await createSnapshot()
+
+      // Set the transaction max fee to 0.1 BTC.
+      await bridge.setDepositTxMaxFee(10000000)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
     context("when all fees are non-zero", () => {
       it("should return the correct amount", async () => {
         const depositAmount = to1ePrecision(10, 8) // 10 BTC
@@ -321,7 +341,7 @@ describe("AbstractTBTCDepositor", () => {
         // - Deposit amount = 10 BTC
         // - Treasury fee = 1 BTC
         // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
-        // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+        // - Transaction max fee = 0.1 BTC (set in MockBridge)
         //
         // ((10 BTC - 1 BTC) * 0.99) - 0.1 BTC = 8.81 BTC = 8.81 * 1e8 sat = 8.81 * 1e18 TBTC
         const expectedTbtcAmount = to1ePrecision(881, 16)
@@ -377,7 +397,7 @@ describe("AbstractTBTCDepositor", () => {
           // - Deposit amount = 10 BTC
           // - Treasury fee = 0 BTC
           // - Optimistic minting fee = 1%  (default value used in MockTBTCVault)
-          // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+          // - Transaction max fee = 0.1 BTC (set in MockBridge)
           //
           // ((10 BTC - 0 BTC) * 0.99) - 0.1 BTC = 9.8 BTC = 9.8 * 1e8 sat = 9.8 * 1e18 TBTC
           const expectedTbtcAmount = to1ePrecision(98, 17)
@@ -412,7 +432,7 @@ describe("AbstractTBTCDepositor", () => {
           // - Deposit amount = 10 BTC
           // - Treasury fee = 1 BTC
           // - Optimistic minting fee = 0%  (set in MockTBTCVault)
-          // - Transaction max fee = 0.1 BTC (default value used in MockBridge)
+          // - Transaction max fee = 0.1 BTC (set in MockBridge)
           //
           // ((10 BTC - 1 BTC) * 1) - 0.1 BTC = 8.9 BTC = 8.9 * 1e8 sat = 8.9 * 1e18 TBTC
           const expectedTbtcAmount = to1ePrecision(89, 17)

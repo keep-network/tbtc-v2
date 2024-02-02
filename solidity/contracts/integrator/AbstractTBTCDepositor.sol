@@ -64,7 +64,11 @@ import "./ITBTCVault.sol";
 ///          }
 ///
 ///          function finalizeProcess(uint256 depositKey) external {
-///              (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
+///              (
+///                  uint256 initialDepositAmount,
+///                  uint256 tbtcAmount,
+///                  bytes32 extraData
+///              ) = _finalizeDeposit(depositKey);
 ///
 ///              // Do something with the minted TBTC using context
 ///              // embedded in the extraData.
@@ -166,7 +170,10 @@ abstract contract AbstractTBTCDepositor {
     /// @notice Finalizes a deposit by calculating the amount of TBTC minted
     ///         for the deposit
     /// @param depositKey Deposit key identifying the deposit.
-    /// @return tbtcAmount Approximate amount of TBTC minted for the deposit.
+    /// @return initialDepositAmount Amount of funding transaction deposit. In
+    ///         TBTC token decimals precision.
+    /// @return tbtcAmount Approximate amount of TBTC minted for the deposit. In
+    ///         TBTC token decimals precision.
     /// @return extraData 32-byte deposit extra data.
     /// @dev Requirements:
     ///      - The deposit must be initialized but not finalized
@@ -179,7 +186,11 @@ abstract contract AbstractTBTCDepositor {
     // slither-disable-next-line dead-code
     function _finalizeDeposit(uint256 depositKey)
         internal
-        returns (uint256 tbtcAmount, bytes32 extraData)
+        returns (
+            uint256 initialDepositAmount,
+            uint256 tbtcAmount,
+            bytes32 extraData
+        )
     {
         require(pendingDeposits[depositKey], "Deposit not initialized");
 
@@ -202,6 +213,8 @@ abstract contract AbstractTBTCDepositor {
         // being called again for the same deposit.
         // slither-disable-next-line reentrancy-no-eth
         delete pendingDeposits[depositKey];
+
+        initialDepositAmount = deposit.amount * SATOSHI_MULTIPLIER;
 
         tbtcAmount = _calculateTbtcAmount(deposit.amount, deposit.treasuryFee);
 

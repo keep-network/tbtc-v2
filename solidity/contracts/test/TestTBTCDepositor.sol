@@ -11,7 +11,11 @@ import "../integrator/ITBTCVault.sol";
 contract TestTBTCDepositor is AbstractTBTCDepositor {
     event InitializeDepositReturned(uint256 depositKey);
 
-    event FinalizeDepositReturned(uint256 tbtcAmount, bytes32 extraData);
+    event FinalizeDepositReturned(
+        uint256 initialDepositAmount,
+        uint256 tbtcAmount,
+        bytes32 extraData
+    );
 
     function initialize(address _bridge, address _tbtcVault) external {
         __AbstractTBTCDepositor_initialize(_bridge, _tbtcVault);
@@ -27,8 +31,16 @@ contract TestTBTCDepositor is AbstractTBTCDepositor {
     }
 
     function finalizeDepositPublic(uint256 depositKey) external {
-        (uint256 tbtcAmount, bytes32 extraData) = _finalizeDeposit(depositKey);
-        emit FinalizeDepositReturned(tbtcAmount, extraData);
+        (
+            uint256 initialDepositAmount,
+            uint256 tbtcAmount,
+            bytes32 extraData
+        ) = _finalizeDeposit(depositKey);
+        emit FinalizeDepositReturned(
+            initialDepositAmount,
+            tbtcAmount,
+            extraData
+        );
     }
 
     function calculateTbtcAmountPublic(
@@ -44,7 +56,8 @@ contract MockBridge is IBridge {
 
     mapping(uint256 => IBridgeTypes.DepositRequest) internal _deposits;
 
-    uint64 internal _depositTxMaxFee = 1 * 1e7; // 0.1 BTC
+    uint64 internal _depositTreasuryFeeDivisor = 50; // 1/50 == 100 bps == 2% == 0.02
+    uint64 internal _depositTxMaxFee = 1000; // 1000 satoshi = 0.00001 BTC
 
     event DepositRevealed(uint256 depositKey);
 
@@ -73,14 +86,22 @@ contract MockBridge is IBridge {
             "Deposit already revealed"
         );
 
+        bytes memory fundingOutput = fundingTx
+            .outputVector
+            .extractOutputAtIndex(reveal.fundingOutputIndex);
+
+        uint64 fundingOutputAmount = fundingOutput.extractValue();
+
         IBridgeTypes.DepositRequest memory request;
 
         request.depositor = msg.sender;
-        request.amount = uint64(10 * 1e8); // 10 BTC
+        request.amount = fundingOutputAmount;
         /* solhint-disable-next-line not-rely-on-time */
         request.revealedAt = uint32(block.timestamp);
         request.vault = reveal.vault;
-        request.treasuryFee = uint64(1 * 1e8); // 1 BTC
+        request.treasuryFee = _depositTreasuryFeeDivisor > 0
+            ? fundingOutputAmount / _depositTreasuryFeeDivisor
+            : 0;
         request.sweptAt = 0;
         request.extraData = extraData;
 
@@ -89,7 +110,7 @@ contract MockBridge is IBridge {
         emit DepositRevealed(depositKey);
     }
 
-    function sweepDeposit(uint256 depositKey) external {
+    function sweepDeposit(uint256 depositKey) public {
         require(_deposits[depositKey].revealedAt != 0, "Deposit not revealed");
         require(_deposits[depositKey].sweptAt == 0, "Deposit already swept");
         /* solhint-disable-next-line not-rely-on-time */
@@ -118,6 +139,10 @@ contract MockBridge is IBridge {
         depositTreasuryFeeDivisor = 0;
         depositTxMaxFee = _depositTxMaxFee;
         depositRevealAheadPeriod = 0;
+    }
+
+    function setDepositTreasuryFeeDivisor(uint64 value) external {
+        _depositTreasuryFeeDivisor = value;
     }
 
     function setDepositTxMaxFee(uint64 value) external {
@@ -152,7 +177,7 @@ contract MockTBTCVault is ITBTCVault {
         _requests[depositKey].requestedAt = uint64(block.timestamp);
     }
 
-    function finalizeOptimisticMintingRequest(uint256 depositKey) external {
+    function finalizeOptimisticMintingRequest(uint256 depositKey) public {
         require(
             _requests[depositKey].requestedAt != 0,
             "Request does not exist"
