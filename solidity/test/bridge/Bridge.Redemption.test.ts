@@ -3453,6 +3453,36 @@ describe("Bridge - Redemption", () => {
         })
       })
 
+      context(
+        "when transaction is not on same level of merkle tree as coinbase",
+        () => {
+          const data: RedemptionTestData = JSON.parse(
+            JSON.stringify(SinglePendingRequestedRedemption)
+          )
+
+          before(async () => {
+            await createSnapshot()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            // Simulate that the proven transaction is deeper in the merkle tree
+            // than the coinbase. This is achieved by appending additional
+            // hashes to the merkle proof.
+            data.redemptionProof.merkleProof +=
+              ethers.utils.sha256("0x01").substring(2) +
+              ethers.utils.sha256("0x02").substring(2)
+
+            await expect(runRedemptionScenario(data)).to.be.revertedWith(
+              "Tx not on same level of merkle tree as coinbase"
+            )
+          })
+        }
+      )
+
       context("when merkle proof is not valid", () => {
         const data: RedemptionTestData = JSON.parse(
           JSON.stringify(SinglePendingRequestedRedemption)
@@ -3473,6 +3503,31 @@ describe("Bridge - Redemption", () => {
 
           await expect(runRedemptionScenario(data)).to.be.revertedWith(
             "Tx merkle proof is not valid for provided header and tx hash"
+          )
+        })
+      })
+
+      context("when coinbase merkle proof is not valid", () => {
+        const data: RedemptionTestData = JSON.parse(
+          JSON.stringify(SinglePendingRequestedRedemption)
+        )
+
+        before(async () => {
+          await createSnapshot()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          // Corrupt the coinbase preimage.
+          data.redemptionProof.coinbasePreimage = ethers.utils.sha256(
+            data.redemptionProof.coinbasePreimage
+          )
+
+          await expect(runRedemptionScenario(data)).to.be.revertedWith(
+            "Coinbase merkle proof is not valid for provided header and hash"
           )
         })
       })

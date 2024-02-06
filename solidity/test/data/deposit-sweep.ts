@@ -74,6 +74,8 @@ export interface DepositSweepTestData {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
+    coinbasePreimage: BytesLike
+    coinbaseProof: BytesLike
   }
 
   /**
@@ -189,6 +191,16 @@ export const SingleP2SHDeposit: DepositSweepTestData = {
       "1ada9c55300000002031552151fbef8e96a33f979e6253d29edf65ac31b04802319e" +
       "00000000000000e003319fca9082d25815fcca442fe68a5249818abc79302e1b3dfe" +
       "854bf18028c0b2dd612ac0001ac429a1dd",
+    coinbasePreimage:
+      "0x6433bc0756ae5d456e7ede87ea28e9febda32c931debfde4baba7b30d0d89bb1",
+    coinbaseProof:
+      "0x06e3be3970c2e96ca71464dbc0f85180a66ad3699c0c494c08ca21d0c9c1e81375" +
+      "2695ab27c82eb35d7dfedd71c73aeaf581d322688ad977873d92eb238fc78b01f96a" +
+      "00ff72b44fe7d154004bcee087b3781414e72912511f56b451fe60ed9998825bb353" +
+      "5a4229597e1ee925b8ab2000838f875bb35de861f54c891a63cc3f1220e54fa87367" +
+      "bab3cd8b4630ff2ee540d12bd7792d24fdabe1c16b12292c002182140f51d320cdc9" +
+      "e4d728fbb13034e834f4b17336880ec15aca23707d86c6b87d6febdbf3b82f1d64b1" +
+      "54be0a60cdbbab0de51e0e4743214828f9ee2c0c29",
   },
 
   chainDifficulty: 22350181,
@@ -273,6 +285,14 @@ export const SingleP2WSHDeposit: DepositSweepTestData = {
       "1a8959a5db002000207cddca26ea39dd08f6345c0057300443d7720c5ab4937c2711" +
       "000000000000004eb83f96a1f1ace06832a7eb8b3a407f04b37e211363422bf58dde" +
       "b50f20a8a54ba7f261cbcd001a25011a61",
+    coinbasePreimage:
+      "0xb23026936fd2bc92379950f84ca6499fca4fb9a7f0743babf9441fb536b9050b",
+    coinbaseProof:
+      "0x795ee62cf9561d9a7402ca415b436506618b17f4e0a7a3e7a64c592e7a72ccad34" +
+      "067108cb7b98cc47a610df571b2f6cd7f1469103b8a69345180320a9d06babe02365" +
+      "9a89e6f70dd32d6946b0007642479f25a9c7a7e3904630e929c7e0ea2525ffb29b0a" +
+      "fbf42def26d69660fc59495bfd57a33b3a4ab47efe33dd5d77f018df4c5c181f0c15" +
+      "a6fb2e5b6df6699379eb525e3d9f44093efe518f5ac3499850",
   },
 
   chainDifficulty: 20870012,
@@ -338,6 +358,16 @@ export const SingleMainUtxo: DepositSweepTestData = {
       "1a25011a6100000020a255594fd7ad6096e47c5b0b3a636cf0ac0dafc0dcf60277a5" +
       "00000000000000d75ff7b7b32573d64219f81e65e61881446f68dcf47a7f5b47444b" +
       "fd35db25f5a3a8f261cbcd001a32960f84",
+    coinbasePreimage:
+      "0xfd410acfd823548acbdcb9564925a4d20315da45b1dac4104539e69a0c676efc",
+    coinbaseProof:
+      "0xc2abcae4779f2453e7c1d4d22906b6de052e8b14f565d4833f73b324ca2cc313e0" +
+      "f58a7314b4279ddbbd2935851ebb54ec1995b8b4153da4872446e38515607b8223e9" +
+      "6427eb6bd79f5e28b7b60e29f6d5b46dc05c7b5e8570d405fa52a3c5a4e47d25865a" +
+      "cbe72a6e425616fcd88f5e9ebddee4da156796f6d8e0fcbfd9137e68dd6f681ea181" +
+      "bfa9eb1b37825ba05f74fa8ec78f0014dff6d4365cf68697b630254f65249c7909d7" +
+      "5ca862aaf2ebb1d7eac6334a68104605ed0f57b7ab5e58744f028d58b36016f2e78c" +
+      "b4701aace4a64dcc85e3be1d4db96fe4275658c941",
   },
 
   chainDifficulty: 1,
@@ -542,6 +572,13 @@ export const MultipleDepositsNoMainUtxo: DepositSweepTestData = {
       "1a2676b59f0020002016b3f18bda6d1b0b8d27224c11428a6dd52bcb40cdf915fd42" +
       "00000000000000ed8dac80a63d3a5a041231f1adafdbc282fe78ded144c815a66ced" +
       "9a842089ddd965f161cbcd001af9f5886c",
+    coinbasePreimage:
+      "0xa81ec10a2d8e502975bd52946300a540383b39b7b892ce27964ea1430db846c2",
+    coinbaseProof:
+      "0x82c6fb9c18aa1aeafb073da60557adb51e1a42e7b9466650c6ff64ad94078e43b9" +
+      "fbf359c8b95408a23f2c24dbe79ec7f4eaad2129f9516360732957cd803fd33871a5" +
+      "1ef9253c6cbd9845c040df90befb1c5da28f7701dfc810885bfe9e936e129a69c92a" +
+      "de622bfb03526eb3075b6831a4b61f767f6ead76f320c54a34dc98",
   },
 
   chainDifficulty: 20870012,
@@ -756,6 +793,16 @@ export const MultipleDepositsWithMainUtxo: DepositSweepTestData = {
       "1c82930f615eabe81e3200b6fee728972cadbb56d47342010000000000c676579dd3" +
       "933e14fef681ed72f59e5047b1088d99fd18340290b11f1e760f13ebdaf361ffff00" +
       "1db7fa1d4b",
+    coinbasePreimage:
+      "0xcadd93d5ce0d0c95abfb3d9d1c0bd6836eb8fdd851ae549ae8fb8a9879267f5a",
+    coinbaseProof:
+      "0x566dd6922d6dbecb73cd23670ba82bd1ad06c12dd85f615fb2ebbd6050f53a0e1a" +
+      "e9383b1becdf09fc86371c2d2d2acfc484de4b9be870f69081d968cfc2065f391c3a" +
+      "b2bdb7ef2a9cb3705fa7af19751e214bf6f66001e0ed91eddce8bb6c580146c1aef7" +
+      "69311335615388439a3f5054bf2d0d2a4f5812c5ec2043171470721d825f890045f4" +
+      "5a7d42012d515bc15ce449db2b664f711515c43660258b88ed8e05f1d113d44d985d" +
+      "8e21f7375dc6b5707c84939f54df46a46e55e26f2548a37d29d3e3d9e99b6f3f48c5" +
+      "92742379c8f5df3d40c4619d56ced461ba1d606d59",
   },
 
   chainDifficulty: 1,
@@ -823,6 +870,17 @@ export const SingleMainUtxoP2SHOutput: DepositSweepTestData = {
       "1a7b43466e04e00020f416898d79d4a46fa6c54f190ad3d502bad8aa3afdec0714aa" +
       "000000000000000603a5cc15e5906cb4eac9f747869fdc9be856e76a110b4f87da90" +
       "db20f9fbe28fc11c62ed3e031a15dfc3db",
+    coinbasePreimage:
+      "0xabc0ac43547a3a244029426af5c504977e12108c550a66c860ecda9f747c23c9",
+    coinbaseProof:
+      "0xf39ec977d14627922174b2c244ea624ab78a6e0c2d43d861a8fcedf0023a8d2d6a" +
+      "1792d122d5fd4614a4d8a1810a77ff2a4676f8e8ab92b0a5fc4288f5eadd4b372b4e" +
+      "9030edd9d92b7125dba777fca86a4d73614ce0e1621b1bf48c1eb0a2c553330e3fae" +
+      "9a71acecb7425e8dbe88cdfd7fc3258bac4e21ca1dec42e5094271c77932609c51fb" +
+      "4b82497ed599d3c413c4fd023009716b3e5e885d89c31a1f30bb46106bac1034c65f" +
+      "01d80ac402417373daf1fbae0d43041c67b948f47882b27c802a4e791504be4b1b71" +
+      "80a788a54659799bedbc712e23a816cae0a12c017b838b1655583043a9c8d30399d3" +
+      "f81e7e0fe2121a3c38490845174140a08ff6dc",
   },
 
   chainDifficulty: 1,
