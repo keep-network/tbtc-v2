@@ -64,6 +64,9 @@ import "./ITBTCVault.sol";
 ///          }
 ///
 ///          function finalizeProcess(uint256 depositKey) external {
+///              // Ensure the function cannot be called for the same deposit
+///              // twice.
+///
 ///              (
 ///                  uint256 initialDepositAmount,
 ///                  uint256 tbtcAmount,
@@ -84,11 +87,6 @@ abstract contract AbstractTBTCDepositor {
     IBridge public bridge;
     /// @notice TBTCVault contract address.
     ITBTCVault public tbtcVault;
-    /// @notice Mapping holding information about pending deposits that have
-    ///         been initialized but not finalized yet. If the deposit is not
-    ///         in this mapping it means it has already been finalized or it
-    ///         has not been initialized yet.
-    mapping(uint256 => bool) public pendingDeposits;
 
     // Reserved storage space that allows adding more variables without affecting
     // the storage layout of the child contracts. The convention from OpenZeppelin
@@ -137,6 +135,8 @@ abstract contract AbstractTBTCDepositor {
     ///      - The revealed vault address must match the TBTCVault address,
     ///      - All requirements from {Bridge#revealDepositWithExtraData}
     ///        function must be met.
+    /// @dev This function doesn't validate if a deposit has been initialized before,
+    ///      as the Bridge won't allow the same deposit to be revealed twice.
     // slither-disable-next-line dead-code
     function _initializeDeposit(
         IBridgeTypes.BitcoinTxInfo calldata fundingTx,
@@ -149,8 +149,6 @@ abstract contract AbstractTBTCDepositor {
             _calculateBitcoinTxHash(fundingTx),
             reveal.fundingOutputIndex
         );
-
-        pendingDeposits[depositKey] = true;
 
         emit DepositInitialized(
             depositKey,
@@ -180,6 +178,9 @@ abstract contract AbstractTBTCDepositor {
     ///        (in the context of this contract) yet.
     ///      - The deposit must be finalized on the Bridge side. That means the
     ///        deposit must be either swept or optimistically minted.
+    /// @dev This function doesn't validate if a deposit has been finalized before,
+    ///      it is a responsibility of the implementing contract to ensure this
+    ///      function won't be called twice for the same deposit.
     /// @dev IMPORTANT NOTE: The tbtcAmount returned by this function is an
     ///      approximation. See documentation of the `calculateTbtcAmount`
     ///      responsible for calculating this value for more details.
@@ -192,11 +193,11 @@ abstract contract AbstractTBTCDepositor {
             bytes32 extraData
         )
     {
-        require(pendingDeposits[depositKey], "Deposit not initialized");
-
         IBridgeTypes.DepositRequest memory deposit = bridge.deposits(
             depositKey
         );
+        require(deposit.revealedAt != 0, "Deposit not initialized");
+
         (, uint64 finalizedAt) = tbtcVault.optimisticMintingRequests(
             depositKey
         );
@@ -205,14 +206,6 @@ abstract contract AbstractTBTCDepositor {
             deposit.sweptAt != 0 || finalizedAt != 0,
             "Deposit not finalized by the bridge"
         );
-
-        // We can safely delete the deposit from the pending deposits mapping.
-        // This deposit cannot be initialized again because the bridge does not
-        // allow to reveal the same deposit twice. Deleting the deposit from
-        // the mapping will also prevent the finalizeDeposit function from
-        // being called again for the same deposit.
-        // slither-disable-next-line reentrancy-no-eth
-        delete pendingDeposits[depositKey];
 
         initialDepositAmount = deposit.amount * SATOSHI_MULTIPLIER;
 
