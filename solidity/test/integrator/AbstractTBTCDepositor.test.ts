@@ -131,12 +131,6 @@ describe("AbstractTBTCDepositor", () => {
             .withArgs(fixture.expectedDepositKey)
         })
 
-        it("should store the deposit as pending", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await depositor.pendingDeposits(fixture.expectedDepositKey)).to
-            .be.true
-        })
-
         it("should emit the DepositInitialized event", async () => {
           await expect(tx)
             .to.emit(depositor, "DepositInitialized")
@@ -180,10 +174,10 @@ describe("AbstractTBTCDepositor", () => {
         await restoreSnapshot()
       })
 
-      it("should revert", async () => {
+      it("should not revert", async () => {
         await expect(
           depositor.finalizeDepositPublic(fixture.expectedDepositKey)
-        ).to.be.revertedWith("Deposit not initialized")
+        ).to.be.not.reverted
       })
     })
 
@@ -239,12 +233,6 @@ describe("AbstractTBTCDepositor", () => {
             await restoreSnapshot()
           })
 
-          it("should remove the deposit from pending", async () => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(await depositor.pendingDeposits(fixture.expectedDepositKey))
-              .to.be.false
-          })
-
           it("should emit the DepositFinalized event", async () => {
             await expect(tx)
               .to.emit(depositor, "DepositFinalized")
@@ -287,12 +275,6 @@ describe("AbstractTBTCDepositor", () => {
 
           after(async () => {
             await restoreSnapshot()
-          })
-
-          it("should remove the deposit from pending", async () => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(await depositor.pendingDeposits(fixture.expectedDepositKey))
-              .to.be.false
           })
 
           it("should emit the DepositFinalized event", async () => {
