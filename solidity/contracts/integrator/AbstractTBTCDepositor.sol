@@ -178,9 +178,9 @@ abstract contract AbstractTBTCDepositor {
     ///        (in the context of this contract) yet.
     ///      - The deposit must be finalized on the Bridge side. That means the
     ///        deposit must be either swept or optimistically minted.
-    /// @dev This function doesn't validate if a deposit has been finalized before,
-    ///      it is a responsibility of the implementing contract to ensure this
-    ///      function won't be called twice for the same deposit.
+    /// @dev THIS FUNCTION DOESN'T VALIDATE IF A DEPOSIT HAS BEEN FINALIZED BEFORE,
+    ///      IT IS A RESPONSIBILITY OF THE IMPLEMENTING CONTRACT TO ENSURE THIS
+    ///      FUNCTION WON'T BE CALLED TWICE FOR THE SAME DEPOSIT.
     /// @dev IMPORTANT NOTE: The tbtcAmount returned by this function is an
     ///      approximation. See documentation of the `calculateTbtcAmount`
     ///      responsible for calculating this value for more details.
