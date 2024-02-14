@@ -96,14 +96,6 @@ abstract contract AbstractTBTCDepositor {
     // slither-disable-next-line unused-state
     uint256[47] private __gap;
 
-    event DepositInitialized(uint256 indexed depositKey, uint32 initializedAt);
-
-    event DepositFinalized(
-        uint256 indexed depositKey,
-        uint256 tbtcAmount,
-        uint32 finalizedAt
-    );
-
     /// @notice Initializes the contract. MUST BE CALLED from the child
     ///         contract initializer.
     // slither-disable-next-line dead-code
@@ -148,12 +140,6 @@ abstract contract AbstractTBTCDepositor {
         uint256 depositKey = _calculateDepositKey(
             _calculateBitcoinTxHash(fundingTx),
             reveal.fundingOutputIndex
-        );
-
-        emit DepositInitialized(
-            depositKey,
-            /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp)
         );
 
         // The Bridge does not allow to reveal the same deposit twice and
@@ -210,14 +196,6 @@ abstract contract AbstractTBTCDepositor {
         initialDepositAmount = deposit.amount * SATOSHI_MULTIPLIER;
 
         tbtcAmount = _calculateTbtcAmount(deposit.amount, deposit.treasuryFee);
-
-        // slither-disable-next-line reentrancy-events
-        emit DepositFinalized(
-            depositKey,
-            tbtcAmount,
-            /* solhint-disable-next-line not-rely-on-time */
-            uint32(block.timestamp)
-        );
 
         extraData = deposit.extraData;
     }

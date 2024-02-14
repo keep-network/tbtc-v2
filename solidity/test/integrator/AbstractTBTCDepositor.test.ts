@@ -131,12 +131,6 @@ describe("AbstractTBTCDepositor", () => {
             .withArgs(fixture.expectedDepositKey)
         })
 
-        it("should emit the DepositInitialized event", async () => {
-          await expect(tx)
-            .to.emit(depositor, "DepositInitialized")
-            .withArgs(fixture.expectedDepositKey, await lastBlockTime())
-        })
-
         it("should return proper values", async () => {
           await expect(tx)
             .to.emit(depositor, "InitializeDepositReturned")
@@ -233,16 +227,6 @@ describe("AbstractTBTCDepositor", () => {
             await restoreSnapshot()
           })
 
-          it("should emit the DepositFinalized event", async () => {
-            await expect(tx)
-              .to.emit(depositor, "DepositFinalized")
-              .withArgs(
-                fixture.expectedDepositKey,
-                expectedTbtcAmount,
-                await lastBlockTime()
-              )
-          })
-
           it("should return proper values", async () => {
             await expect(tx)
               .to.emit(depositor, "FinalizeDepositReturned")
@@ -275,16 +259,6 @@ describe("AbstractTBTCDepositor", () => {
 
           after(async () => {
             await restoreSnapshot()
-          })
-
-          it("should emit the DepositFinalized event", async () => {
-            await expect(tx)
-              .to.emit(depositor, "DepositFinalized")
-              .withArgs(
-                fixture.expectedDepositKey,
-                expectedTbtcAmount,
-                await lastBlockTime()
-              )
           })
 
           it("should return proper values", async () => {
