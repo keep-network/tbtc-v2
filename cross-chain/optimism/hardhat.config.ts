@@ -134,7 +134,7 @@ const config: HardhatUserConfig = {
     },
     customChains: [
       {
-        network: "optimisticGoerli",
+        network: "optimisticSepolia",
         chainId: 11155420,
         urls: {
           apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
