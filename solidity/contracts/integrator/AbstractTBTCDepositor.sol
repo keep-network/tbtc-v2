@@ -166,7 +166,7 @@ abstract contract AbstractTBTCDepositor {
     }
 
     /// @notice Finalizes a deposit by calculating the amount of TBTC minted
-    ///         for the deposit
+    ///         for the deposit.
     /// @param depositKey Deposit key identifying the deposit.
     /// @return initialDepositAmount Amount of funding transaction deposit. In
     ///         TBTC token decimals precision.

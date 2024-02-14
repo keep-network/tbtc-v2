@@ -8,6 +8,8 @@ import "../integrator/AbstractTBTCDepositor.sol";
 import "../integrator/IBridge.sol";
 import "../integrator/ITBTCVault.sol";
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 contract TestTBTCDepositor is AbstractTBTCDepositor {
     event InitializeDepositReturned(uint256 depositKey);
 
@@ -168,7 +170,10 @@ contract MockTBTCVault is ITBTCVault {
         return (request.requestedAt, request.finalizedAt);
     }
 
-    function createOptimisticMintingRequest(uint256 depositKey) external {
+    /// @dev The function is virtual to allow other projects using this mock
+    ///      for AbtractTBTCDepositor-based contract tests to add any custom
+    ///      logic needed.
+    function createOptimisticMintingRequest(uint256 depositKey) public virtual {
         require(
             _requests[depositKey].requestedAt == 0,
             "Request already exists"
@@ -177,7 +182,13 @@ contract MockTBTCVault is ITBTCVault {
         _requests[depositKey].requestedAt = uint64(block.timestamp);
     }
 
-    function finalizeOptimisticMintingRequest(uint256 depositKey) public {
+    /// @dev The function is virtual to allow other projects using this mock
+    ///      for AbtractTBTCDepositor-based contract tests to add any custom
+    ///      logic needed.
+    function finalizeOptimisticMintingRequest(uint256 depositKey)
+        public
+        virtual
+    {
         require(
             _requests[depositKey].requestedAt != 0,
             "Request does not exist"
