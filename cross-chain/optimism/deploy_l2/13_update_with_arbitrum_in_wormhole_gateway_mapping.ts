@@ -15,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The value `23` is valid for both Arbitrum Goerli and Arbitrum Mainnet. The
   // value for Arbitrum Sepolia is `10003`.
   const arbitrumWormholeChainID =
-    hre.network.name === "arbitrumSepolia" ? 10003 : 23
+    hre.network.name === "optimismSepolia" ? 10003 : 23
 
   const arbitrumWormholeGateway = await deployments.getOrNull(
     "ArbitrumWormholeGateway"

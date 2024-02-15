@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // The value `30` is valid for both Base Goerli and Base Mainnet. The value
   // for Base Sepolia is `10004`.
   const baseWormholeChainID =
-    hre.network.name === "arbitrumSepolia" ? 10004 : 30
+    hre.network.name === "optimismSepolia" ? 10004 : 30
 
   const baseWormholeGateway = await deployments.getOrNull("BaseWormholeGateway")
 
