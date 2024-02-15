@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // and https://docs.wormhole.com/wormhole/blockchain-environments/evm#optimism-sepolia
   // The value `24` is valid for both Optimism Goerli and Optimism Mainnet. The
   // value for Optimism Sepolia is `10005`.
-  const wormholeChainID = hre.network.name === "arbitrumSepolia" ? 10005 : 24
+  const wormholeChainID = hre.network.name === "optimismSepolia" ? 10005 : 24
 
   const optimismWormholeGateway = await deployments.get(
     "OptimismWormholeGateway"
