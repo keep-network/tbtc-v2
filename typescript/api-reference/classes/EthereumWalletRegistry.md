@@ -49,7 +49,7 @@ for reference.
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
 
 #### Returns
 
@@ -61,7 +61,7 @@ EthersContractHandle\&lt;WalletRegistryTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L33)
+[src/lib/ethereum/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L32)
 
 ## Properties
 
@@ -153,7 +153,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L63)
+[src/lib/ethereum/wallet-registry.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L59)
 
 ___
 
@@ -180,7 +180,7 @@ WalletRegistry.getDkgResultApprovedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:129](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L129)
+[src/lib/ethereum/wallet-registry.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L125)
 
 ___
 
@@ -207,7 +207,7 @@ WalletRegistry.getDkgResultChallengedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:154](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L154)
+[src/lib/ethereum/wallet-registry.ts:150](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L150)
 
 ___
 
@@ -234,7 +234,7 @@ WalletRegistry.getDkgResultSubmittedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L86)
+[src/lib/ethereum/wallet-registry.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L82)
 
 ___
 
@@ -294,4 +294,4 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L71)
+[src/lib/ethereum/wallet-registry.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L67)

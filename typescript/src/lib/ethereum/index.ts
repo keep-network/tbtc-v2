@@ -8,6 +8,7 @@ import { EthereumAddress } from "./address"
 
 export * from "./address"
 export * from "./bridge"
+export * from "./depositor-proxy"
 export * from "./tbtc-token"
 export * from "./tbtc-vault"
 export * from "./wallet-registry"
@@ -43,8 +44,6 @@ export async function ethereumNetworkFromSigner(
   switch (chainId) {
     case 1:
       return "mainnet"
-    case 5:
-      return "goerli"
     case 11155111:
       return "sepolia"
     default:
@@ -73,7 +72,7 @@ export async function ethereumAddressFromSigner(
 /**
  * Supported Ethereum networks.
  */
-export type EthereumNetwork = "local" | "goerli" | "sepolia" | "mainnet"
+export type EthereumNetwork = "local" | "sepolia" | "mainnet"
 
 /**
  * Loads Ethereum implementation of tBTC contracts for the given Ethereum

@@ -66,7 +66,7 @@ for reference.
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"goerli"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
 
 #### Returns
 
@@ -78,7 +78,7 @@ EthersContractHandle\&lt;BridgeTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L60)
+[src/lib/ethereum/bridge.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L59)
 
 ## Properties
 
@@ -148,7 +148,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:494](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L494)
+[src/lib/ethereum/bridge.ts:493](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L493)
 
 ___
 
@@ -177,7 +177,7 @@ Builds the UTXO hash based on the UTXO components. UTXO hash is computed as
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:618](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L618)
+[src/lib/ethereum/bridge.ts:617](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L617)
 
 ___
 
@@ -204,7 +204,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:429](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L429)
+[src/lib/ethereum/bridge.ts:428](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L428)
 
 ___
 
@@ -246,7 +246,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:90](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L90)
+[src/lib/ethereum/bridge.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L86)
 
 ___
 
@@ -273,7 +273,7 @@ Bridge.getDepositRevealedEvents
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:98](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L98)
+[src/lib/ethereum/bridge.ts:94](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L94)
 
 ___
 
@@ -334,7 +334,7 @@ Bridge.getNewWalletRegisteredEvents
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:530](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L530)
+[src/lib/ethereum/bridge.ts:529](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L529)
 
 ___
 
@@ -361,7 +361,7 @@ Bridge.getRedemptionRequestedEvents
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:635](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L635)
+[src/lib/ethereum/bridge.ts:634](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L634)
 
 ___
 
@@ -381,7 +381,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:515](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L515)
+[src/lib/ethereum/bridge.ts:514](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L514)
 
 ___
 
@@ -405,7 +405,7 @@ Parsed deposit request.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:474](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L474)
+[src/lib/ethereum/bridge.ts:473](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L473)
 
 ___
 
@@ -430,7 +430,7 @@ Parsed redemption request.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:216](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L216)
+[src/lib/ethereum/bridge.ts:212](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L212)
 
 ___
 
@@ -454,7 +454,7 @@ Parsed wallet data.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:589](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L589)
+[src/lib/ethereum/bridge.ts:588](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L588)
 
 ___
 
@@ -481,7 +481,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:135](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L135)
+[src/lib/ethereum/bridge.ts:131](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L131)
 
 ___
 
@@ -510,7 +510,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:336](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L336)
+[src/lib/ethereum/bridge.ts:333](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L333)
 
 ___
 
@@ -539,7 +539,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:234](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L234)
+[src/lib/ethereum/bridge.ts:230](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L230)
 
 ___
 
@@ -568,7 +568,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:272](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L272)
+[src/lib/ethereum/bridge.ts:267](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L267)
 
 ___
 
@@ -597,7 +597,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:380](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L380)
+[src/lib/ethereum/bridge.ts:377](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L377)
 
 ___
 
@@ -624,7 +624,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:158](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L158)
+[src/lib/ethereum/bridge.ts:154](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L154)
 
 ___
 
@@ -644,7 +644,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:322](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L322)
+[src/lib/ethereum/bridge.ts:319](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L319)
 
 ___
 
@@ -664,7 +664,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:555](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L555)
+[src/lib/ethereum/bridge.ts:554](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L554)
 
 ___
 
@@ -690,7 +690,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:572](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L572)
+[src/lib/ethereum/bridge.ts:571](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L571)
 
 ___
 
@@ -715,7 +715,7 @@ Deposit key.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:455](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L455)
+[src/lib/ethereum/bridge.ts:454](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L454)
 
 ___
 
@@ -740,4 +740,4 @@ The redemption key.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:186](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L186)
+[src/lib/ethereum/bridge.ts:182](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L182)

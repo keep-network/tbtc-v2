@@ -12,6 +12,7 @@ Represents a Bitcoin client.
 
 - [broadcast](BitcoinClient.md#broadcast)
 - [findAllUnspentTransactionOutputs](BitcoinClient.md#findallunspenttransactionoutputs)
+- [getCoinbaseTxHash](BitcoinClient.md#getcoinbasetxhash)
 - [getHeadersChain](BitcoinClient.md#getheaderschain)
 - [getNetwork](BitcoinClient.md#getnetwork)
 - [getRawTransaction](BitcoinClient.md#getrawtransaction)
@@ -69,6 +70,28 @@ List of UTXOs.
 #### Defined in
 
 [src/lib/bitcoin/client.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L23)
+
+___
+
+### getCoinbaseTxHash
+
+▸ **getCoinbaseTxHash**(`blockHeight`): `Promise`\<[`BitcoinTxHash`](../classes/BitcoinTxHash.md)\>
+
+Gets the hash of the coinbase transaction for the given block height.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `blockHeight` | `number` | Height of the block. |
+
+#### Returns
+
+`Promise`\<[`BitcoinTxHash`](../classes/BitcoinTxHash.md)\>
+
+#### Defined in
+
+[src/lib/bitcoin/client.ts:109](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/client.ts#L109)
 
 ___
 
