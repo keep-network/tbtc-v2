@@ -2,11 +2,10 @@
 // @ts-ignore
 import wifLib from "wif"
 import { ec as EllipticCurve } from "elliptic"
-import { assembleTransactionProof } from "@keep-network/tbtc-v2.ts/dist/src/proof"
+import { assembleBitcoinSpvProof, Hex } from "@keep-network/tbtc-v2.ts"
 
+import type { BitcoinTxHash, BitcoinClient } from "@keep-network/tbtc-v2.ts"
 import type { Contract } from "ethers"
-import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
-import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts/dist/src"
 
 /**
  * Elliptic curve used by Bitcoin.
@@ -27,21 +26,21 @@ export interface KeyPair {
    */
   wif: string
   /**
-   * Private key as an unprefixed hex string.
+   * Private key.
    */
-  privateKey: string
+  privateKey: Hex
   /**
    * Public key.
    */
   publicKey: {
     /**
-     * Compressed public key as a 33-byte hex string prefixed with 02 or 03.
+     * Compressed 33-byte-long public key prefixed with 02 or 03.
      */
-    compressed: string
+    compressed: Hex
     /**
-     * Uncompressed public key as an unprefixed hex string.
+     * Uncompressed public key.
      */
-    uncompressed: string
+    uncompressed: Hex
   }
 }
 
@@ -55,11 +54,13 @@ export function keyPairFromWif(wif: string): KeyPair {
   const keyPair = secp256k1.keyFromPrivate(privateKey)
   return {
     wif,
-    privateKey: keyPair.getPrivate("hex"),
+    privateKey: Hex.from(keyPair.getPrivate("hex")),
     publicKey: {
-      compressed: keyPair.getPublic().encodeCompressed("hex"),
+      compressed: Hex.from(keyPair.getPublic().encodeCompressed("hex")),
       // Trim the `04` prefix from the uncompressed key.
-      uncompressed: keyPair.getPublic().encode("hex", false).substring(2),
+      uncompressed: Hex.from(
+        keyPair.getPublic().encode("hex", false).substring(2)
+      ),
     },
   }
 }
@@ -75,7 +76,7 @@ export function keyPairFromWif(wif: string): KeyPair {
  */
 export async function waitTransactionConfirmed(
   bitcoinClient: BitcoinClient,
-  transactionHash: BitcoinTransactionHash,
+  transactionHash: BitcoinTxHash,
   requiredConfirmations: number = defaultTxProofDifficultyFactor,
   sleep = 30000
 ): Promise<void> {
@@ -94,7 +95,7 @@ export async function waitTransactionConfirmed(
 
     if (confirmations >= requiredConfirmations) {
       console.log(`
-        Transaction ${transactionHash} has enough confirmations. 
+        Transaction ${transactionHash} has enough confirmations.
       `)
       return
     }
@@ -126,10 +127,10 @@ export async function waitTransactionConfirmed(
 export async function fakeRelayDifficulty(
   relay: Contract,
   bitcoinClient: BitcoinClient,
-  transactionHash: BitcoinTransactionHash,
+  transactionHash: BitcoinTxHash,
   headerChainLength: number = defaultTxProofDifficultyFactor
 ): Promise<void> {
-  const proof = await assembleTransactionProof(
+  const proof = await assembleBitcoinSpvProof(
     transactionHash,
     headerChainLength,
     bitcoinClient

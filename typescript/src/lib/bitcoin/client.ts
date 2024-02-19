@@ -15,6 +15,8 @@ export interface BitcoinClient {
 
   /**
    * Finds all unspent transaction outputs (UTXOs) for given Bitcoin address.
+   * The list includes UTXOs from both the blockchain and the mempool, sorted by
+   * age with the newest ones first. Mempool UTXOs are listed at the beginning.
    * @param address - Bitcoin address UTXOs should be determined for.
    * @returns List of UTXOs.
    */
@@ -99,4 +101,10 @@ export interface BitcoinClient {
    * @param transaction - Transaction to broadcast.
    */
   broadcast(transaction: BitcoinRawTx): Promise<void>
+
+  /**
+   * Gets the hash of the coinbase transaction for the given block height.
+   * @param blockHeight - Height of the block.
+   */
+  getCoinbaseTxHash(blockHeight: number): Promise<BitcoinTxHash>
 }

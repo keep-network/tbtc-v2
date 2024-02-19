@@ -376,6 +376,35 @@ contract Bridge is
         self.revealDeposit(fundingTx, reveal);
     }
 
+    /// @notice Sibling of the `revealDeposit` function. This function allows
+    ///         to reveal a P2(W)SH Bitcoin deposit with 32-byte extra data
+    ///         embedded in the deposit script. The extra data allows to
+    ///         attach additional context to the deposit. For example,
+    ///         it allows a third-party smart contract to reveal the
+    ///         deposit on behalf of the original depositor and provide
+    ///         additional services once the deposit is handled. In this
+    ///         case, the address of the original depositor can be encoded
+    ///         as extra data.
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @param extraData 32-byte deposit extra data.
+    /// @dev Requirements:
+    ///      - All requirements from `revealDeposit` function must be met,
+    ///      - `extraData` must not be bytes32(0),
+    ///      - `extraData` must be the actual extra data used in the P2(W)SH
+    ///        BTC deposit transaction.
+    ///
+    ///      If any of these requirements is not met, the wallet _must_ refuse
+    ///      to sweep the deposit and the depositor has to wait until the
+    ///      deposit script unlocks to receive their BTC back.
+    function revealDepositWithExtraData(
+        BitcoinTx.Info calldata fundingTx,
+        Deposit.DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) external {
+        self.revealDepositWithExtraData(fundingTx, reveal, extraData);
+    }
+
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
     ///         and to update Bank balances accordingly. Sweep is only accepted
     ///         if it satisfies SPV proof.

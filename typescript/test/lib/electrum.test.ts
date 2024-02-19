@@ -16,8 +16,11 @@ import {
   testnetTxHashes,
   testnetUTXO,
 } from "../data/electrum"
-import { expect } from "chai"
+import chai, { expect } from "chai"
+import chaiAsPromised from "chai-as-promised"
 import https from "https"
+
+chai.use(chaiAsPromised)
 
 const BLOCKSTREAM_TESTNET_API_URL = "https://blockstream.info/testnet/api"
 
@@ -145,7 +148,16 @@ describe("Electrum", () => {
             expect(result).to.be.eql(testnetTransaction)
           })
 
-          // TODO: Add case when transaction doesn't exist.
+          it("should throw for unknown transaction hash", async function () {
+            // Set custom timeout as the electrum server attempts to execute the
+            // function several times.
+            this.timeout(100000)
+            const unknownTransaction = BitcoinTxHash.from(
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            )
+            await expect(electrumClient.getTransaction(unknownTransaction)).to
+              .be.rejected
+          })
         })
 
         describe("getRawTransaction", () => {
@@ -259,6 +271,15 @@ describe("Electrum", () => {
 
             expect(computeElectrumScriptHash(script)).to.be.equal(
               expectedScriptHash
+            )
+          })
+        })
+
+        describe("getCoinbaseTxHash", () => {
+          it("should return proper coinbase tx hash", async () => {
+            const result = await electrumClient.getCoinbaseTxHash(2135502)
+            expect(result.toString()).to.be.equal(
+              "1f523d1ce7553ec609bae104812dede95aa38eb13d2c2c6b64ffe868bbc1a54c"
             )
           })
         })

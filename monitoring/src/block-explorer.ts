@@ -4,7 +4,7 @@ import type { BitcoinTransactionHash, Hex } from "@keep-network/tbtc-v2.ts"
 
 const ethTxUrlPrefixMapping = {
   [Environment.Mainnet]: "https://etherscan.io/tx",
-  [Environment.Testnet]: "https://goerli.etherscan.io/tx",
+  [Environment.Testnet]: "https://sepolia.etherscan.io/tx",
 }
 
 export function createEthTxUrl(txHash: Hex) {

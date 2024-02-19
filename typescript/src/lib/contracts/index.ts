@@ -1,6 +1,7 @@
 export * from "./bridge"
 export * from "./chain-event"
 export * from "./chain-identifier"
+export * from "./depositor-proxy"
 export * from "./tbtc-token"
 export * from "./tbtc-vault"
 export * from "./wallet-registry"

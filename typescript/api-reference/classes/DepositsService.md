@@ -19,6 +19,7 @@ Service exposing features related to tBTC v2 deposits.
 
 - [generateDepositReceipt](DepositsService.md#generatedepositreceipt)
 - [initiateDeposit](DepositsService.md#initiatedeposit)
+- [initiateDepositWithProxy](DepositsService.md#initiatedepositwithproxy)
 - [setDefaultDepositor](DepositsService.md#setdefaultdepositor)
 
 ## Constructors
@@ -40,7 +41,7 @@ Service exposing features related to tBTC v2 deposits.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L40)
+[src/services/deposits/deposits-service.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L41)
 
 ## Properties
 
@@ -52,7 +53,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L33)
+[src/services/deposits/deposits-service.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L34)
 
 ___
 
@@ -65,7 +66,7 @@ initiated by this service.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:38](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L38)
+[src/services/deposits/deposits-service.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L39)
 
 ___
 
@@ -78,7 +79,7 @@ This is 9 month in seconds assuming 1 month = 30 days
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L25)
+[src/services/deposits/deposits-service.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L26)
 
 ___
 
@@ -90,19 +91,21 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L29)
+[src/services/deposits/deposits-service.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L30)
 
 ## Methods
 
 ### generateDepositReceipt
 
-▸ **generateDepositReceipt**(`bitcoinRecoveryAddress`): `Promise`\<[`DepositReceipt`](../interfaces/DepositReceipt.md)\>
+▸ **generateDepositReceipt**(`bitcoinRecoveryAddress`, `depositor`, `extraData?`): `Promise`\<[`DepositReceipt`](../interfaces/DepositReceipt.md)\>
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
 | `bitcoinRecoveryAddress` | `string` |
+| `depositor` | [`ChainIdentifier`](../interfaces/ChainIdentifier.md) |
+| `extraData?` | [`Hex`](Hex.md) |
 
 #### Returns
 
@@ -110,13 +113,13 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:62](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L62)
+[src/services/deposits/deposits-service.ts:119](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L119)
 
 ___
 
 ### initiateDeposit
 
-▸ **initiateDeposit**(`bitcoinRecoveryAddress`): `Promise`\<[`Deposit`](Deposit.md)\>
+▸ **initiateDeposit**(`bitcoinRecoveryAddress`, `extraData?`): `Promise`\<[`Deposit`](Deposit.md)\>
 
 Initiates the tBTC v2 deposit process.
 
@@ -125,6 +128,7 @@ Initiates the tBTC v2 deposit process.
 | Name | Type | Description |
 | :------ | :------ | :------ |
 | `bitcoinRecoveryAddress` | `string` | P2PKH or P2WPKH Bitcoin address that can be used for emergency recovery of the deposited funds. |
+| `extraData?` | [`Hex`](Hex.md) | Optional 32-byte extra data to be included in the deposit script. Cannot be equal to 32 zero bytes. |
 
 #### Returns
 
@@ -138,10 +142,54 @@ Throws an error if one of the following occurs:
         - The default depositor is not set
         - There are no active wallet in the Bridge contract
         - The Bitcoin recovery address is not a valid P2(W)PKH
+        - The optional extra data is set but is not 32-byte or equals
+          to 32 zero bytes.
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L57)
+[src/services/deposits/deposits-service.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L61)
+
+___
+
+### initiateDepositWithProxy
+
+▸ **initiateDepositWithProxy**(`bitcoinRecoveryAddress`, `depositorProxy`, `extraData?`): `Promise`\<[`Deposit`](Deposit.md)\>
+
+Initiates the tBTC v2 deposit process using a depositor proxy.
+The depositor proxy initiates minting on behalf of the user (i.e. original
+depositor) and receives minted TBTC. This allows the proxy to provide
+additional services to the user, such as routing the minted TBTC tokens
+to another protocols, in an automated way.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `bitcoinRecoveryAddress` | `string` | P2PKH or P2WPKH Bitcoin address that can be used for emergency recovery of the deposited funds. |
+| `depositorProxy` | [`DepositorProxy`](../interfaces/DepositorProxy.md) | Depositor proxy used to initiate the deposit. |
+| `extraData?` | [`Hex`](Hex.md) | Optional 32-byte extra data to be included in the deposit script. Cannot be equal to 32 zero bytes. |
+
+#### Returns
+
+`Promise`\<[`Deposit`](Deposit.md)\>
+
+Handle to the initiated deposit process.
+
+**`See`**
+
+DepositorProxy
+
+**`Throws`**
+
+Throws an error if one of the following occurs:
+        - There are no active wallet in the Bridge contract
+        - The Bitcoin recovery address is not a valid P2(W)PKH
+        - The optional extra data is set but is not 32-byte or equals
+          to 32 zero bytes.
+
+#### Defined in
+
+[src/services/deposits/deposits-service.ts:100](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L100)
 
 ___
 
@@ -170,4 +218,4 @@ Typically, there is no need to use this method when DepositsService
 
 #### Defined in
 
-[services/deposits/deposits-service.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L125)
+[src/services/deposits/deposits-service.ts:197](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L197)

@@ -13,6 +13,7 @@ import { Hex } from "../../src/lib/utils"
  * Mock Bitcoin client used for test purposes.
  */
 export class MockBitcoinClient implements BitcoinClient {
+  private _network = BitcoinNetwork.Testnet
   private _unspentTransactionOutputs = new Map<string, BitcoinUtxo[]>()
   private _rawTransactions = new Map<string, BitcoinRawTx>()
   private _transactions = new Map<string, BitcoinTx>()
@@ -20,13 +21,14 @@ export class MockBitcoinClient implements BitcoinClient {
   private _transactionHashes = new Map<string, BitcoinTxHash[]>()
   private _latestHeight = 0
   private _headersChain = Hex.from("")
-  private _transactionMerkle: BitcoinTxMerkleBranch = {
-    blockHeight: 0,
-    merkle: [],
-    position: 0,
-  }
+  private _transactionMerkle = new Map<string, BitcoinTxMerkleBranch>()
   private _broadcastLog: BitcoinRawTx[] = []
   private _transactionHistory = new Map<string, BitcoinTx[]>()
+  private _coinbaseHashes = new Map<number, BitcoinTxHash>()
+
+  set network(value: BitcoinNetwork) {
+    this._network = value
+  }
 
   set unspentTransactionOutputs(value: Map<string, BitcoinUtxo[]>) {
     this._unspentTransactionOutputs = value
@@ -56,12 +58,16 @@ export class MockBitcoinClient implements BitcoinClient {
     this._headersChain = value
   }
 
-  set transactionMerkle(value: BitcoinTxMerkleBranch) {
+  set transactionMerkle(value: Map<string, BitcoinTxMerkleBranch>) {
     this._transactionMerkle = value
   }
 
   set transactionHistory(value: Map<string, BitcoinTx[]>) {
     this._transactionHistory = value
+  }
+
+  set coinbaseHashes(value: Map<number, BitcoinTxHash>) {
+    this._coinbaseHashes = value
   }
 
   get broadcastLog(): BitcoinRawTx[] {
@@ -70,7 +76,7 @@ export class MockBitcoinClient implements BitcoinClient {
 
   getNetwork(): Promise<BitcoinNetwork> {
     return new Promise<BitcoinNetwork>((resolve, _) => {
-      resolve(BitcoinNetwork.Testnet)
+      resolve(this._network)
     })
   }
 
@@ -144,7 +150,11 @@ export class MockBitcoinClient implements BitcoinClient {
     blockHeight: number
   ): Promise<BitcoinTxMerkleBranch> {
     return new Promise<BitcoinTxMerkleBranch>((resolve, _) => {
-      resolve(this._transactionMerkle)
+      resolve(
+        this._transactionMerkle.get(
+          `${transactionHash.toString()}${blockHeight.toString(16)}`
+        ) as BitcoinTxMerkleBranch
+      )
     })
   }
 
@@ -152,6 +162,12 @@ export class MockBitcoinClient implements BitcoinClient {
     this._broadcastLog.push(transaction)
     return new Promise<void>((resolve, _) => {
       resolve()
+    })
+  }
+
+  getCoinbaseTxHash(blockHeight: number): Promise<BitcoinTxHash> {
+    return new Promise<BitcoinTxHash>((resolve, _) => {
+      resolve(this._coinbaseHashes.get(blockHeight) as BitcoinTxHash)
     })
   }
 }

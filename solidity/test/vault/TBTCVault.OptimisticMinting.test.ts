@@ -1789,6 +1789,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             vault: f.tbtcVault.address,
             treasuryFee: 10,
             sweptAt: 0,
+            extraData: ethers.constants.HashZero,
           })
           f.mockBridge.deposits.whenCalledWith(secondDepositID).returns({
             depositor: depositorAddress,
@@ -1797,6 +1798,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             vault: f.tbtcVault.address,
             treasuryFee: 15,
             sweptAt: 0,
+            extraData: ethers.constants.HashZero,
           })
 
           await f.tbtcVault
@@ -1895,6 +1897,7 @@ describe("TBTCVault - OptimisticMinting", () => {
             vault: f.tbtcVault.address,
             treasuryFee: 10,
             sweptAt: 0,
+            extraData: ethers.constants.HashZero,
           })
 
           await f.tbtcVault

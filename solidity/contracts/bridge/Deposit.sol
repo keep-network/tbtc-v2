@@ -44,6 +44,25 @@ import "./Wallets.sol";
 ///      Since each depositor has their own Ethereum address and their own
 ///      blinding factor, each depositor’s script is unique, and the hash
 ///      of each depositor’s script is unique.
+///
+///      This library also supports another variant of the deposit script
+///      allowing to embed 32-byte extra data. The extra data allows to attach
+///      additional context to the deposit. The script with 32-byte extra data
+///      looks like this:
+///
+///      ```
+///      <depositorAddress> DROP
+///      <extraData> DROP
+///      <blindingFactor> DROP
+///      DUP HASH160 <walletPubKeyHash> EQUAL
+///      IF
+///        CHECKSIG
+///      ELSE
+///        DUP HASH160 <refundPubkeyHash> EQUALVERIFY
+///        <refundLocktime> CHECKLOCKTIMEVERIFY DROP
+///        CHECKSIG
+///      ENDIF
+///      ```
 library Deposit {
     using BTCUtils for bytes;
     using BytesLib for bytes;
@@ -96,6 +115,8 @@ library Deposit {
         // the time when the sweep proof was delivered to the Ethereum chain.
         // XXX: Unsigned 32-bit int unix seconds, will break February 7th 2106.
         uint32 sweptAt;
+        // The 32-byte deposit extra data. Optional, can be bytes32(0).
+        bytes32 extraData;
         // This struct doesn't contain `__gap` property as the structure is stored
         // in a mapping, mappings store values in different slots and they are
         // not contiguous with other values.
@@ -152,6 +173,28 @@ library Deposit {
         BitcoinTx.Info calldata fundingTx,
         DepositRevealInfo calldata reveal
     ) external {
+        _revealDeposit(self, fundingTx, reveal, bytes32(0));
+    }
+
+    /// @notice Internal function encapsulating the core logic of the deposit
+    ///         reveal process. Handles both regular deposits without extra data
+    ///         as well as deposits with 32-byte extra data embedded in the
+    ///         deposit script. The behavior is controlled by the `extraData`
+    ///         parameter. If `extraData` is bytes32(0), the function triggers
+    ///         the flow for regular deposits. If `extraData` is not bytes32(0),
+    ///         the function triggers the flow for deposits with 32-byte
+    ///         extra data.
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @param extraData 32-byte deposit extra data. Can be bytes32(0).
+    /// @dev Requirements are described in the docstrings of `revealDeposit` and
+    ///      `revealDepositWithExtraData` external functions.
+    function _revealDeposit(
+        BridgeState.Storage storage self,
+        BitcoinTx.Info calldata fundingTx,
+        DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) internal {
         require(
             self.registeredWallets[reveal.walletPubKeyHash].state ==
                 Wallets.WalletState.Live,
@@ -167,33 +210,70 @@ library Deposit {
             validateDepositRefundLocktime(self, reveal.refundLocktime);
         }
 
-        bytes memory expectedScript = abi.encodePacked(
-            hex"14", // Byte length of depositor Ethereum address.
-            msg.sender,
-            hex"75", // OP_DROP
-            hex"08", // Byte length of blinding factor value.
-            reveal.blindingFactor,
-            hex"75", // OP_DROP
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.walletPubKeyHash,
-            hex"87", // OP_EQUAL
-            hex"63", // OP_IF
-            hex"ac", // OP_CHECKSIG
-            hex"67", // OP_ELSE
-            hex"76", // OP_DUP
-            hex"a9", // OP_HASH160
-            hex"14", // Byte length of a compressed Bitcoin public key hash.
-            reveal.refundPubKeyHash,
-            hex"88", // OP_EQUALVERIFY
-            hex"04", // Byte length of refund locktime value.
-            reveal.refundLocktime,
-            hex"b1", // OP_CHECKLOCKTIMEVERIFY
-            hex"75", // OP_DROP
-            hex"ac", // OP_CHECKSIG
-            hex"68" // OP_ENDIF
-        );
+        bytes memory expectedScript;
+
+        if (extraData == bytes32(0)) {
+            // Regular deposit without 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                msg.sender,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                reveal.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                reveal.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        } else {
+            // Deposit with 32-byte extra data.
+            expectedScript = abi.encodePacked(
+                hex"14", // Byte length of depositor Ethereum address.
+                msg.sender,
+                hex"75", // OP_DROP
+                hex"20", // Byte length of extra data.
+                extraData,
+                hex"75", // OP_DROP
+                hex"08", // Byte length of blinding factor value.
+                reveal.blindingFactor,
+                hex"75", // OP_DROP
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.walletPubKeyHash,
+                hex"87", // OP_EQUAL
+                hex"63", // OP_IF
+                hex"ac", // OP_CHECKSIG
+                hex"67", // OP_ELSE
+                hex"76", // OP_DUP
+                hex"a9", // OP_HASH160
+                hex"14", // Byte length of a compressed Bitcoin public key hash.
+                reveal.refundPubKeyHash,
+                hex"88", // OP_EQUALVERIFY
+                hex"04", // Byte length of refund locktime value.
+                reveal.refundLocktime,
+                hex"b1", // OP_CHECKLOCKTIMEVERIFY
+                hex"75", // OP_DROP
+                hex"ac", // OP_CHECKSIG
+                hex"68" // OP_ENDIF
+            );
+        }
 
         bytes memory fundingOutput = fundingTx
             .outputVector
@@ -258,6 +338,21 @@ library Deposit {
         deposit.treasuryFee = self.depositTreasuryFeeDivisor > 0
             ? fundingOutputAmount / self.depositTreasuryFeeDivisor
             : 0;
+        deposit.extraData = extraData;
+
+        _emitDepositRevealedEvent(fundingTxHash, fundingOutputAmount, reveal);
+    }
+
+    /// @notice Emits the `DepositRevealed` event.
+    /// @param fundingTxHash The funding transaction hash.
+    /// @param fundingOutputAmount The funding output amount in satoshi.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @dev This function is extracted to overcome the stack too deep error.
+    function _emitDepositRevealedEvent(
+        bytes32 fundingTxHash,
+        uint64 fundingOutputAmount,
+        DepositRevealInfo calldata reveal
+    ) internal {
         // slither-disable-next-line reentrancy-events
         emit DepositRevealed(
             fundingTxHash,
@@ -270,6 +365,40 @@ library Deposit {
             reveal.refundLocktime,
             reveal.vault
         );
+    }
+
+    /// @notice Sibling of the `revealDeposit` function. This function allows
+    ///         to reveal a P2(W)SH Bitcoin deposit with 32-byte extra data
+    ///         embedded in the deposit script. The extra data allows to
+    ///         attach additional context to the deposit. For example,
+    ///         it allows a third-party smart contract to reveal the
+    ///         deposit on behalf of the original depositor and provide
+    ///         additional services once the deposit is handled. In this
+    ///         case, the address of the original depositor can be encoded
+    ///         as extra data.
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @param extraData 32-byte deposit extra data.
+    /// @dev Requirements:
+    ///      - All requirements from `revealDeposit` function must be met,
+    ///      - `extraData` must not be bytes32(0),
+    ///      - `extraData` must be the actual extra data used in the P2(W)SH
+    ///        BTC deposit transaction.
+    ///
+    ///      If any of these requirements is not met, the wallet _must_ refuse
+    ///      to sweep the deposit and the depositor has to wait until the
+    ///      deposit script unlocks to receive their BTC back.
+    function revealDepositWithExtraData(
+        BridgeState.Storage storage self,
+        BitcoinTx.Info calldata fundingTx,
+        DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) external {
+        // Strong requirement in order to differentiate from the regular
+        // reveal flow and reduce potential attack surface.
+        require(extraData != bytes32(0), "Extra data must not be empty");
+
+        _revealDeposit(self, fundingTx, reveal, extraData);
     }
 
     /// @notice Validates the deposit refund locktime. The validation passes
