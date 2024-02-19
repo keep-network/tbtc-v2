@@ -1766,4 +1766,20 @@ contract BridgeGovernance is Ownable {
     function governanceDelay() internal view returns (uint256) {
         return governanceDelays[0];
     }
+
+    /// @notice Sets the redemption watchtower address. This function does not
+    ///         have a governance delay as setting the redemption watchtower is
+    ///         a one-off action performed during initialization of the
+    ///         redemption veto mechanism.
+    /// @param redemptionWatchtower Address of the redemption watchtower.
+    /// @dev Requirements:
+    ///      - The caller must be the owner,
+    ///      - Redemption watchtower address must not be already set,
+    ///      - Redemption watchtower address must not be 0x0.
+    function setRedemptionWatchtower(address redemptionWatchtower)
+        external
+        onlyOwner
+    {
+        bridge.setRedemptionWatchtower(redemptionWatchtower);
+    }
 }

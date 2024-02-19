@@ -314,6 +314,9 @@ library BridgeState {
         // HASH160 over the compressed ECDSA public key) to the basic wallet
         // information like state and pending redemptions value.
         mapping(bytes20 => Wallets.Wallet) registeredWallets;
+        // Address of the redemption watchtower. The redemption watchtower
+        // is responsible for vetoing redemption requests.
+        address redemptionWatchtower;
         // Reserved storage space in case we need to add more variables.
         // The convention from OpenZeppelin suggests the storage space should
         // add up to 50 slots. Here we want to have more slots as there are
@@ -321,7 +324,7 @@ library BridgeState {
         // the struct in the upcoming versions we need to reduce the array size.
         // See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
         // slither-disable-next-line unused-state
-        uint256[50] __gap;
+        uint256[49] __gap;
     }
 
     event DepositParametersUpdated(
@@ -373,6 +376,8 @@ library BridgeState {
     );
 
     event TreasuryUpdated(address treasury);
+
+    event RedemptionWatchtowerSet(address redemptionWatchtower);
 
     /// @notice Updates parameters of deposits.
     /// @param _depositDustThreshold New value of the deposit dust threshold in
@@ -825,5 +830,28 @@ library BridgeState {
 
         self.treasury = _treasury;
         emit TreasuryUpdated(_treasury);
+    }
+
+    /// @notice Sets the redemption watchtower address.
+    /// @param _redemptionWatchtower Address of the redemption watchtower.
+    /// @dev Requirements:
+    ///      - Redemption watchtower address must not be already set,
+    ///      - Redemption watchtower address must not be 0x0.
+    function setRedemptionWatchtower(
+        Storage storage self,
+        address _redemptionWatchtower
+    ) internal {
+        require(
+            self.redemptionWatchtower == address(0),
+            "Redemption watchtower already set"
+        );
+
+        require(
+            _redemptionWatchtower != address(0),
+            "Redemption watchtower address must not be 0x0"
+        );
+
+        self.redemptionWatchtower = _redemptionWatchtower;
+        emit RedemptionWatchtowerSet(_redemptionWatchtower);
     }
 }

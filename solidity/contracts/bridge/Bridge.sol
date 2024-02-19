@@ -236,6 +236,8 @@ contract Bridge is
 
     event TreasuryUpdated(address treasury);
 
+    event RedemptionWatchtowerSet(address redemptionWatchtower);
+
     modifier onlySpvMaintainer() {
         require(
             self.isSpvMaintainer[msg.sender],
@@ -1943,5 +1945,23 @@ contract Bridge is
     ///         successfully evaluate an SPV proof.
     function txProofDifficultyFactor() external view returns (uint256) {
         return self.txProofDifficultyFactor;
+    }
+
+    /// @notice Sets the redemption watchtower address.
+    /// @param redemptionWatchtower Address of the redemption watchtower.
+    /// @dev Requirements:
+    ///      - The caller must be the governance,
+    ///      - Redemption watchtower address must not be already set,
+    ///      - Redemption watchtower address must not be 0x0.
+    function setRedemptionWatchtower(address redemptionWatchtower)
+        external
+        onlyGovernance
+    {
+        self.setRedemptionWatchtower(redemptionWatchtower);
+    }
+
+    /// @return Address of the redemption watchtower.
+    function redemptionWatchtower() external view returns (address) {
+        return self.redemptionWatchtower;
     }
 }

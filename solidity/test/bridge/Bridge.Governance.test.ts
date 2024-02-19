@@ -4425,4 +4425,41 @@ describe("Bridge - Governance", () => {
       })
     })
   })
+
+  describe("setRedemptionWatchtower", () => {
+    const watchtower = "0xE8ebaEc51bAeeaBff71707dE2AD028C7fB642A3F"
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          bridgeGovernance
+            .connect(thirdParty)
+            .setRedemptionWatchtower(watchtower)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when caller is the owner", () => {
+      let tx: Promise<ContractTransaction>
+
+      before(async () => {
+        await createSnapshot()
+
+        tx = bridgeGovernance
+          .connect(governance)
+          .setRedemptionWatchtower(watchtower)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      // Detailed tests covering the `bridge.setRedemptionWatchtower` call
+      // can be found in the `Bridge.Parameters.test.ts` file. Here we just
+      // ensure correctness of the BridgeGovernance's ACL.
+      it("should not revert", async () => {
+        await expect(tx).to.not.be.reverted
+      })
+    })
+  })
 })
