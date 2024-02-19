@@ -27,7 +27,7 @@ Wormhole-specific tBTC representation into the canonical `ArbitrumTBTC` token.
 
 The deployment scripts are responsible for managing updates of the tBTC gateway
 addresses across various chains. These addresses are stored in the `external/`
-directory for a specific network, such as `arbitrumGoerli/OptimismWormholeGateway.json.` 
+directory for a specific network, such as `arbitrumSepolia/OptimismWormholeGateway.json.` 
 It is important to note that these addresses should remain constant for the 
 mainnet network. However, there may be instances where a new version of a 
 cross-chain module is deployed to the testing network, which would require a 
@@ -42,7 +42,7 @@ yarn deploy --network <network>
 
 Supported networks:
 - `hardhat` - for local development
-- `arbitrumGoerli` - L2 testing network
+- `arbitrumSepolia` - L2 testing network
 - `arbitrumOne` - L2 mainnet
 
 Currently, this module does not deploy any contracts on L1. All the existing 
@@ -54,6 +54,6 @@ the contracts before running the deployment script. This command produces
 an `export.json` file containing contract deployment info. Note that for the
 chains other than `hardhat` the following environment variables are needed:
 
-- `L2_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://arb-goerli.g.alchemy.com/v2/<alchemy_api_key>`
+- `L2_CHAIN_API_URL` - URL to access blockchain services, e.g. `https://arb-sepolia.g.alchemy.com/v2/<alchemy_api_key>`
 - `L2_ACCOUNTS_PRIVATE_KEYS` - Private keys for the deployer and council `<0xOwnerPrivKey,0xCouncilPrivKey>`
 - `ARBISCAN_API_KEY` - Arbiscan API key
