@@ -8,6 +8,8 @@ the Bitcoin blockchain.
 ### Properties
 
 - [bitcoinHeaders](BitcoinSpvProof.md#bitcoinheaders)
+- [coinbasePreimage](BitcoinSpvProof.md#coinbasepreimage)
+- [coinbaseProof](BitcoinSpvProof.md#coinbaseproof)
 - [merkleProof](BitcoinSpvProof.md#merkleproof)
 - [txIndexInBlock](BitcoinSpvProof.md#txindexinblock)
 
@@ -23,6 +25,31 @@ Concatenated block headers in hexadecimal format. Each block header is
 #### Defined in
 
 [src/lib/bitcoin/spv.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L31)
+
+___
+
+### coinbasePreimage
+
+• **coinbasePreimage**: [`Hex`](../classes/Hex.md)
+
+The sha256 preimage of the coinbase transaction hash i.e.,
+the sha256 hash of the coinbase transaction.
+
+#### Defined in
+
+[src/lib/bitcoin/spv.ts:37](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L37)
+
+___
+
+### coinbaseProof
+
+• **coinbaseProof**: [`Hex`](../classes/Hex.md)
+
+Merkle proof of coinbase transaction inclusion in a block.
+
+#### Defined in
+
+[src/lib/bitcoin/spv.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L42)
 
 ___
 

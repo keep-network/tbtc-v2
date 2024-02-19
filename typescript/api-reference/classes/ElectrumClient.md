@@ -24,6 +24,7 @@ Electrum-based implementation of the Bitcoin client.
 
 - [broadcast](ElectrumClient.md#broadcast)
 - [findAllUnspentTransactionOutputs](ElectrumClient.md#findallunspenttransactionoutputs)
+- [getCoinbaseTxHash](ElectrumClient.md#getcoinbasetxhash)
 - [getHeadersChain](ElectrumClient.md#getheaderschain)
 - [getNetwork](ElectrumClient.md#getnetwork)
 - [getRawTransaction](ElectrumClient.md#getrawtransaction)
@@ -164,6 +165,32 @@ ___
 #### Defined in
 
 [src/lib/electrum/client.ts:260](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L260)
+
+___
+
+### getCoinbaseTxHash
+
+▸ **getCoinbaseTxHash**(`blockHeight`): `Promise`\<[`BitcoinTxHash`](BitcoinTxHash.md)\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `blockHeight` | `number` |
+
+#### Returns
+
+`Promise`\<[`BitcoinTxHash`](BitcoinTxHash.md)\>
+
+**`See`**
+
+#### Implementation of
+
+[BitcoinClient](../interfaces/BitcoinClient.md).[getCoinbaseTxHash](../interfaces/BitcoinClient.md#getcoinbasetxhash)
+
+#### Defined in
+
+[src/lib/electrum/client.ts:646](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L646)
 
 ___
 

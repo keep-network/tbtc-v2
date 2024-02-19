@@ -1791,6 +1791,16 @@
               "internalType": "bytes",
               "name": "bitcoinHeaders",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
+              "type": "bytes"
             }
           ],
           "internalType": "struct BitcoinTx.Proof",
@@ -1914,6 +1924,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2044,6 +2064,16 @@
               "internalType": "bytes",
               "name": "bitcoinHeaders",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
+              "type": "bytes"
             }
           ],
           "internalType": "struct BitcoinTx.Proof",
@@ -2127,6 +2157,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2610,15 +2650,15 @@
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 2,
+  "numDeployments": 3,
   "libraries": {
     "Deposit": "0x1Ac1841a47054E070236F1664991e52c30C04dC5",
-    "DepositSweep": "0xE6F919e62c370Ef04EDF4cA5E2a901Ea1aa87085",
-    "Redemption": "0xfa4FC53BEB5B7721d173342FfC24058e9D47a1Ff",
+    "DepositSweep": "0x53f26BfE896CC4267720cDAf64E9A0c8Fa8f13c2",
+    "Redemption": "0x7D807e9CE1ef73048FEe9A4214e75e894ea25914",
     "Wallets": "0xC67913137429985416DbCe28D9fa9ec960BA47BF",
     "Fraud": "0xd040Def4bC6372Cd27b433288008aDCe7c9de71C",
-    "MovingFunds": "0xB857117ae7639255d7305DdbC7346b4a644CA432"
+    "MovingFunds": "0x3106675EDE4A64d70131247466FD8704A3d42123"
   },
-  "implementation": "0x8D014903BF7867260584d714e11809fea5293234",
+  "implementation": "0x3A4a6919F70e5b0aA32401747C471eCfe2322C1b",
   "devdoc": "Contract deployed as upgradable proxy"
 }

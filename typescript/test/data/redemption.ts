@@ -546,6 +546,8 @@ export interface RedemptionProofTestData {
     latestBlockHeight: number
     headersChain: Hex
     transactionMerkleBranch: BitcoinTxMerkleBranch
+    coinbaseRawTransaction: BitcoinRawTx
+    coinbaseMerkleBranch: BitcoinTxMerkleBranch
   }
   expectedRedemptionProof: {
     redemptionTx: BitcoinRawTxVectors
@@ -666,6 +668,37 @@ export const redemptionProof: RedemptionProofTestData = {
       ],
       position: 4,
     },
+    coinbaseRawTransaction: {
+      transactionHex:
+        "0200000000010100000000000000000000000000000000000000000000000000000000" +
+        "00000000ffffffff480359832104f6905e62425443506f6f6cfabe6d6d44b54ffb3a8b" +
+        "00ab84e3907bfb9fe78157ce719a54630a1321f50b37116f9f71040000002a8dcca602" +
+        "04dad94668000000000000ffffffff028d644b000000000017a9147bef0b4a4dafa77b" +
+        "2ec52b81659cbcf0d9a91487870000000000000000266a24aa21a9ed533404630c2732" +
+        "6df0f77bad5822ad39e6ef184f61ac334eb6264af532bee74801200000000000000000" +
+        "00000000000000000000000000000000000000000000000000000000",
+    },
+    coinbaseMerkleBranch: {
+      blockHeight: 2196313,
+      merkle: [
+        Hex.from(
+          "f0ba82de74f59444ebe27dc395ecf2f6c769d29050f455ad1017f3dcdcd2dd59"
+        ),
+        Hex.from(
+          "1e7b3d5fb5b83ecd12bfe89d9bbd9de747ab544f111063339f11b57f08228ba3"
+        ),
+        Hex.from(
+          "983edacf13f754bf8b6f8c584b7fe12d0d0c0e890e7ce2d29e0c7335021d8b71"
+        ),
+        Hex.from(
+          "65ea59172f35ee6db6e4194227bea23daedbda8299bea94710f21c97f3e9cc17"
+        ),
+        Hex.from(
+          "8c5b4ce089d0c450bf6125e7d342114246802bf4c9638d222aa9fcbe8e06024e"
+        ),
+      ],
+      position: 0,
+    },
   },
   expectedRedemptionProof: {
     redemptionTx: {
@@ -711,6 +744,16 @@ export const redemptionProof: RedemptionProofTestData = {
           "995e62341f5c19945d657200004020f8228183708c5f703e673f381ecee895a8642" +
           "eed9f700b9c2b00000000000000465ec2f30447552a4a30ee63964aaebcb0406492" +
           "69eab449fb51823d58835a4aed9a5e62341f5c192fd94baa"
+      ),
+      coinbasePreimage: Hex.from(
+        "5fb81be0d06e1573231f6b5f4eba3055f3160e1b45a7db6c9cb816b0c184b419"
+      ),
+      coinbaseProof: Hex.from(
+        "59ddd2dcdcf31710ad55f45090d269c7f6f2ec95c37de2eb4494f574de82baf0a38" +
+          "b22087fb5119f336310114f54ab47e79dbd9b9de8bf12cd3eb8b55f3d7b1e718b1d" +
+          "0235730c9ed2e27c0e890e0c0d2de17f4b588c6f8bbf54f713cfda3e9817cce9f39" +
+          "71cf21047a9be9982dadbae3da2be274219e4b66dee352f1759ea654e02068ebefc" +
+          "a92a228d63c9f42b8046421142d3e72561bf50c4d089e04c5b8c"
       ),
     },
     mainUtxo: {
