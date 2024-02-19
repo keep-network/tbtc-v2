@@ -402,6 +402,8 @@ library Redemption {
         bytes memory redeemerOutputScript,
         uint64 amount
     ) internal {
+        // TODO: Validate the request against the RedemptionWatchtower.
+
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
         ];
@@ -1074,5 +1076,65 @@ library Redemption {
             key := keccak256(0, 52)
         }
         return key;
+    }
+
+    /// @notice Notifies that a redemption request was vetoed in the watchtower.
+    ///         This function is responsible for adjusting the Bridge's state
+    ///         accordingly.
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet is decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the request is removed from pending redemptions mapping,
+    ///         - the tokens taken from the redeemer on redemption request are
+    ///           detained and passed to the redemption watchtower
+    ///           (as Bank's balance) for further processing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param redeemerOutputScript  The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
+    /// @dev Requirements:
+    ///      - The caller must be the redemption watchtower,
+    ///      - The redemption request identified by `walletPubKeyHash` and
+    ///        `redeemerOutputScript` must exist.
+    function notifyRedemptionVeto(
+        BridgeState.Storage storage self,
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        require(
+            msg.sender == self.redemptionWatchtower,
+            "Caller is not the redemption watchtower"
+        );
+
+        uint256 redemptionKey = getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
+        );
+        Redemption.RedemptionRequest storage redemption = self
+            .pendingRedemptions[redemptionKey];
+
+        // Should never happen, but just in case.
+        require(
+            redemption.requestedAt != 0,
+            "Redemption request does not exist"
+        );
+
+        // Update the wallet's pending redemptions value. This is the
+        // same logic as performed upon redemption request timeout.
+        // If we don't do this, the wallet will hold the reserve
+        // for a redemption request that will never be processed.
+        self.registeredWallets[walletPubKeyHash].pendingRedemptionsValue -=
+            redemption.requestedAmount -
+            redemption.treasuryFee;
+
+        // Capture the amount that should be transferred to the
+        // redemption watchtower.
+        uint64 detainedAmount = redemption.requestedAmount;
+
+        // Delete the redemption request from the pending redemptions
+        // mapping. This is important to avoid this redemption request
+        // to be processed by the wallet or reported as timed out.
+        delete self.pendingRedemptions[redemptionKey];
+
+        self.bank.transferBalance(self.redemptionWatchtower, detainedAmount);
     }
 }

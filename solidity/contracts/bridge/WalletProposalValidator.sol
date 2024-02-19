@@ -608,6 +608,8 @@ contract WalletProposalValidator {
                 "Not a pending redemption request"
             );
 
+            // TODO: Validate the request against the RedemptionWatchtower.
+
             require(
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp >

@@ -18,6 +18,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "./Bridge.sol";
+import "./Redemption.sol";
 
 /// @title Redemption watchtower
 /// @notice This contract encapsulates the logic behind the redemption veto
@@ -95,6 +96,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     ///         veto request was finalized (i.e. moment of the last guardian
     ///         objection that caused finalization). Value in seconds.
     uint32 public vetoFreezePeriod;
+    /// @notice The Bank contract.
+    Bank public bank;
     /// @notice Default delay applied to each redemption request. It is the time
     ///         during which redemption guardians can raise the first objection.
     ///         Wallets are not allowed to finalize the redemption request before
@@ -122,8 +125,20 @@ contract RedemptionWatchtower is OwnableUpgradeable {
 
     event GuardianRemoved(address indexed guardian);
 
+    event ObjectionRaised(
+        uint256 indexed redemptionKey,
+        address indexed guardian
+    );
+
+    event VetoFinalized(uint256 indexed redemptionKey);
+
     modifier onlyManager() {
         require(msg.sender == manager, "Caller is not watchtower manager");
+        _;
+    }
+
+    modifier onlyGuardian() {
+        require(isGuardian[msg.sender], "Caller is not guardian");
         _;
     }
 
@@ -136,6 +151,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         __Ownable_init();
 
         bridge = _bridge;
+        (bank, , , ) = _bridge.contractReferences();
 
         watchtowerLifetime = 18 * 30 days; // 18 months
         vetoPenaltyFeeDivisor = 1; // 100% as initial penalty fee
@@ -200,5 +216,136 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         require(isGuardian[guardian], "Guardian does not exist");
         delete isGuardian[guardian];
         emit GuardianRemoved(guardian);
+    }
+
+    /// @notice Raises an objection to a redemption request identified by the
+    ///         key built as `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    ///         Each redemption has a default delay period during which
+    ///         the wallet is not allowed to process it and the guardians
+    ///         can raise objections to. Each objection extends the delay
+    ///         period by a certain amount of time. The third objection
+    ///         vetoes the redemption request. This causes the redemption
+    ///         request to be rejected and the redeemer to be penalized.
+    ///         Specific consequences of a veto are as follows:
+    ///         - The redemption amount is frozen for a certain period of time,
+    ///         - Once the freeze period expires, the redeemer can claim the
+    ///           frozen amount minus a penalty fee,
+    ///         - The penalty fee is burned,
+    ///         - The redeemer is banned from making future redemption requests.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
+    /// @dev Requirements:
+    ///      - The caller must be a redemption guardian,
+    ///      - The redemption request must exist (i.e. must be pending),
+    ///      - The redemption request must not have been vetoed already,
+    ///      - The guardian must not have already objected to the redemption request,
+    ///      - The redemption request must be within the optimistic redemption
+    ///        delay period. The only exception is when the redemption request
+    ///        was created before the optimistic redemption mechanism
+    ///        initialization timestamp. In this case, the redemption request
+    ///        can be objected to without any time restrictions.
+    function raiseObjection(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external onlyGuardian {
+        uint256 redemptionKey = Redemption.getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
+        );
+
+        Redemption.RedemptionRequest memory redemption = bridge
+            .pendingRedemptions(redemptionKey);
+
+        require(
+            redemption.requestedAt != 0,
+            "Redemption request does not exist"
+        );
+
+        VetoProposal storage veto = vetoProposals[redemptionKey];
+
+        uint8 requiredObjectionsCount = 3;
+
+        require(
+            veto.objectionsCount < requiredObjectionsCount,
+            "Redemption request already vetoed"
+        );
+
+        uint256 objectionKey = uint256(
+            keccak256(abi.encodePacked(redemptionKey, msg.sender))
+        );
+        require(!objections[objectionKey], "Guardian already objected");
+
+        // Check if the given redemption request can be objected to:
+        // - Objections against a redemption request created AFTER the
+        //   `watchtowerEnabledAt` timestamp can be raised only within
+        //   a certain time frame defined by the redemption delay.
+        // - Objections against a redemption request created BEFORE the
+        //   `watchtowerEnabledAt` timestamp can be raised without
+        //   any time restrictions.
+        uint32 delay = _redemptionDelay(veto.objectionsCount);
+        if (redemption.requestedAt >= watchtowerEnabledAt) {
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp < redemption.requestedAt + delay,
+                "Redemption veto delay period expired"
+            );
+        }
+
+        objections[objectionKey] = true;
+        // Set the redeemer address in the veto request early to slightly
+        // reduce gas costs for the last guardian that must pay for the
+        // veto finalization.
+        veto.redeemer = redemption.redeemer;
+        veto.objectionsCount++;
+
+        emit ObjectionRaised(redemptionKey, msg.sender);
+
+        // If there are enough objections, finalize the veto.
+        if (veto.objectionsCount == requiredObjectionsCount) {
+            // Calculate the veto penalty fee that will be deducted from the
+            // final amount that the redeemer can claim after the freeze period.
+            uint64 penaltyFee = vetoPenaltyFeeDivisor > 0
+                ? redemption.requestedAmount / vetoPenaltyFeeDivisor
+                : 0;
+
+            // Set finalization fields in the veto request.
+            veto.claimableAmount = redemption.requestedAmount - penaltyFee;
+            /* solhint-disable-next-line not-rely-on-time */
+            veto.finalizedAt = uint32(block.timestamp);
+            // Mark the redeemer as banned to prevent future redemption
+            // requests from that address.
+            isBanned[redemption.redeemer] = true;
+
+            emit VetoFinalized(redemptionKey);
+
+            // Notify the Bridge about the veto. As result of this call,
+            // this contract should receive the requested redemption amount
+            // (as Bank's balance) from the Bridge.
+            bridge.notifyRedemptionVeto(walletPubKeyHash, redeemerOutputScript);
+            // Burn the penalty fee but leave the claimable amount. The
+            // claimable amount will be returned to the redeemer after the
+            // freeze period.
+            bank.decreaseBalance(penaltyFee);
+        }
+    }
+
+    /// @notice Returns the redemption delay for a given number of objections.
+    /// @param objectionsCount Number of objections.
+    /// @return delay Redemption delay.
+    function _redemptionDelay(uint8 objectionsCount)
+        internal
+        view
+        returns (uint32 delay)
+    {
+        if (objectionsCount == 0) {
+            delay = defaultDelay;
+        } else if (objectionsCount == 1) {
+            delay = levelOneDelay;
+        } else if (objectionsCount == 2) {
+            delay = levelTwoDelay;
+        } else {
+            revert("No delay for given objections count");
+        }
     }
 }
