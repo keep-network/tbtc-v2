@@ -248,9 +248,9 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
     /// @dev Requirements:
     ///      - The caller must be a redemption guardian,
-    ///      - The redemption request must exist (i.e. must be pending),
     ///      - The redemption request must not have been vetoed already,
     ///      - The guardian must not have already objected to the redemption request,
+    ///      - The redemption request must exist (i.e. must be pending),
     ///      - The redemption request must be within the optimistic redemption
     ///        delay period. The only exception is when the redemption request
     ///        was created before the optimistic redemption mechanism
@@ -263,14 +263,6 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         uint256 redemptionKey = Redemption.getRedemptionKey(
             walletPubKeyHash,
             redeemerOutputScript
-        );
-
-        Redemption.RedemptionRequest memory redemption = bridge
-            .pendingRedemptions(redemptionKey);
-
-        require(
-            redemption.requestedAt != 0,
-            "Redemption request does not exist"
         );
 
         VetoProposal storage veto = vetoProposals[redemptionKey];
@@ -286,6 +278,14 @@ contract RedemptionWatchtower is OwnableUpgradeable {
             keccak256(abi.encodePacked(redemptionKey, msg.sender))
         );
         require(!objections[objectionKey], "Guardian already objected");
+
+        Redemption.RedemptionRequest memory redemption = bridge
+            .pendingRedemptions(redemptionKey);
+
+        require(
+            redemption.requestedAt != 0,
+            "Redemption request does not exist"
+        );
 
         // Check if the given redemption request can be objected to:
         // - Objections against a redemption request created AFTER the
