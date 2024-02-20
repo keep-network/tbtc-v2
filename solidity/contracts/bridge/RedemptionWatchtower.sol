@@ -425,4 +425,45 @@ contract RedemptionWatchtower is OwnableUpgradeable {
             _levelTwoDelay
         );
     }
+
+    /// @notice Determines whether a redemption request is considered safe.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet that
+    ///        is meant to handle the redemption request.
+    /// @param redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that is meant to
+    ///        receive the redeemed amount.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed.
+    /// @param redeemer The address that requested the redemption.
+    /// @return True if the redemption request is safe, false otherwise.
+    ///         The redemption is considered safe when:
+    ///         - The balance owner is not banned,
+    ///         - The redeemer is not banned,
+    ///         - There are no objections against past redemptions from the
+    ///           given wallet to the given redeemer output script.
+    function isSafeRedemption(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript,
+        address balanceOwner,
+        address redeemer
+    ) external view returns (bool) {
+        if (isBanned[balanceOwner]) {
+            return false;
+        }
+
+        if (isBanned[redeemer]) {
+            return false;
+        }
+
+        uint256 redemptionKey = Redemption.getRedemptionKey(
+            walletPubKeyHash,
+            redeemerOutputScript
+        );
+
+        if (vetoProposals[redemptionKey].objectionsCount > 0) {
+            return false;
+        }
+
+        return true;
+    }
 }

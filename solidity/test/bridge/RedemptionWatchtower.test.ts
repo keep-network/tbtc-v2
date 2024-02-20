@@ -1577,6 +1577,146 @@ describe("RedemptionWatchtower", () => {
     })
   })
 
+  describe("isSafeRedemption", () => {
+    let vetoedRedemption: RedemptionData
+    let objectedNonVetoedRedemption: RedemptionData
+
+    before(async () => {
+      await createSnapshot()
+
+      // eslint-disable-next-line prefer-destructuring
+      vetoedRedemption = (
+        await createRedemptionRequests(SinglePendingRequestedRedemption)
+      )[0]
+
+      // Create another redemption using the same SinglePendingRequestedRedemption
+      // data. Use different redeemerOutputScript to avoid collision
+      // with the first redemption.
+      const redemptionData = JSON.parse(
+        JSON.stringify(SinglePendingRequestedRedemption)
+      )
+      redemptionData.redemptionRequests[0].redeemerOutputScript =
+        "0x17a914011beb6fb8499e075a57027fb0a58384f2d3f78487"
+      // eslint-disable-next-line prefer-destructuring
+      objectedNonVetoedRedemption = (
+        await createRedemptionRequests(redemptionData)
+      )[0]
+
+      await redemptionWatchtower.connect(governance).enableWatchtower(
+        redemptionWatchtowerManager.address,
+        guardians.map((g) => g.address)
+      )
+
+      // Raise three objections to veto the first redemption and ban the redeemer.
+      await redemptionWatchtower
+        .connect(guardians[0])
+        .raiseObjection(
+          vetoedRedemption.walletPublicKeyHash,
+          vetoedRedemption.redeemerOutputScript
+        )
+      await redemptionWatchtower
+        .connect(guardians[1])
+        .raiseObjection(
+          vetoedRedemption.walletPublicKeyHash,
+          vetoedRedemption.redeemerOutputScript
+        )
+      await redemptionWatchtower
+        .connect(guardians[2])
+        .raiseObjection(
+          vetoedRedemption.walletPublicKeyHash,
+          vetoedRedemption.redeemerOutputScript
+        )
+
+      // Raise a single objection to the second "objected but non-vetoed" redemption.
+      await redemptionWatchtower
+        .connect(guardians[0])
+        .raiseObjection(
+          objectedNonVetoedRedemption.walletPublicKeyHash,
+          objectedNonVetoedRedemption.redeemerOutputScript
+        )
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the balance owner is banned", () => {
+      it("should return false", async () => {
+        // Check non-objected redemption with the banned redeemer as balance owner.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(
+          await redemptionWatchtower.isSafeRedemption(
+            "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+            "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+            vetoedRedemption.redeemer,
+            "0x0Bf9bD12462c43A91F13440faF9f9BD6ece37689"
+          )
+        ).to.be.false
+      })
+    })
+
+    context("when the redeemer is banned", () => {
+      it("should return false", async () => {
+        // Check non-objected redemption with the banned redeemer as redeemer.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(
+          await redemptionWatchtower.isSafeRedemption(
+            "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+            "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+            "0x0Bf9bD12462c43A91F13440faF9f9BD6ece37689",
+            vetoedRedemption.redeemer
+          )
+        ).to.be.false
+      })
+    })
+
+    context("when redemption key was vetoed", () => {
+      it("should return false", async () => {
+        // Check vetoed redemption with non-banned balance owner and redeemer.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(
+          await redemptionWatchtower.isSafeRedemption(
+            vetoedRedemption.walletPublicKeyHash,
+            vetoedRedemption.redeemerOutputScript,
+            "0x0Bf9bD12462c43A91F13440faF9f9BD6ece37689",
+            "0x90a4ac843763F7F345f2738CcC9F420D59751249"
+          )
+        ).to.be.false
+      })
+    })
+
+    context("when redemption key was objected but not vetoed", () => {
+      it("should return false", async () => {
+        // Check objected but non-vetoed redemption with non-banned balance
+        // owner and redeemer.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(
+          await redemptionWatchtower.isSafeRedemption(
+            objectedNonVetoedRedemption.walletPublicKeyHash,
+            objectedNonVetoedRedemption.redeemerOutputScript,
+            "0x0Bf9bD12462c43A91F13440faF9f9BD6ece37689",
+            "0x90a4ac843763F7F345f2738CcC9F420D59751249"
+          )
+        ).to.be.false
+      })
+    })
+
+    context("when all safety criteria are met", () => {
+      it("should return true", async () => {
+        // Check non-objected redemption with non-banned balance owner and redeemer.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(
+          await redemptionWatchtower.isSafeRedemption(
+            "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
+            "0x1976a9142cd680318747b720d67bf4246eb7403b476adb3488ac",
+            "0x0Bf9bD12462c43A91F13440faF9f9BD6ece37689",
+            "0x90a4ac843763F7F345f2738CcC9F420D59751249"
+          )
+        ).to.be.true
+      })
+    })
+  })
+
   type RedemptionData = {
     redemptionKey: string
     walletPublicKeyHash: string

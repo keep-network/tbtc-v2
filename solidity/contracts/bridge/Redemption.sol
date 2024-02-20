@@ -24,6 +24,27 @@ import "./Wallets.sol";
 
 import "../bank/Bank.sol";
 
+/// @notice Interface of the RedemptionWatchtower.
+interface IRedemptionWatchtower {
+    /// @notice Determines whether a redemption request is considered safe.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet that
+    ///        is meant to handle the redemption request.
+    /// @param redeemerOutputScript The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH) that is meant to
+    ///        receive the redeemed amount.
+    /// @param balanceOwner The address of the Bank balance owner whose balance
+    ///        is getting redeemed.
+    /// @param redeemer The address that requested the redemption.
+    /// @return True if the redemption request is safe, false otherwise.
+    ///         Specific safety criteria depend on the implementation.
+    function isSafeRedemption(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript,
+        address balanceOwner,
+        address redeemer
+    ) external view returns (bool);
+}
+
 /// @notice Aggregates functions common to the redemption transaction proof
 ///         validation and to the moving funds transaction proof validation.
 library OutboundTx {
@@ -402,7 +423,18 @@ library Redemption {
         bytes memory redeemerOutputScript,
         uint64 amount
     ) internal {
-        // TODO: Validate the request against the RedemptionWatchtower.
+        if (self.redemptionWatchtower != address(0)) {
+            require(
+                IRedemptionWatchtower(self.redemptionWatchtower)
+                    .isSafeRedemption(
+                        walletPubKeyHash,
+                        redeemerOutputScript,
+                        balanceOwner,
+                        redeemer
+                    ),
+                "Redemption request rejected by the watchtower"
+            );
+        }
 
         Wallets.Wallet storage wallet = self.registeredWallets[
             walletPubKeyHash
