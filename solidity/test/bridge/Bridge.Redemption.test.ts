@@ -40,6 +40,7 @@ import {
 } from "../data/redemption"
 import { constants, walletState } from "../fixtures"
 import bridgeFixture from "../fixtures/bridge"
+import { RedemptionRequestStructOutput } from "../../typechain/Bridge"
 
 chai.use(smock.matchers)
 
@@ -4601,6 +4602,168 @@ describe("Bridge - Redemption", () => {
               redemptionRequest.redeemerOutputScript
             )
         ).to.be.revertedWith("Redemption request does not exist")
+      })
+    })
+  })
+
+  describe("notifyRedemptionVeto", () => {
+    const data: RedemptionTestData = SinglePendingRequestedRedemption
+    const walletPublicKeyHash = data.wallet.pubKeyHash
+    const { redeemerOutputScript } = data.redemptionRequests[0]
+
+    context("when the caller is not the redemption watchtower", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge
+            .connect(thirdParty)
+            .notifyRedemptionVeto(walletPublicKeyHash, redeemerOutputScript)
+        ).to.be.revertedWith("Caller is not the redemption watchtower")
+      })
+    })
+
+    context("when the caller is the redemption watchtower", () => {
+      let watchtower: SignerWithAddress
+
+      before(async () => {
+        await createSnapshot()
+
+        watchtower = thirdParty
+
+        await bridgeGovernance
+          .connect(governance)
+          .setRedemptionWatchtower(watchtower.address)
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the redemption does not exist", () => {
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(watchtower)
+              .notifyRedemptionVeto(walletPublicKeyHash, redeemerOutputScript)
+          ).to.be.revertedWith("Redemption request does not exist")
+        })
+      })
+
+      context("when the redemption exists", () => {
+        let tx: ContractTransaction
+
+        let redemptionKey: string
+        let redemption: RedemptionRequestStructOutput
+        let initialWalletPendingRedemptionsValue: BigNumber
+        let initialBridgeBalance: BigNumber
+        let initialWatchtowerBalance: BigNumber
+
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.setWallet(walletPublicKeyHash, {
+            ecdsaWalletID: data.wallet.ecdsaWalletID,
+            mainUtxoHash: ethers.constants.HashZero,
+            pendingRedemptionsValue: data.wallet.pendingRedemptionsValue,
+            createdAt: await lastBlockTime(),
+            movingFundsRequestedAt: 0,
+            closingStartedAt: 0,
+            pendingMovedFundsSweepRequestsCount: 0,
+            state: walletState.Live,
+            movingFundsTargetWalletsCommitmentHash: ethers.constants.HashZero,
+          })
+          await bridge.setWalletMainUtxo(walletPublicKeyHash, data.mainUtxo)
+          await bridge.setActiveWallet(walletPublicKeyHash)
+
+          const redeemerSigner = await impersonateAccount(
+            data.redemptionRequests[0].redeemer,
+            {
+              from: governance,
+              value: 10,
+            }
+          )
+
+          await makeRedemptionAllowance(
+            redeemerSigner,
+            data.redemptionRequests[0].amount
+          )
+
+          await bridge
+            .connect(redeemerSigner)
+            .requestRedemption(
+              walletPublicKeyHash,
+              data.mainUtxo,
+              redeemerOutputScript,
+              data.redemptionRequests[0].amount
+            )
+
+          redemptionKey = buildRedemptionKey(
+            walletPublicKeyHash,
+            redeemerOutputScript
+          )
+          redemption = await bridge.pendingRedemptions(redemptionKey)
+
+          initialWalletPendingRedemptionsValue = (
+            await bridge.wallets(walletPublicKeyHash)
+          ).pendingRedemptionsValue
+
+          initialBridgeBalance = await bank.balanceOf(bridge.address)
+          initialWatchtowerBalance = await bank.balanceOf(watchtower.address)
+
+          tx = await bridge
+            .connect(watchtower)
+            .notifyRedemptionVeto(walletPublicKeyHash, redeemerOutputScript)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should update the wallet's pending redemptions value", async () => {
+          const currentWalletPendingRedemptionsValue = (
+            await bridge.wallets(walletPublicKeyHash)
+          ).pendingRedemptionsValue
+
+          const difference = initialWalletPendingRedemptionsValue.sub(
+            currentWalletPendingRedemptionsValue
+          )
+
+          expect(difference).to.be.equal(
+            redemption.requestedAmount.sub(redemption.treasuryFee)
+          )
+        })
+
+        it("should remove the request from the pending redemptions", async () => {
+          const request = await bridge.pendingRedemptions(redemptionKey)
+
+          expect(request.requestedAt).to.be.equal(0)
+        })
+
+        it("should transfer the requested amount of tokens to the watchtower", async () => {
+          const currentBridgeBalance = await bank.balanceOf(bridge.address)
+          const currentWatchtowerBalance = await bank.balanceOf(
+            watchtower.address
+          )
+
+          // Bridge has a balance decrease.
+          const bridgeDifference =
+            initialBridgeBalance.sub(currentBridgeBalance)
+          // Watchtower has a balance increase.
+          const watchtowerDifference = currentWatchtowerBalance.sub(
+            initialWatchtowerBalance
+          )
+
+          expect(bridgeDifference).to.be.equal(redemption.requestedAmount)
+          expect(watchtowerDifference).to.be.equal(redemption.requestedAmount)
+
+          // Double-check the right event was emitted.
+          await expect(tx)
+            .to.emit(bank, "BalanceTransferred")
+            .withArgs(
+              bridge.address,
+              watchtower.address,
+              redemption.requestedAmount
+            )
+        })
       })
     })
   })
