@@ -134,6 +134,15 @@ contract RedemptionWatchtower is OwnableUpgradeable {
 
     event VetoFinalized(uint256 indexed redemptionKey);
 
+    event WatchtowerParametersUpdated(
+        uint32 watchtowerLifetime,
+        uint64 vetoPenaltyFeeDivisor,
+        uint32 vetoFreezePeriod,
+        uint32 defaultDelay,
+        uint32 levelOneDelay,
+        uint32 levelTwoDelay
+    );
+
     modifier onlyManager() {
         require(msg.sender == manager, "Caller is not watchtower manager");
         _;
@@ -352,5 +361,68 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         } else {
             revert("No delay for given objections count");
         }
+    }
+
+    /// @notice Updates the watchtower parameters.
+    /// @param _watchtowerLifetime Duration of the watchtower lifetime in seconds.
+    /// @param _vetoPenaltyFeeDivisor Divisor used to compute the redemption veto
+    ///        penalty fee deducted upon veto finalization.
+    /// @param _vetoFreezePeriod Time of the redemption veto freeze period.
+    /// @param _defaultDelay Default delay applied to each redemption request.
+    /// @param _levelOneDelay Delay applied to redemption requests a single guardian
+    ///        raised an objection to.
+    /// @param _levelTwoDelay Delay applied to redemption requests two guardians
+    ///        raised an objection to.
+    /// @dev Requirements:
+    ///      - The caller must be the watchtower manager,
+    ///      - The new watchtower lifetime must not be lesser than the current one,
+    ///      - The new redemption veto penalty fee divisor must be in range [0%, 5%],
+    ///      - The new redemption level-two delay must not be lesser than level-one delay,
+    ///      - The new redemption level-one delay must not be lesser than default delay.
+    function updateWatchtowerParameters(
+        uint32 _watchtowerLifetime,
+        uint64 _vetoPenaltyFeeDivisor,
+        uint32 _vetoFreezePeriod,
+        uint32 _defaultDelay,
+        uint32 _levelOneDelay,
+        uint32 _levelTwoDelay
+    ) external onlyManager {
+        require(
+            _watchtowerLifetime >= watchtowerLifetime,
+            "New lifetime must not be lesser than current one"
+        );
+
+        // Enforce the 5% hard cap.
+        require(
+            _vetoPenaltyFeeDivisor >= 20 || _vetoPenaltyFeeDivisor == 0,
+            "Redemption veto penalty fee must be in range [0%, 5%]"
+        );
+
+        // Enforce proper relationship between the delay levels. Use
+        // `>=` to allow for setting all delays to zero, if needed.
+        require(
+            _levelTwoDelay >= _levelOneDelay,
+            "Redemption level-two delay must not be lesser than level-one delay"
+        );
+        require(
+            _levelOneDelay >= _defaultDelay,
+            "Redemption level-one delay must not be lesser than default delay"
+        );
+
+        watchtowerLifetime = _watchtowerLifetime;
+        vetoPenaltyFeeDivisor = _vetoPenaltyFeeDivisor;
+        vetoFreezePeriod = _vetoFreezePeriod;
+        defaultDelay = _defaultDelay;
+        levelOneDelay = _levelOneDelay;
+        levelTwoDelay = _levelTwoDelay;
+
+        emit WatchtowerParametersUpdated(
+            _watchtowerLifetime,
+            _vetoPenaltyFeeDivisor,
+            _vetoFreezePeriod,
+            _defaultDelay,
+            _levelOneDelay,
+            _levelTwoDelay
+        );
     }
 }
