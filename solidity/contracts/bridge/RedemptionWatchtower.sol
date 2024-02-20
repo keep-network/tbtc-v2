@@ -130,6 +130,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         address indexed guardian
     );
 
+    event VetoPeriodCheckOmitted(uint256 indexed redemptionKey);
+
     event VetoFinalized(uint256 indexed redemptionKey);
 
     modifier onlyManager() {
@@ -283,13 +285,16 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         // - Objections against a redemption request created BEFORE the
         //   `watchtowerEnabledAt` timestamp can be raised without
         //   any time restrictions.
-        uint32 delay = _redemptionDelay(veto.objectionsCount);
         if (redemption.requestedAt >= watchtowerEnabledAt) {
             require(
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp < redemption.requestedAt + delay,
+                block.timestamp <
+                    redemption.requestedAt +
+                        _redemptionDelay(veto.objectionsCount),
                 "Redemption veto delay period expired"
             );
+        } else {
+            emit VetoPeriodCheckOmitted(redemptionKey);
         }
 
         objections[objectionKey] = true;
