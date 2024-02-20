@@ -1298,6 +1298,285 @@ describe("RedemptionWatchtower", () => {
     })
   })
 
+  describe("updateWatchtowerParameters", () => {
+    let watchtowerLifetime: number
+    let vetoPenaltyFeeDivisor: number
+    let vetoFreezePeriod: number
+    let defaultDelay: number
+    let levelOneDelay: number
+    let levelTwoDelay: number
+
+    before(async () => {
+      await createSnapshot()
+
+      await redemptionWatchtower.connect(governance).enableWatchtower(
+        redemptionWatchtowerManager.address,
+        guardians.map((g) => g.address)
+      )
+
+      watchtowerLifetime = await redemptionWatchtower.watchtowerLifetime()
+      vetoPenaltyFeeDivisor = 20 // Max value 5%
+      vetoFreezePeriod = await redemptionWatchtower.vetoFreezePeriod()
+      defaultDelay = await redemptionWatchtower.defaultDelay()
+      levelOneDelay = await redemptionWatchtower.levelOneDelay()
+      levelTwoDelay = await redemptionWatchtower.levelTwoDelay()
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when called not by the watchtower manager", () => {
+      it("should revert", async () => {
+        await expect(
+          redemptionWatchtower
+            .connect(thirdParty)
+            .updateWatchtowerParameters(
+              watchtowerLifetime,
+              vetoPenaltyFeeDivisor,
+              vetoFreezePeriod,
+              defaultDelay,
+              levelOneDelay,
+              levelTwoDelay
+            )
+        ).to.be.revertedWith("Caller is not watchtower manager")
+      })
+    })
+
+    context("when called by the watchtower manager", () => {
+      context("when new parameters are invalid", () => {
+        context("when the new lifetime is lesser than the current one", () => {
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .updateWatchtowerParameters(
+                  watchtowerLifetime - 1, // lesser than current value by 1
+                  vetoPenaltyFeeDivisor,
+                  vetoFreezePeriod,
+                  defaultDelay,
+                  levelOneDelay,
+                  levelTwoDelay
+                )
+            ).to.be.revertedWith(
+              "New lifetime must not be lesser than current one"
+            )
+          })
+        })
+
+        context(
+          "when the new veto penalty fee is not in the proper range",
+          () => {
+            it("should revert", async () => {
+              await expect(
+                redemptionWatchtower
+                  .connect(redemptionWatchtowerManager)
+                  .updateWatchtowerParameters(
+                    watchtowerLifetime,
+                    // Decrease the divisor by 1 to exceed the max value.
+                    vetoPenaltyFeeDivisor - 1,
+                    vetoFreezePeriod,
+                    defaultDelay,
+                    levelOneDelay,
+                    levelTwoDelay
+                  )
+              ).to.be.revertedWith(
+                "Redemption veto penalty fee must be in range [0%, 5%]"
+              )
+            })
+          }
+        )
+
+        context("when level-two delay is lesser than level-one delay", () => {
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .updateWatchtowerParameters(
+                  watchtowerLifetime,
+                  vetoPenaltyFeeDivisor,
+                  vetoFreezePeriod,
+                  defaultDelay,
+                  levelOneDelay,
+                  levelOneDelay - 1
+                )
+            ).to.be.revertedWith(
+              "Redemption level-two delay must not be lesser than level-one delay"
+            )
+          })
+        })
+
+        context("when level-one delay is lesser than default delay", () => {
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .updateWatchtowerParameters(
+                  watchtowerLifetime,
+                  vetoPenaltyFeeDivisor,
+                  vetoFreezePeriod,
+                  defaultDelay,
+                  defaultDelay - 1,
+                  levelTwoDelay
+                )
+            ).to.be.revertedWith(
+              "Redemption level-one delay must not be lesser than default delay"
+            )
+          })
+        })
+      })
+
+      context("when all new parameters are valid", () => {
+        const testData: {
+          testName: string
+          newWatchtowerLifetime?: number
+          newVetoPenaltyFeeDivisor?: number
+          newVetoFreezePeriod?: number
+          newDefaultDelay?: number
+          newLevelOneDelay?: number
+          newLevelTwoDelay?: number
+        }[] = [
+          {
+            testName: "when watchtower lifetime is increased",
+            newWatchtowerLifetime: 52_600_000, // 20 months
+          },
+          {
+            testName:
+              "when veto penalty is changed to to the maximum value of 5%",
+            newVetoPenaltyFeeDivisor: 20, // 5%
+          },
+          {
+            testName:
+              "when veto penalty is changed to to the middle of the range",
+            newVetoPenaltyFeeDivisor: 40, // 2.5%
+          },
+          {
+            testName: "when veto penalty is changed to the minimum value of 0%",
+            newVetoPenaltyFeeDivisor: 0, // 0 %
+          },
+          {
+            testName: "when veto freeze period is changed to a non-zero value",
+            newVetoFreezePeriod: 7200, // 2 hours
+          },
+          {
+            testName: "when veto freeze period is changed to 0",
+            newVetoFreezePeriod: 0,
+          },
+          {
+            testName: "when delays are changed to a non-zero value",
+            newDefaultDelay: 14400, // 4 hours
+            newLevelOneDelay: 57600, // 16 hours
+            newLevelTwoDelay: 115200, // 32 hours
+          },
+          {
+            testName: "when delays are changed to 0",
+            newDefaultDelay: 0,
+            newLevelOneDelay: 0,
+            newLevelTwoDelay: 0,
+          },
+        ]
+
+        testData.forEach((test) => {
+          let newWatchtowerLifetime: number
+          let newVetoPenaltyFeeDivisor: number
+          let newVetoFreezePeriod: number
+          let newDefaultDelay: number
+          let newLevelOneDelay: number
+          let newLevelTwoDelay: number
+
+          context(test.testName, async () => {
+            let tx: ContractTransaction
+
+            before(async () => {
+              await createSnapshot()
+
+              const assignValue = (optionalValue, defaultValue) =>
+                typeof optionalValue !== "undefined"
+                  ? optionalValue
+                  : defaultValue
+
+              newWatchtowerLifetime = assignValue(
+                test.newWatchtowerLifetime,
+                watchtowerLifetime
+              )
+              newVetoPenaltyFeeDivisor = assignValue(
+                test.newVetoPenaltyFeeDivisor,
+                vetoPenaltyFeeDivisor
+              )
+              newVetoFreezePeriod = assignValue(
+                test.newVetoFreezePeriod,
+                vetoFreezePeriod
+              )
+              newDefaultDelay = assignValue(test.newDefaultDelay, defaultDelay)
+              newLevelOneDelay = assignValue(
+                test.newLevelOneDelay,
+                levelOneDelay
+              )
+              newLevelTwoDelay = assignValue(
+                test.newLevelTwoDelay,
+                levelTwoDelay
+              )
+
+              tx = await redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .updateWatchtowerParameters(
+                  newWatchtowerLifetime,
+                  newVetoPenaltyFeeDivisor,
+                  newVetoFreezePeriod,
+                  newDefaultDelay,
+                  newLevelOneDelay,
+                  newLevelTwoDelay
+                )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should emit WatchtowerParametersUpdated event", async () => {
+              await expect(tx)
+                .to.emit(redemptionWatchtower, "WatchtowerParametersUpdated")
+                .withArgs(
+                  newWatchtowerLifetime,
+                  newVetoPenaltyFeeDivisor,
+                  newVetoFreezePeriod,
+                  newDefaultDelay,
+                  newLevelOneDelay,
+                  newLevelTwoDelay
+                )
+            })
+
+            it("should update the watchtower parameters", async () => {
+              expect(
+                await redemptionWatchtower.watchtowerLifetime()
+              ).to.be.equal(newWatchtowerLifetime)
+
+              expect(
+                await redemptionWatchtower.vetoPenaltyFeeDivisor()
+              ).to.be.equal(newVetoPenaltyFeeDivisor)
+
+              expect(await redemptionWatchtower.vetoFreezePeriod()).to.be.equal(
+                newVetoFreezePeriod
+              )
+
+              expect(await redemptionWatchtower.defaultDelay()).to.be.equal(
+                newDefaultDelay
+              )
+
+              expect(await redemptionWatchtower.levelOneDelay()).to.be.equal(
+                newLevelOneDelay
+              )
+
+              expect(await redemptionWatchtower.levelTwoDelay()).to.be.equal(
+                newLevelTwoDelay
+              )
+            })
+          })
+        })
+      })
+    })
+  })
+
   type RedemptionData = {
     redemptionKey: string
     walletPublicKeyHash: string
