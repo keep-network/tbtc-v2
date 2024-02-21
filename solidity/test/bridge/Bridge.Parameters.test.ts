@@ -1899,7 +1899,7 @@ describe("Bridge - Parameters", () => {
           })
 
           it("should set the watchtower address", async () => {
-            expect(await bridge.redemptionWatchtower()).to.equal(watchtower)
+            expect(await bridge.getRedemptionWatchtower()).to.equal(watchtower)
           })
 
           it("should emit RedemptionWatchtowerSet event", async () => {

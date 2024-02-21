@@ -1961,7 +1961,7 @@ contract Bridge is
     }
 
     /// @return Address of the redemption watchtower.
-    function redemptionWatchtower() external view returns (address) {
+    function getRedemptionWatchtower() external view returns (address) {
         return self.redemptionWatchtower;
     }
 
