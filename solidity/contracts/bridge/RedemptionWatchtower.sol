@@ -126,6 +126,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
 
     event WatchtowerEnabled(uint32 enabledAt, address manager);
 
+    event WatchtowerDisabled(uint32 disabledAt, address executor);
+
     event GuardianAdded(address indexed guardian);
 
     event GuardianRemoved(address indexed guardian);
@@ -204,6 +206,30 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         watchtowerEnabledAt = enabledAt;
 
         emit WatchtowerEnabled(enabledAt, _manager);
+    }
+
+    /// @notice Disables the redemption watchtower and veto mechanism.
+    ///         Can be called by anyone.
+    /// @dev Requirements:
+    ///      - Watchtower must be enabled,
+    ///      - Watchtower must not be disabled already,
+    ///      - Watchtower lifetime must have expired.
+    function disableWatchtower() external {
+        require(watchtowerEnabledAt != 0, "Not enabled");
+
+        require(watchtowerDisabledAt == 0, "Already disabled");
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp > watchtowerEnabledAt + watchtowerLifetime,
+            "Watchtower lifetime not expired"
+        );
+
+        /* solhint-disable-next-line not-rely-on-time */
+        uint32 disabledAt = uint32(block.timestamp);
+        watchtowerDisabledAt = disabledAt;
+
+        emit WatchtowerDisabled(disabledAt, msg.sender);
     }
 
     /// @notice Adds a redemption guardian
@@ -303,6 +329,9 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         //   any time restrictions.
         if (redemption.requestedAt >= watchtowerEnabledAt) {
             require(
+                // Use < instead of <= to avoid a theoretical edge case
+                // where the delay is 0 (veto disabled) but three objections
+                // are raised in the same block as the redemption request.
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp <
                     redemption.requestedAt +
@@ -359,11 +388,17 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     /// @param objectionsCount Number of objections.
     /// @param requestedAmount Requested redemption amount.
     /// @return Redemption delay.
+    /// @dev If the watchtower has been disabled, the delay is always zero,
+    ///      for any redemption request.
     function _redemptionDelay(uint8 objectionsCount, uint64 requestedAmount)
         internal
         view
         returns (uint32)
     {
+        if (watchtowerDisabledAt != 0) {
+            return 0;
+        }
+
         if (requestedAmount < waivedAmountLimit) {
             return 0;
         }
@@ -384,6 +419,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     /// @param redemptionKey Redemption key built as
     ///        `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
     /// @return Redemption delay.
+    /// @dev If the watchtower has been disabled, the delay is always zero,
+    ///      for any redemption request.
     function getRedemptionDelay(uint256 redemptionKey)
         external
         view
