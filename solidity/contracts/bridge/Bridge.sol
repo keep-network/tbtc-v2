@@ -1957,6 +1957,7 @@ contract Bridge is
         external
         onlyGovernance
     {
+        // The internal function is defined in the `BridgeState` library.
         self.setRedemptionWatchtower(redemptionWatchtower);
     }
 
