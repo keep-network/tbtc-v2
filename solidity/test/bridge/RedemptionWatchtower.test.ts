@@ -129,6 +129,12 @@ describe("RedemptionWatchtower", () => {
             await restoreSnapshot()
           })
 
+          it("should set the enabledAt timeout properly", async () => {
+            expect(await redemptionWatchtower.watchtowerEnabledAt()).to.equal(
+              await lastBlockTime()
+            )
+          })
+
           it("should set the watchtower manager properly", async () => {
             expect(await redemptionWatchtower.manager()).to.equal(
               redemptionWatchtowerManager.address
@@ -165,6 +171,124 @@ describe("RedemptionWatchtower", () => {
             await expect(tx)
               .to.emit(redemptionWatchtower, "GuardianAdded")
               .withArgs(guardians[2].address)
+          })
+        })
+      })
+    })
+  })
+
+  describe("disableWatchtower", () => {
+    context("when the watchtower is not enabled", () => {
+      it("should revert", async () => {
+        await expect(
+          redemptionWatchtower.connect(thirdParty).disableWatchtower()
+        ).to.be.revertedWith("Not enabled")
+      })
+    })
+
+    context("when the watchtower is enabled", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await redemptionWatchtower.connect(governance).enableWatchtower(
+          redemptionWatchtowerManager.address,
+          guardians.map((g) => g.address)
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the watchtower is disabled already", () => {
+        before(async () => {
+          await createSnapshot()
+
+          const lifetimeExpiresAt =
+            (await redemptionWatchtower.watchtowerEnabledAt()) +
+            (await redemptionWatchtower.watchtowerLifetime())
+
+          // Increase time to the moment the watchtower lifetime expires.
+          // The `disableWatchtower` transaction should be mined exactly one
+          // second after the lifetime expires.
+          await increaseTime(lifetimeExpiresAt - (await lastBlockTime()))
+
+          // Disable the watchtower for the first time.
+          await redemptionWatchtower.connect(thirdParty).disableWatchtower()
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            redemptionWatchtower.connect(thirdParty).disableWatchtower()
+          ).to.be.revertedWith("Already disabled")
+        })
+      })
+
+      context("when the watchtower is not disabled yet", () => {
+        context("when the watchtower lifetime is not expired", () => {
+          before(async () => {
+            await createSnapshot()
+
+            const lifetimeExpiresAt =
+              (await redemptionWatchtower.watchtowerEnabledAt()) +
+              (await redemptionWatchtower.watchtowerLifetime())
+
+            // Increase time to one second before the watchtower lifetime expires.
+            // The `disableWatchtower` will be mined exactly at the moment
+            // of the lifetime expiration which is one second too early
+            // to disable the watchtower.
+            await increaseTime(lifetimeExpiresAt - (await lastBlockTime()) - 1)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower.connect(thirdParty).disableWatchtower()
+            ).to.be.revertedWith("Watchtower lifetime not expired")
+          })
+        })
+
+        context("when the watchtower lifetime is expired", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            const lifetimeExpiresAt =
+              (await redemptionWatchtower.watchtowerEnabledAt()) +
+              (await redemptionWatchtower.watchtowerLifetime())
+
+            // Increase time to the moment the watchtower lifetime expires.
+            // The `disableWatchtower` transaction should be mined exactly one
+            // second after the lifetime expires.
+            await increaseTime(lifetimeExpiresAt - (await lastBlockTime()))
+
+            tx = await redemptionWatchtower
+              .connect(thirdParty)
+              .disableWatchtower()
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should set the disabledAt timeout properly", async () => {
+            expect(await redemptionWatchtower.watchtowerDisabledAt()).to.equal(
+              await lastBlockTime()
+            )
+          })
+
+          it("should emit WatchtowerDisabled event", async () => {
+            await expect(tx)
+              .to.emit(redemptionWatchtower, "WatchtowerDisabled")
+              .withArgs(await lastBlockTime(), thirdParty.address)
           })
         })
       })
@@ -494,6 +618,95 @@ describe("RedemptionWatchtower", () => {
           })
 
           context("when redemption request exists", () => {
+            context(
+              "when the requested amount is below the waived amount limit",
+              () => {
+                let redemption: RedemptionData
+
+                before(async () => {
+                  await createSnapshot()
+
+                  const redemptions = await createRedemptionRequests(
+                    SinglePendingRequestedRedemption
+                  )
+                  // eslint-disable-next-line prefer-destructuring
+                  redemption = redemptions[0]
+
+                  // Set the waived amount limit just above the redemption amount.
+                  // This way the requested amount is 1 sat lesser than it.
+                  await redemptionWatchtower
+                    .connect(redemptionWatchtowerManager)
+                    .updateWatchtowerParameters(
+                      await redemptionWatchtower.watchtowerLifetime(),
+                      20,
+                      await redemptionWatchtower.vetoFreezePeriod(),
+                      await redemptionWatchtower.defaultDelay(),
+                      await redemptionWatchtower.levelOneDelay(),
+                      await redemptionWatchtower.levelTwoDelay(),
+                      redemption.amount.add(1)
+                    )
+                })
+
+                after(async () => {
+                  await restoreSnapshot()
+                })
+
+                it("should revert", async () => {
+                  await expect(
+                    redemptionWatchtower
+                      .connect(guardians[0])
+                      .raiseObjection(
+                        redemption.walletPublicKeyHash,
+                        redemption.redeemerOutputScript
+                      )
+                  ).to.be.revertedWith("Redemption veto delay period expired")
+                })
+              }
+            )
+
+            context("when watchtower has been disabled", () => {
+              let redemption: RedemptionData
+
+              before(async () => {
+                await createSnapshot()
+
+                const redemptions = await createRedemptionRequests(
+                  SinglePendingRequestedRedemption
+                )
+                // eslint-disable-next-line prefer-destructuring
+                redemption = redemptions[0]
+
+                const lifetimeExpiresAt =
+                  (await redemptionWatchtower.watchtowerEnabledAt()) +
+                  (await redemptionWatchtower.watchtowerLifetime())
+
+                // Increase time to the moment the watchtower lifetime expires.
+                // The `disableWatchtower` transaction should be mined exactly one
+                // second after the lifetime expires.
+                await increaseTime(lifetimeExpiresAt - (await lastBlockTime()))
+
+                // Disable the watchtower.
+                await redemptionWatchtower
+                  .connect(thirdParty)
+                  .disableWatchtower()
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  redemptionWatchtower
+                    .connect(guardians[0])
+                    .raiseObjection(
+                      redemption.walletPublicKeyHash,
+                      redemption.redeemerOutputScript
+                    )
+                ).to.be.revertedWith("Redemption veto delay period expired")
+              })
+            })
+
             context(
               "when delay period expired and request was created after mechanism initialization",
               () => {
@@ -1354,23 +1567,21 @@ describe("RedemptionWatchtower", () => {
         await restoreSnapshot()
       })
 
-      context("when the requested amount is below the waived limit", () => {
+      context("when the watchtower has been disabled", () => {
         before(async () => {
           await createSnapshot()
 
-          // Set the waived amount limit just above the redemption amount.
-          // This way the requested amount is 1 sat lesser than it.
-          await redemptionWatchtower
-            .connect(redemptionWatchtowerManager)
-            .updateWatchtowerParameters(
-              await redemptionWatchtower.watchtowerLifetime(),
-              20,
-              await redemptionWatchtower.vetoFreezePeriod(),
-              await redemptionWatchtower.defaultDelay(),
-              await redemptionWatchtower.levelOneDelay(),
-              await redemptionWatchtower.levelTwoDelay(),
-              redemption.amount.add(1)
-            )
+          const lifetimeExpiresAt =
+            (await redemptionWatchtower.watchtowerEnabledAt()) +
+            (await redemptionWatchtower.watchtowerLifetime())
+
+          // Increase time to the moment the watchtower lifetime expires.
+          // The `disableWatchtower` transaction should be mined exactly one
+          // second after the lifetime expires.
+          await increaseTime(lifetimeExpiresAt - (await lastBlockTime()))
+
+          // Disable the watchtower.
+          await redemptionWatchtower.connect(thirdParty).disableWatchtower()
         })
 
         after(async () => {
@@ -1386,49 +1597,23 @@ describe("RedemptionWatchtower", () => {
         })
       })
 
-      context("when the requested amount is not below the waived limit", () => {
-        before(async () => {
-          await createSnapshot()
-
-          // Set the waived amount limit to a value equal to the redemption amount.
-          // This way the requested amount violates the limit.
-          await redemptionWatchtower
-            .connect(redemptionWatchtowerManager)
-            .updateWatchtowerParameters(
-              await redemptionWatchtower.watchtowerLifetime(),
-              20,
-              await redemptionWatchtower.vetoFreezePeriod(),
-              await redemptionWatchtower.defaultDelay(),
-              await redemptionWatchtower.levelOneDelay(),
-              await redemptionWatchtower.levelTwoDelay(),
-              redemption.amount
-            )
-        })
-
-        after(async () => {
-          await restoreSnapshot()
-        })
-
-        context("when there are no objections", () => {
-          it("should return the default delay", async () => {
-            expect(
-              await redemptionWatchtower.getRedemptionDelay(
-                redemption.redemptionKey
-              )
-            ).to.be.equal(await redemptionWatchtower.defaultDelay())
-          })
-        })
-
-        context("when there is one objection", () => {
+      context("when the watchtower has not been disabled", () => {
+        context("when the requested amount is below the waived limit", () => {
           before(async () => {
             await createSnapshot()
 
-            // Raise the first objection.
+            // Set the waived amount limit just above the redemption amount.
+            // This way the requested amount is 1 sat lesser than it.
             await redemptionWatchtower
-              .connect(guardians[0])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
+              .connect(redemptionWatchtowerManager)
+              .updateWatchtowerParameters(
+                await redemptionWatchtower.watchtowerLifetime(),
+                20,
+                await redemptionWatchtower.vetoFreezePeriod(),
+                await redemptionWatchtower.defaultDelay(),
+                await redemptionWatchtower.levelOneDelay(),
+                await redemptionWatchtower.levelTwoDelay(),
+                redemption.amount.add(1)
               )
           })
 
@@ -1436,85 +1621,150 @@ describe("RedemptionWatchtower", () => {
             await restoreSnapshot()
           })
 
-          it("should return the level-one delay", async () => {
+          it("should return zero as the delay", async () => {
             expect(
               await redemptionWatchtower.getRedemptionDelay(
                 redemption.redemptionKey
               )
-            ).to.be.equal(await redemptionWatchtower.levelOneDelay())
+            ).to.be.equal(0)
           })
         })
 
-        context("when there are two objections", () => {
-          before(async () => {
-            await createSnapshot()
+        context(
+          "when the requested amount is not below the waived limit",
+          () => {
+            before(async () => {
+              await createSnapshot()
 
-            // Raise the first objection.
-            await redemptionWatchtower
-              .connect(guardians[0])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
-              )
-            // Raise the second objection.
-            await redemptionWatchtower
-              .connect(guardians[1])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
-              )
-          })
+              // Set the waived amount limit to a value equal to the redemption amount.
+              // This way the requested amount violates the limit.
+              await redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .updateWatchtowerParameters(
+                  await redemptionWatchtower.watchtowerLifetime(),
+                  20,
+                  await redemptionWatchtower.vetoFreezePeriod(),
+                  await redemptionWatchtower.defaultDelay(),
+                  await redemptionWatchtower.levelOneDelay(),
+                  await redemptionWatchtower.levelTwoDelay(),
+                  redemption.amount
+                )
+            })
 
-          after(async () => {
-            await restoreSnapshot()
-          })
+            after(async () => {
+              await restoreSnapshot()
+            })
 
-          it("should return the level-two delay", async () => {
-            expect(
-              await redemptionWatchtower.getRedemptionDelay(
-                redemption.redemptionKey
-              )
-            ).to.be.equal(await redemptionWatchtower.levelTwoDelay())
-          })
-        })
+            context("when there are no objections", () => {
+              it("should return the default delay", async () => {
+                expect(
+                  await redemptionWatchtower.getRedemptionDelay(
+                    redemption.redemptionKey
+                  )
+                ).to.be.equal(await redemptionWatchtower.defaultDelay())
+              })
+            })
 
-        context("when there are three objections", () => {
-          before(async () => {
-            await createSnapshot()
+            context("when there is one objection", () => {
+              before(async () => {
+                await createSnapshot()
 
-            // Raise the first objection.
-            await redemptionWatchtower
-              .connect(guardians[0])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
-              )
-            // Raise the second objection.
-            await redemptionWatchtower
-              .connect(guardians[1])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
-              )
-            // Raise the third objection.
-            await redemptionWatchtower
-              .connect(guardians[2])
-              .raiseObjection(
-                redemption.walletPublicKeyHash,
-                redemption.redeemerOutputScript
-              )
-          })
+                // Raise the first objection.
+                await redemptionWatchtower
+                  .connect(guardians[0])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+              })
 
-          after(async () => {
-            await restoreSnapshot()
-          })
+              after(async () => {
+                await restoreSnapshot()
+              })
 
-          it("should revert", async () => {
-            await expect(
-              redemptionWatchtower.getRedemptionDelay(redemption.redemptionKey)
-            ).to.be.revertedWith("Redemption request does not exist")
-          })
-        })
+              it("should return the level-one delay", async () => {
+                expect(
+                  await redemptionWatchtower.getRedemptionDelay(
+                    redemption.redemptionKey
+                  )
+                ).to.be.equal(await redemptionWatchtower.levelOneDelay())
+              })
+            })
+
+            context("when there are two objections", () => {
+              before(async () => {
+                await createSnapshot()
+
+                // Raise the first objection.
+                await redemptionWatchtower
+                  .connect(guardians[0])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+                // Raise the second objection.
+                await redemptionWatchtower
+                  .connect(guardians[1])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should return the level-two delay", async () => {
+                expect(
+                  await redemptionWatchtower.getRedemptionDelay(
+                    redemption.redemptionKey
+                  )
+                ).to.be.equal(await redemptionWatchtower.levelTwoDelay())
+              })
+            })
+
+            context("when there are three objections", () => {
+              before(async () => {
+                await createSnapshot()
+
+                // Raise the first objection.
+                await redemptionWatchtower
+                  .connect(guardians[0])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+                // Raise the second objection.
+                await redemptionWatchtower
+                  .connect(guardians[1])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+                // Raise the third objection.
+                await redemptionWatchtower
+                  .connect(guardians[2])
+                  .raiseObjection(
+                    redemption.walletPublicKeyHash,
+                    redemption.redeemerOutputScript
+                  )
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  redemptionWatchtower.getRedemptionDelay(
+                    redemption.redemptionKey
+                  )
+                ).to.be.revertedWith("Redemption request does not exist")
+              })
+            })
+          }
+        )
       })
     })
   })
