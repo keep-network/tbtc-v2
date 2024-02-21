@@ -37,10 +37,10 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     struct VetoProposal {
         // Address of the redeemer that requested the redemption.
         address redeemer;
-        // Amount that the redeemer can claim after the freeze period.
+        // Amount that the redeemer can withdraw after the freeze period.
         // Value is 0 if the veto is not finalized or the amount was
         // already claimed.
-        uint64 claimableAmount;
+        uint64 withdrawableAmount;
         // Timestamp when the veto was finalized. Value is 0 if the veto is
         // not finalized.
         uint32 finalizedAt;
@@ -155,6 +155,12 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     event Banned(address indexed redeemer);
 
     event Unbanned(address indexed redeemer);
+
+    event VetoedFundsWithdrawn(
+        uint256 indexed redemptionkey,
+        address indexed redeemer,
+        uint64 amount
+    );
 
     modifier onlyManager() {
         require(msg.sender == manager, "Caller is not watchtower manager");
@@ -369,7 +375,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
                 : 0;
 
             // Set finalization fields in the veto request.
-            veto.claimableAmount = redemption.requestedAmount - penaltyFee;
+            veto.withdrawableAmount = redemption.requestedAmount - penaltyFee;
             /* solhint-disable-next-line not-rely-on-time */
             veto.finalizedAt = uint32(block.timestamp);
             // Mark the redeemer as banned to prevent future redemption
@@ -576,5 +582,37 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         require(isBanned[redeemer], "Redeemer is not banned");
         isBanned[redeemer] = false;
         emit Unbanned(redeemer);
+    }
+
+    /// @notice Withdraws funds from a vetoed redemption request, identified
+    ///         by the given redemption key.
+    /// @param redemptionKey Redemption key built as
+    ///        `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    /// @dev Requirements:
+    ///      - The veto must be finalized,
+    ///      - The caller must be the redeemer of the vetoed redemption request,
+    ///      - The freeze period must have expired,
+    ///      - There must be funds to withdraw.
+    function withdrawVetoedFunds(uint256 redemptionKey) external {
+        VetoProposal storage veto = vetoProposals[redemptionKey];
+
+        require(veto.finalizedAt != 0, "Redemption veto not finalized");
+
+        require(msg.sender == veto.redeemer, "Caller is not the redeemer");
+
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp > veto.finalizedAt + vetoFreezePeriod,
+            "Freeze period not expired"
+        );
+
+        require(veto.withdrawableAmount > 0, "No funds to withdraw");
+
+        uint64 amount = veto.withdrawableAmount;
+
+        emit VetoedFundsWithdrawn(redemptionKey, msg.sender, amount);
+
+        veto.withdrawableAmount = 0;
+        bank.transferBalance(msg.sender, amount);
     }
 }

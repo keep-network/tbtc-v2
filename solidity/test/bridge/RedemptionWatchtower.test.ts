@@ -1067,9 +1067,9 @@ describe("RedemptionWatchtower", () => {
                   it("should update veto state properly", async () => {
                     // Penalty fee is 5% of the redemption amount.
                     const penaltyFee = legacyRedemption.amount.mul(5).div(100)
-                    // The claimable amount left on the watchtower should
+                    // The withdrawable amount left on the watchtower should
                     // be equal to the redemption amount minus the penalty fee.
-                    const claimableAmount =
+                    const withdrawableAmount =
                       legacyRedemption.amount.sub(penaltyFee)
 
                     expect(
@@ -1078,7 +1078,7 @@ describe("RedemptionWatchtower", () => {
                       )
                     ).to.be.eql([
                       legacyRedemption.redeemer,
-                      claimableAmount,
+                      withdrawableAmount,
                       // Finalization time is equal to the last block time.
                       await lastBlockTime(),
                       3,
@@ -1158,7 +1158,7 @@ describe("RedemptionWatchtower", () => {
                       )
                   })
 
-                  it("should leave a proper claimable amount and burn the penalty fee", async () => {
+                  it("should leave a proper withdrawable amount and burn the penalty fee", async () => {
                     const currentWatchtowerBalance = await bank.balanceOf(
                       redemptionWatchtower.address
                     )
@@ -1170,7 +1170,7 @@ describe("RedemptionWatchtower", () => {
                     // Penalty fee is 5% of the redemption amount.
                     const penaltyFee = legacyRedemption.amount.mul(5).div(100)
 
-                    // The claimable amount left on the watchtower should
+                    // The withdrawable amount left on the watchtower should
                     // be equal to the redemption amount minus the penalty fee.
                     expect(difference).to.be.equal(
                       legacyRedemption.amount.sub(penaltyFee)
@@ -1422,9 +1422,9 @@ describe("RedemptionWatchtower", () => {
                 it("should update veto state properly", async () => {
                   // Penalty fee is 5% of the redemption amount.
                   const penaltyFee = redemption.amount.mul(5).div(100)
-                  // The claimable amount left on the watchtower should
+                  // The withdrawable amount left on the watchtower should
                   // be equal to the redemption amount minus the penalty fee.
-                  const claimableAmount = redemption.amount.sub(penaltyFee)
+                  const withdrawableAmount = redemption.amount.sub(penaltyFee)
 
                   expect(
                     await redemptionWatchtower.vetoProposals(
@@ -1432,7 +1432,7 @@ describe("RedemptionWatchtower", () => {
                     )
                   ).to.be.eql([
                     redemption.redeemer,
-                    claimableAmount,
+                    withdrawableAmount,
                     // Finalization time is equal to the last block time.
                     await lastBlockTime(),
                     3,
@@ -1507,7 +1507,7 @@ describe("RedemptionWatchtower", () => {
                     )
                 })
 
-                it("should leave a proper claimable amount and burn the penalty fee", async () => {
+                it("should leave a proper withdrawable amount and burn the penalty fee", async () => {
                   const currentWatchtowerBalance = await bank.balanceOf(
                     redemptionWatchtower.address
                   )
@@ -1519,7 +1519,7 @@ describe("RedemptionWatchtower", () => {
                   // Penalty fee is 5% of the redemption amount.
                   const penaltyFee = redemption.amount.mul(5).div(100)
 
-                  // The claimable amount left on the watchtower should
+                  // The withdrawable amount left on the watchtower should
                   // be equal to the redemption amount minus the penalty fee.
                   expect(difference).to.be.equal(
                     redemption.amount.sub(penaltyFee)
@@ -2304,6 +2304,416 @@ describe("RedemptionWatchtower", () => {
           await expect(tx)
             .to.emit(redemptionWatchtower, "Unbanned")
             .withArgs(redemption.redeemer)
+        })
+      })
+    })
+  })
+
+  describe("withdrawVetoedFunds", () => {
+    let redemption: RedemptionData
+    let redeemerSigner: SignerWithAddress
+
+    before(async () => {
+      await createSnapshot()
+
+      await redemptionWatchtower.connect(governance).enableWatchtower(
+        redemptionWatchtowerManager.address,
+        guardians.map((g) => g.address)
+      )
+
+      const redemptions = await createRedemptionRequests(
+        SinglePendingRequestedRedemption
+      )
+      // eslint-disable-next-line prefer-destructuring
+      redemption = redemptions[0]
+
+      redeemerSigner = await impersonateAccount(redemption.redeemer, {
+        from: governance,
+        value: 10,
+      })
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the veto is not finalized", () => {
+      context("when there are no objections at all", () => {
+        it("should revert", async () => {
+          await expect(
+            redemptionWatchtower
+              .connect(redeemerSigner)
+              .withdrawVetoedFunds(redemption.redemptionKey)
+          ).to.be.revertedWith("Redemption veto not finalized")
+        })
+      })
+
+      context("when there some objections", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Raise two objections but do not finalize the veto.
+          await redemptionWatchtower
+            .connect(guardians[0])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+          await redemptionWatchtower
+            .connect(guardians[1])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            redemptionWatchtower
+              .connect(redeemerSigner)
+              .withdrawVetoedFunds(redemption.redemptionKey)
+          ).to.be.revertedWith("Redemption veto not finalized")
+        })
+      })
+    })
+
+    context(
+      "when the veto is finalized and the penalty fee is lesser than 100%",
+      () => {
+        let withdrawableAmount: BigNumber
+
+        before(async () => {
+          await createSnapshot()
+
+          // Change the default 100% penalty fee to 5%.
+          await redemptionWatchtower
+            .connect(redemptionWatchtowerManager)
+            .updateWatchtowerParameters(
+              await redemptionWatchtower.watchtowerLifetime(),
+              20,
+              await redemptionWatchtower.vetoFreezePeriod(),
+              await redemptionWatchtower.defaultDelay(),
+              await redemptionWatchtower.levelOneDelay(),
+              await redemptionWatchtower.levelTwoDelay(),
+              await redemptionWatchtower.waivedAmountLimit()
+            )
+
+          // Veto the redemption.
+          await redemptionWatchtower
+            .connect(guardians[0])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+          await redemptionWatchtower
+            .connect(guardians[1])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+          await redemptionWatchtower
+            .connect(guardians[2])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+
+          // Withdrawable amount is the redemption amount minus the 5% penalty fee.
+          withdrawableAmount = redemption.amount.sub(redemption.amount.div(20))
+          expect(withdrawableAmount).to.be.equal(
+            (await redemptionWatchtower.vetoProposals(redemption.redemptionKey))
+              .withdrawableAmount
+          )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when the caller is not the redeemer", () => {
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(thirdParty)
+                .withdrawVetoedFunds(redemption.redemptionKey)
+            ).to.be.revertedWith("Caller is not the redeemer")
+          })
+        })
+
+        context("when the caller is the redeemer", () => {
+          context("when the freeze period has not expired", () => {
+            before(async () => {
+              await createSnapshot()
+
+              const freezePeriodExpiresAt =
+                (
+                  await redemptionWatchtower.vetoProposals(
+                    redemption.redemptionKey
+                  )
+                ).finalizedAt + (await redemptionWatchtower.vetoFreezePeriod())
+
+              // Increase time to one second before the freeze period expires.
+              // The `withdrawVetoedFunds` transaction should be mined at the moment
+              // of the freeze period expiration which is one second too early
+              // to perform withdrawal.
+              await increaseTime(
+                freezePeriodExpiresAt - (await lastBlockTime()) - 1
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                redemptionWatchtower
+                  .connect(redeemerSigner)
+                  .withdrawVetoedFunds(redemption.redemptionKey)
+              ).to.be.revertedWith("Freeze period not expired")
+            })
+          })
+
+          context("when the freeze period has expired", () => {
+            before(async () => {
+              await createSnapshot()
+
+              const freezePeriodExpiresAt =
+                (
+                  await redemptionWatchtower.vetoProposals(
+                    redemption.redemptionKey
+                  )
+                ).finalizedAt + (await redemptionWatchtower.vetoFreezePeriod())
+
+              // Increase time to the moment the freeze period expires.
+              // The `withdrawVetoedFunds` transaction should be mined exactly one
+              // second after the freeze period expiration.
+              await increaseTime(
+                freezePeriodExpiresAt - (await lastBlockTime())
+              )
+            })
+
+            after(async () => {
+              await restoreSnapshot()
+            })
+
+            context("when there are no funds to withdraw", () => {
+              before(async () => {
+                await createSnapshot()
+
+                // Withdraw the entire amount from the watchtower.
+                await redemptionWatchtower
+                  .connect(redeemerSigner)
+                  .withdrawVetoedFunds(redemption.redemptionKey)
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  redemptionWatchtower
+                    .connect(redeemerSigner)
+                    .withdrawVetoedFunds(redemption.redemptionKey)
+                ).to.be.revertedWith("No funds to withdraw")
+              })
+            })
+
+            context("when there are funds to withdraw", () => {
+              let tx: ContractTransaction
+              let initialWatchtowerBalance: BigNumber
+              let initialRedeemerBalance: BigNumber
+
+              before(async () => {
+                await createSnapshot()
+
+                initialWatchtowerBalance = await bank.balanceOf(
+                  redemptionWatchtower.address
+                )
+                initialRedeemerBalance = await bank.balanceOf(
+                  redemption.redeemer
+                )
+
+                // Withdraw the entire amount from the watchtower.
+                tx = await redemptionWatchtower
+                  .connect(redeemerSigner)
+                  .withdrawVetoedFunds(redemption.redemptionKey)
+              })
+
+              after(async () => {
+                await restoreSnapshot()
+              })
+
+              it("should emit VetoedFundsWithdrawn event", async () => {
+                await expect(tx)
+                  .to.emit(redemptionWatchtower, "VetoedFundsWithdrawn")
+                  .withArgs(
+                    redemption.redemptionKey,
+                    redemption.redeemer,
+                    withdrawableAmount
+                  )
+              })
+
+              it("should set withdrawable amount to zero", async () => {
+                expect(
+                  (
+                    await redemptionWatchtower.vetoProposals(
+                      redemption.redemptionKey
+                    )
+                  ).withdrawableAmount
+                ).to.be.equal(0)
+              })
+
+              it("should transfer the funds to the redeemer", async () => {
+                const currentWatchtowerBalance = await bank.balanceOf(
+                  redemptionWatchtower.address
+                )
+                const currentRedeemerBalance = await bank.balanceOf(
+                  redemption.redeemer
+                )
+
+                // Watchtower's balance decreased.
+                const watchtowerDifference = initialWatchtowerBalance.sub(
+                  currentWatchtowerBalance
+                )
+                // Redeemer's balance increased.
+                const redeemerDifference = currentRedeemerBalance.sub(
+                  initialRedeemerBalance
+                )
+
+                expect(watchtowerDifference).to.be.equal(withdrawableAmount)
+                expect(redeemerDifference).to.be.equal(withdrawableAmount)
+
+                // Double-check the right event was emitted.
+                await expect(tx)
+                  .to.emit(bank, "BalanceTransferred")
+                  .withArgs(
+                    redemptionWatchtower.address,
+                    redemption.redeemer,
+                    withdrawableAmount
+                  )
+              })
+            })
+          })
+        })
+      }
+    )
+
+    context("when the veto is finalized and the penalty fee is 100%", () => {
+      let withdrawableAmount: BigNumber
+
+      before(async () => {
+        await createSnapshot()
+
+        // Veto the redemption.
+        await redemptionWatchtower
+          .connect(guardians[0])
+          .raiseObjection(
+            redemption.walletPublicKeyHash,
+            redemption.redeemerOutputScript
+          )
+        await redemptionWatchtower
+          .connect(guardians[1])
+          .raiseObjection(
+            redemption.walletPublicKeyHash,
+            redemption.redeemerOutputScript
+          )
+        await redemptionWatchtower
+          .connect(guardians[2])
+          .raiseObjection(
+            redemption.walletPublicKeyHash,
+            redemption.redeemerOutputScript
+          )
+
+        // Withdrawable amount is 0 as the default penalty fee is 100%.
+        withdrawableAmount = BigNumber.from(0)
+        expect(withdrawableAmount).to.be.equal(
+          (await redemptionWatchtower.vetoProposals(redemption.redemptionKey))
+            .withdrawableAmount
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the caller is not the redeemer", () => {
+        it("should revert", async () => {
+          await expect(
+            redemptionWatchtower
+              .connect(thirdParty)
+              .withdrawVetoedFunds(redemption.redemptionKey)
+          ).to.be.revertedWith("Caller is not the redeemer")
+        })
+      })
+
+      context("when the caller is the redeemer", () => {
+        context("when the freeze period has not expired", () => {
+          before(async () => {
+            await createSnapshot()
+
+            const freezePeriodExpiresAt =
+              (
+                await redemptionWatchtower.vetoProposals(
+                  redemption.redemptionKey
+                )
+              ).finalizedAt + (await redemptionWatchtower.vetoFreezePeriod())
+
+            // Increase time to one second before the freeze period expires.
+            // The `withdrawVetoedFunds` transaction should be mined at the moment
+            // of the freeze period expiration which is one second too early
+            // to perform withdrawal.
+            await increaseTime(
+              freezePeriodExpiresAt - (await lastBlockTime()) - 1
+            )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redeemerSigner)
+                .withdrawVetoedFunds(redemption.redemptionKey)
+            ).to.be.revertedWith("Freeze period not expired")
+          })
+        })
+
+        context("when the freeze period has expired", () => {
+          before(async () => {
+            await createSnapshot()
+
+            const freezePeriodExpiresAt =
+              (
+                await redemptionWatchtower.vetoProposals(
+                  redemption.redemptionKey
+                )
+              ).finalizedAt + (await redemptionWatchtower.vetoFreezePeriod())
+
+            // Increase time to the moment the freeze period expires.
+            // The `withdrawVetoedFunds` transaction should be mined exactly one
+            // second after the freeze period expiration.
+            await increaseTime(freezePeriodExpiresAt - (await lastBlockTime()))
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redeemerSigner)
+                .withdrawVetoedFunds(redemption.redemptionKey)
+            ).to.be.revertedWith("No funds to withdraw")
+          })
         })
       })
     })
