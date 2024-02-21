@@ -43,6 +43,16 @@ interface IRedemptionWatchtower {
         address balanceOwner,
         address redeemer
     ) external view returns (bool);
+
+    /// @notice Returns the applicable redemption delay for a redemption
+    ///         request identified by the given redemption key.
+    /// @param redemptionKey Redemption key built as
+    ///        `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    /// @return Redemption delay.
+    function getRedemptionDelay(uint256 redemptionKey)
+        external
+        view
+        returns (uint32);
 }
 
 /// @notice Aggregates functions common to the redemption transaction proof

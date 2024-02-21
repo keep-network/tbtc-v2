@@ -118,6 +118,11 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     ///         from the moment when the redemption request was created.
     ///         Value in seconds.
     uint32 public levelTwoDelay;
+    /// @notice Limit of the redemption amount that can be waived from the
+    ///         redemption veto mechanism. Redemption requests with the requested
+    ///         amount lesser than this limit can be processed immediately and
+    ///         cannot be subject of guardian objections. Value in satoshis.
+    uint64 public waivedAmountLimit;
 
     event WatchtowerEnabled(uint32 enabledAt, address manager);
 
@@ -140,7 +145,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         uint32 vetoFreezePeriod,
         uint32 defaultDelay,
         uint32 levelOneDelay,
-        uint32 levelTwoDelay
+        uint32 levelTwoDelay,
+        uint64 waivedAmountLimit
     );
 
     modifier onlyManager() {
@@ -170,6 +176,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         defaultDelay = 2 hours;
         levelOneDelay = 8 hours;
         levelTwoDelay = 24 hours;
+        waivedAmountLimit = 0;
     }
 
     /// @notice Enables the redemption watchtower and veto mechanism.
@@ -299,7 +306,10 @@ contract RedemptionWatchtower is OwnableUpgradeable {
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp <
                     redemption.requestedAt +
-                        _redemptionDelay(veto.objectionsCount),
+                        _redemptionDelay(
+                            veto.objectionsCount,
+                            redemption.requestedAmount
+                        ),
                 "Redemption veto delay period expired"
             );
         } else {
@@ -344,23 +354,54 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         }
     }
 
-    /// @notice Returns the redemption delay for a given number of objections.
+    /// @notice Returns the redemption delay for a given number of objections
+    ///         and requested amount.
     /// @param objectionsCount Number of objections.
-    /// @return delay Redemption delay.
-    function _redemptionDelay(uint8 objectionsCount)
+    /// @param requestedAmount Requested redemption amount.
+    /// @return Redemption delay.
+    function _redemptionDelay(uint8 objectionsCount, uint64 requestedAmount)
         internal
         view
-        returns (uint32 delay)
+        returns (uint32)
     {
+        if (requestedAmount < waivedAmountLimit) {
+            return 0;
+        }
+
         if (objectionsCount == 0) {
-            delay = defaultDelay;
+            return defaultDelay;
         } else if (objectionsCount == 1) {
-            delay = levelOneDelay;
+            return levelOneDelay;
         } else if (objectionsCount == 2) {
-            delay = levelTwoDelay;
+            return levelTwoDelay;
         } else {
             revert("No delay for given objections count");
         }
+    }
+
+    /// @notice Returns the applicable redemption delay for a redemption
+    ///         request identified by the given redemption key.
+    /// @param redemptionKey Redemption key built as
+    ///        `keccak256(keccak256(redeemerOutputScript) | walletPubKeyHash)`.
+    /// @return Redemption delay.
+    function getRedemptionDelay(uint256 redemptionKey)
+        external
+        view
+        returns (uint32)
+    {
+        Redemption.RedemptionRequest memory redemption = bridge
+            .pendingRedemptions(redemptionKey);
+
+        require(
+            redemption.requestedAt != 0,
+            "Redemption request does not exist"
+        );
+
+        return
+            _redemptionDelay(
+                vetoProposals[redemptionKey].objectionsCount,
+                redemption.requestedAmount
+            );
     }
 
     /// @notice Updates the watchtower parameters.
@@ -373,6 +414,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     ///        raised an objection to.
     /// @param _levelTwoDelay Delay applied to redemption requests two guardians
     ///        raised an objection to.
+    /// @param _waivedAmountLimit Limit of the redemption amount that can be
+    ///        waived from the redemption veto mechanism.
     /// @dev Requirements:
     ///      - The caller must be the watchtower manager,
     ///      - The new watchtower lifetime must not be lesser than the current one,
@@ -385,7 +428,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         uint32 _vetoFreezePeriod,
         uint32 _defaultDelay,
         uint32 _levelOneDelay,
-        uint32 _levelTwoDelay
+        uint32 _levelTwoDelay,
+        uint64 _waivedAmountLimit
     ) external onlyManager {
         require(
             _watchtowerLifetime >= watchtowerLifetime,
@@ -415,6 +459,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         defaultDelay = _defaultDelay;
         levelOneDelay = _levelOneDelay;
         levelTwoDelay = _levelTwoDelay;
+        waivedAmountLimit = _waivedAmountLimit;
 
         emit WatchtowerParametersUpdated(
             _watchtowerLifetime,
@@ -422,7 +467,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
             _vetoFreezePeriod,
             _defaultDelay,
             _levelOneDelay,
-            _levelTwoDelay
+            _levelTwoDelay,
+            _waivedAmountLimit
         );
     }
 

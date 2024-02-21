@@ -528,7 +528,9 @@ contract WalletProposalValidator {
     ///        lesser than or equal to the maximum fee share allowed by the
     ///        given request (`RedemptionRequest.txMaxFee`),
     ///      - Each request must be a pending request registered in the Bridge,
-    ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
+    ///      - Each request must be old enough, i.e. at least `REDEMPTION_REQUEST_MIN_AGE`
+    ///        OR the delay enforced by the redemption watchtower
+    ///        (if the watchtower is set and the returned delay is greater than `REDEMPTION_REQUEST_MIN_AGE`)
     ///        elapsed since their creation time,
     ///      - Each request must have the timeout safety margin preserved,
     ///      - Each request must be unique.
@@ -582,6 +584,8 @@ contract WalletProposalValidator {
         uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
             redemptionTxFeeRemainder) / requestsCount;
 
+        address redemptionWatchtower = bridge.getRedemptionWatchtower();
+
         uint256[] memory processedRedemptionKeys = new uint256[](requestsCount);
 
         for (uint256 i = 0; i < requestsCount; i++) {
@@ -608,12 +612,21 @@ contract WalletProposalValidator {
                 "Not a pending redemption request"
             );
 
-            // TODO: Validate the request against the RedemptionWatchtower.
+            uint32 minAge = REDEMPTION_REQUEST_MIN_AGE;
+            if (redemptionWatchtower != address(0)) {
+                // Check the redemption delay enforced by the watchtower.
+                uint32 delay = IRedemptionWatchtower(redemptionWatchtower)
+                    .getRedemptionDelay(redemptionKey);
+                // If the delay is greater than the usual minimum age, use it.
+                // This way both the min age and the watchtower delay are preserved.
+                if (delay > minAge) {
+                    minAge = delay;
+                }
+            }
 
             require(
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp >
-                    redemptionRequest.requestedAt + REDEMPTION_REQUEST_MIN_AGE,
+                block.timestamp > redemptionRequest.requestedAt + minAge,
                 "Redemption request min age not achieved yet"
             );
 

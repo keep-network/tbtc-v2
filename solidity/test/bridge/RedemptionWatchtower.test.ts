@@ -341,7 +341,8 @@ describe("RedemptionWatchtower", () => {
           await redemptionWatchtower.vetoFreezePeriod(),
           await redemptionWatchtower.defaultDelay(),
           await redemptionWatchtower.levelOneDelay(),
-          await redemptionWatchtower.levelTwoDelay()
+          await redemptionWatchtower.levelTwoDelay(),
+          await redemptionWatchtower.waivedAmountLimit()
         )
     })
 
@@ -1298,6 +1299,212 @@ describe("RedemptionWatchtower", () => {
     })
   })
 
+  describe("getRedemptionDelay", () => {
+    before(async () => {
+      await createSnapshot()
+
+      await redemptionWatchtower.connect(governance).enableWatchtower(
+        redemptionWatchtowerManager.address,
+        guardians.map((g) => g.address)
+      )
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the redemption request does not exist", () => {
+      it("should revert", async () => {
+        await expect(
+          redemptionWatchtower.getRedemptionDelay(
+            "0xdf1d1a1cc88980461867cc49753d188c79c96c5a22115bdd8560a3317b786ff8"
+          )
+        ).to.be.revertedWith("Redemption request does not exist")
+      })
+    })
+
+    context("when the redemption request exists", () => {
+      let redemption: RedemptionData
+
+      before(async () => {
+        await createSnapshot()
+
+        const redemptions = await createRedemptionRequests(
+          SinglePendingRequestedRedemption
+        )
+        // eslint-disable-next-line prefer-destructuring
+        redemption = redemptions[0]
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the requested amount is below the waived limit", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set the waived amount limit just above the redemption amount.
+          // This way the requested amount is 1 sat lesser than it.
+          await redemptionWatchtower
+            .connect(redemptionWatchtowerManager)
+            .updateWatchtowerParameters(
+              await redemptionWatchtower.watchtowerLifetime(),
+              20,
+              await redemptionWatchtower.vetoFreezePeriod(),
+              await redemptionWatchtower.defaultDelay(),
+              await redemptionWatchtower.levelOneDelay(),
+              await redemptionWatchtower.levelTwoDelay(),
+              redemption.amount.add(1)
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should return zero as the delay", async () => {
+          expect(
+            await redemptionWatchtower.getRedemptionDelay(
+              redemption.redemptionKey
+            )
+          ).to.be.equal(0)
+        })
+      })
+
+      context("when the requested amount is not below the waived limit", () => {
+        before(async () => {
+          await createSnapshot()
+
+          // Set the waived amount limit to a value equal to the redemption amount.
+          // This way the requested amount violates the limit.
+          await redemptionWatchtower
+            .connect(redemptionWatchtowerManager)
+            .updateWatchtowerParameters(
+              await redemptionWatchtower.watchtowerLifetime(),
+              20,
+              await redemptionWatchtower.vetoFreezePeriod(),
+              await redemptionWatchtower.defaultDelay(),
+              await redemptionWatchtower.levelOneDelay(),
+              await redemptionWatchtower.levelTwoDelay(),
+              redemption.amount
+            )
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        context("when there are no objections", () => {
+          it("should return the default delay", async () => {
+            expect(
+              await redemptionWatchtower.getRedemptionDelay(
+                redemption.redemptionKey
+              )
+            ).to.be.equal(await redemptionWatchtower.defaultDelay())
+          })
+        })
+
+        context("when there is one objection", () => {
+          before(async () => {
+            await createSnapshot()
+
+            // Raise the first objection.
+            await redemptionWatchtower
+              .connect(guardians[0])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should return the level-one delay", async () => {
+            expect(
+              await redemptionWatchtower.getRedemptionDelay(
+                redemption.redemptionKey
+              )
+            ).to.be.equal(await redemptionWatchtower.levelOneDelay())
+          })
+        })
+
+        context("when there are two objections", () => {
+          before(async () => {
+            await createSnapshot()
+
+            // Raise the first objection.
+            await redemptionWatchtower
+              .connect(guardians[0])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+            // Raise the second objection.
+            await redemptionWatchtower
+              .connect(guardians[1])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should return the level-two delay", async () => {
+            expect(
+              await redemptionWatchtower.getRedemptionDelay(
+                redemption.redemptionKey
+              )
+            ).to.be.equal(await redemptionWatchtower.levelTwoDelay())
+          })
+        })
+
+        context("when there are three objections", () => {
+          before(async () => {
+            await createSnapshot()
+
+            // Raise the first objection.
+            await redemptionWatchtower
+              .connect(guardians[0])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+            // Raise the second objection.
+            await redemptionWatchtower
+              .connect(guardians[1])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+            // Raise the third objection.
+            await redemptionWatchtower
+              .connect(guardians[2])
+              .raiseObjection(
+                redemption.walletPublicKeyHash,
+                redemption.redeemerOutputScript
+              )
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower.getRedemptionDelay(redemption.redemptionKey)
+            ).to.be.revertedWith("Redemption request does not exist")
+          })
+        })
+      })
+    })
+  })
+
   describe("updateWatchtowerParameters", () => {
     let watchtowerLifetime: number
     let vetoPenaltyFeeDivisor: number
@@ -1305,6 +1512,7 @@ describe("RedemptionWatchtower", () => {
     let defaultDelay: number
     let levelOneDelay: number
     let levelTwoDelay: number
+    let waivedAmountLimit: BigNumber
 
     before(async () => {
       await createSnapshot()
@@ -1320,6 +1528,7 @@ describe("RedemptionWatchtower", () => {
       defaultDelay = await redemptionWatchtower.defaultDelay()
       levelOneDelay = await redemptionWatchtower.levelOneDelay()
       levelTwoDelay = await redemptionWatchtower.levelTwoDelay()
+      waivedAmountLimit = await redemptionWatchtower.waivedAmountLimit()
     })
 
     after(async () => {
@@ -1337,7 +1546,8 @@ describe("RedemptionWatchtower", () => {
               vetoFreezePeriod,
               defaultDelay,
               levelOneDelay,
-              levelTwoDelay
+              levelTwoDelay,
+              waivedAmountLimit
             )
         ).to.be.revertedWith("Caller is not watchtower manager")
       })
@@ -1356,7 +1566,8 @@ describe("RedemptionWatchtower", () => {
                   vetoFreezePeriod,
                   defaultDelay,
                   levelOneDelay,
-                  levelTwoDelay
+                  levelTwoDelay,
+                  waivedAmountLimit
                 )
             ).to.be.revertedWith(
               "New lifetime must not be lesser than current one"
@@ -1378,7 +1589,8 @@ describe("RedemptionWatchtower", () => {
                     vetoFreezePeriod,
                     defaultDelay,
                     levelOneDelay,
-                    levelTwoDelay
+                    levelTwoDelay,
+                    waivedAmountLimit
                   )
               ).to.be.revertedWith(
                 "Redemption veto penalty fee must be in range [0%, 5%]"
@@ -1398,7 +1610,8 @@ describe("RedemptionWatchtower", () => {
                   vetoFreezePeriod,
                   defaultDelay,
                   levelOneDelay,
-                  levelOneDelay - 1
+                  levelOneDelay - 1,
+                  waivedAmountLimit
                 )
             ).to.be.revertedWith(
               "Redemption level-two delay must not be lesser than level-one delay"
@@ -1417,7 +1630,8 @@ describe("RedemptionWatchtower", () => {
                   vetoFreezePeriod,
                   defaultDelay,
                   defaultDelay - 1,
-                  levelTwoDelay
+                  levelTwoDelay,
+                  waivedAmountLimit
                 )
             ).to.be.revertedWith(
               "Redemption level-one delay must not be lesser than default delay"
@@ -1435,6 +1649,7 @@ describe("RedemptionWatchtower", () => {
           newDefaultDelay?: number
           newLevelOneDelay?: number
           newLevelTwoDelay?: number
+          newWaivedAmountLimit?: BigNumber
         }[] = [
           {
             testName: "when watchtower lifetime is increased",
@@ -1474,6 +1689,10 @@ describe("RedemptionWatchtower", () => {
             newLevelOneDelay: 0,
             newLevelTwoDelay: 0,
           },
+          {
+            testName: "when waived amount limit is changed to a non-zero value",
+            newWaivedAmountLimit: BigNumber.from(50_000_000),
+          },
         ]
 
         testData.forEach((test) => {
@@ -1483,6 +1702,7 @@ describe("RedemptionWatchtower", () => {
           let newDefaultDelay: number
           let newLevelOneDelay: number
           let newLevelTwoDelay: number
+          let newWaivedAmountLimit: BigNumber
 
           context(test.testName, async () => {
             let tx: ContractTransaction
@@ -1516,6 +1736,10 @@ describe("RedemptionWatchtower", () => {
                 test.newLevelTwoDelay,
                 levelTwoDelay
               )
+              newWaivedAmountLimit = assignValue(
+                test.newWaivedAmountLimit,
+                waivedAmountLimit
+              )
 
               tx = await redemptionWatchtower
                 .connect(redemptionWatchtowerManager)
@@ -1525,7 +1749,8 @@ describe("RedemptionWatchtower", () => {
                   newVetoFreezePeriod,
                   newDefaultDelay,
                   newLevelOneDelay,
-                  newLevelTwoDelay
+                  newLevelTwoDelay,
+                  newWaivedAmountLimit
                 )
             })
 
@@ -1542,7 +1767,8 @@ describe("RedemptionWatchtower", () => {
                   newVetoFreezePeriod,
                   newDefaultDelay,
                   newLevelOneDelay,
-                  newLevelTwoDelay
+                  newLevelTwoDelay,
+                  newWaivedAmountLimit
                 )
             })
 
