@@ -172,65 +172,79 @@ describe("RedemptionWatchtower", () => {
   })
 
   describe("addGuardian", () => {
-    before(async () => {
-      await createSnapshot()
-
-      await redemptionWatchtower.connect(governance).enableWatchtower(
-        redemptionWatchtowerManager.address,
-        guardians.map((g) => g.address)
-      )
-    })
-
-    after(async () => {
-      await restoreSnapshot()
-    })
-
-    context("when called not by the watchtower manager", () => {
+    context("when watchtower manager is not set", () => {
+      // At this point, the watchtower manager is not set as `enableWatchtower`
+      // has not been called yet.
       it("should revert", async () => {
         await expect(
           redemptionWatchtower
-            .connect(governance) // governance has not such a power
+            .connect(thirdParty)
             .addGuardian(thirdParty.address)
         ).to.be.revertedWith("Caller is not watchtower manager")
       })
     })
 
-    context("when called by the watchtower manager", () => {
-      context("when guardian already exists", () => {
+    context("when watchtower manager is set", () => {
+      before(async () => {
+        await createSnapshot()
+
+        await redemptionWatchtower.connect(governance).enableWatchtower(
+          redemptionWatchtowerManager.address,
+          guardians.map((g) => g.address)
+        )
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when called not by the watchtower manager", () => {
         it("should revert", async () => {
           await expect(
             redemptionWatchtower
-              .connect(redemptionWatchtowerManager)
-              .addGuardian(guardians[0].address)
-          ).to.be.revertedWith("Guardian already exists")
+              .connect(governance) // governance has not such a power
+              .addGuardian(thirdParty.address)
+          ).to.be.revertedWith("Caller is not watchtower manager")
         })
       })
 
-      context("when guardian does not exist", () => {
-        let tx: ContractTransaction
-
-        before(async () => {
-          await createSnapshot()
-
-          tx = await redemptionWatchtower
-            .connect(redemptionWatchtowerManager)
-            .addGuardian(thirdParty.address)
+      context("when called by the watchtower manager", () => {
+        context("when guardian already exists", () => {
+          it("should revert", async () => {
+            await expect(
+              redemptionWatchtower
+                .connect(redemptionWatchtowerManager)
+                .addGuardian(guardians[0].address)
+            ).to.be.revertedWith("Guardian already exists")
+          })
         })
 
-        after(async () => {
-          await restoreSnapshot()
-        })
+        context("when guardian does not exist", () => {
+          let tx: ContractTransaction
 
-        it("should add the guardian properly", async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-          expect(await redemptionWatchtower.isGuardian(thirdParty.address)).to
-            .be.true
-        })
+          before(async () => {
+            await createSnapshot()
 
-        it("should emit GuardianAdded event", async () => {
-          await expect(tx)
-            .to.emit(redemptionWatchtower, "GuardianAdded")
-            .withArgs(thirdParty.address)
+            tx = await redemptionWatchtower
+              .connect(redemptionWatchtowerManager)
+              .addGuardian(thirdParty.address)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should add the guardian properly", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(await redemptionWatchtower.isGuardian(thirdParty.address)).to
+              .be.true
+          })
+
+          it("should emit GuardianAdded event", async () => {
+            await expect(tx)
+              .to.emit(redemptionWatchtower, "GuardianAdded")
+              .withArgs(thirdParty.address)
+          })
         })
       })
     })
