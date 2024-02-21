@@ -1103,6 +1103,12 @@ describe("RedemptionWatchtower", () => {
                     ).to.be.true
                   })
 
+                  it("should emit Banned event", async () => {
+                    await expect(tx)
+                      .to.emit(redemptionWatchtower, "Banned")
+                      .withArgs(legacyRedemption.redeemer)
+                  })
+
                   it("should emit VetoFinalized event", async () => {
                     await expect(tx)
                       .to.emit(redemptionWatchtower, "VetoFinalized")
@@ -1444,6 +1450,12 @@ describe("RedemptionWatchtower", () => {
                   expect(
                     await redemptionWatchtower.isBanned(redemption.redeemer)
                   ).to.be.true
+                })
+
+                it("should emit Banned event", async () => {
+                  await expect(tx)
+                    .to.emit(redemptionWatchtower, "Banned")
+                    .withArgs(redemption.redeemer)
                 })
 
                 it("should emit VetoFinalized event", async () => {
@@ -2203,6 +2215,96 @@ describe("RedemptionWatchtower", () => {
             "0x90a4ac843763F7F345f2738CcC9F420D59751249"
           )
         ).to.be.true
+      })
+    })
+  })
+
+  describe("unban", () => {
+    before(async () => {
+      await createSnapshot()
+
+      await redemptionWatchtower.connect(governance).enableWatchtower(
+        redemptionWatchtowerManager.address,
+        guardians.map((g) => g.address)
+      )
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    context("when the caller is not the watchtower manager", () => {
+      it("should revert", async () => {
+        await expect(
+          redemptionWatchtower.connect(thirdParty).unban(thirdParty.address)
+        ).to.be.revertedWith("Caller is not watchtower manager")
+      })
+    })
+
+    context("when the caller is the watchtower manager", () => {
+      context("when the redeemer is not banned", () => {
+        it("should revert", async () => {
+          await expect(
+            redemptionWatchtower
+              .connect(redemptionWatchtowerManager)
+              .unban(thirdParty.address)
+          ).to.be.revertedWith("Redeemer is not banned")
+        })
+      })
+
+      context("when the redeemer is banned", () => {
+        let tx: ContractTransaction
+        let redemption: RedemptionData
+
+        before(async () => {
+          await createSnapshot()
+
+          const redemptions = await createRedemptionRequests(
+            SinglePendingRequestedRedemption
+          )
+          // eslint-disable-next-line prefer-destructuring
+          redemption = redemptions[0]
+
+          // Raise three objections to veto the redemption and ban the redeemer.
+          await redemptionWatchtower
+            .connect(guardians[0])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+          await redemptionWatchtower
+            .connect(guardians[1])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+          await redemptionWatchtower
+            .connect(guardians[2])
+            .raiseObjection(
+              redemption.walletPublicKeyHash,
+              redemption.redeemerOutputScript
+            )
+
+          tx = await redemptionWatchtower
+            .connect(redemptionWatchtowerManager)
+            .unban(redemption.redeemer)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should remove the redeemer from the banned list", async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          expect(await redemptionWatchtower.isBanned(redemption.redeemer)).to.be
+            .false
+        })
+
+        it("should emit Unbanned event", async () => {
+          await expect(tx)
+            .to.emit(redemptionWatchtower, "Unbanned")
+            .withArgs(redemption.redeemer)
+        })
       })
     })
   })

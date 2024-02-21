@@ -152,6 +152,10 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         uint64 waivedAmountLimit
     );
 
+    event Banned(address indexed redeemer);
+
+    event Unbanned(address indexed redeemer);
+
     modifier onlyManager() {
         require(msg.sender == manager, "Caller is not watchtower manager");
         _;
@@ -372,6 +376,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
             // requests from that address.
             isBanned[redemption.redeemer] = true;
 
+            emit Banned(redemption.redeemer);
+
             emit VetoFinalized(redemptionKey);
 
             // Notify the Bridge about the veto. As result of this call,
@@ -559,5 +565,16 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         }
 
         return true;
+    }
+
+    /// @notice Unbans a redeemer.
+    /// @param redeemer Address of the redeemer to unban.
+    /// @dev Requirements:
+    ///      - The caller must be the watchtower manager,
+    ///      - The redeemer must be banned.
+    function unban(address redeemer) external onlyManager {
+        require(isBanned[redeemer], "Redeemer is not banned");
+        isBanned[redeemer] = false;
+        emit Unbanned(redeemer);
     }
 }
