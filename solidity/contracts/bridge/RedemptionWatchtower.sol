@@ -32,6 +32,7 @@ import "./Redemption.sol";
 ///         requester while inflicting a freeze and financial penalty on the
 ///         amount. The goal of this penalty is to introduce a cost that guards
 ///         against repeated malicious redemption requests.
+// slither-disable-next-line missing-inheritance
 contract RedemptionWatchtower is OwnableUpgradeable {
     struct VetoProposal {
         // Address of the redeemer that requested the redemption.
@@ -217,6 +218,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     function disableWatchtower() external {
         require(watchtowerEnabledAt != 0, "Not enabled");
 
+        // slither-disable-next-line incorrect-equality
         require(watchtowerDisabledAt == 0, "Already disabled");
 
         require(
@@ -403,11 +405,20 @@ contract RedemptionWatchtower is OwnableUpgradeable {
             return 0;
         }
 
-        if (objectionsCount == 0) {
+        if (
+            // slither-disable-next-line incorrect-equality
+            objectionsCount == 0
+        ) {
             return defaultDelay;
-        } else if (objectionsCount == 1) {
+        } else if (
+            // slither-disable-next-line incorrect-equality
+            objectionsCount == 1
+        ) {
             return levelOneDelay;
-        } else if (objectionsCount == 2) {
+        } else if (
+            // slither-disable-next-line incorrect-equality
+            objectionsCount == 2
+        ) {
             return levelTwoDelay;
         } else {
             revert("No delay for given objections count");

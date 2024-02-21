@@ -3,7 +3,6 @@ import { ethers, helpers } from "hardhat"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { BigNumber, BigNumberish, BytesLike } from "ethers"
-import { arch } from "node:os"
 import type {
   Bridge,
   IRedemptionWatchtower,

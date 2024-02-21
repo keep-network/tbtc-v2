@@ -615,6 +615,7 @@ contract WalletProposalValidator {
             uint32 minAge = REDEMPTION_REQUEST_MIN_AGE;
             if (redemptionWatchtower != address(0)) {
                 // Check the redemption delay enforced by the watchtower.
+                // slither-disable-next-line calls-loop
                 uint32 delay = IRedemptionWatchtower(redemptionWatchtower)
                     .getRedemptionDelay(redemptionKey);
                 // If the delay is greater than the usual minimum age, use it.
