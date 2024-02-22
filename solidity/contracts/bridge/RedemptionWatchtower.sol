@@ -157,7 +157,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
     event Unbanned(address indexed redeemer);
 
     event VetoedFundsWithdrawn(
-        uint256 indexed redemptionkey,
+        uint256 indexed redemptionKey,
         address indexed redeemer,
         uint64 amount
     );
