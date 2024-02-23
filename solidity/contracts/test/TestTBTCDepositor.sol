@@ -58,6 +58,7 @@ contract MockBridge is IBridge {
 
     mapping(uint256 => IBridgeTypes.DepositRequest) internal _deposits;
 
+    uint64 internal _depositDustThreshold = 1000000; // 1000000 satoshi = 0.01 BTC
     uint64 internal _depositTreasuryFeeDivisor = 50; // 1/50 == 100 bps == 2% == 0.02
     uint64 internal _depositTxMaxFee = 1000; // 1000 satoshi = 0.00001 BTC
 
@@ -137,10 +138,14 @@ contract MockBridge is IBridge {
             uint32 depositRevealAheadPeriod
         )
     {
-        depositDustThreshold = 0;
-        depositTreasuryFeeDivisor = 0;
+        depositDustThreshold = _depositDustThreshold;
+        depositTreasuryFeeDivisor = _depositTreasuryFeeDivisor;
         depositTxMaxFee = _depositTxMaxFee;
         depositRevealAheadPeriod = 0;
+    }
+
+    function setDepositDustThreshold(uint64 value) external {
+        _depositDustThreshold = value;
     }
 
     function setDepositTreasuryFeeDivisor(uint64 value) external {
