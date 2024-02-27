@@ -108,6 +108,8 @@ describe("AbstractTBTCDepositor", () => {
       })
 
       context("when deposit is accepted by the Bridge", () => {
+        const expectedInitialDepositAmount = to1ePrecision(10000, 10)
+
         let tx: ContractTransaction
 
         before(async () => {
@@ -133,7 +135,7 @@ describe("AbstractTBTCDepositor", () => {
         it("should return proper values", async () => {
           await expect(tx)
             .to.emit(depositor, "InitializeDepositReturned")
-            .withArgs(fixture.expectedDepositKey)
+            .withArgs(fixture.expectedDepositKey, expectedInitialDepositAmount)
         })
       })
     })

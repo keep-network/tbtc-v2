@@ -11,7 +11,10 @@ import "../integrator/ITBTCVault.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TestTBTCDepositor is AbstractTBTCDepositor {
-    event InitializeDepositReturned(uint256 depositKey);
+    event InitializeDepositReturned(
+        uint256 depositKey,
+        uint256 initialDepositAmount
+    );
 
     event FinalizeDepositReturned(
         uint256 initialDepositAmount,
@@ -28,8 +31,12 @@ contract TestTBTCDepositor is AbstractTBTCDepositor {
         IBridgeTypes.DepositRevealInfo calldata reveal,
         bytes32 extraData
     ) external {
-        uint256 depositKey = _initializeDeposit(fundingTx, reveal, extraData);
-        emit InitializeDepositReturned(depositKey);
+        (uint256 depositKey, uint256 initialDepositAmount) = _initializeDeposit(
+            fundingTx,
+            reveal,
+            extraData
+        );
+        emit InitializeDepositReturned(depositKey, initialDepositAmount);
     }
 
     function finalizeDepositPublic(uint256 depositKey) external {
