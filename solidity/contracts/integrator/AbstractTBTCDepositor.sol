@@ -289,4 +289,16 @@ abstract contract AbstractTBTCDepositor {
                 )
                 .hash256View();
     }
+
+    /// @notice Returns minimum deposit amount.
+    /// @return Minimum deposit amount. In TBTC token decimals precision.
+    // slither-disable-next-line dead-code
+    function _minDepositAmount() internal view returns (uint256) {
+        // Read tBTC Bridge Deposit Dust Threshold in satoshi precision.
+        (uint64 bridgeDepositDustThresholdSat, , , ) = bridge
+            .depositParameters();
+
+        // Convert tBTC Bridge Deposit Dust Threshold to TBTC token precision.
+        return bridgeDepositDustThresholdSat * SATOSHI_MULTIPLIER;
+    }
 }

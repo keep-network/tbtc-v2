@@ -51,6 +51,10 @@ contract TestTBTCDepositor is AbstractTBTCDepositor {
     ) external view returns (uint256) {
         return _calculateTbtcAmount(depositAmountSat, depositTreasuryFeeSat);
     }
+
+    function minDepositAmountPublic() external view returns (uint256) {
+        return _minDepositAmount();
+    }
 }
 
 contract MockBridge is IBridge {

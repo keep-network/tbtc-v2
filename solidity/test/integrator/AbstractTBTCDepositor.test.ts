@@ -438,4 +438,24 @@ describe("AbstractTBTCDepositor", () => {
       })
     })
   })
+
+  describe("_minDepositAmount", () => {
+    before(async () => {
+      await createSnapshot()
+
+      // Set deposit dust threshold to 0.1 BTC.
+      await bridge.setDepositDustThreshold(1000000)
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("returns value in TBTC token precision", async () => {
+      // 1000000 sat * 1e10 TBTC
+      expect(await depositor.minDepositAmountPublic()).to.be.equal(
+        to1ePrecision(1000000, 10)
+      )
+    })
+  })
 })
