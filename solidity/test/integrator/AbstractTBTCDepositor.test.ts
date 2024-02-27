@@ -9,7 +9,6 @@ import type {
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
-const { lastBlockTime } = helpers.time
 
 const loadFixture = (vault: string) => ({
   fundingTx: {
