@@ -54,7 +54,7 @@ import "./ITBTCVault.sol";
 ///              // Embed necessary context as extra data.
 ///              bytes32 extraData = ...;
 ///
-///              uint256 depositKey = _initializeDeposit(
+///              (uint256 depositKey, uint256 initialDepositAmount) = _initializeDeposit(
 ///                  fundingTx,
 ///                  reveal,
 ///                  extraData
