@@ -15,25 +15,14 @@
 
 pragma solidity ^0.8.17;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../integrator/AbstractTBTCDepositor.sol";
 import "../integrator/IBridge.sol";
-
-/// @title IWormholeReceiver
-/// @notice Wormhole Receiver interface. Contains only selected functions
-///         used by L1BitcoinDepositor.
-/// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeReceiver.sol#L8
-interface IWormholeReceiver {
-    /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeReceiver.sol#L44
-    function receiveWormholeMessages(
-        bytes memory payload,
-        bytes[] memory additionalMessages,
-        bytes32 sourceAddress,
-        uint16 sourceChain,
-        bytes32 deliveryHash
-    ) external payable;
-}
+import "../integrator/ITBTCVault.sol";
+import "./Wormhole.sol";
 
 // TODO: Document this contract.
 contract L1BitcoinDepositor is
@@ -41,6 +30,8 @@ contract L1BitcoinDepositor is
     IWormholeReceiver,
     OwnableUpgradeable
 {
+    using SafeERC20 for IERC20;
+
     /// @notice Reflects the deposit state:
     ///         - Unknown deposit has not been initialized yet.
     ///         - Initialized deposit has been initialized with a call to
@@ -60,16 +51,30 @@ contract L1BitcoinDepositor is
     mapping(uint256 => DepositState) public deposits;
 
     // TODO: Document other state variables.
-    address public wormholeRelayer;
-    address public wormholeTokenBridge;
+    IERC20 public tbtcToken;
+    IWormhole public wormhole;
+    IWormholeRelayer public wormholeRelayer;
+    IWormholeTokenBridge public wormholeTokenBridge;
+    address public l2WormholeGateway;
     uint16 public l2ChainId;
     address public l2BitcoinDepositor;
+    uint256 public l2FinalizeDepositGasLimit;
 
     event DepositInitialized(
         uint256 indexed depositKey,
         address indexed l2DepositOwner,
         address indexed l1Sender
     );
+
+    event DepositFinalized(
+        uint256 indexed depositKey,
+        address indexed l2DepositOwner,
+        address indexed l1Sender,
+        uint256 initialAmount,
+        uint256 tbtcAmount
+    );
+
+    event L2FinalizeDepositGasLimitUpdated(uint256 l2FinalizeDepositGasLimit);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -79,18 +84,33 @@ contract L1BitcoinDepositor is
     function initialize(
         address _tbtcBridge,
         address _tbtcVault,
+        address _wormhole,
         address _wormholeRelayer,
         address _wormholeTokenBridge,
+        address _l2WormholeGateway,
         uint16 _l2ChainId,
         address _l2BitcoinDepositor
     ) external initializer {
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
         __Ownable_init();
 
-        wormholeRelayer = _wormholeRelayer;
-        wormholeTokenBridge = _wormholeTokenBridge;
+        tbtcToken = IERC20(ITBTCVault(_tbtcVault).tbtcToken());
+        wormhole = IWormhole(_wormhole);
+        wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
+        wormholeTokenBridge = IWormholeTokenBridge(_wormholeTokenBridge);
+        l2WormholeGateway = _l2WormholeGateway;
         l2ChainId = _l2ChainId;
         l2BitcoinDepositor = _l2BitcoinDepositor;
+        l2FinalizeDepositGasLimit = 200_000;
+    }
+
+    // TODO: Document this function.
+    function updateL2FinalizeDepositGasLimit(uint256 _l2FinalizeDepositGasLimit)
+        external
+        onlyOwner
+    {
+        l2FinalizeDepositGasLimit = _l2FinalizeDepositGasLimit;
+        emit L2FinalizeDepositGasLimitUpdated(_l2FinalizeDepositGasLimit);
     }
 
     // TODO: Document this function.
@@ -112,7 +132,8 @@ contract L1BitcoinDepositor is
         );
 
         require(
-            fromWormholeAddress(sourceAddress) == l2BitcoinDepositor,
+            WormholeUtils.fromWormholeAddress(sourceAddress) ==
+                l2BitcoinDepositor,
             "Source address is not the expected L2 Bitcoin depositor"
         );
 
@@ -143,11 +164,15 @@ contract L1BitcoinDepositor is
             "L2 deposit owner must not be 0x0"
         );
 
+        // Convert the L2 deposit owner address into the Wormhole format and
+        // encode it as deposit extra data.
+        bytes32 extraData = WormholeUtils.toWormholeAddress(l2DepositOwner);
+
         // TODO: Document how the Bridge works and why we don't need to validate input parameters.
         (uint256 depositKey, ) = _initializeDeposit(
             fundingTx,
             reveal,
-            toWormholeAddress(l2DepositOwner)
+            extraData
         );
 
         require(
@@ -160,23 +185,119 @@ contract L1BitcoinDepositor is
         emit DepositInitialized(depositKey, l2DepositOwner, msg.sender);
     }
 
-    /// @notice Converts Ethereum address into Wormhole format.
-    /// @param _address The address to convert.
-    function toWormholeAddress(address _address)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return bytes32(uint256(uint160(_address)));
+    // TODO: Document this function.
+    function finalizeDeposit(uint256 depositKey) external payable {
+        require(
+            deposits[depositKey] == DepositState.Initialized,
+            "Wrong deposit state"
+        );
+
+        deposits[depositKey] = DepositState.Finalized;
+
+        (
+            uint256 initialDepositAmount,
+            uint256 tbtcAmount,
+            // Deposit extra data is actually the L2 deposit owner
+            // address in Wormhole format.
+            bytes32 l2DepositOwner
+        ) = _finalizeDeposit(depositKey);
+
+        emit DepositFinalized(
+            depositKey,
+            WormholeUtils.fromWormholeAddress(l2DepositOwner),
+            msg.sender,
+            initialDepositAmount,
+            tbtcAmount
+        );
+
+        transferTbtc(tbtcAmount, l2DepositOwner);
     }
 
-    /// @notice Converts Wormhole address into Ethereum format.
-    /// @param _address The address to convert.
-    function fromWormholeAddress(bytes32 _address)
+    // TODO: Document this function.
+    function quoteFinalizeDeposit() public view returns (uint256 cost) {
+        cost = _quoteFinalizeDeposit(wormhole.messageFee());
+    }
+
+    // TODO: Document this function.
+    function _quoteFinalizeDeposit(uint256 messageFee)
         internal
-        pure
-        returns (address)
+        view
+        returns (uint256 cost)
     {
-        return address(uint160(uint256(_address)));
+        // Cost of delivering token and payload to `l2ChainId`.
+        (uint256 deliveryCost, ) = wormholeRelayer.quoteEVMDeliveryPrice(
+            l2ChainId,
+            0,
+            l2FinalizeDepositGasLimit
+        );
+
+        // Total cost = delivery cost + cost of publishing the `sending token`
+        // Wormhole message.
+        cost = deliveryCost + messageFee;
+    }
+
+    // TODO: Document this function.
+    function transferTbtc(uint256 amount, bytes32 l2Receiver) internal {
+        // Wormhole supports the 1e8 precision at most. TBTC is 1e18 so
+        // the amount needs to be normalized.
+        amount = WormholeUtils.normalize(amount);
+
+        require(amount > 0, "Amount too low to bridge");
+
+        // Cost of requesting a `finalize` message to be sent to
+        //  `l2ChainId` with a gasLimit of `l2FinalizeDepositGasLimit`.
+        uint256 wormholeMessageFee = wormhole.messageFee();
+        uint256 cost = _quoteFinalizeDeposit(wormholeMessageFee);
+
+        require(msg.value == cost, "Payment for Wormhole Relayer is too low");
+
+        // The Wormhole Token Bridge will pull the TBTC amount
+        // from this contract. We need to approve the transfer first.
+        tbtcToken.safeIncreaseAllowance(address(wormholeTokenBridge), amount);
+
+        // Initiate a Wormhole token transfer that will lock L1 TBTC within
+        // the Wormhole Token Bridge contract and transfer Wormhole-wrapped
+        // L2 TBTC to the corresponding `L2WormholeGateway` contract.
+        uint64 transferSequence = wormholeTokenBridge.transferTokensWithPayload{
+            value: wormholeMessageFee
+        }(
+            address(tbtcToken),
+            amount,
+            l2ChainId,
+            WormholeUtils.toWormholeAddress(l2WormholeGateway),
+            0, // Nonce is a free field that is not relevant in this context.
+            abi.encode(l2Receiver) // Set the L2 receiver address as the transfer payload.
+        );
+
+        // Get Wormhole chain ID for this L1 chain.
+        uint16 l1ChainId = wormhole.chainId();
+
+        // Construct VAA representing the above Wormhole token transfer.
+        WormholeTypes.VaaKey[]
+            memory additionalVaas = new WormholeTypes.VaaKey[](1);
+        additionalVaas[0] = WormholeTypes.VaaKey({
+            chainId: l1ChainId,
+            emitterAddress: WormholeUtils.toWormholeAddress(
+                address(wormholeTokenBridge)
+            ),
+            sequence: transferSequence
+        });
+
+        // The Wormhole token transfer initiated above must be finalized on
+        // the L2 chain. We achieve that by sending the transfer VAA to the
+        // `L2BitcoinDepositor` contract. Once, the `L2BitcoinDepositor`
+        // contract receives it, it calls the `L2WormholeGateway` contract
+        // that redeems Wormhole-wrapped L2 TBTC from the Wormhole Token
+        // Bridge and use it to mint canonical L2 TBTC to the receiver address.
+        wormholeRelayer.sendVaasToEvm{value: cost - wormholeMessageFee}(
+            l2ChainId,
+            l2BitcoinDepositor,
+            bytes(""), // No payload needed. The L2 receiver address is already encoded in the Wormhole token transfer payload.
+            0, // No receiver value needed.
+            l2FinalizeDepositGasLimit,
+            additionalVaas,
+            l1ChainId, // Set this L1 chain as the refund chain.
+            msg.sender // Set the caller as the refund receiver.
+        );
     }
 }

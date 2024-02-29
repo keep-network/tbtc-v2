@@ -19,43 +19,21 @@ import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../integrator/IBridge.sol";
+import "./Wormhole.sol";
 
-/// @title IWormholeRelayer
-/// @notice Wormhole Relayer interface. Contains only selected functions
-///         used by L2BitcoinDepositor.
-/// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L74
-interface IWormholeRelayer {
-    /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L122
-    function sendPayloadToEvm(
-        uint16 targetChain,
-        address targetAddress,
-        bytes memory payload,
-        uint256 receiverValue,
-        uint256 gasLimit,
-        uint16 refundChain,
-        address refundAddress
-    ) external payable returns (uint64 sequence);
-
-    /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L442
-    function quoteEVMDeliveryPrice(
-        uint16 targetChain,
-        uint256 receiverValue,
-        uint256 gasLimit
-    )
-        external
-        view
-        returns (
-            uint256 nativePriceQuote,
-            uint256 targetChainRefundPerGasUnused
-        );
+// TODO: Document this interface.
+interface IL2WormholeGateway {
+    // TODO: Document this function.
+    function receiveTbtc(bytes memory vaa) external;
 }
 
 // TODO: Document this contract.
-contract L2BitcoinDepositor is OwnableUpgradeable {
+contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     using BTCUtils for bytes;
 
     // TODO: Document state variables.
     IWormholeRelayer public wormholeRelayer;
+    IL2WormholeGateway public l2WormholeGateway;
     uint16 public l2ChainId;
     uint16 public l1ChainId;
     address public l1BitcoinDepositor;
@@ -79,6 +57,7 @@ contract L2BitcoinDepositor is OwnableUpgradeable {
 
     function initialize(
         address _wormholeRelayer,
+        address _l2WormholeGateway,
         uint16 _l2ChainId,
         uint16 _l1ChainId,
         address _l1BitcoinDepositor
@@ -86,6 +65,7 @@ contract L2BitcoinDepositor is OwnableUpgradeable {
         __Ownable_init();
 
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
+        l2WormholeGateway = IL2WormholeGateway(_l2WormholeGateway);
         l2ChainId = _l2ChainId;
         l1ChainId = _l1ChainId;
         l1BitcoinDepositor = _l1BitcoinDepositor;
@@ -112,7 +92,7 @@ contract L2BitcoinDepositor is OwnableUpgradeable {
         );
 
         // Cost of requesting a `initializeDeposit` message to be sent to
-        //  `l1Chain` with a gasLimit of `l1InitializeDepositGasLimit`.
+        //  `l1ChainId` with a gasLimit of `l1InitializeDepositGasLimit`.
         uint256 cost = quoteInitializeDeposit();
 
         require(msg.value == cost, "Payment for Wormhole Relayer is too low");
@@ -160,5 +140,42 @@ contract L2BitcoinDepositor is OwnableUpgradeable {
             0, // No receiver value needed.
             l1InitializeDepositGasLimit
         );
+    }
+
+    // TODO: Document this function.
+    function receiveWormholeMessages(
+        bytes memory,
+        bytes[] memory additionalVaas,
+        bytes32 sourceAddress,
+        uint16 sourceChain,
+        bytes32
+    ) external payable {
+        require(
+            msg.sender == address(wormholeRelayer),
+            "Caller is not Wormhole Relayer"
+        );
+
+        require(
+            sourceChain == l1ChainId,
+            "Source chain is not the expected L1 chain"
+        );
+
+        require(
+            WormholeUtils.fromWormholeAddress(sourceAddress) ==
+                l1BitcoinDepositor,
+            "Source address is not the expected L1 Bitcoin depositor"
+        );
+
+        require(
+            additionalVaas.length == 1,
+            "Expected 1 additional VAA key for token transfer"
+        );
+
+        finalizeDeposit(additionalVaas[0]);
+    }
+
+    // TODO: Document this function.
+    function finalizeDeposit(bytes memory vaa) internal {
+        l2WormholeGateway.receiveTbtc(vaa);
     }
 }
