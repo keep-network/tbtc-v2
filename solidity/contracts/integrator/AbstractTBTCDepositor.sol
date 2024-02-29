@@ -54,7 +54,7 @@ import "./ITBTCVault.sol";
 ///              // Embed necessary context as extra data.
 ///              bytes32 extraData = ...;
 ///
-///              uint256 depositKey = _initializeDeposit(
+///              (uint256 depositKey, uint256 initialDepositAmount) = _initializeDeposit(
 ///                  fundingTx,
 ///                  reveal,
 ///                  extraData
@@ -123,6 +123,8 @@ abstract contract AbstractTBTCDepositor {
     ///         `keccak256(fundingTxHash | reveal.fundingOutputIndex)`. This
     ///         key can be used to refer to the deposit in the Bridge and
     ///         TBTCVault contracts.
+    /// @return initialDepositAmount Amount of funding transaction deposit. In
+    ///         TBTC token decimals precision.
     /// @dev Requirements:
     ///      - The revealed vault address must match the TBTCVault address,
     ///      - All requirements from {Bridge#revealDepositWithExtraData}
@@ -134,10 +136,10 @@ abstract contract AbstractTBTCDepositor {
         IBridgeTypes.BitcoinTxInfo calldata fundingTx,
         IBridgeTypes.DepositRevealInfo calldata reveal,
         bytes32 extraData
-    ) internal returns (uint256) {
+    ) internal returns (uint256 depositKey, uint256 initialDepositAmount) {
         require(reveal.vault == address(tbtcVault), "Vault address mismatch");
 
-        uint256 depositKey = _calculateDepositKey(
+        depositKey = _calculateDepositKey(
             _calculateBitcoinTxHash(fundingTx),
             reveal.fundingOutputIndex
         );
@@ -148,7 +150,9 @@ abstract contract AbstractTBTCDepositor {
         // an explicit check here.
         bridge.revealDepositWithExtraData(fundingTx, reveal, extraData);
 
-        return depositKey;
+        initialDepositAmount =
+            bridge.deposits(depositKey).amount *
+            SATOSHI_MULTIPLIER;
     }
 
     /// @notice Finalizes a deposit by calculating the amount of TBTC minted
@@ -288,5 +292,17 @@ abstract contract AbstractTBTCDepositor {
                     txInfo.locktime
                 )
                 .hash256View();
+    }
+
+    /// @notice Returns minimum deposit amount.
+    /// @return Minimum deposit amount. In TBTC token decimals precision.
+    // slither-disable-next-line dead-code
+    function _minDepositAmount() internal view returns (uint256) {
+        // Read tBTC Bridge Deposit Dust Threshold in satoshi precision.
+        (uint64 bridgeDepositDustThresholdSat, , , ) = bridge
+            .depositParameters();
+
+        // Convert tBTC Bridge Deposit Dust Threshold to TBTC token precision.
+        return bridgeDepositDustThresholdSat * SATOSHI_MULTIPLIER;
     }
 }
