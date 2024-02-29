@@ -48,6 +48,9 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         uint8 objectionsCount;
     }
 
+    /// @notice Number of guardian objections required to veto a redemption request.
+    uint8 public constant REQUIRED_OBJECTIONS_COUNT = 3;
+
     /// @notice Set of redemption guardians.
     mapping(address => bool) public isGuardian;
     /// @notice Set of banned redeemer addresses. Banned redeemers cannot
@@ -312,10 +315,8 @@ contract RedemptionWatchtower is OwnableUpgradeable {
 
         VetoProposal storage veto = vetoProposals[redemptionKey];
 
-        uint8 requiredObjectionsCount = 3;
-
         require(
-            veto.objectionsCount < requiredObjectionsCount,
+            veto.objectionsCount < REQUIRED_OBJECTIONS_COUNT,
             "Redemption request already vetoed"
         );
 
@@ -367,7 +368,7 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         emit ObjectionRaised(redemptionKey, msg.sender);
 
         // If there are enough objections, finalize the veto.
-        if (veto.objectionsCount == requiredObjectionsCount) {
+        if (veto.objectionsCount == REQUIRED_OBJECTIONS_COUNT) {
             // Calculate the veto penalty fee that will be deducted from the
             // final amount that the redeemer can claim after the freeze period.
             uint64 penaltyFee = vetoPenaltyFeeDivisor > 0
