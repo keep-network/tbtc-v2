@@ -34,7 +34,6 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     // TODO: Document state variables.
     IWormholeRelayer public wormholeRelayer;
     IL2WormholeGateway public l2WormholeGateway;
-    uint16 public l2ChainId;
     uint16 public l1ChainId;
     address public l1BitcoinDepositor;
     uint256 public l1InitializeDepositGasLimit;
@@ -58,18 +57,30 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     function initialize(
         address _wormholeRelayer,
         address _l2WormholeGateway,
-        uint16 _l2ChainId,
-        uint16 _l1ChainId,
-        address _l1BitcoinDepositor
+        uint16 _l1ChainId
     ) external initializer {
         __Ownable_init();
 
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         l2WormholeGateway = IL2WormholeGateway(_l2WormholeGateway);
-        l2ChainId = _l2ChainId;
         l1ChainId = _l1ChainId;
-        l1BitcoinDepositor = _l1BitcoinDepositor;
         l1InitializeDepositGasLimit = 200_000;
+    }
+
+    // TODO: Document this function.
+    function attachL1BitcoinDepositor(address _l1BitcoinDepositor)
+        external
+        onlyOwner
+    {
+        require(
+            l1BitcoinDepositor == address(0),
+            "L1 Bitcoin Depositor already set"
+        );
+        require(
+            _l1BitcoinDepositor != address(0),
+            "L1 Bitcoin Depositor must not be 0x0"
+        );
+        l1BitcoinDepositor = _l1BitcoinDepositor;
     }
 
     // TODO: Document this function.
@@ -105,7 +116,7 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
             abi.encode(fundingTx, reveal, l2DepositOwner), // Message payload.
             0, // No receiver value needed.
             l1InitializeDepositGasLimit,
-            l2ChainId, // Set this L2 chain as the refund chain.
+            l1ChainId, // Set the L1 chain as the refund chain to avoid cross-chain refunds.
             msg.sender // Set the caller as the refund receiver.
         );
 

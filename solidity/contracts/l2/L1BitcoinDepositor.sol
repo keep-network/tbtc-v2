@@ -88,8 +88,7 @@ contract L1BitcoinDepositor is
         address _wormholeRelayer,
         address _wormholeTokenBridge,
         address _l2WormholeGateway,
-        uint16 _l2ChainId,
-        address _l2BitcoinDepositor
+        uint16 _l2ChainId
     ) external initializer {
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
         __Ownable_init();
@@ -100,8 +99,23 @@ contract L1BitcoinDepositor is
         wormholeTokenBridge = IWormholeTokenBridge(_wormholeTokenBridge);
         l2WormholeGateway = _l2WormholeGateway;
         l2ChainId = _l2ChainId;
+        l2FinalizeDepositGasLimit = 500_000;
+    }
+
+    // TODO: Document this function.
+    function attachL2BitcoinDepositor(address _l2BitcoinDepositor)
+        external
+        onlyOwner
+    {
+        require(
+            l2BitcoinDepositor == address(0),
+            "L2 Bitcoin Depositor already set"
+        );
+        require(
+            _l2BitcoinDepositor != address(0),
+            "L2 Bitcoin Depositor must not be 0x0"
+        );
         l2BitcoinDepositor = _l2BitcoinDepositor;
-        l2FinalizeDepositGasLimit = 200_000;
     }
 
     // TODO: Document this function.
@@ -269,14 +283,11 @@ contract L1BitcoinDepositor is
             abi.encode(l2Receiver) // Set the L2 receiver address as the transfer payload.
         );
 
-        // Get Wormhole chain ID for this L1 chain.
-        uint16 l1ChainId = wormhole.chainId();
-
         // Construct VAA representing the above Wormhole token transfer.
         WormholeTypes.VaaKey[]
             memory additionalVaas = new WormholeTypes.VaaKey[](1);
         additionalVaas[0] = WormholeTypes.VaaKey({
-            chainId: l1ChainId,
+            chainId: wormhole.chainId(),
             emitterAddress: WormholeUtils.toWormholeAddress(
                 address(wormholeTokenBridge)
             ),
@@ -296,7 +307,7 @@ contract L1BitcoinDepositor is
             0, // No receiver value needed.
             l2FinalizeDepositGasLimit,
             additionalVaas,
-            l1ChainId, // Set this L1 chain as the refund chain.
+            l2ChainId, // Set the L2 chain as the refund chain to avoid cross-chain refunds.
             msg.sender // Set the caller as the refund receiver.
         );
     }
