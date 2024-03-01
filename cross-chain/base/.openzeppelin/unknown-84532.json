@@ -14,6 +14,11 @@
       "address": "0xc3D46e0266d95215589DE639cC4E93b79f88fc6C",
       "txHash": "0xc362207cb5c36e09f5eae5bcc206c760e01af0a042fb7a48f6a4b2078eafcd24",
       "kind": "transparent"
+    },
+    {
+      "address": "0x73A63e2Be2D911dc7eFAc189Bfdf48FbB6532B5b",
+      "txHash": "0x1c530f7679fd72c5a372d5dfac619588b8e6b28643f3a89be6a32edecc4b8b39",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -438,6 +443,134 @@
           "t_mapping(t_uint16,t_bytes32)": {
             "label": "mapping(uint16 => bytes32)",
             "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "158e85b6f8306c53687c3df734c1d1b840db0b13301465860bf98e15ff8b1b13": {
+      "address": "0x1a53759DE2eADf73bd0b05c07a4F1F5B7912dA3d",
+      "txHash": "0xe1026e1340ff20ac460112ac2de7718f92f87897d00f6ad15cd59530f8179e4a",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "wormholeRelayer",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_contract(IWormholeRelayer)4047",
+            "contract": "L2BitcoinDepositor",
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:49"
+          },
+          {
+            "label": "l2WormholeGateway",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_contract(IL2WormholeGateway)3662",
+            "contract": "L2BitcoinDepositor",
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:52"
+          },
+          {
+            "label": "l1ChainId",
+            "offset": 20,
+            "slot": "102",
+            "type": "t_uint16",
+            "contract": "L2BitcoinDepositor",
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:53"
+          },
+          {
+            "label": "l1BitcoinDepositor",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "L2BitcoinDepositor",
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:54"
+          },
+          {
+            "label": "l1InitializeDepositGasLimit",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_uint256",
+            "contract": "L2BitcoinDepositor",
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:57"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IL2WormholeGateway)3662": {
+            "label": "contract IL2WormholeGateway",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IWormholeRelayer)4047": {
+            "label": "contract IWormholeRelayer",
+            "numberOfBytes": "20"
           },
           "t_uint16": {
             "label": "uint16",
