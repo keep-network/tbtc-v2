@@ -52,6 +52,9 @@ const config: HardhatUserConfig = {
         ? process.env.L1_ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["etherscan"],
+      companionNetworks: {
+        l2: "baseSepolia",
+      },
     },
     mainnet: {
       url: process.env.L1_CHAIN_API_URL || "",
@@ -88,9 +91,9 @@ const config: HardhatUserConfig = {
       // In case of deployment failing with underpriced transaction error set
       // the `gasPrice` parameter.
       // gasPrice: 1000000000,
-      // companionNetworks: {
-      //   l1: "sepolia",
-      // },
+      companionNetworks: {
+        l1: "sepolia",
+      },
     },
     base: {
       url: process.env.L2_CHAIN_API_URL || "",
