@@ -41,17 +41,6 @@ interface IWormhole {
 /// @notice Wormhole Relayer interface.
 /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L74
 interface IWormholeRelayer {
-    /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L122
-    function sendPayloadToEvm(
-        uint16 targetChain,
-        address targetAddress,
-        bytes memory payload,
-        uint256 receiverValue,
-        uint256 gasLimit,
-        uint16 refundChain,
-        address refundAddress
-    ) external payable returns (uint64 sequence);
-
     /// @dev See: https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/2b7db51f99b49eda99b44f4a044e751cb0b2e8ea/src/interfaces/IWormholeRelayer.sol#L442
     function quoteEVMDeliveryPrice(
         uint16 targetChain,

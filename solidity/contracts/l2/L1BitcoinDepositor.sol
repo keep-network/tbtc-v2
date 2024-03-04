@@ -27,7 +27,6 @@ import "./Wormhole.sol";
 // TODO: Document this contract.
 contract L1BitcoinDepositor is
     AbstractTBTCDepositor,
-    IWormholeReceiver,
     OwnableUpgradeable
 {
     using SafeERC20 for IERC20;
@@ -36,9 +35,9 @@ contract L1BitcoinDepositor is
     ///         - Unknown deposit has not been initialized yet.
     ///         - Initialized deposit has been initialized with a call to
     ///           `initializeDeposit` function and is known to this contract.
-    ///         - Finalized deposit led to tBTC ERC20 minting and was finalized
-    ///           with a call to `finalizeDeposit` function that deposited tBTC
-    ///           to the Portal contract.
+    ///         - Finalized deposit led to TBTC ERC20 minting and was finalized
+    ///           with a call to `finalizeDeposit` function that transferred
+    ///           TBTC ERC20 to the L2 deposit owner.
     enum DepositState {
         Unknown,
         Initialized,
@@ -128,49 +127,9 @@ contract L1BitcoinDepositor is
     }
 
     // TODO: Document this function.
-    function receiveWormholeMessages(
-        bytes memory payload,
-        bytes[] memory,
-        bytes32 sourceAddress,
-        uint16 sourceChain,
-        bytes32
-    ) external payable {
-        require(
-            msg.sender == address(wormholeRelayer),
-            "Caller is not Wormhole Relayer"
-        );
-
-        require(
-            sourceChain == l2ChainId,
-            "Source chain is not the expected L2 chain"
-        );
-
-        require(
-            WormholeUtils.fromWormholeAddress(sourceAddress) ==
-                l2BitcoinDepositor,
-            "Source address is not the expected L2 Bitcoin depositor"
-        );
-
-        (
-            IBridgeTypes.BitcoinTxInfo memory fundingTx,
-            IBridgeTypes.DepositRevealInfo memory reveal,
-            address l2DepositOwner
-        ) = abi.decode(
-                payload,
-                (
-                    IBridgeTypes.BitcoinTxInfo,
-                    IBridgeTypes.DepositRevealInfo,
-                    address
-                )
-            );
-
-        initializeDeposit(fundingTx, reveal, l2DepositOwner);
-    }
-
-    // TODO: Document this function.
     function initializeDeposit(
-        IBridgeTypes.BitcoinTxInfo memory fundingTx,
-        IBridgeTypes.DepositRevealInfo memory reveal,
+        IBridgeTypes.BitcoinTxInfo calldata fundingTx,
+        IBridgeTypes.DepositRevealInfo calldata reveal,
         address l2DepositOwner
     ) public {
         require(
@@ -200,7 +159,7 @@ contract L1BitcoinDepositor is
     }
 
     // TODO: Document this function.
-    function finalizeDeposit(uint256 depositKey) external payable {
+    function finalizeDeposit(uint256 depositKey) public payable {
         require(
             deposits[depositKey] == DepositState.Initialized,
             "Wrong deposit state"
@@ -228,7 +187,7 @@ contract L1BitcoinDepositor is
     }
 
     // TODO: Document this function.
-    function quoteFinalizeDeposit() public view returns (uint256 cost) {
+    function quoteFinalizeDeposit() external view returns (uint256 cost) {
         cost = _quoteFinalizeDeposit(wormhole.messageFee());
     }
 
