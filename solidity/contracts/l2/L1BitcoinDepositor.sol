@@ -259,6 +259,10 @@ contract L1BitcoinDepositor is
 
         _transferTbtc(tbtcAmount, l2DepositOwner);
 
+        // `ReimbursementPool` calls the untrusted receiver address using a
+        // low-level call. Reentrancy risk is mitigated by making sure that
+        // `ReimbursementPool.refund` is a non-reentrant function and executing
+        // reimbursements as the last step of the deposit finalization.
         if (address(reimbursementPool) != address(0)) {
             // If there is a deferred reimbursement for this deposit
             // initialization, pay it out now.
