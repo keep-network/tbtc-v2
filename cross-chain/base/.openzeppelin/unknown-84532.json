@@ -16,8 +16,8 @@
       "kind": "transparent"
     },
     {
-      "address": "0x73A63e2Be2D911dc7eFAc189Bfdf48FbB6532B5b",
-      "txHash": "0x1c530f7679fd72c5a372d5dfac619588b8e6b28643f3a89be6a32edecc4b8b39",
+      "address": "0x5fA3D34F6c1537A0393098F0e124064B66cE8E24",
+      "txHash": "0x2709623a9f64d8e28a2ab1c3642ee1635a7637a9758f9cd15e9c29640c5d0418",
       "kind": "transparent"
     }
   ],
@@ -459,9 +459,9 @@
         }
       }
     },
-    "158e85b6f8306c53687c3df734c1d1b840db0b13301465860bf98e15ff8b1b13": {
-      "address": "0x1a53759DE2eADf73bd0b05c07a4F1F5B7912dA3d",
-      "txHash": "0xe1026e1340ff20ac460112ac2de7718f92f87897d00f6ad15cd59530f8179e4a",
+    "3369e76dd2db12ab8efac7048dbdc97f3c608ed52d148e172acb7764f92977e1": {
+      "address": "0x1Ecd87C8D510A7390a561AE0Ac54FBe7e5125BcF",
+      "txHash": "0xf53c89cdde65e96dd9d040a21421c54b21414ac552d5201c82cc50f794efd9c8",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -510,17 +510,17 @@
             "label": "wormholeRelayer",
             "offset": 0,
             "slot": "101",
-            "type": "t_contract(IWormholeRelayer)4047",
+            "type": "t_contract(IWormholeRelayer)338",
             "contract": "L2BitcoinDepositor",
-            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:49"
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:54"
           },
           {
             "label": "l2WormholeGateway",
             "offset": 0,
             "slot": "102",
-            "type": "t_contract(IL2WormholeGateway)3662",
+            "type": "t_contract(IL2WormholeGateway)88",
             "contract": "L2BitcoinDepositor",
-            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:52"
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:58"
           },
           {
             "label": "l1ChainId",
@@ -528,7 +528,7 @@
             "slot": "102",
             "type": "t_uint16",
             "contract": "L2BitcoinDepositor",
-            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:53"
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:64"
           },
           {
             "label": "l1BitcoinDepositor",
@@ -536,15 +536,7 @@
             "slot": "103",
             "type": "t_address",
             "contract": "L2BitcoinDepositor",
-            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:54"
-          },
-          {
-            "label": "l1InitializeDepositGasLimit",
-            "offset": 0,
-            "slot": "104",
-            "type": "t_uint256",
-            "contract": "L2BitcoinDepositor",
-            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:57"
+            "src": "@keep-network/tbtc-v2/contracts/l2/L2BitcoinDepositor.sol:67"
           }
         ],
         "types": {
@@ -564,11 +556,11 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(IL2WormholeGateway)3662": {
+          "t_contract(IL2WormholeGateway)88": {
             "label": "contract IL2WormholeGateway",
             "numberOfBytes": "20"
           },
-          "t_contract(IWormholeRelayer)4047": {
+          "t_contract(IWormholeRelayer)338": {
             "label": "contract IWormholeRelayer",
             "numberOfBytes": "20"
           },
