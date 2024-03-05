@@ -185,6 +185,7 @@ contract L1BitcoinDepositor is
         wormhole = IWormhole(_wormhole);
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         wormholeTokenBridge = IWormholeTokenBridge(_wormholeTokenBridge);
+        // slither-disable-next-line missing-zero-check
         l2WormholeGateway = _l2WormholeGateway;
         l2ChainId = _l2ChainId;
         l2FinalizeDepositGasLimit = 500_000;
@@ -347,8 +348,10 @@ contract L1BitcoinDepositor is
             "Wrong deposit state"
         );
 
+        // slither-disable-next-line reentrancy-benign
         deposits[depositKey] = DepositState.Initialized;
 
+        // slither-disable-next-line reentrancy-events
         emit DepositInitialized(depositKey, l2DepositOwner, msg.sender);
 
         if (address(reimbursementPool) != address(0)) {
@@ -359,6 +362,7 @@ contract L1BitcoinDepositor is
             // ones. Paying out the reimbursement directly upon initialization
             // would make the reimbursement pool vulnerable to malicious actors
             // that could drain it by initializing invalid deposits.
+            // slither-disable-next-line reentrancy-benign
             gasReimbursements[depositKey] = GasReimbursement({
                 receiver: msg.sender,
                 gasSpent: (gasStart - gasleft()) + initializeDepositGasOffset
@@ -404,6 +408,7 @@ contract L1BitcoinDepositor is
             bytes32 l2DepositOwner
         ) = _finalizeDeposit(depositKey);
 
+        // slither-disable-next-line reentrancy-events
         emit DepositFinalized(
             depositKey,
             WormholeUtils.fromWormholeAddress(l2DepositOwner),
@@ -569,7 +574,7 @@ contract L1BitcoinDepositor is
         // contract receives it, it calls the `L2WormholeGateway` contract
         // that redeems Wormhole-wrapped L2 TBTC from the Wormhole Token
         // Bridge and use it to mint canonical L2 TBTC to the receiver address.
-        // slither-disable-next-line arbitrary-send-eth
+        // slither-disable-next-line arbitrary-send-eth,unused-return
         wormholeRelayer.sendVaasToEvm{value: cost - wormholeMessageFee}(
             l2ChainId,
             l2BitcoinDepositor,

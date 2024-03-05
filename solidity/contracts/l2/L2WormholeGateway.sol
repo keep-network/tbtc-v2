@@ -58,6 +58,7 @@ import "./L2TBTC.sol";
 ///         Wormhole tBTC representation through the bridge in an equal amount.
 /// @dev This contract is supposed to be deployed behind a transparent
 ///      upgradeable proxy.
+// slither-disable-next-line missing-inheritance
 contract L2WormholeGateway is
     Initializable,
     OwnableUpgradeable,

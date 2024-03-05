@@ -39,6 +39,7 @@ interface IL2WormholeGateway {
 ///
 ///         Please consult the `L1BitcoinDepositor` docstring for an
 ///         outline of the direct bridging mechanism
+// slither-disable-next-line locked-ether
 contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     /// @notice `WormholeRelayer` contract on L2.
     IWormholeRelayer public wormholeRelayer;
