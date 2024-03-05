@@ -328,6 +328,9 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         Redemption.RedemptionRequest memory redemption = bridge
             .pendingRedemptions(redemptionKey);
 
+        // This also handles the case when the redemption was already processed
+        // given we delete successful ones from the `pendingRedemptions` mapping
+        // of the `Bridge` state.
         require(
             redemption.requestedAt != 0,
             "Redemption request does not exist"
@@ -343,8 +346,9 @@ contract RedemptionWatchtower is OwnableUpgradeable {
         if (redemption.requestedAt >= watchtowerEnabledAt) {
             require(
                 // Use < instead of <= to avoid a theoretical edge case
-                // where the delay is 0 (veto disabled) but three objections
-                // are raised in the same block as the redemption request.
+                // where the delay is 0 (watchtower disabled OR amount below
+                // the veto threshold) but three objections are raised in the
+                // same block as the redemption request.
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp <
                     redemption.requestedAt +

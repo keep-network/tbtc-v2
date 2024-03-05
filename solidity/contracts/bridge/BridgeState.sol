@@ -181,7 +181,10 @@ library BridgeState {
         // timed out. It is counted from the moment when the redemption
         // request was created via `requestRedemption` call. Reported
         // timed out requests are cancelled and locked TBTC is returned
-        // to the redeemer in full amount.
+        // to the redeemer in full amount. If a redemption watchtower
+        // is set, the redemption timeout should be greater than the maximum
+        // value of the redemption delay that can be enforced by the watchtower.
+        // Consult `IRedemptionWatchtower.getRedemptionDelay` for more details.
         uint32 redemptionTimeout;
         // The amount of stake slashed from each member of a wallet for a
         // redemption timeout.

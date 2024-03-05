@@ -34,7 +34,15 @@ interface IRedemptionWatchtower {
     ///        receive the redeemed amount.
     /// @param balanceOwner The address of the Bank balance owner whose balance
     ///        is getting redeemed.
-    /// @param redeemer The address that requested the redemption.
+    /// @param redeemer The address that requested the redemption and will be
+    ///        able to claim Bank balance if anything goes wrong during the
+    ///        redemption. In the most basic case, when someone redeems their
+    ///        Bitcoin balance from the Bank, `balanceOwner` is the same
+    ///        as `redeemer`. However, when a Vault is redeeming part of its
+    ///        balance for some redeemer address (for example, someone who has
+    ///        earlier deposited into that Vault), `balanceOwner` is the Vault,
+    ///        and `redeemer` is the address for which the vault is redeeming
+    ///        its balance to.
     /// @return True if the redemption request is safe, false otherwise.
     ///         Specific safety criteria depend on the implementation.
     function isSafeRedemption(
@@ -413,6 +421,8 @@ library Redemption {
     ///        `amount - (amount / redemptionTreasuryFeeDivisor) - redemptionTxMaxFee`.
     ///        Fees values are taken at the moment of request creation.
     /// @dev Requirements:
+    ///      - If the redemption watchtower is set, the redemption request must
+    ///        be considered safe by the watchtower,
     ///      - Wallet behind `walletPubKeyHash` must be live,
     ///      - `mainUtxo` components must point to the recent main UTXO
     ///        of the given wallet, as currently known on the Ethereum chain,
@@ -1169,7 +1179,10 @@ library Redemption {
             redemption.treasuryFee;
 
         // Capture the amount that should be transferred to the
-        // redemption watchtower.
+        // redemption watchtower. Use the whole requested amount as a detained
+        // amount because the treasury fee is deducted in `submitRedemptionProof`.
+        // Since the redemption did not happen, the treasury fee was not
+        // deducted and the whole requested amount should be detained.
         uint64 detainedAmount = redemption.requestedAmount;
 
         // Delete the redemption request from the pending redemptions

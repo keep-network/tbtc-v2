@@ -620,6 +620,14 @@ contract WalletProposalValidator {
                     .getRedemptionDelay(redemptionKey);
                 // If the delay is greater than the usual minimum age, use it.
                 // This way both the min age and the watchtower delay are preserved.
+                //
+                // We do not need to bother about last-minute objections issued
+                // by the watchtower. Objections can be issued up to one second
+                // before the min age is achieved while this validation will
+                // pass only one second after the min age is achieved. Even if
+                // a single objection stays longer in the mempool, this won't
+                // be a problem for `Bridge.submitRedemptionProof` which ignores
+                // single objections as long as the veto threshold is not reached.
                 if (delay > minAge) {
                     minAge = delay;
                 }
