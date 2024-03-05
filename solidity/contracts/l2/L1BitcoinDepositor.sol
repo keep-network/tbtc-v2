@@ -540,6 +540,7 @@ contract L1BitcoinDepositor is
         // Initiate a Wormhole token transfer that will lock L1 TBTC within
         // the Wormhole Token Bridge contract and assign Wormhole-wrapped
         // L2 TBTC to the corresponding `L2WormholeGateway` contract.
+        // slither-disable-next-line arbitrary-send-eth
         uint64 transferSequence = wormholeTokenBridge.transferTokensWithPayload{
             value: wormholeMessageFee
         }(
@@ -568,6 +569,7 @@ contract L1BitcoinDepositor is
         // contract receives it, it calls the `L2WormholeGateway` contract
         // that redeems Wormhole-wrapped L2 TBTC from the Wormhole Token
         // Bridge and use it to mint canonical L2 TBTC to the receiver address.
+        // slither-disable-next-line arbitrary-send-eth
         wormholeRelayer.sendVaasToEvm{value: cost - wormholeMessageFee}(
             l2ChainId,
             l2BitcoinDepositor,
