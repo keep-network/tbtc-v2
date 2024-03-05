@@ -25,7 +25,49 @@ import "../integrator/IBridge.sol";
 import "../integrator/ITBTCVault.sol";
 import "./Wormhole.sol";
 
-// TODO: Document this contract.
+/// @title L1BitcoinDepositor
+/// @notice This contract is part of the direct bridging mechanism allowing
+///         users to obtain ERC20 TBTC on supported L2 chains, without the need
+///         to interact with the L1 tBTC ledger chain where minting occurs.
+///
+///         `L1BitcoinDepositor` is deployed on the L1 chain and interacts with
+///         their L2 counterpart, the `L2BitcoinDepositor`, deployed on the given
+///         L2 chain. Each `L1BitcoinDepositor` & `L2BitcoinDepositor` pair is
+///         responsible for a specific L2 chain.
+///
+///         The outline of the direct bridging mechanism is as follows:
+///         1. An L2 user issues a Bitcoin funding transaction to a P2(W)SH
+///            deposit address that embeds the `L1BitcoinDepositor` contract
+///            and L2 user addresses. The `L1BitcoinDepositor` contract serves
+///            as the actual depositor on the L1 chain while the L2 user
+///            address is set as the deposit owner who will receive the
+///            minted ERC20 TBTC.
+///         2. The data about the Bitcoin funding transaction and deposit
+///            address are passed to the relayer. In the first iteration of
+///            the direct bridging mechanism, this is achieved using an
+///            on-chain event emitted by the `L2BitcoinDepositor` contract.
+///            Further iterations assumes those data are passed off-chain, e.g.
+///            through a REST API exposed by the relayer.
+///         3. The relayer uses the data to initialize a deposit on the L1
+///            chain by calling the `initializeDeposit` function of the
+///            `L1BitcoinDepositor` contract. The `initializeDeposit` function
+///            reveals the deposit to the tBTC Bridge so minting of ERC20 L1 TBTC
+///            can occur.
+///         4. Once minting is complete, the `L1BitcoinDepositor` contract
+///            receives minted ERC20 L1 TBTC. The relayer then calls the
+///            `finalizeDeposit` function of the `L1BitcoinDepositor` contract
+///            to transfer the minted ERC20 L1 TBTC to the L2 user address. This
+///            is achieved using the Wormhole protocol. First, the `finalizeDeposit`
+///            function initiates a Wormhole token transfer that locks the ERC20
+///            L1 TBTC within the Wormhole Token Bridge contract and assigns
+///            Wormhole-wrapped L2 TBTC to the corresponding `L2WormholeGateway`
+///            contract. Then, `finalizeDeposit` notifies the `L2BitcoinDepositor`
+///            contract by sending a Wormhole message containing the VAA
+///            of the Wormhole token transfer. The `L2BitcoinDepositor` contract
+///            receives the Wormhole message, and calls the `L2WormholeGateway`
+///            contract that redeems Wormhole-wrapped L2 TBTC from the Wormhole
+///            Token Bridge and uses it to mint canonical L2 TBTC to the L2 user
+///            address.
 contract L1BitcoinDepositor is
     AbstractTBTCDepositor,
     OwnableUpgradeable,
@@ -58,14 +100,25 @@ contract L1BitcoinDepositor is
     ///         the individual deposit during the call to `initializeDeposit`
     ///         function.
     mapping(uint256 => DepositState) public deposits;
-    // TODO: Document other state variables.
+    /// @notice ERC20 L1 TBTC token contract.
     IERC20 public tbtcToken;
+    /// @notice `Wormhole` core contract on L1.
     IWormhole public wormhole;
+    /// @notice `WormholeRelayer` contract on L1.
     IWormholeRelayer public wormholeRelayer;
+    /// @notice Wormhole `TokenBridge` contract on L1.
     IWormholeTokenBridge public wormholeTokenBridge;
+    /// @notice tBTC `L2WormholeGateway` contract on the corresponding L2 chain.
     address public l2WormholeGateway;
+    /// @notice Wormhole chain ID of the corresponding L2 chain.
     uint16 public l2ChainId;
+    /// @notice tBTC `L2BitcoinDepositor` contract on the corresponding L2 chain.
     address public l2BitcoinDepositor;
+    /// @notice Gas limit necessary to execute the L2 part of the deposit
+    ///         finalization. This value is used to calculate the payment for
+    ///         the Wormhole Relayer that is responsible to execute the
+    ///         deposit finalization on the corresponding L2 chain. Can be
+    ///         updated by the owner.
     uint256 public l2FinalizeDepositGasLimit;
     /// @notice Holds deferred gas reimbursements for deposit initialization
     ///         (indexed by deposit key). Reimbursement for deposit
@@ -139,7 +192,15 @@ contract L1BitcoinDepositor is
         finalizeDepositGasOffset = 20_000;
     }
 
-    // TODO: Document this function.
+    /// @notice Sets the address of the `L2BitcoinDepositor` contract on the
+    ///         corresponding L2 chain. This function solves the chicken-and-egg
+    ///         problem of setting the `L2BitcoinDepositor` contract address
+    ///         on the `L1BitcoinDepositor` contract and vice versa.
+    /// @param _l2BitcoinDepositor Address of the `L2BitcoinDepositor` contract.
+    /// @dev Requirements:
+    ///      - Can be called only by the contract owner,
+    ///      - The address must not be set yet,
+    ///      - The new address must not be 0x0.
     function attachL2BitcoinDepositor(address _l2BitcoinDepositor)
         external
         onlyOwner
@@ -155,7 +216,11 @@ contract L1BitcoinDepositor is
         l2BitcoinDepositor = _l2BitcoinDepositor;
     }
 
-    // TODO: Document this function.
+    /// @notice Updates the gas limit necessary to execute the L2 part of the
+    ///         deposit finalization.
+    /// @param _l2FinalizeDepositGasLimit New gas limit.
+    /// @dev Requirements:
+    ///      - Can be called only by the contract owner.
     function updateL2FinalizeDepositGasLimit(uint256 _l2FinalizeDepositGasLimit)
         external
         onlyOwner
@@ -167,22 +232,87 @@ contract L1BitcoinDepositor is
     /// @notice Updates the values of gas offset parameters.
     /// @dev Can be called only by the contract owner. The caller is responsible
     ///      for validating parameters.
-    /// @param newInitializeDepositGasOffset New initialize deposit gas offset.
-    /// @param newFinalizeDepositGasOffset New finalize deposit gas offset.
+    /// @param _initializeDepositGasOffset New initialize deposit gas offset.
+    /// @param _finalizeDepositGasOffset New finalize deposit gas offset.
     function updateGasOffsetParameters(
-        uint256 newInitializeDepositGasOffset,
-        uint256 newFinalizeDepositGasOffset
+        uint256 _initializeDepositGasOffset,
+        uint256 _finalizeDepositGasOffset
     ) external onlyOwner {
-        initializeDepositGasOffset = newInitializeDepositGasOffset;
-        finalizeDepositGasOffset = newFinalizeDepositGasOffset;
+        initializeDepositGasOffset = _initializeDepositGasOffset;
+        finalizeDepositGasOffset = _finalizeDepositGasOffset;
 
         emit GasOffsetParametersUpdated(
-            newInitializeDepositGasOffset,
-            newFinalizeDepositGasOffset
+            _initializeDepositGasOffset,
+            _finalizeDepositGasOffset
         );
     }
 
-    // TODO: Document this function.
+    /// @notice Initializes the deposit process on L1 by revealing the deposit
+    ///         data (funding transaction and components of the P2(W)SH deposit
+    ///         address) to the tBTC Bridge. Once tBTC minting is completed,
+    ///         this call should be followed by a call to `finalizeDeposit`.
+    ///         Callers of `initializeDeposit` are eligible for a gas refund
+    ///         that is paid out upon deposit finalization (only if the
+    ///         reimbursement pool is attached).
+    ///
+    ///         The Bitcoin funding transaction must transfer funds to a P2(W)SH
+    ///         deposit address whose underlying script is built from the
+    ///         following components:
+    ///
+    ///         <depositor-address> DROP
+    ///         <depositor-extra-data> DROP
+    ///         <blinding-factor> DROP
+    ///         DUP HASH160 <signingGroupPubkeyHash> EQUAL
+    ///         IF
+    ///           CHECKSIG
+    ///         ELSE
+    ///           DUP HASH160 <refundPubkeyHash> EQUALVERIFY
+    ///           <locktime> CHECKLOCKTIMEVERIFY DROP
+    ///           CHECKSIG
+    ///         ENDIF
+    ///
+    ///         Where:
+    ///
+    ///         <depositor-address> 20-byte L1 address of the
+    ///         `L1BitcoinDepositor` contract.
+    ///
+    ///         <depositor-extra-data> L2 deposit owner address in the Wormhole
+    ///         format, i.e. 32-byte value left-padded with 0.
+    ///
+    ///         <blinding-factor> 8-byte deposit blinding factor, as used in the
+    ///         tBTC bridge.
+    ///
+    ///         <signingGroupPubkeyHash> The compressed Bitcoin public key (33
+    ///         bytes and 02 or 03 prefix) of the deposit's wallet hashed in the
+    ///         HASH160 Bitcoin opcode style. This must point to the active tBTC
+    ///         bridge wallet.
+    ///
+    ///         <refundPubkeyHash> The compressed Bitcoin public key (33 bytes
+    ///         and 02 or 03 prefix) that can be used to make the deposit refund
+    ///         after the tBTC bridge refund locktime passed. Hashed in the
+    ///         HASH160 Bitcoin opcode style. This is needed only as a security
+    ///         measure protecting the user in case tBTC bridge completely stops
+    ///         functioning.
+    ///
+    ///         <locktime> The Bitcoin script refund locktime (4-byte LE),
+    ///         according to tBTC bridge rules.
+    ///
+    ///         Please consult tBTC `Bridge.revealDepositWithExtraData` function
+    ///         documentation for more information.
+    /// @param fundingTx Bitcoin funding transaction data.
+    /// @param reveal Deposit reveal data.
+    /// @param l2DepositOwner Address of the L2 deposit owner.
+    /// @dev Requirements:
+    ///      - The L2 deposit owner address must not be 0x0,
+    ///      - The function can be called only one time for the given Bitcoin
+    ///        funding transaction,
+    ///      - The L2 deposit owner must be embedded in the Bitcoin P2(W)SH
+    ///        deposit script as the <depositor-extra-data> field. The 20-byte
+    ///        address must be expressed as a 32-byte value left-padded with 0.
+    ///        If the value in the Bitcoin script and the value passed as
+    ///        parameter do not match, the function will revert,
+    ///      - All the requirements of tBTC Bridge.revealDepositWithExtraData
+    ///        must be met.
     function initializeDeposit(
         IBridgeTypes.BitcoinTxInfo calldata fundingTx,
         IBridgeTypes.DepositRevealInfo calldata reveal,
@@ -199,7 +329,13 @@ contract L1BitcoinDepositor is
         // encode it as deposit extra data.
         bytes32 extraData = WormholeUtils.toWormholeAddress(l2DepositOwner);
 
-        // TODO: Document how the Bridge works and why we don't need to validate input parameters.
+        // Input parameters do not have to be validated in any way.
+        // The tBTC Bridge is responsible for validating whether the provided
+        // Bitcoin funding transaction transfers funds to the P2(W)SH deposit
+        // address built from the reveal data. Despite the tBTC Bridge accepts
+        // all transactions that meet the format requirements, it mints ERC20
+        // L1 TBTC only for the ones that actually occurred on the Bitcoin
+        // network and gathered enough confirmations.
         (uint256 depositKey, ) = _initializeDeposit(
             fundingTx,
             reveal,
@@ -230,7 +366,26 @@ contract L1BitcoinDepositor is
         }
     }
 
-    // TODO: Document this function.
+    /// @notice Finalizes the deposit process by transferring ERC20 L1 TBTC
+    ///         to the L2 deposit owner. This function should be called after
+    ///         the deposit was initialized with a call to `initializeDeposit`
+    ///         function and after ERC20 L1 TBTC was minted by the tBTC Bridge
+    ///         to the `L1BitcoinDepositor` contract. Please note several hours
+    ///         may pass between `initializeDeposit`and `finalizeDeposit`.
+    ///         If the reimbursement pool is attached, the function pays out
+    ///         a gas and call's value refund to the caller as well as the
+    ///         deferred gas refund to the caller of `initializeDeposit`
+    ///         corresponding to the finalized deposit.
+    /// @param depositKey The deposit key, as emitted in the `DepositInitialized`
+    ///        event emitted by the `initializeDeposit` function for the deposit.
+    /// @dev Requirements:
+    ///      - `initializeDeposit` was called for the given deposit before,
+    ///      - ERC20 L1 TBTC was minted by tBTC Bridge to this contract,
+    ///      - The function was not called for the given deposit before,
+    ///      - The call must carry a payment for the Wormhole Relayer that
+    ///        is responsible for executing the deposit finalization on the
+    ///        corresponding L2 chain. The payment must be equal to the
+    ///        value returned by the `quoteFinalizeDeposit` function.
     function finalizeDeposit(uint256 depositKey) public payable {
         uint256 gasStart = gasleft();
 
@@ -313,12 +468,21 @@ contract L1BitcoinDepositor is
         return (refund / gasPrice) - staticGas;
     }
 
-    // TODO: Document this function.
+    /// @notice Quotes the payment that must be attached to the `finalizeDeposit`
+    ///         function call. The payment is necessary to cover the cost of
+    ///         the Wormhole Relayer that is responsible for executing the
+    ///         deposit finalization on the corresponding L2 chain.
+    /// @return cost The cost of the `finalizeDeposit` function call in WEI.
     function quoteFinalizeDeposit() external view returns (uint256 cost) {
         cost = _quoteFinalizeDeposit(wormhole.messageFee());
     }
 
-    // TODO: Document this function.
+    /// @notice Internal version of the `quoteFinalizeDeposit` function that
+    ///         works with a custom Wormhole message fee.
+    /// @param messageFee Custom Wormhole message fee.
+    /// @return cost The cost of the `finalizeDeposit` function call in WEI.
+    /// @dev Implemented based on examples presented as part of the Wormhole SDK:
+    ///      https://github.com/wormhole-foundation/hello-token/blob/8ec757248788dc12183f13627633e1d6fd1001bb/src/example-extensions/HelloTokenWithoutSDK.sol#L23
     function _quoteFinalizeDeposit(uint256 messageFee)
         internal
         view
@@ -336,7 +500,25 @@ contract L1BitcoinDepositor is
         cost = deliveryCost + messageFee;
     }
 
-    // TODO: Document this function.
+    /// @notice Transfers ERC20 L1 TBTC to the L2 deposit owner using the Wormhole
+    ///         protocol. The function initiates a Wormhole token transfer that
+    ///         locks the ERC20 L1 TBTC within the Wormhole Token Bridge contract
+    ///         and assigns Wormhole-wrapped L2 TBTC to the corresponding
+    ///         `L2WormholeGateway` contract. Then, the function notifies the
+    ///         `L2BitcoinDepositor` contract by sending a Wormhole message
+    ///         containing the VAA of the Wormhole token transfer. The
+    ///         `L2BitcoinDepositor` contract receives the Wormhole message,
+    ///         and calls the `L2WormholeGateway` contract that redeems
+    ///         Wormhole-wrapped L2 TBTC from the Wormhole Token Bridge and
+    ///         uses it to mint canonical L2 TBTC to the L2 deposit owner address.
+    /// @param amount Amount of TBTC L1 ERC20 to transfer (1e18 precision).
+    /// @param l2Receiver Address of the L2 deposit owner.
+    /// @dev Requirements:
+    ///      - The normalized amount (1e8 precision) must be greater than 0,
+    ///      - The appropriate payment for the Wormhole Relayer must be
+    ///        attached to the call (as calculated by `quoteFinalizeDeposit`).
+    /// @dev Implemented based on examples presented as part of the Wormhole SDK:
+    ///      https://github.com/wormhole-foundation/hello-token/blob/8ec757248788dc12183f13627633e1d6fd1001bb/src/example-extensions/HelloTokenWithoutSDK.sol#L29
     function _transferTbtc(uint256 amount, bytes32 l2Receiver) internal {
         // Wormhole supports the 1e8 precision at most. TBTC is 1e18 so
         // the amount needs to be normalized.
@@ -344,7 +526,7 @@ contract L1BitcoinDepositor is
 
         require(amount > 0, "Amount too low to bridge");
 
-        // Cost of requesting a `finalize` message to be sent to
+        // Cost of requesting a `finalizeDeposit` message to be sent to
         //  `l2ChainId` with a gasLimit of `l2FinalizeDepositGasLimit`.
         uint256 wormholeMessageFee = wormhole.messageFee();
         uint256 cost = _quoteFinalizeDeposit(wormholeMessageFee);
@@ -356,7 +538,7 @@ contract L1BitcoinDepositor is
         tbtcToken.safeIncreaseAllowance(address(wormholeTokenBridge), amount);
 
         // Initiate a Wormhole token transfer that will lock L1 TBTC within
-        // the Wormhole Token Bridge contract and transfer Wormhole-wrapped
+        // the Wormhole Token Bridge contract and assign Wormhole-wrapped
         // L2 TBTC to the corresponding `L2WormholeGateway` contract.
         uint64 transferSequence = wormholeTokenBridge.transferTokensWithPayload{
             value: wormholeMessageFee
@@ -369,7 +551,7 @@ contract L1BitcoinDepositor is
             abi.encode(l2Receiver) // Set the L2 receiver address as the transfer payload.
         );
 
-        // Construct VAA representing the above Wormhole token transfer.
+        // Construct the VAA key corresponding to the above Wormhole token transfer.
         WormholeTypes.VaaKey[]
             memory additionalVaas = new WormholeTypes.VaaKey[](1);
         additionalVaas[0] = WormholeTypes.VaaKey({
@@ -381,7 +563,7 @@ contract L1BitcoinDepositor is
         });
 
         // The Wormhole token transfer initiated above must be finalized on
-        // the L2 chain. We achieve that by sending the transfer VAA to the
+        // the L2 chain. We achieve that by sending the transfer's VAA to the
         // `L2BitcoinDepositor` contract. Once, the `L2BitcoinDepositor`
         // contract receives it, it calls the `L2WormholeGateway` contract
         // that redeems Wormhole-wrapped L2 TBTC from the Wormhole Token
