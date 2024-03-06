@@ -236,6 +236,8 @@ contract Bridge is
 
     event TreasuryUpdated(address treasury);
 
+    event RedemptionWatchtowerSet(address redemptionWatchtower);
+
     modifier onlySpvMaintainer() {
         require(
             self.isSpvMaintainer[msg.sender],
@@ -1943,5 +1945,49 @@ contract Bridge is
     ///         successfully evaluate an SPV proof.
     function txProofDifficultyFactor() external view returns (uint256) {
         return self.txProofDifficultyFactor;
+    }
+
+    /// @notice Sets the redemption watchtower address.
+    /// @param redemptionWatchtower Address of the redemption watchtower.
+    /// @dev Requirements:
+    ///      - The caller must be the governance,
+    ///      - Redemption watchtower address must not be already set,
+    ///      - Redemption watchtower address must not be 0x0.
+    function setRedemptionWatchtower(address redemptionWatchtower)
+        external
+        onlyGovernance
+    {
+        // The internal function is defined in the `BridgeState` library.
+        self.setRedemptionWatchtower(redemptionWatchtower);
+    }
+
+    /// @return Address of the redemption watchtower.
+    function getRedemptionWatchtower() external view returns (address) {
+        return self.redemptionWatchtower;
+    }
+
+    /// @notice Notifies that a redemption request was vetoed in the watchtower.
+    ///         This function is responsible for adjusting the Bridge's state
+    ///         accordingly.
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet is decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the request is removed from pending redemptions mapping,
+    ///         - the tokens taken from the redeemer on redemption request are
+    ///           detained and passed to the redemption watchtower
+    ///           (as Bank's balance) for further processing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param redeemerOutputScript  The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
+    /// @dev Requirements:
+    ///      - The caller must be the redemption watchtower,
+    ///      - The redemption request identified by `walletPubKeyHash` and
+    ///        `redeemerOutputScript` must exist.
+    function notifyRedemptionVeto(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        // The caller is checked in the internal function.
+        self.notifyRedemptionVeto(walletPubKeyHash, redeemerOutputScript);
     }
 }

@@ -224,6 +224,11 @@ const config: HardhatUserConfig = {
       sepolia: 0,
       mainnet: "0x8Bac178fA95Cb56D11A94d4f1b2B1F5Fc48A30eA",
     },
+    redemptionWatchtowerManager: {
+      default: 11,
+      sepolia: 0,
+      mainnet: "0x87F005317692D05BAA4193AB0c961c69e175f45f", // Token Holder DAO
+    },
   },
   dependencyCompiler: {
     paths: [

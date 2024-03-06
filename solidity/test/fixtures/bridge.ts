@@ -14,6 +14,7 @@ import type {
   VendingMachine,
   BridgeGovernance,
   IRelay,
+  RedemptionWatchtower,
 } from "../../typechain"
 
 /**
@@ -22,9 +23,18 @@ import type {
 export default async function bridgeFixture() {
   await deployments.fixture()
 
-  const { deployer, governance, spvMaintainer, treasury } =
-    await helpers.signers.getNamedSigners()
-  const [thirdParty] = await helpers.signers.getUnnamedSigners()
+  const {
+    deployer,
+    governance,
+    spvMaintainer,
+    treasury,
+    redemptionWatchtowerManager,
+  } = await helpers.signers.getNamedSigners()
+
+  const [thirdParty, guardian1, guardian2, guardian3] =
+    await helpers.signers.getUnnamedSigners()
+
+  const guardians = [guardian1, guardian2, guardian3]
 
   const tbtc: TBTC = await helpers.contracts.getContract("TBTC")
 
@@ -65,6 +75,9 @@ export default async function bridgeFixture() {
   })
 
   await bank.connect(governance).updateBridge(bridge.address)
+
+  const redemptionWatchtower: RedemptionWatchtower =
+    await helpers.contracts.getContract("RedemptionWatchtower")
 
   // Deploys a new instance of Bridge contract behind a proxy. Allows to
   // specify txProofDifficultyFactor. The new instance is deployed with
@@ -111,6 +124,8 @@ export default async function bridgeFixture() {
     spvMaintainer,
     thirdParty,
     treasury,
+    redemptionWatchtowerManager,
+    guardians,
     tbtc,
     vendingMachine,
     tbtcVault,
@@ -121,6 +136,7 @@ export default async function bridgeFixture() {
     reimbursementPool,
     maintainerProxy,
     bridgeGovernance,
+    redemptionWatchtower,
     deployBridge,
   }
 }

@@ -1759,11 +1759,12 @@ describe("Bridge - Parameters", () => {
 
     context("when caller is the contract guvnor", () => {
       before(async () => {
-        // TODO: We transfer the ownership of the Bridge governance from the
+        await createSnapshot()
+
+        // We transfer the ownership of the Bridge governance from the
         // BridgeGovernance contract to a simple address. This allows testing
         // the Bridge contract directly, without going through the
-        // BridgeGovernance contract. This should be the preferred approach for
-        // all other tests in this file.
+        // BridgeGovernance contract.
         await bridgeGovernance
           .connect(governance)
           .beginBridgeGovernanceTransfer(governance.address)
@@ -1771,6 +1772,10 @@ describe("Bridge - Parameters", () => {
         await bridgeGovernance
           .connect(governance)
           .finalizeBridgeGovernanceTransfer()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
       })
 
       context("when the new treasury address is non-zero", () => {
@@ -1811,6 +1816,98 @@ describe("Bridge - Parameters", () => {
         await expect(
           bridge.connect(thirdParty).updateTreasury(newTreasury)
         ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+  })
+
+  describe("setRedemptionWatchtower", () => {
+    const watchtower = "0xE8ebaEc51bAeeaBff71707dE2AD028C7fB642A3F"
+
+    context("when caller is not the contract guvnor", () => {
+      it("should revert", async () => {
+        await expect(
+          bridge.connect(thirdParty).setRedemptionWatchtower(watchtower)
+        ).to.be.revertedWith("Caller is not the governance")
+      })
+    })
+
+    context("when caller is the contract guvnor", () => {
+      before(async () => {
+        await createSnapshot()
+
+        // We transfer the ownership of the Bridge governance from the
+        // BridgeGovernance contract to a simple address. This allows testing
+        // the Bridge contract directly, without going through the
+        // BridgeGovernance contract.
+        await bridgeGovernance
+          .connect(governance)
+          .beginBridgeGovernanceTransfer(governance.address)
+        await helpers.time.increaseTime(constants.governanceDelay)
+        await bridgeGovernance
+          .connect(governance)
+          .finalizeBridgeGovernanceTransfer()
+      })
+
+      after(async () => {
+        await restoreSnapshot()
+      })
+
+      context("when the watchtower address is already set", () => {
+        before(async () => {
+          await createSnapshot()
+
+          await bridge.connect(governance).setRedemptionWatchtower(watchtower)
+        })
+
+        after(async () => {
+          await restoreSnapshot()
+        })
+
+        it("should revert", async () => {
+          await expect(
+            bridge
+              .connect(governance)
+              .setRedemptionWatchtower(thirdParty.address)
+          ).to.be.revertedWith("Redemption watchtower already set")
+        })
+      })
+
+      context("when the watchtower address is not set yet", () => {
+        context("when the watchtower address is zero", () => {
+          it("should revert", async () => {
+            await expect(
+              bridge.connect(governance).setRedemptionWatchtower(ZERO_ADDRESS)
+            ).to.be.revertedWith(
+              "Redemption watchtower address must not be 0x0"
+            )
+          })
+        })
+
+        context("when the watchtower address is non-zero", () => {
+          let tx: ContractTransaction
+
+          before(async () => {
+            await createSnapshot()
+
+            tx = await bridge
+              .connect(governance)
+              .setRedemptionWatchtower(watchtower)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should set the watchtower address", async () => {
+            expect(await bridge.getRedemptionWatchtower()).to.equal(watchtower)
+          })
+
+          it("should emit RedemptionWatchtowerSet event", async () => {
+            await expect(tx)
+              .to.emit(bridge, "RedemptionWatchtowerSet")
+              .withArgs(watchtower)
+          })
+        })
       })
     })
   })
