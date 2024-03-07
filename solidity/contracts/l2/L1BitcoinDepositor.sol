@@ -16,8 +16,8 @@
 pragma solidity ^0.8.17;
 
 import "@keep-network/random-beacon/contracts/Reimbursable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../integrator/AbstractTBTCDepositor.sol";
@@ -73,7 +73,7 @@ contract L1BitcoinDepositor is
     OwnableUpgradeable,
     Reimbursable
 {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Reflects the deposit state:
     ///         - Unknown deposit has not been initialized yet.
@@ -101,7 +101,7 @@ contract L1BitcoinDepositor is
     ///         function.
     mapping(uint256 => DepositState) public deposits;
     /// @notice ERC20 L1 TBTC token contract.
-    IERC20 public tbtcToken;
+    IERC20Upgradeable public tbtcToken;
     /// @notice `Wormhole` core contract on L1.
     IWormhole public wormhole;
     /// @notice `WormholeRelayer` contract on L1.
@@ -181,7 +181,7 @@ contract L1BitcoinDepositor is
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
         __Ownable_init();
 
-        tbtcToken = IERC20(ITBTCVault(_tbtcVault).tbtcToken());
+        tbtcToken = IERC20Upgradeable(ITBTCVault(_tbtcVault).tbtcToken());
         wormhole = IWormhole(_wormhole);
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         wormholeTokenBridge = IWormholeTokenBridge(_wormholeTokenBridge);
