@@ -390,7 +390,7 @@ contract L1BitcoinDepositor is
     ///        is responsible for executing the deposit finalization on the
     ///        corresponding L2 chain. The payment must be equal to the
     ///        value returned by the `quoteFinalizeDeposit` function.
-    function finalizeDeposit(uint256 depositKey) public payable {
+    function finalizeDeposit(uint256 depositKey) external payable {
         uint256 gasStart = gasleft();
 
         require(
