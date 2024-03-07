@@ -1,0 +1,154 @@
+
+# Set up
+
+Note: Make sure you have newest changes pulled on `dapp-development` branch
+
+[start=1]
+. Add proper dependencies to `solidity/package.json`:
+
++
+```
+"@keep-network/tbtc": "sepolia",
+"@keep-network/tbtc-v2": "dapp-development-sepolia",
+```
+
+. Run `yarn install` (it's good to remove `node_modules` and `external` directories before doing that)
+
+. If you don't have `typechain` directory in `solidity` folder then also run `npx hardhat compile`
+
+. In `hardhat.config.ts`:
+
+.. config -> network -> sepolia
+ 
+... add proper infura url,
+... add either mnemonic or private key as account (See `Set vault status` note for more info):
+
++
+  Syntax for private key:
+```
+account: [<private_key>]
+```
+
+  Syntax for mnemonic:
+```
+account: {
+  mnemonic: <your_mnemonic>
+}
+```
+   
+... set gas and gasPrice to `2100000` and `8000000000` respectively
+
++
+  The final network config for sepolia should look similar to this:
+```
+sepolia: {
+      url: "https://sepolia.infura.io/v3/<your_infura_id>",
+      chainId: 11155111,
+      accounts: [<private_key>],
+      gas: 2100000,
+      gasPrice: 8000000000,
+      tags: ["tenderly"],
+    },
+```
+
+.. config -> external -> contracts
+
+... add tbtc-v2 artifacts at the end of an array
+
++
+```
+{
+  artifacts: "node_modules/@keep-network/tbtc-v2/artifacts",
+  deploy: "node_modules/@keep-network/tbtc-v2/deploy",
+}
+``` 
+
+.. config -> external -> deployments -> sepolia
+
+... add tbtc-v2 artifacts to the array
+
++
+```
+sepolia: [
+  /* (...Other artifacts...) */
+  "node_modules/@keep-network/tbtc-v2/artifacts",
+],
+```
+
+# Overview
+
+## Wallets
+We need the ECDSA wallet to create a deposit or request a redemption. The `mock__registerEcdsaWallet` function creates a mocked ECDSA wallet- to create wallet run:
+```
+npx hardhat dapp:register-wallet --network <network-name> --utxo-tx-hash 0x2f952bdc206bf51bb745b967cb7166149becada878d3191ffe341155ebcd4883 --utxo-tx-output-index 1 --utxo-tx-output-value 3933200
+```
+
+## Deposit
+
+The `mock__submitDepositSweepProof` function sweeps deposit and mint TBTC tokens to a depositor address. We have to run this function after revealing a deposit. You can submit deposit sweep proof using:
+```
+npx hardhat dapp:submit-deposit-sweep-proof --wallet-pub-key-hash 0x486b0ee2eed761f069f327034eb2ae5e07580bf3 --funding-tx-hash 0xc7f953290caafec7f71c9a90f4c7b87a4d6cb63d3f016c0447662afe6c7e9847 --funding-output-index 0 --network <network-name>
+```
+To find the necessary parameters to run `dapp:submit-deposit-sweep-proof` task run:
+```
+npx hardhat dapp:get-revealed-deposits --depositor-address <depositor-address> --network <network-name>
+```
+
+## Redemption
+The `mock__submitRedemptionProof` function submits the redemption proof. We have to run this function after requesting a redemption. To submit the redemption proof run:
+```
+npx hardhat dapp:submit-redemption-proof --wallet-pub-key-hash 0x486b0ee2eed761f069f327034eb2ae5e07580bf3 --redeemer-output-script 0x1600148db50eb52063ea9d98b3eac91489a90f738986f6 --network <network-name>
+```
+To find the necessary parameters to run `dapp:submit-redemption-proof` task run:
+```
+npx hardhat dapp:get-redemptions --redeemer-address <redeemer-address> --network <network-name>
+```
+
+# Optimistic Minting
+
+## Set vault status
+
+To be able to to optimistic minting we need to have trusted vault. To set a vault status to trusted (or not trusted) run:
+```
+npx hardhat dapp:set-vault-status --network goerli --address <vault_address> --is-trusted <true/false>
+```
+**Note:** This method can be called only by the owner of `BridgeGovernance` contract. To make this task work you will have to put a private key of the `dapp-friendly` contracts deployer inside `hardhat.config.ts` like this:
+```
+const config: HardhatUserConfig = {
+  (...)
+  networks: {
+    (...)
+    goerli: {
+      url: <your_infura_url>,
+      chainId: 5,
+      accounts: [<deployer_private_key>],
+      tags: ["tenderly"],
+    },
+  }
+}
+```
+The `<deployer_private_key>` should be prefixed with `0x`!
+
+## Add minter
+
+Only minters can request and finalize an optimistic mint, so we've added a task to add the minter manually. To do that run:
+```
+npx hardhat dapp:add-minter --network goerli --address <your_address_that_will_become_a_minter>
+```
+**Note:** This method can be called only by the owner of `TBTCVault` contract. Please see the note from the `Set vault status` note to set the correct address as a deployer in hardhat config.
+
+## Request Optimistic Mint
+
+Allows a Minter to request for an optimistic minting of TBTC. To request an optimistic mint run:
+```
+npx hardhat dapp:request-optimistic-minting --network goerli --funding-tx-hash <funding_tx_hash> --funding-output-index <funding_output_index>
+```
+Both values, `funding_tx_hash` and `funding_output_index`, can be extracted from the `DepositRevealed` event.
+
+## Finalize Optimistic Mint
+
+Allows a Minter to finalize previously requested optimistic minting. To finalize the optimistic mint run:
+```
+npx hardhat dapp:finalize-optimistic-minting --network goerli --funding-tx-hash <funding_tx_hash> --funding-output-index <funding_output_index>
+```
+The `funding_tx_hash` and `funding_output_index` should be the same values that were used in `Request Optimistic Mint`.

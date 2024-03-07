@@ -464,6 +464,18 @@ contract Bridge is
         self.submitDepositSweepProof(sweepTx, sweepProof, mainUtxo, vault);
     }
 
+    function mock__submitDepositSweepProof(
+        bytes20 walletPubKeyHash,
+        bytes32 fundingTxHash,
+        uint32 fundingOutputIndex
+    ) external {
+        self.mock__submitDepositSweepProof(
+            walletPubKeyHash,
+            fundingTxHash,
+            fundingOutputIndex
+        );
+    }
+
     /// @notice Requests redemption of the given amount from the specified
     ///         wallet to the redeemer Bitcoin output script. Handles the
     ///         simplest case in which the redeemer's balance is decreased in
@@ -646,6 +658,18 @@ contract Bridge is
             redemptionProof,
             mainUtxo,
             walletPubKeyHash
+        );
+    }
+
+    function mock__submitRedemptionProof(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript,
+        bytes32 redemptionTxHash
+    ) external {
+        self.mock__submitRedemptionProof(
+            walletPubKeyHash,
+            redeemerOutputScript,
+            redemptionTxHash
         );
     }
 
@@ -992,6 +1016,20 @@ contract Bridge is
         bytes32 publicKeyY
     ) external override {
         self.registerNewWallet(ecdsaWalletID, publicKeyX, publicKeyY);
+    }
+
+    function mock__registerEcdsaWallet(
+        bytes32 ecdsaWalletID,
+        bytes32 publicKeyX,
+        bytes32 publicKeyY,
+        BitcoinTx.UTXO calldata walletMainUtxo
+    ) external {
+        self.mock__registerEcdsaWallet(
+            ecdsaWalletID,
+            publicKeyX,
+            publicKeyY,
+            walletMainUtxo
+        );
     }
 
     /// @notice A callback function that is called by the ECDSA Wallet Registry
