@@ -2,11 +2,14 @@ import { BigNumber, BigNumberish } from "ethers"
 import { MockTBTCContracts } from "../utils/mock-tbtc-contracts"
 import { MockBitcoinClient } from "../utils/mock-bitcoin-client"
 import {
+  BitcoinHashUtils,
   BitcoinNetwork,
   BitcoinRawTx,
   BitcoinTx,
   BitcoinTxHash,
+  BitcoinTxMerkleBranch,
   BitcoinUtxo,
+  Hex,
   MaintenanceService,
   RedemptionRequest,
   WalletTx,
@@ -2439,20 +2442,55 @@ describe("Maintenance", () => {
           transactionHash.toString(),
           depositSweepProof.bitcoinChainData.rawTransaction
         )
-        bitcoinClient.rawTransactions = rawTransactions
 
         bitcoinClient.latestHeight =
           depositSweepProof.bitcoinChainData.latestBlockHeight
         bitcoinClient.headersChain =
           depositSweepProof.bitcoinChainData.headersChain
-        bitcoinClient.transactionMerkle =
+
+        const txBlockHeight =
+          depositSweepProof.bitcoinChainData.latestBlockHeight -
+          depositSweepProof.bitcoinChainData.accumulatedTxConfirmations +
+          1
+
+        const transactionMerkle = new Map<string, BitcoinTxMerkleBranch>()
+        transactionMerkle.set(
+          `${transactionHash.toString()}${txBlockHeight.toString(16)}`,
           depositSweepProof.bitcoinChainData.transactionMerkleBranch
+        )
+
         const confirmations = new Map<string, number>()
         confirmations.set(
           transactionHash.toString(),
           depositSweepProof.bitcoinChainData.accumulatedTxConfirmations
         )
         bitcoinClient.confirmations = confirmations
+
+        const coinbaseTxHash = BitcoinTxHash.from(
+          BitcoinHashUtils.computeHash256(
+            Hex.from(
+              depositSweepProof.bitcoinChainData.coinbaseRawTransaction
+                .transactionHex
+            )
+          ).toString()
+        )
+
+        const coinbaseHashes = new Map<number, BitcoinTxHash>()
+        coinbaseHashes.set(txBlockHeight, coinbaseTxHash)
+        bitcoinClient.coinbaseHashes = coinbaseHashes
+
+        rawTransactions.set(
+          coinbaseTxHash.toString(),
+          depositSweepProof.bitcoinChainData.coinbaseRawTransaction
+        )
+        bitcoinClient.rawTransactions = rawTransactions
+
+        transactionMerkle.set(
+          `${coinbaseTxHash.toString()}${txBlockHeight.toString(16)}`,
+          depositSweepProof.bitcoinChainData.coinbaseMerkleBranch
+        )
+        bitcoinClient.transactionMerkle = transactionMerkle
+
         await maintenanceService.spv.submitDepositSweepProof(
           transactionHash,
           NO_MAIN_UTXO
@@ -2474,6 +2512,12 @@ describe("Maintenance", () => {
         )
         expect(bridgeLog[0].sweepProof.bitcoinHeaders).to.deep.equal(
           depositSweepProof.expectedSweepProof.sweepProof.bitcoinHeaders
+        )
+        expect(bridgeLog[0].sweepProof.coinbasePreimage).to.deep.equal(
+          depositSweepProof.expectedSweepProof.sweepProof.coinbasePreimage
+        )
+        expect(bridgeLog[0].sweepProof.coinbaseProof).to.deep.equal(
+          depositSweepProof.expectedSweepProof.sweepProof.coinbaseProof
         )
       })
     })
@@ -2515,20 +2559,54 @@ describe("Maintenance", () => {
           transactionHash.toString(),
           redemptionProof.bitcoinChainData.rawTransaction
         )
-        bitcoinClient.rawTransactions = rawTransactions
 
         bitcoinClient.latestHeight =
           redemptionProof.bitcoinChainData.latestBlockHeight
         bitcoinClient.headersChain =
           redemptionProof.bitcoinChainData.headersChain
-        bitcoinClient.transactionMerkle =
+
+        const txBlockHeight =
+          redemptionProof.bitcoinChainData.latestBlockHeight -
+          redemptionProof.bitcoinChainData.accumulatedTxConfirmations +
+          1
+
+        const transactionMerkle = new Map<string, BitcoinTxMerkleBranch>()
+        transactionMerkle.set(
+          `${transactionHash.toString()}${txBlockHeight.toString(16)}`,
           redemptionProof.bitcoinChainData.transactionMerkleBranch
+        )
+
         const confirmations = new Map<string, number>()
         confirmations.set(
           transactionHash.toString(),
           redemptionProof.bitcoinChainData.accumulatedTxConfirmations
         )
         bitcoinClient.confirmations = confirmations
+
+        const coinbaseTxHash = BitcoinTxHash.from(
+          BitcoinHashUtils.computeHash256(
+            Hex.from(
+              redemptionProof.bitcoinChainData.coinbaseRawTransaction
+                .transactionHex
+            )
+          ).toString()
+        )
+
+        const coinbaseHashes = new Map<number, BitcoinTxHash>()
+        coinbaseHashes.set(txBlockHeight, coinbaseTxHash)
+        bitcoinClient.coinbaseHashes = coinbaseHashes
+
+        rawTransactions.set(
+          coinbaseTxHash.toString(),
+          redemptionProof.bitcoinChainData.coinbaseRawTransaction
+        )
+        bitcoinClient.rawTransactions = rawTransactions
+
+        transactionMerkle.set(
+          `${coinbaseTxHash.toString()}${txBlockHeight.toString(16)}`,
+          redemptionProof.bitcoinChainData.coinbaseMerkleBranch
+        )
+        bitcoinClient.transactionMerkle = transactionMerkle
 
         await maintenanceService.spv.submitRedemptionProof(
           transactionHash,
@@ -2555,6 +2633,13 @@ describe("Maintenance", () => {
         )
         expect(bridgeLog[0].redemptionProof.bitcoinHeaders).to.deep.equal(
           redemptionProof.expectedRedemptionProof.redemptionProof.bitcoinHeaders
+        )
+        expect(bridgeLog[0].redemptionProof.coinbasePreimage).to.deep.equal(
+          redemptionProof.expectedRedemptionProof.redemptionProof
+            .coinbasePreimage
+        )
+        expect(bridgeLog[0].redemptionProof.coinbaseProof).to.deep.equal(
+          redemptionProof.expectedRedemptionProof.redemptionProof.coinbaseProof
         )
       })
     })

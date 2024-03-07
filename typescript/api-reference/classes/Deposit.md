@@ -14,6 +14,7 @@ This component tries to abstract away that complexity.
 
 - [bitcoinClient](Deposit.md#bitcoinclient)
 - [bitcoinNetwork](Deposit.md#bitcoinnetwork)
+- [depositorProxy](Deposit.md#depositorproxy)
 - [script](Deposit.md#script)
 - [tbtcContracts](Deposit.md#tbtccontracts)
 
@@ -29,7 +30,7 @@ This component tries to abstract away that complexity.
 
 ### constructor
 
-• **new Deposit**(`receipt`, `tbtcContracts`, `bitcoinClient`, `bitcoinNetwork`): [`Deposit`](Deposit.md)
+• **new Deposit**(`receipt`, `tbtcContracts`, `bitcoinClient`, `bitcoinNetwork`, `depositorProxy?`): [`Deposit`](Deposit.md)
 
 #### Parameters
 
@@ -39,6 +40,7 @@ This component tries to abstract away that complexity.
 | `tbtcContracts` | [`TBTCContracts`](../README.md#tbtccontracts) |
 | `bitcoinClient` | [`BitcoinClient`](../interfaces/BitcoinClient.md) |
 | `bitcoinNetwork` | [`BitcoinNetwork`](../enums/BitcoinNetwork-1.md) |
+| `depositorProxy?` | [`DepositorProxy`](../interfaces/DepositorProxy.md) |
 
 #### Returns
 
@@ -46,7 +48,7 @@ This component tries to abstract away that complexity.
 
 #### Defined in
 
-[services/deposits/deposit.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L42)
+[src/services/deposits/deposit.ts:47](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L47)
 
 ## Properties
 
@@ -58,7 +60,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[services/deposits/deposit.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L35)
+[src/services/deposits/deposit.ts:36](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L36)
 
 ___
 
@@ -71,7 +73,19 @@ generated deposit address.
 
 #### Defined in
 
-[services/deposits/deposit.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L40)
+[src/services/deposits/deposit.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L45)
+
+___
+
+### depositorProxy
+
+• `Private` `Optional` `Readonly` **depositorProxy**: [`DepositorProxy`](../interfaces/DepositorProxy.md)
+
+Optional depositor proxy used to initiate minting.
+
+#### Defined in
+
+[src/services/deposits/deposit.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L40)
 
 ___
 
@@ -83,7 +97,7 @@ Bitcoin script corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L27)
+[src/services/deposits/deposit.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L28)
 
 ___
 
@@ -95,7 +109,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/deposits/deposit.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L31)
+[src/services/deposits/deposit.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L32)
 
 ## Methods
 
@@ -104,6 +118,8 @@ Handle to tBTC contracts.
 ▸ **detectFunding**(): `Promise`\<[`BitcoinUtxo`](../README.md#bitcoinutxo)[]\>
 
 Detects Bitcoin funding transactions transferring BTC to this deposit.
+The list includes UTXOs from both the blockchain and the mempool, sorted by
+age with the newest ones first. Mempool UTXOs are listed at the beginning.
 
 #### Returns
 
@@ -114,7 +130,7 @@ Specific UTXOs targeting this deposit. Empty array in case
 
 #### Defined in
 
-[services/deposits/deposit.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L84)
+[src/services/deposits/deposit.ts:99](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L99)
 
 ___
 
@@ -130,7 +146,7 @@ Bitcoin address corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L74)
+[src/services/deposits/deposit.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L88)
 
 ___
 
@@ -146,7 +162,7 @@ Receipt corresponding to this deposit.
 
 #### Defined in
 
-[services/deposits/deposit.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L67)
+[src/services/deposits/deposit.ts:81](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L81)
 
 ___
 
@@ -190,13 +206,13 @@ Throws an error if the funding outpoint was already used to
 
 #### Defined in
 
-[services/deposits/deposit.ts:114](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L114)
+[src/services/deposits/deposit.ts:128](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L128)
 
 ___
 
 ### fromReceipt
 
-▸ **fromReceipt**(`receipt`, `tbtcContracts`, `bitcoinClient`): `Promise`\<[`Deposit`](Deposit.md)\>
+▸ **fromReceipt**(`receipt`, `tbtcContracts`, `bitcoinClient`, `depositorProxy?`): `Promise`\<[`Deposit`](Deposit.md)\>
 
 #### Parameters
 
@@ -205,6 +221,7 @@ ___
 | `receipt` | [`DepositReceipt`](../interfaces/DepositReceipt.md) |
 | `tbtcContracts` | [`TBTCContracts`](../README.md#tbtccontracts) |
 | `bitcoinClient` | [`BitcoinClient`](../interfaces/BitcoinClient.md) |
+| `depositorProxy?` | [`DepositorProxy`](../interfaces/DepositorProxy.md) |
 
 #### Returns
 
@@ -212,4 +229,4 @@ ___
 
 #### Defined in
 
-[services/deposits/deposit.ts:54](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L54)
+[src/services/deposits/deposit.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposit.ts#L61)

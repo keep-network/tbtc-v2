@@ -181,7 +181,7 @@ team’s attention. The default action is making sure that the redemption is
 not a result of a malicious action, and if not, that the redemption is
 handled correctly by the system.
 
-=== Stale redemption
+==== Stale redemption
 
 A *warning system event* indicating that a redemption request became stale, i.e.
 was not handled within the expected time. This event is sent to Sentry hub and
@@ -277,14 +277,14 @@ that collects telemetry from the production (mainnet) Threshold dashboard as
 well as from production previews
 
 ** https://keep-ko.sentry.io/projects/test-threshold-dashboard/?project=4504564892827648[test-threshold-dashboard]
-that collects telemetry from the test (Goerli) Threshold dashboard as well as
+that collects telemetry from the test (Sepolia) Threshold dashboard as well as
 from test previews
 
 ** https://keep-ko.sentry.io/projects/prod-tbtc-v2-minters-guardians/?project=4504690017042432[prod-tbtc-v2-minters-guardians]
 that collects telemetry from production (mainnet) TBTCv2 minters and guardians instances
 
 ** https://keep-ko.sentry.io/projects/test-tbtc-v2-minters-guardians/?project=4504576597032960[test-tbtc-v2-minters-guardians]
-that collects telemetry from test (Goerli) TBTCv2 minters and guardians instances
+that collects telemetry from test (Sepolia) TBTCv2 minters and guardians instances
 
 ** https://keep-ko.sentry.io/projects/prod-tbtc-v2-monitoring/?project=4504684945342464[prod-tbtc-v2-monitoring]
 that collects alerts (i.e. warning/critical system events) from the production
@@ -292,7 +292,7 @@ that collects alerts (i.e. warning/critical system events) from the production
 
 ** https://keep-ko.sentry.io/projects/test-tbtc-v2-monitoring/?project=4504672363806720[test-tbtc-v2-monitoring]
 that collects alerts (i.e. warning/critical system events) from the test
-(Goerli) TBTCv2 monitoring instance
+(Sepolia) TBTCv2 monitoring instance
 
 === Alerts
 

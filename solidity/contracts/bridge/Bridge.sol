@@ -236,6 +236,8 @@ contract Bridge is
 
     event TreasuryUpdated(address treasury);
 
+    event RedemptionWatchtowerSet(address redemptionWatchtower);
+
     modifier onlySpvMaintainer() {
         require(
             self.isSpvMaintainer[msg.sender],
@@ -374,6 +376,35 @@ contract Bridge is
         Deposit.DepositRevealInfo calldata reveal
     ) external {
         self.revealDeposit(fundingTx, reveal);
+    }
+
+    /// @notice Sibling of the `revealDeposit` function. This function allows
+    ///         to reveal a P2(W)SH Bitcoin deposit with 32-byte extra data
+    ///         embedded in the deposit script. The extra data allows to
+    ///         attach additional context to the deposit. For example,
+    ///         it allows a third-party smart contract to reveal the
+    ///         deposit on behalf of the original depositor and provide
+    ///         additional services once the deposit is handled. In this
+    ///         case, the address of the original depositor can be encoded
+    ///         as extra data.
+    /// @param fundingTx Bitcoin funding transaction data, see `BitcoinTx.Info`.
+    /// @param reveal Deposit reveal data, see `RevealInfo struct.
+    /// @param extraData 32-byte deposit extra data.
+    /// @dev Requirements:
+    ///      - All requirements from `revealDeposit` function must be met,
+    ///      - `extraData` must not be bytes32(0),
+    ///      - `extraData` must be the actual extra data used in the P2(W)SH
+    ///        BTC deposit transaction.
+    ///
+    ///      If any of these requirements is not met, the wallet _must_ refuse
+    ///      to sweep the deposit and the depositor has to wait until the
+    ///      deposit script unlocks to receive their BTC back.
+    function revealDepositWithExtraData(
+        BitcoinTx.Info calldata fundingTx,
+        Deposit.DepositRevealInfo calldata reveal,
+        bytes32 extraData
+    ) external {
+        self.revealDepositWithExtraData(fundingTx, reveal, extraData);
     }
 
     /// @notice Used by the wallet to prove the BTC deposit sweep transaction
@@ -1952,5 +1983,49 @@ contract Bridge is
     ///         successfully evaluate an SPV proof.
     function txProofDifficultyFactor() external view returns (uint256) {
         return self.txProofDifficultyFactor;
+    }
+
+    /// @notice Sets the redemption watchtower address.
+    /// @param redemptionWatchtower Address of the redemption watchtower.
+    /// @dev Requirements:
+    ///      - The caller must be the governance,
+    ///      - Redemption watchtower address must not be already set,
+    ///      - Redemption watchtower address must not be 0x0.
+    function setRedemptionWatchtower(address redemptionWatchtower)
+        external
+        onlyGovernance
+    {
+        // The internal function is defined in the `BridgeState` library.
+        self.setRedemptionWatchtower(redemptionWatchtower);
+    }
+
+    /// @return Address of the redemption watchtower.
+    function getRedemptionWatchtower() external view returns (address) {
+        return self.redemptionWatchtower;
+    }
+
+    /// @notice Notifies that a redemption request was vetoed in the watchtower.
+    ///         This function is responsible for adjusting the Bridge's state
+    ///         accordingly.
+    ///         The results of calling this function:
+    ///         - the pending redemptions value for the wallet is decreased
+    ///           by the requested amount (minus treasury fee),
+    ///         - the request is removed from pending redemptions mapping,
+    ///         - the tokens taken from the redeemer on redemption request are
+    ///           detained and passed to the redemption watchtower
+    ///           (as Bank's balance) for further processing.
+    /// @param walletPubKeyHash 20-byte public key hash of the wallet.
+    /// @param redeemerOutputScript  The redeemer's length-prefixed output
+    ///        script (P2PKH, P2WPKH, P2SH or P2WSH).
+    /// @dev Requirements:
+    ///      - The caller must be the redemption watchtower,
+    ///      - The redemption request identified by `walletPubKeyHash` and
+    ///        `redeemerOutputScript` must exist.
+    function notifyRedemptionVeto(
+        bytes20 walletPubKeyHash,
+        bytes calldata redeemerOutputScript
+    ) external {
+        // The caller is checked in the internal function.
+        self.notifyRedemptionVeto(walletPubKeyHash, redeemerOutputScript);
     }
 }

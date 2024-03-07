@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/tbtc-v2.ts",
-  "version": "2.3.0-dev",
+  "version": "2.4.0-dev",
   "license": "MIT",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -28,6 +28,8 @@
     "@bitcoinerlab/secp256k1": "^1.0.5",
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
+    "@ledgerhq/wallet-api-client": "^1.2.1",
+    "bignumber.js": "^9.1.2",
     "bitcoinjs-lib": "^6.1.5",
     "bufio": "^1.0.6",
     "ecpair": "^2.1.0",

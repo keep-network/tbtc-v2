@@ -6,6 +6,8 @@
 :numbered:
 toc::[]
 
+NOTE: This RFC was superseded by link:rfc-12.adoc[RFC 12]
+
 == Background
 
 Before generating tECDSA signature, the off-chain client software needs to agree

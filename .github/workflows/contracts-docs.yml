@@ -16,9 +16,9 @@ jobs:
     outputs:
       path-filter: ${{ steps.filter.outputs.path-filter }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v3
         if: github.event_name == 'pull_request'
         id: filter
         with:
@@ -51,7 +51,7 @@ jobs:
       preProcessingCommand: sed -i ':a;N;$!ba;s_///\n//\n_///\n_g' ./contracts/bridge/BitcoinTx.sol
       publish: false
       addTOC: false
-      commentPR: true
+      commentPR: false
       exportAsGHArtifacts: true
 
   # This job will be triggered for releases which name starts with

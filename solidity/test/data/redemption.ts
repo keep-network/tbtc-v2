@@ -63,6 +63,8 @@ export interface RedemptionTestData {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
+    coinbasePreimage: BytesLike
+    coinbaseProof: BytesLike
   }
 
   /**
@@ -157,6 +159,17 @@ export const SinglePendingRequestedRedemption: RedemptionTestData = {
       "ba1a161662ffff001dab708bb90000002031b92d92aa302ad2a73058eaaa09ebfad1" +
       "4be89cae782709e197b352000000009e5528a66f13a86be6f61937d478d696c9cae9" +
       "ebce6649bf80b0b0be070f3cb1e51a1662ffff001d55d83989",
+    coinbasePreimage:
+      "0x1018aff8b5b26a490019baaf21f07537579b2fb1115a98b1d65e8f081daecf8d",
+    coinbaseProof:
+      "0x3cdb38fcae7871f6556eca26234b0782b2fc2ff9a378a14de87570eb021f3c0733" +
+      "714c0422b3998b56e8220a035623dcc0fd215ad3b21762d49e747541f3b59df923e2" +
+      "4ed58acc72c65c3b39c42271bac0ac8de235424dfc8273462923da1f8c828c15abfe" +
+      "98aa267f51310bc19e0f7c57064d67146649cf2bf33ceaa378eb4724dec7e1eedc6e" +
+      "10d070b2c71c04b6a319aefd8a39baef0a5df06d9f0360befee0a0f056d6676e5dcf" +
+      "a23f0babb04b955c95cec0e416d8b7b2a71f1e7939c0a788cb14eabe41276f4ed8f8" +
+      "7527690fb7f83b3b9abb170e1aadac941b53c29ec09e85514a6844e864397ded279e" +
+      "f4ace9833195f112cff129626f30a1bbc9b22f",
   },
 
   chainDifficulty: 1,
@@ -247,6 +260,16 @@ export const SingleP2PKHChange: RedemptionTestData = {
       "1d7609709f00000020d6a19088bdad8792c1cbc9323b39b5e18fc70742a12bae4397" +
       "65000000000000606a7bf8e8cc10bb75f3b404adaf02ca5cc39b94cddf6cc56c6008" +
       "1dd5012ffe85b21c62ffff001d0178353b",
+    coinbasePreimage:
+      "0xbe182b81f95921559e214e976ca947eee92589684d37a465a089d611e47ba058",
+    coinbaseProof:
+      "0x5c3de44ab1941b47887c5cced838b12be88aeeb1ae2827b8ecd569b12b38c61e35" +
+      "c06d46c1eafdb2c0c8d25a74964cfaa148c22e6a155dd553331b88f3c5aa11f46ec2" +
+      "2905bd12aefbaf49a3c29f88ff5a9ca04cf29f66e59440dc29841abaf53d869e69dd" +
+      "3d5ea610e6e3a5a7532cb7dfd7ce4178b027ad7b6a43f224139a35f1e379ae391326" +
+      "4e23e771f8023a368933dc7701d743b031d53c38d853bedb84a4ad8bb7f8914887f5" +
+      "d005fabf461a9fa4bec297bfd9c0b97e4351f9b24f9b6767aa0c6f356050fd9f4f60" +
+      "13d3de554b7ea41170c84d6796becfeca6219bce6e",
   },
 
   chainDifficulty: 5168815,
@@ -316,6 +339,16 @@ export const SingleP2WPKHChange: RedemptionTestData = {
       "88bdad8792c1cbc9323b39b5e18fc70742a12bae439765000000000000606a7bf8e8" +
       "cc10bb75f3b404adaf02ca5cc39b94cddf6cc56c60081dd5012ffe85b21c62ffff00" +
       "1d0178353b",
+    coinbasePreimage:
+      "0x188f26561af868b490b38420f0dec3a832087e1f8972c004302c37875ecb069e",
+    coinbaseProof:
+      "0x73b2f5ca5ab9ca707a351683d1d9ef3a8a0ce7179c96e05fa3708a2766b444bda7" +
+      "73cdc166de5592852ba143c115d6488cc3b630468aafeeade7898d7481354d232ff0" +
+      "ab7143ecb80f6f0f105cfd1a9dfbff1f8c044859b9b0978ba4029a8941d1336f6737" +
+      "a694d5bb331e9af4a30d2802b2554d9cae8a42db6f3ebeb82fb016c03995af265559" +
+      "b2da3a6aa71280db9ba200ba388138903ff9b6424a9712cc24b7f47dd86fe601e56b" +
+      "a3924f08419e394895420a8af4230fa278d82d3acba2fb23926f8cc44b7c955d0473" +
+      "694be2b1361431507e3092134e6ce1ce2d3a5d6595",
   },
 
   chainDifficulty: 5168815,
@@ -388,6 +421,17 @@ export const SingleP2SHChange: RedemptionTestData = {
       "1a7b43466e04e00020f416898d79d4a46fa6c54f190ad3d502bad8aa3afdec0714aa" +
       "000000000000000603a5cc15e5906cb4eac9f747869fdc9be856e76a110b4f87da90" +
       "db20f9fbe28fc11c62ed3e031a15dfc3db",
+    coinbasePreimage:
+      "0xabc0ac43547a3a244029426af5c504977e12108c550a66c860ecda9f747c23c9",
+    coinbaseProof:
+      "0xf39ec977d14627922174b2c244ea624ab78a6e0c2d43d861a8fcedf0023a8d2d6a" +
+      "1792d122d5fd4614a4d8a1810a77ff2a4676f8e8ab92b0a5fc4288f5eadd4b372b4e" +
+      "9030edd9d92b7125dba777fca86a4d73614ce0e1621b1bf48c1eb0a2c553330e3fae" +
+      "9a71acecb7425e8dbe88cdfd7fc3258bac4e21ca1dec42e5094271c77932609c51fb" +
+      "4b82497ed599d3c413c4fd023009716b3e5e885d89c31a1f30bb46106bac1034c65f" +
+      "01d80ac402417373daf1fbae0d43041c67b948f47882b27c802a4e791504be4b1b71" +
+      "80a788a54659799bedbc712e23a816cae0a12c017b838b1655583043a9c8d30399d3" +
+      "f81e7e0fe2121a3c38490845174140a08ff6dc",
   },
 
   chainDifficulty: 1,
@@ -459,6 +503,16 @@ export const SingleP2WPKHChangeZeroValue: RedemptionTestData = {
       "d1cead8e04e000205eb6c71da390799a93d726debb7d2d24234fd10698ea6ac9fd00" +
       "000000000000326f7b757f161a464819a058635a5419d15f7fea715a3520f1cb546a" +
       "f661d3f85ade1c62ed3e031aa446a827",
+    coinbasePreimage:
+      "0xcc3bb44bcd05333864cc205b3754578cdeaa8f750146da4acc145e74d8e9213b",
+    coinbaseProof:
+      "0x0fb1a530f7a29fd6437e9a6a9967a85c33b4cf0cc1f033f290c9ba259febcdb8f0" +
+      "c416f0a505a0b45b138d1ebe22b1864399fd7a79bb8564024a88e3d75ec9a438556b" +
+      "409052d83bbea2e19ae9134ddf709c030006524e474bc5ff8ee0d48198e86c92f167" +
+      "0878ff5e7bd6c50d8685dfc99775e1addea552e0d0c7d507e6168f77815fd2a8616c" +
+      "a48da4c0c82f9b7d6d8523ec31172366536ee4f6fb476409cc2c103aa580e8e304ba" +
+      "7888e4d571088d801701c932dbfdb7aa5147089ca042992c69c7a840dfc2830b8f05" +
+      "3ed5add244d4a03e995fe3875dbaee5350e03d30f2",
   },
 
   chainDifficulty: 1,
@@ -529,6 +583,15 @@ export const SingleProvablyUnspendable: RedemptionTestData = {
       "1a0040a522040000208d370c6f9d47eaf0c1ab779a5b811838a61403def157972e35" +
       "0300000000000080b93554feec4b0c497738f604526bf990bb8924c538f58f030f3a" +
       "ff72bc0347e91b1e62ed3e031a07543bdf",
+    coinbasePreimage:
+      "0xbe4f2b21aad7b8771a7079791afe7264e8943a1aa1e6587c4bb91440ab841bd5",
+    coinbaseProof:
+      "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a75874" +
+      "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
+      "b9f542c6eeb6ec38df9acba0726e452cf50d19b285b5ebb60e2faafb24ea8a2604cc" +
+      "8f08c7ab494f4619e240bcc91e91174432a07809ffbfa579e931c16ccbdff6587298" +
+      "eb5a02da3f1afc3d5f0ccc06ddad31690cae99d9261218fa4f76e3bd2c3157089f5f" +
+      "4586201fccd2ebcc75db72b46fc7a026de0ac5dd7a8245",
   },
 
   chainDifficulty: 5168815,
@@ -645,6 +708,16 @@ export const MultiplePendingRequestedRedemptions: RedemptionTestData = {
       "9559440cd684a29979886a04b2f6916752ccdd03d62a010000000000006e4051acfe" +
       "63b73a0b7900c2da41f0b92f694f5a0e2982b279fc5ca734070b13d6511f62ffff00" +
       "1ddaf20d1e",
+    coinbasePreimage:
+      "0xa74d6b6e329da2533eeb508973afbc205aa15ef7175e031182a1bfa4ec97564a",
+    coinbaseProof:
+      "0x7e86096fa5355d29a760f5670b3673338725f7f3e7bbc79d31d415d82603643578" +
+      "64bd5a585002df5bae674fa1d207094cccfba1a61b3e4c99981b4c33612f6897a1b6" +
+      "c268417668b10ad46bad565a97253868f7efa4462f865788c026552ec7d28ad77057" +
+      "b9bc71fefa8b6ff2e7ed5bc42524be5e9c4efa2c55dfc3ff0dccb8722c6ce263a149" +
+      "11cb822af4f47df841ffd49ad0a71386aa77ee8cf928b1c4eac58c250144d521714f" +
+      "1912234352f6b3d2cdb9aa0eb15906e654e614e41f27949890c4dad981a4059b49ae" +
+      "453c3a86f3ea4dc4b9cae9448f22dfab86f2c4d8d6",
   },
 
   chainDifficulty: 5168815,
@@ -760,6 +833,13 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChange: RedemptionTest
         "1acdd9988904e0ff3fbc46c4f4e9351ec418b7f13dc1e542712efa97071f90ba5c" +
         "ee2e0000000000007805d109ea75113c91759d9d14ed26c0bff6fcb572dc0fdb63" +
         "8c862922ec2b9a05730e6240b2321ab9426ecc",
+      coinbasePreimage:
+        "0xd8749020ff33503736c84bb817a3c388f5bd9827b60c12a290f910227ce3386b",
+      coinbaseProof:
+        "0x1b7cbe3f0bbc692d69c45eb93b83cac2c21ea6e77edd2dc78f9c314108fab6b2" +
+        "0a9827537d7d8e6b2d7d425998ef0773e7fb01531fce26ff15b8e06d74252547bd" +
+        "0546192fecb12f00b512d00406c485c397d55be47c0bb14a4cbd8317d98eb59140" +
+        "a49dc08c454650297a2c8a60358aab4e81f52bc2fa1086ca29355c96940c",
     },
 
     chainDifficulty: 330930,
@@ -855,6 +935,16 @@ export const MultiplePendingRequestedRedemptionsWithP2SHChange: RedemptionTestDa
         "824fff63b36326f87a1f62ed3e031a500be2d500e0002083eaf4ee8ba45a1f502c" +
         "2e8bbcab9df7abec22a98fe656e8ca01000000000000ab3c1fe5dfca9175141d9e" +
         "7df11dc92c34388a8941eb0097ceff08d7e25b71e2db7b1f62ed3e031af711fffd",
+      coinbasePreimage:
+        "0x74ca9ceb33e2d8fdb9f3d39c65fa603015d4002eb9a8bf6ebcace9c48c3ceb5c",
+      coinbaseProof:
+        "0xdd60b880c9cd8fdc702172e79308a2e2ada9b4a997192b50094f8069bc1616be" +
+        "9c9f8ac9cb1a8754ec89693b6371f39b8dc0481d815ef3ec7fbb3034f237a7af08" +
+        "a3b052b8bb51ae7b0d7629b8a6e69b5dd7076b6ba5eaa22f82f80dcfeed9ede506" +
+        "22ba133f4821297299b577357c937398a4727b239a4f5e06c21741c0882e332a0c" +
+        "bbd310777a7e23784690e13b2a2cf690b5e20df94899f29b7540b65eae3a933e70" +
+        "3aeb35688f95e34b287b456d1b43ed243b4c3ae6343b5a17bce32c4d096fe2344d" +
+        "c132b77ab0471010fb0e232aa9e324bee36148cc2dfc3ef9f2afd5",
     },
 
     chainDifficulty: 5168815,
@@ -952,6 +1042,16 @@ export const MultiplePendingRequestedRedemptionsWithMultipleP2WPKHChanges: Redem
         "95de967533985c2f901f62ed3e031ab148c5180000002098f1603b50832f9007c9" +
         "5e46c415d566228a9cb08374dc5b5c0000000000000016a7cdf53f077b555abd09" +
         "9efae3e48dc6a147e58bb8ca107396aefcdbcc5b62e8941f62ffff001d81f351c4",
+      coinbasePreimage:
+        "0x5824752ede3572c38620cbe3381d4c1e81bb303b63928588e11786b2680bb009",
+      coinbaseProof:
+        "0x2ec254e962ece5caf9ee4b69812e3ab6bfb2db907fb3ed2a04f0519202c55bf6" +
+        "201dd0591f6c6f3f879b0042f2219adbdab2c2707deaac242cd9e1b3d9814068af" +
+        "04632884589ca993df61381ed20f57c3a24b4355067bf844d0d79929d6c3ed409a" +
+        "a4ac50b6fe587b62e8df74f73bfa8fcfa1c18110002ff70d6e048adcc7c7436a46" +
+        "0fce14461646563281322379ac74955b34e9e2ac01720949530a99177b92f31b7d" +
+        "78aef1f8102e8a5d7926421adfd3fd7b99a3c5bcb3dd67665a0d13b40c2bfcdabc" +
+        "9c3937a1ada199558e318bb489f538204b6e1abbe2d7bfe3a765f5",
     },
 
     chainDifficulty: 5168815,
@@ -1047,6 +1147,16 @@ export const MultiplePendingRequestedRedemptionsWithP2WPKHChangeZeroValue: Redem
         "95de967533985c2f901f62ed3e031ab148c5180000002098f1603b50832f9007c9" +
         "5e46c415d566228a9cb08374dc5b5c0000000000000016a7cdf53f077b555abd09" +
         "9efae3e48dc6a147e58bb8ca107396aefcdbcc5b62e8941f62ffff001d81f351c4",
+      coinbasePreimage:
+        "0x5824752ede3572c38620cbe3381d4c1e81bb303b63928588e11786b2680bb009",
+      coinbaseProof:
+        "0x2ec254e962ece5caf9ee4b69812e3ab6bfb2db907fb3ed2a04f0519202c55bf6" +
+        "201dd0591f6c6f3f879b0042f2219adbdab2c2707deaac242cd9e1b3d9814068af" +
+        "04632884589ca993df61381ed20f57c3a24b4355067bf844d0d79929d6c3ed409a" +
+        "a4ac50b6fe587b62e8df74f73bfa8fcfa1c18110002ff70d6e048adcc7c7436a46" +
+        "0fce14461646563281322379ac74955b34e9e2ac01720949530a99177b92f31b7d" +
+        "78aef1f8102e8a5d7926421adfd3fd7b99a3c5bcb3dd67665a0d13b40c2bfcdabc" +
+        "9c3937a1ada199558e318bb489f538204b6e1abbe2d7bfe3a765f5",
     },
 
     chainDifficulty: 5168815,
@@ -1158,6 +1268,15 @@ export const MultiplePendingRequestedRedemptionsWithProvablyUnspendable: Redempt
         "1aa0f949c0040000207fe7f95bef4018c800f0f0c3d774a5dcde3a102779b648f9" +
         "2b02000000000000f4b7a63190dbe4a149fffed694612e7b35d0310cb4e870e282" +
         "d013b494a83d4def8d2062ed3e031a3f6aea04",
+      coinbasePreimage:
+        "0xb8b06b82330ec4ebb161160c32cba941d0398a790ef9bcd3c3439f84b750d2ce",
+      coinbaseProof:
+        "0x6e4f0f66c4225348a08c4ad1fd7ccfcaf219a9dfe3673a8f9878f18dd1a6b6c4" +
+        "3af6868121adb8366bbd11041df3764f9de311f285bfd5795c1523eba38da1182a" +
+        "466f52023d1c6f103ad594e87a64e17a1d41c068873d806b3cab0b5c804273b71b" +
+        "951ee2a0eaa2e6bfa61bed4cddef48c02bba8f8f8035252aa97df9394880eb84c9" +
+        "5941be3ea2f667b5b9223bcf7dd09aff1711c090aac450f20746a315eeb29ae5bf" +
+        "6a01f97bf8bd4ffb9e3efca33e6e5ec3d8fe82eda7924438f192f834",
     },
 
     chainDifficulty: 5168815,
@@ -1253,6 +1372,15 @@ export const MultiplePendingRequestedRedemptionsWithMultipleInputs: RedemptionTe
         "9ea17a971c2e63ad982062ed3e031a3cfc880f00e00020fc72ae375a8cd436d959" +
         "c96b73323c81e2ef11e31d7c98e72e02000000000000711a4b0d4fadef376c37da" +
         "044aa896ea0e7c64008c2d6c3e3eb2d6f1b58e78b5339a2062ed3e031a9b77f2eb",
+      coinbasePreimage:
+        "0xb55bd9b8bd6c0cb15af97447c6d3fbd74fddfd8402f6fee722b2088d287793bb",
+      coinbaseProof:
+        "0x445d92f4600db6563125e612c2ecd7e9199139f1e8aac7cfa74f0bae75dd5e60" +
+        "6347cd0825a64a705f72133c93a181547d0a27919605ef110aeafc30a88fefdfc1" +
+        "c9d3e01fbb6e628ed67c41b5ea533a112883d5a8672d669fe3739ca7b274b3c1f5" +
+        "4765886f2444ef13d4c90d72594920df006793362ec6169ae4840be26af17fb255" +
+        "5399b14643436ba75f862e4aac9b5e53c68dddc706720ab18f2f46be59a00211d8" +
+        "cf4f8e311f49f2a52177c7a21d421e52748d01114e83e13c21ad4131",
     },
 
     chainDifficulty: 5168815,

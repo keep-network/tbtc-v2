@@ -2331,6 +2331,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -2454,6 +2464,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
@@ -2584,6 +2604,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -2667,6 +2697,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
@@ -6249,7 +6289,7 @@
       ]
     },
     "DepositSweep": {
-      "address": "0xE6F919e62c370Ef04EDF4cA5E2a901Ea1aa87085",
+      "address": "0x53f26BfE896CC4267720cDAf64E9A0c8Fa8f13c2",
       "abi": [
         {
           "anonymous": false,
@@ -7166,7 +7206,7 @@
       ]
     },
     "MaintainerProxy": {
-      "address": "0xcF29Ff894674775841F60Aa2a3c373DE27A8df2b",
+      "address": "0x535E01F948458E0b64F9dB2A01Da6F32E240140f",
       "abi": [
         {
           "inputs": [
@@ -7812,6 +7852,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -7909,6 +7959,16 @@
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
+                  "type": "bytes"
                 }
               ],
               "internalType": "struct BitcoinTx.Proof",
@@ -8000,6 +8060,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
@@ -8097,6 +8167,16 @@
                 {
                   "internalType": "bytes",
                   "name": "bitcoinHeaders",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "coinbasePreimage",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "coinbaseProof",
                   "type": "bytes"
                 }
               ],
@@ -8300,7 +8380,7 @@
       ]
     },
     "MovingFunds": {
-      "address": "0xB857117ae7639255d7305DdbC7346b4a644CA432",
+      "address": "0x3106675EDE4A64d70131247466FD8704A3d42123",
       "abi": [
         {
           "anonymous": false,
@@ -8432,7 +8512,7 @@
       ]
     },
     "Redemption": {
-      "address": "0xfa4FC53BEB5B7721d173342FfC24058e9D47a1Ff",
+      "address": "0x7D807e9CE1ef73048FEe9A4214e75e894ea25914",
       "abi": [
         {
           "anonymous": false,

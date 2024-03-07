@@ -1,4 +1,5 @@
 import {
+  DepositorProxy,
   DepositReceipt,
   TBTCContracts,
   validateDepositReceipt,
@@ -34,6 +35,10 @@ export class Deposit {
    */
   private readonly bitcoinClient: BitcoinClient
   /**
+   * Optional depositor proxy used to initiate minting.
+   */
+  private readonly depositorProxy?: DepositorProxy
+  /**
    * Bitcoin network the deposit is relevant for. Has an impact on the
    * generated deposit address.
    */
@@ -43,22 +48,31 @@ export class Deposit {
     receipt: DepositReceipt,
     tbtcContracts: TBTCContracts,
     bitcoinClient: BitcoinClient,
-    bitcoinNetwork: BitcoinNetwork
+    bitcoinNetwork: BitcoinNetwork,
+    depositorProxy?: DepositorProxy
   ) {
     this.script = DepositScript.fromReceipt(receipt)
     this.tbtcContracts = tbtcContracts
     this.bitcoinClient = bitcoinClient
     this.bitcoinNetwork = bitcoinNetwork
+    this.depositorProxy = depositorProxy
   }
 
   static async fromReceipt(
     receipt: DepositReceipt,
     tbtcContracts: TBTCContracts,
-    bitcoinClient: BitcoinClient
+    bitcoinClient: BitcoinClient,
+    depositorProxy?: DepositorProxy
   ): Promise<Deposit> {
     const bitcoinNetwork = await bitcoinClient.getNetwork()
 
-    return new Deposit(receipt, tbtcContracts, bitcoinClient, bitcoinNetwork)
+    return new Deposit(
+      receipt,
+      tbtcContracts,
+      bitcoinClient,
+      bitcoinNetwork,
+      depositorProxy
+    )
   }
 
   /**
@@ -77,10 +91,11 @@ export class Deposit {
 
   /**
    * Detects Bitcoin funding transactions transferring BTC to this deposit.
-   * @return Specific UTXOs targeting this deposit. Empty array in case
+   * The list includes UTXOs from both the blockchain and the mempool, sorted by
+   * age with the newest ones first. Mempool UTXOs are listed at the beginning.
+   * @returns Specific UTXOs targeting this deposit. Empty array in case
    *         there are no UTXOs referring this deposit.
    */
-  // TODO: Cover with unit tests.
   async detectFunding(): Promise<BitcoinUtxo[]> {
     const utxos = await this.bitcoinClient.findAllUnspentTransactionOutputs(
       await this.getBitcoinAddress()
@@ -110,7 +125,6 @@ export class Deposit {
    * @throws Throws an error if the funding outpoint was already used to
    *         initiate minting (both modes).
    */
-  // TODO: Cover auto funding outpoint detection with unit tests.
   async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<Hex> {
     let resolvedFundingOutpoint: BitcoinTxOutpoint
 
@@ -134,6 +148,15 @@ export class Deposit {
     )
 
     const { bridge, tbtcVault } = this.tbtcContracts
+
+    if (typeof this.depositorProxy !== "undefined") {
+      return this.depositorProxy.revealDeposit(
+        depositFundingTx,
+        outputIndex,
+        this.getReceipt(),
+        tbtcVault.getChainIdentifier()
+      )
+    }
 
     return bridge.revealDeposit(
       depositFundingTx,
@@ -198,6 +221,13 @@ export class DepositScript {
     // All HEXes pushed to the script must be un-prefixed
     chunks.push(Buffer.from(this.receipt.depositor.identifierHex, "hex"))
     chunks.push(opcodes.OP_DROP)
+
+    const extraData = this.receipt.extraData
+    if (typeof extraData !== "undefined") {
+      chunks.push(extraData.toBuffer())
+      chunks.push(opcodes.OP_DROP)
+    }
+
     chunks.push(this.receipt.blindingFactor.toBuffer())
     chunks.push(opcodes.OP_DROP)
     chunks.push(opcodes.OP_DUP)

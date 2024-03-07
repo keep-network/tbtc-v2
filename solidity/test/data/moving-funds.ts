@@ -63,6 +63,8 @@ export interface MovingFundsTestData {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
+    coinbasePreimage: BytesLike
+    coinbaseProof: BytesLike
   }
 
   /**
@@ -148,6 +150,13 @@ export const SingleTargetWallet: MovingFundsTestData = {
       "143f07e88060db80fa4a92e53e8103c138b36b843879000000000000004bbfaeffde" +
       "81470807f3c9a346479172bf02e4ea62d2f51e0c53163737488dc296f64e621ec800" +
       "1a72dc0b16",
+    coinbasePreimage:
+      "0x2b58af1451c1d706e5395df89fc1064e36105d1fea069a17777348d4435cfb6a",
+    coinbaseProof:
+      "0xe55529ca9710bc1f3477dbd826286efe0e5885afeccdfc629050787e0dc078d031" +
+      "e112414e373eaab60bccf7056cb5508a7a8c981bdc72d05cf3a66b933495c2dc8c20" +
+      "b2727e64a216d9c3ede995713f4793b047c048ea38872428f3196e4697a61927e6ec" +
+      "044b52e82b32bb1835da47e43b78971f79c61d73821f1cff269f33",
   },
 
   chainDifficulty: 21461933,
@@ -255,6 +264,16 @@ export const MultipleTargetWalletsAndIndivisibleAmount: MovingFundsTestData = {
       "1a827753500000c020134645f88ef4c28e11dc8c9cb29eb4a679b9793d6c3b75c4a3" +
       "00000000000000753631af53921164be60b8aee0eb1d76c706ea9bb9cf4f53b8cb65" +
       "830a3e982732f84e621ec8001a10de64d4",
+    coinbasePreimage:
+      "0xfbc5ca36c91f6769d3af9f81280bbd00a1329623fd06a86950e588429dd6119c",
+    coinbaseProof:
+      "0x6c60116906a3c8be337161e54b7b523ecc658b370cdbd8196a9cb2bf228c5c3035" +
+      "1e2192570b07071248f01baba9a978ae14e1f4bbb96d60c649ea17d31d194672b0c2" +
+      "7fa03878eb9335a9140884ec7b6809181f3468ec78e204beaa0668e51dee22a6ddbd" +
+      "a0af8a12d5f649d760b2fa7500d330a97368d1a68e5764f1b3946e002facdc932c69" +
+      "016325366f73981195c32096c3a35639cd995779eeeecb2ede16dc684bd43380af42" +
+      "f7d20e352ff647a80f628bdeed12c9c229de6c8359c6ef44d02180f40038258359fa" +
+      "c75124826493e35533c6a930a1bc7b1f78d40cdd65",
   },
 
   chainDifficulty: 21461933,
@@ -361,6 +380,15 @@ export const MultipleTargetWalletsAndDivisibleAmount: MovingFundsTestData = {
       "1a10de64d4000060202b62c803c2129fbbf533f35de3e84694ed475aab83dfe11ba0" +
       "000000000000000de368e3dfdf42f498e8dea274f4c277547844bb07c28340a1a288" +
       "c86ea38d1113f94e621ec8001a7372433c",
+    coinbasePreimage:
+      "0xcb8b259825f09f1ab802845198bbaac31061a14df3fcb5b0ff9e57c3e300a1d1",
+    coinbaseProof:
+      "0x2c76aaa115173bc0f17fe2f33794d4b3e67792f1203dec6b122965aa8f1ada87b9" +
+      "244fdb73bdbfdec76edfdeea9da1b93f5844d516550f89c9dbde4980771bac6da381" +
+      "e340c8b249d0d3ebc15b2e56bdb6d7c3c64004ac9ec0a6348a02e5fccd026f95bc8f" +
+      "39db8e0743ee883c08b5cac5bcfcec87a1dfc658ed3105480d21e833aefc47b304e6" +
+      "2a83d5aec7954e75d827fbd7b46084f231db6e36e6b61c6f35b38a557b15d553bed7" +
+      "878bacd99803f9fff7e0ec4b0a97f13a9144fc162dec36",
   },
 
   chainDifficulty: 21461933,
@@ -444,6 +472,14 @@ export const MultipleTargetWalletsButAmountDistributedUnevenly: MovingFundsTestD
         "1a59b3b33c000000205058b8dcbbfdfb9e00b30e3f374ec17e1789fc4f3f678f27bf" +
         "000000000000001b329dd98f5f1d79f36d0b74fa3da4a9e82609a424287f6e1de301" +
         "485278b0ce4f1150621ec8001a4b24dd9e",
+      coinbasePreimage:
+        "0x50b77933f8b2a4932b1982e2d08061ad3fe884401f507fc56cbf786b34173712",
+      coinbaseProof:
+        "0x67e24a055f8267cc8958c8f76d28e3a71556e4eba53224390264d358ba880c84f8" +
+        "2c80850b0be6a928edeebf3630723a38f011d2fd8b61a86e15b65a3adb9ae020fb48" +
+        "f188126e2628fb2d3ead8b7bd458c0bc9d2b6d15368831538114901f3bfd9ad0532a" +
+        "b93c6f36c1755d3315fbdd146753b2332363cf75b931ddb824e9c3e21676a253e14f" +
+        "be05ca546420c7b2e535666129660fb462adde0075114d5e00",
     },
 
     chainDifficulty: 21461933,
@@ -509,6 +545,17 @@ export const SingleTargetWalletButP2SH: MovingFundsTestData = {
       "ba1a161662ffff001dab708bb90000002031b92d92aa302ad2a73058eaaa09ebfad1" +
       "4be89cae782709e197b352000000009e5528a66f13a86be6f61937d478d696c9cae9" +
       "ebce6649bf80b0b0be070f3cb1e51a1662ffff001d55d83989",
+    coinbasePreimage:
+      "0x1018aff8b5b26a490019baaf21f07537579b2fb1115a98b1d65e8f081daecf8d",
+    coinbaseProof:
+      "0x3cdb38fcae7871f6556eca26234b0782b2fc2ff9a378a14de87570eb021f3c0733" +
+      "714c0422b3998b56e8220a035623dcc0fd215ad3b21762d49e747541f3b59df923e2" +
+      "4ed58acc72c65c3b39c42271bac0ac8de235424dfc8273462923da1f8c828c15abfe" +
+      "98aa267f51310bc19e0f7c57064d67146649cf2bf33ceaa378eb4724dec7e1eedc6e" +
+      "10d070b2c71c04b6a319aefd8a39baef0a5df06d9f0360befee0a0f056d6676e5dcf" +
+      "a23f0babb04b955c95cec0e416d8b7b2a71f1e7939c0a788cb14eabe41276f4ed8f8" +
+      "7527690fb7f83b3b9abb170e1aadac941b53c29ec09e85514a6844e864397ded279e" +
+      "f4ace9833195f112cff129626f30a1bbc9b22f",
   },
 
   chainDifficulty: 1,
@@ -584,6 +631,15 @@ export const SingleProvablyUnspendable: MovingFundsTestData = {
       "1a0040a522040000208d370c6f9d47eaf0c1ab779a5b811838a61403def157972e35" +
       "0300000000000080b93554feec4b0c497738f604526bf990bb8924c538f58f030f3a" +
       "ff72bc0347e91b1e62ed3e031a07543bdf",
+    coinbasePreimage:
+      "0xbe4f2b21aad7b8771a7079791afe7264e8943a1aa1e6587c4bb91440ab841bd5",
+    coinbaseProof:
+      "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a75874" +
+      "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
+      "b9f542c6eeb6ec38df9acba0726e452cf50d19b285b5ebb60e2faafb24ea8a2604cc" +
+      "8f08c7ab494f4619e240bcc91e91174432a07809ffbfa579e931c16ccbdff6587298" +
+      "eb5a02da3f1afc3d5f0ccc06ddad31690cae99d9261218fa4f76e3bd2c3157089f5f" +
+      "4586201fccd2ebcc75db72b46fc7a026de0ac5dd7a8245",
   },
 
   chainDifficulty: 5168815,
@@ -661,6 +717,15 @@ export const MultipleInputs: MovingFundsTestData = {
       "9ea17a971c2e63ad982062ed3e031a3cfc880f00e00020fc72ae375a8cd436d959" +
       "c96b73323c81e2ef11e31d7c98e72e02000000000000711a4b0d4fadef376c37da" +
       "044aa896ea0e7c64008c2d6c3e3eb2d6f1b58e78b5339a2062ed3e031a9b77f2eb",
+    coinbasePreimage:
+      "0xb55bd9b8bd6c0cb15af97447c6d3fbd74fddfd8402f6fee722b2088d287793bb",
+    coinbaseProof:
+      "0x445d92f4600db6563125e612c2ecd7e9199139f1e8aac7cfa74f0bae75dd5e60" +
+      "6347cd0825a64a705f72133c93a181547d0a27919605ef110aeafc30a88fefdfc1" +
+      "c9d3e01fbb6e628ed67c41b5ea533a112883d5a8672d669fe3739ca7b274b3c1f5" +
+      "4765886f2444ef13d4c90d72594920df006793362ec6169ae4840be26af17fb255" +
+      "5399b14643436ba75f862e4aac9b5e53c68dddc706720ab18f2f46be59a00211d8" +
+      "cf4f8e311f49f2a52177c7a21d421e52748d01114e83e13c21ad4131",
   },
 
   chainDifficulty: 5168815,
@@ -719,6 +784,8 @@ export interface MovedFundsSweepTestData {
     merkleProof: BytesLike
     txIndexInBlock: BigNumberish
     bitcoinHeaders: BytesLike
+    coinbasePreimage: BytesLike
+    coinbaseProof: BytesLike
   }
 
   /**
@@ -796,6 +863,16 @@ export const MovedFundsSweepWithoutMainUtxo: MovedFundsSweepTestData = {
       "1a25011a6100000020a255594fd7ad6096e47c5b0b3a636cf0ac0dafc0dcf60277a5" +
       "00000000000000d75ff7b7b32573d64219f81e65e61881446f68dcf47a7f5b47444b" +
       "fd35db25f5a3a8f261cbcd001a32960f84",
+    coinbasePreimage:
+      "0xfd410acfd823548acbdcb9564925a4d20315da45b1dac4104539e69a0c676efc",
+    coinbaseProof:
+      "0xc2abcae4779f2453e7c1d4d22906b6de052e8b14f565d4833f73b324ca2cc313e0" +
+      "f58a7314b4279ddbbd2935851ebb54ec1995b8b4153da4872446e38515607b8223e9" +
+      "6427eb6bd79f5e28b7b60e29f6d5b46dc05c7b5e8570d405fa52a3c5a4e47d25865a" +
+      "cbe72a6e425616fcd88f5e9ebddee4da156796f6d8e0fcbfd9137e68dd6f681ea181" +
+      "bfa9eb1b37825ba05f74fa8ec78f0014dff6d4365cf68697b630254f65249c7909d7" +
+      "5ca862aaf2ebb1d7eac6334a68104605ed0f57b7ab5e58744f028d58b36016f2e78c" +
+      "b4701aace4a64dcc85e3be1d4db96fe4275658c941",
   },
 
   chainDifficulty: 1,
@@ -879,6 +956,15 @@ export const MovedFundsSweepWithMainUtxo: MovedFundsSweepTestData = {
       "1ddcf355240020002066d4c3153de53837c8c84427e6d755b84b20888b6479bebace" +
       "b036b000000000b04e55ab011429634c84ee0ad9edf0dea34a1a4adc5d1421a13488" +
       "03457cd43dce457162ffff001aaf43012c",
+    coinbasePreimage:
+      "0xf3b77c724fd7ef97008704a94a1ec2bbee5c65b580d3a59d7cca6c3df37a243e",
+    coinbaseProof:
+      "0xe5fb078d9f111cd3de32874213cd7a442760899a51a9296f57d57390b1f1207894" +
+      "c7c4e80fd0094d599d7e2834af4c3f25fde058c8d67845a97892b436ed6334dfc6fb" +
+      "eaa4e32ca18101730f029d9fb8eed24481411feebd356681f18852d1db018b30884b" +
+      "99f5598071cbae60e280e27883fac38f7a837e33e584ece7103588ddc565ca2ffdfa" +
+      "80416d65c783bbe7d163432d7b4c672d1625d44ecc76c310c9626d7cc29488c31358" +
+      "7018b2f7b145fae92c8cbe7fa532a68b3b74eb10006c71",
   },
 
   chainDifficulty: 16777216,
@@ -952,6 +1038,17 @@ export const MovedFundsSweepP2SHOutput: MovedFundsSweepTestData = {
       "1a7b43466e04e00020f416898d79d4a46fa6c54f190ad3d502bad8aa3afdec0714aa" +
       "000000000000000603a5cc15e5906cb4eac9f747869fdc9be856e76a110b4f87da90" +
       "db20f9fbe28fc11c62ed3e031a15dfc3db",
+    coinbasePreimage:
+      "0xabc0ac43547a3a244029426af5c504977e12108c550a66c860ecda9f747c23c9",
+    coinbaseProof:
+      "0xf39ec977d14627922174b2c244ea624ab78a6e0c2d43d861a8fcedf0023a8d2d6a" +
+      "1792d122d5fd4614a4d8a1810a77ff2a4676f8e8ab92b0a5fc4288f5eadd4b372b4e" +
+      "9030edd9d92b7125dba777fca86a4d73614ce0e1621b1bf48c1eb0a2c553330e3fae" +
+      "9a71acecb7425e8dbe88cdfd7fc3258bac4e21ca1dec42e5094271c77932609c51fb" +
+      "4b82497ed599d3c413c4fd023009716b3e5e885d89c31a1f30bb46106bac1034c65f" +
+      "01d80ac402417373daf1fbae0d43041c67b948f47882b27c802a4e791504be4b1b71" +
+      "80a788a54659799bedbc712e23a816cae0a12c017b838b1655583043a9c8d30399d3" +
+      "f81e7e0fe2121a3c38490845174140a08ff6dc",
   },
 
   chainDifficulty: 1,
@@ -1024,6 +1121,15 @@ export const MovedFundsSweepProvablyUnspendableOutput: MovedFundsSweepTestData =
         "1a0040a522040000208d370c6f9d47eaf0c1ab779a5b811838a61403def157972e35" +
         "0300000000000080b93554feec4b0c497738f604526bf990bb8924c538f58f030f3a" +
         "ff72bc0347e91b1e62ed3e031a07543bdf",
+      coinbasePreimage:
+        "0xbe4f2b21aad7b8771a7079791afe7264e8943a1aa1e6587c4bb91440ab841bd5",
+      coinbaseProof:
+        "0xd31f98751a50dba5bdf2fffe1ab727d6b5b65b5d2bfa0dd058a69a014dd9a75874" +
+        "ebfb6efeabf05d65f5ad9cc1f8355d2a00a4ca22d7c7a0e0cabc0d6a4c6c00db10e3" +
+        "b9f542c6eeb6ec38df9acba0726e452cf50d19b285b5ebb60e2faafb24ea8a2604cc" +
+        "8f08c7ab494f4619e240bcc91e91174432a07809ffbfa579e931c16ccbdff6587298" +
+        "eb5a02da3f1afc3d5f0ccc06ddad31690cae99d9261218fa4f76e3bd2c3157089f5f" +
+        "4586201fccd2ebcc75db72b46fc7a026de0ac5dd7a8245",
     },
 
     chainDifficulty: 5168815,
@@ -1098,6 +1204,16 @@ export const MovedFundsSweepMultipleOutputs: MovedFundsSweepTestData = {
       "1a827753500000c020134645f88ef4c28e11dc8c9cb29eb4a679b9793d6c3b75c4a3" +
       "00000000000000753631af53921164be60b8aee0eb1d76c706ea9bb9cf4f53b8cb65" +
       "830a3e982732f84e621ec8001a10de64d4",
+    coinbasePreimage:
+      "0xfbc5ca36c91f6769d3af9f81280bbd00a1329623fd06a86950e588429dd6119c",
+    coinbaseProof:
+      "0x6c60116906a3c8be337161e54b7b523ecc658b370cdbd8196a9cb2bf228c5c3035" +
+      "1e2192570b07071248f01baba9a978ae14e1f4bbb96d60c649ea17d31d194672b0c2" +
+      "7fa03878eb9335a9140884ec7b6809181f3468ec78e204beaa0668e51dee22a6ddbd" +
+      "a0af8a12d5f649d760b2fa7500d330a97368d1a68e5764f1b3946e002facdc932c69" +
+      "016325366f73981195c32096c3a35639cd995779eeeecb2ede16dc684bd43380af42" +
+      "f7d20e352ff647a80f628bdeed12c9c229de6c8359c6ef44d02180f40038258359fa" +
+      "c75124826493e35533c6a930a1bc7b1f78d40cdd65",
   },
 
   chainDifficulty: 21461933,

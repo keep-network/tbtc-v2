@@ -1,4 +1,4 @@
-import { BitcoinTx, BitcoinTxHash } from "./tx"
+import { BitcoinTx, BitcoinTxHash, extractBitcoinRawTxVectors } from "./tx"
 import { BitcoinClient } from "./client"
 import { BigNumber } from "ethers"
 import {
@@ -29,6 +29,17 @@ export interface BitcoinSpvProof {
    * 80-byte-long. The block header with the lowest height is first.
    */
   bitcoinHeaders: Hex
+
+  /**
+   * The sha256 preimage of the coinbase transaction hash i.e.,
+   * the sha256 hash of the coinbase transaction.
+   */
+  coinbasePreimage: Hex
+
+  /**
+   * Merkle proof of coinbase transaction inclusion in a block.
+   */
+  coinbaseProof: Hex
 }
 
 /**
@@ -101,10 +112,34 @@ export async function assembleBitcoinSpvProof(
 
   const merkleProof = createMerkleProof(merkleBranch)
 
+  const coinbaseTxHash = await bitcoinClient.getCoinbaseTxHash(txBlockHeight)
+
+  const coinbaseTx = extractBitcoinRawTxVectors(
+    await bitcoinClient.getRawTransaction(coinbaseTxHash)
+  )
+
+  const coinbasePreimage = BitcoinHashUtils.computeSha256(
+    Hex.from(
+      `${coinbaseTx.version.toString()}` +
+        `${coinbaseTx.inputs.toString()}` +
+        `${coinbaseTx.outputs.toString()}` +
+        `${coinbaseTx.locktime.toString()}`
+    )
+  )
+
+  const coinbaseMerkleBranch = await bitcoinClient.getTransactionMerkle(
+    coinbaseTxHash,
+    txBlockHeight
+  )
+
+  const coinbaseMerkleProof = createMerkleProof(coinbaseMerkleBranch)
+
   const proof = {
     merkleProof: merkleProof,
     txIndexInBlock: merkleBranch.position,
     bitcoinHeaders: headersChain,
+    coinbasePreimage: coinbasePreimage,
+    coinbaseProof: coinbaseMerkleProof,
   }
 
   return { ...transaction, ...proof }
@@ -159,6 +194,13 @@ export async function validateBitcoinSpvProof(
     bitcoinClient
   )
 
+  if (
+    proof.merkleProof.toBuffer().length !==
+    proof.coinbaseProof.toBuffer().length
+  ) {
+    throw new Error("Tx not on same level of merkle tree as coinbase")
+  }
+
   const bitcoinHeaders: BitcoinHeader[] =
     BitcoinHeaderSerializer.deserializeHeadersChain(proof.bitcoinHeaders)
   if (bitcoinHeaders.length != requiredConfirmations) {
@@ -166,12 +208,11 @@ export async function validateBitcoinSpvProof(
   }
 
   const merkleRootHash: Hex = bitcoinHeaders[0].merkleRootHash
-  const intermediateNodeHashes: Hex[] = splitMerkleProof(proof.merkleProof)
 
   validateMerkleTree(
     transactionHash,
     merkleRootHash,
-    intermediateNodeHashes,
+    splitMerkleProof(proof.merkleProof),
     proof.txIndexInBlock
   )
 
@@ -179,6 +220,13 @@ export async function validateBitcoinSpvProof(
     bitcoinHeaders,
     previousDifficulty,
     currentDifficulty
+  )
+
+  validateMerkleTree(
+    BitcoinHashUtils.computeSha256(proof.coinbasePreimage).reverse(),
+    merkleRootHash,
+    splitMerkleProof(proof.coinbaseProof),
+    0
   )
 }
 

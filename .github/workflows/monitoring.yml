@@ -18,7 +18,7 @@ on:
         type: choice
         options:
           - local # Just a bare Docker build without push
-          - goerli # Pushes Docker image to keep-test cluster
+          - sepolia # Pushes Docker image to keep-test cluster
           - mainnet # Pushes Docker image to keep-prd cluster
 
 jobs:
@@ -95,7 +95,7 @@ jobs:
         if: ${{ github.event.inputs.environment != 'local' }}
         uses: docker/login-action@v1
         env:
-          CLUSTER_MAPPING: '{"goerli": "KEEP_TEST", "mainnet": "KEEP_PRD"}'
+          CLUSTER_MAPPING: '{"sepolia": "KEEP_TEST", "mainnet": "KEEP_PRD"}'
         with:
           registry: ${{ env.GCR_REGISTRY_URL }}
           username: _json_key

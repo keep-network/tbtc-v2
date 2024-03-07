@@ -216,6 +216,11 @@ export interface DepositReceipt {
    * A 4-byte little-endian refund locktime.
    */
   refundLocktime: Hex
+
+  /**
+   * Optional 32-byte extra data.
+   */
+  extraData?: Hex
 }
 
 // eslint-disable-next-line valid-jsdoc
@@ -239,6 +244,11 @@ export function validateDepositReceipt(receipt: DepositReceipt) {
 
   if (receipt.refundLocktime.toString().length != 8) {
     throw new Error("Refund locktime must be a 4-byte number")
+  }
+
+  const extraData = receipt.extraData
+  if (extraData && extraData.toString().length != 64) {
+    throw new Error("Extra data must be a 32-byte number")
   }
 }
 

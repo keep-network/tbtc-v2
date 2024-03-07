@@ -12,7 +12,7 @@ import {
 import { EthereumAddress } from "./address"
 
 import MainnetTBTCTokenDeployment from "./artifacts/mainnet/TBTC.json"
-import GoerliTBTCTokenDeployment from "./artifacts/goerli/TBTC.json"
+import SepoliaTBTCTokenDeployment from "./artifacts/sepolia/TBTC.json"
 import LocalTBTCTokenDeployment from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 
 /**
@@ -25,7 +25,7 @@ export class EthereumTBTCToken
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "goerli" | "mainnet" = "local"
+    deploymentType: "local" | "sepolia" | "mainnet" = "local"
   ) {
     let deployment: EthersContractDeployment
 
@@ -33,8 +33,8 @@ export class EthereumTBTCToken
       case "local":
         deployment = LocalTBTCTokenDeployment
         break
-      case "goerli":
-        deployment = GoerliTBTCTokenDeployment
+      case "sepolia":
+        deployment = SepoliaTBTCTokenDeployment
         break
       case "mainnet":
         deployment = MainnetTBTCTokenDeployment

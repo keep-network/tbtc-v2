@@ -9,6 +9,7 @@ to build a unique deposit address on Bitcoin chain.
 
 - [blindingFactor](DepositReceipt.md#blindingfactor)
 - [depositor](DepositReceipt.md#depositor)
+- [extraData](DepositReceipt.md#extradata)
 - [refundLocktime](DepositReceipt.md#refundlocktime)
 - [refundPublicKeyHash](DepositReceipt.md#refundpublickeyhash)
 - [walletPublicKeyHash](DepositReceipt.md#walletpublickeyhash)
@@ -24,7 +25,7 @@ public key and refund public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L198)
+[src/lib/contracts/bridge.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L198)
 
 ___
 
@@ -36,7 +37,19 @@ Depositor's chain identifier.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L192)
+[src/lib/contracts/bridge.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L192)
+
+___
+
+### extraData
+
+• `Optional` **extraData**: [`Hex`](../classes/Hex.md)
+
+Optional 32-byte extra data.
+
+#### Defined in
+
+[src/lib/contracts/bridge.ts:223](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L223)
 
 ___
 
@@ -48,7 +61,7 @@ A 4-byte little-endian refund locktime.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:218](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L218)
+[src/lib/contracts/bridge.ts:218](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L218)
 
 ___
 
@@ -63,7 +76,7 @@ You can use `computeHash160` function to get the hash from a public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:213](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L213)
+[src/lib/contracts/bridge.ts:213](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L213)
 
 ___
 
@@ -77,4 +90,4 @@ You can use `computeHash160` function to get the hash from a public key.
 
 #### Defined in
 
-[lib/contracts/bridge.ts:205](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L205)
+[src/lib/contracts/bridge.ts:205](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L205)
