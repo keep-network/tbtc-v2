@@ -123,40 +123,18 @@ describe("L2BitcoinDepositor", () => {
   })
 
   describe("attachL1BitcoinDepositor", () => {
-    context("when the L1BitcoinDepositor is already attached", () => {
-      before(async () => {
-        await createSnapshot()
-
-        await l2BitcoinDepositor
-          .connect(governance)
-          .attachL1BitcoinDepositor(l1BitcoinDepositor)
-      })
-
-      after(async () => {
-        await restoreSnapshot()
-      })
-
+    context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
           l2BitcoinDepositor
-            .connect(governance)
+            .connect(relayer)
             .attachL1BitcoinDepositor(l1BitcoinDepositor)
-        ).to.be.revertedWith("L1 Bitcoin Depositor already set")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
-    context("when the L1BitcoinDepositor is not attached", () => {
-      context("when new L1BitcoinDepositor is zero", () => {
-        it("should revert", async () => {
-          await expect(
-            l2BitcoinDepositor
-              .connect(governance)
-              .attachL1BitcoinDepositor(ethers.constants.AddressZero)
-          ).to.be.revertedWith("L1 Bitcoin Depositor must not be 0x0")
-        })
-      })
-
-      context("when new L1BitcoinDepositor is non-zero", () => {
+    context("when the caller is the owner", () => {
+      context("when the L1BitcoinDepositor is already attached", () => {
         before(async () => {
           await createSnapshot()
 
@@ -169,10 +147,44 @@ describe("L2BitcoinDepositor", () => {
           await restoreSnapshot()
         })
 
-        it("should set the l1BitcoinDepositor address properly", async () => {
-          expect(await l2BitcoinDepositor.l1BitcoinDepositor()).to.equal(
-            l1BitcoinDepositor
-          )
+        it("should revert", async () => {
+          await expect(
+            l2BitcoinDepositor
+              .connect(governance)
+              .attachL1BitcoinDepositor(l1BitcoinDepositor)
+          ).to.be.revertedWith("L1 Bitcoin Depositor already set")
+        })
+      })
+
+      context("when the L1BitcoinDepositor is not attached", () => {
+        context("when new L1BitcoinDepositor is zero", () => {
+          it("should revert", async () => {
+            await expect(
+              l2BitcoinDepositor
+                .connect(governance)
+                .attachL1BitcoinDepositor(ethers.constants.AddressZero)
+            ).to.be.revertedWith("L1 Bitcoin Depositor must not be 0x0")
+          })
+        })
+
+        context("when new L1BitcoinDepositor is non-zero", () => {
+          before(async () => {
+            await createSnapshot()
+
+            await l2BitcoinDepositor
+              .connect(governance)
+              .attachL1BitcoinDepositor(l1BitcoinDepositor)
+          })
+
+          after(async () => {
+            await restoreSnapshot()
+          })
+
+          it("should set the l1BitcoinDepositor address properly", async () => {
+            expect(await l2BitcoinDepositor.l1BitcoinDepositor()).to.equal(
+              l1BitcoinDepositor
+            )
+          })
         })
       })
     })
