@@ -3,13 +3,17 @@ import { ethers, helpers } from "hardhat"
 import chai, { expect } from "chai"
 import { FakeContract, smock } from "@defi-wonderland/smock"
 import { BigNumber, BigNumberish, BytesLike } from "ethers"
-import type { Bridge, WalletProposalValidator } from "../../typechain"
+import type {
+  Bridge,
+  IRedemptionWatchtower,
+  WalletProposalValidator,
+} from "../../typechain"
 import { walletState, movedFundsSweepRequestState } from "../fixtures"
 import { NO_MAIN_UTXO } from "../data/deposit-sweep"
 
 chai.use(smock.matchers)
 
-const { lastBlockTime } = helpers.time
+const { lastBlockTime, increaseTime } = helpers.time
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 const { AddressZero, HashZero } = ethers.constants
 
@@ -1477,65 +1481,173 @@ describe("WalletProposalValidator", () => {
 
             context("when all requests are pending", () => {
               context("when there is an immature request", () => {
-                let requestOne
-                let requestTwo
+                context(
+                  "when immaturity is caused by REDEMPTION_REQUEST_MIN_AGE violation",
+                  () => {
+                    let requestOne
+                    let requestTwo
 
-                before(async () => {
-                  await createSnapshot()
+                    before(async () => {
+                      await createSnapshot()
 
-                  requestOne = createTestRedemptionRequest(
-                    walletPubKeyHash,
-                    5000 // necessary to pass the fee share validation
-                  )
-                  requestTwo = createTestRedemptionRequest(walletPubKeyHash)
-
-                  // Request one is a proper one.
-                  bridge.pendingRedemptions
-                    .whenCalledWith(
-                      redemptionKey(
-                        requestOne.key.walletPubKeyHash,
-                        requestOne.key.redeemerOutputScript
+                      requestOne = createTestRedemptionRequest(
+                        walletPubKeyHash,
+                        5000 // necessary to pass the fee share validation
                       )
-                    )
-                    .returns(requestOne.content)
+                      requestTwo = createTestRedemptionRequest(walletPubKeyHash)
 
-                  // Simulate the request two has just been created thus not
-                  // achieved the min age yet.
-                  bridge.pendingRedemptions
-                    .whenCalledWith(
-                      redemptionKey(
-                        requestTwo.key.walletPubKeyHash,
-                        requestTwo.key.redeemerOutputScript
-                      )
-                    )
-                    .returns({
-                      ...requestTwo.content,
-                      requestedAt: await lastBlockTime(),
+                      // Request one is a proper one.
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestOne.key.walletPubKeyHash,
+                            requestOne.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(requestOne.content)
+
+                      // Simulate the request two has just been created thus not
+                      // achieved the min age yet.
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestTwo.key.walletPubKeyHash,
+                            requestTwo.key.redeemerOutputScript
+                          )
+                        )
+                        .returns({
+                          ...requestTwo.content,
+                          requestedAt: await lastBlockTime(),
+                        })
                     })
-                })
 
-                after(async () => {
-                  bridge.pendingRedemptions.reset()
+                    after(async () => {
+                      bridge.pendingRedemptions.reset()
 
-                  await restoreSnapshot()
-                })
+                      await restoreSnapshot()
+                    })
 
-                it("should revert", async () => {
-                  const proposal = {
-                    walletPubKeyHash,
-                    redeemersOutputScripts: [
-                      requestOne.key.redeemerOutputScript,
-                      requestTwo.key.redeemerOutputScript,
-                    ],
-                    redemptionTxFee,
+                    it("should revert", async () => {
+                      const proposal = {
+                        walletPubKeyHash,
+                        redeemersOutputScripts: [
+                          requestOne.key.redeemerOutputScript,
+                          requestTwo.key.redeemerOutputScript,
+                        ],
+                        redemptionTxFee,
+                      }
+
+                      await expect(
+                        walletProposalValidator.validateRedemptionProposal(
+                          proposal
+                        )
+                      ).to.be.revertedWith(
+                        "Redemption request min age not achieved yet"
+                      )
+                    })
                   }
+                )
 
-                  await expect(
-                    walletProposalValidator.validateRedemptionProposal(proposal)
-                  ).to.be.revertedWith(
-                    "Redemption request min age not achieved yet"
-                  )
-                })
+                context(
+                  "when immaturity is caused by watchtower's delay violation",
+                  () => {
+                    let watchtower: FakeContract<IRedemptionWatchtower>
+                    let requestOne
+                    let requestTwo
+
+                    before(async () => {
+                      await createSnapshot()
+
+                      requestOne = createTestRedemptionRequest(
+                        walletPubKeyHash,
+                        5000, // necessary to pass the fee share validation
+                        await lastBlockTime()
+                      )
+                      requestTwo = createTestRedemptionRequest(
+                        walletPubKeyHash,
+                        5000, // necessary to pass the fee share validation
+                        await lastBlockTime()
+                      )
+
+                      // Request one is a proper one.
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestOne.key.walletPubKeyHash,
+                            requestOne.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(requestOne.content)
+
+                      // Simulate the request two has just been created thus not
+                      // achieved the min age yet.
+                      bridge.pendingRedemptions
+                        .whenCalledWith(
+                          redemptionKey(
+                            requestTwo.key.walletPubKeyHash,
+                            requestTwo.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(requestTwo.content)
+
+                      watchtower = await smock.fake<IRedemptionWatchtower>(
+                        "IRedemptionWatchtower"
+                      )
+                      bridge.getRedemptionWatchtower.returns(watchtower.address)
+
+                      const redemptionOneDelay = 3600
+                      watchtower.getRedemptionDelay
+                        .whenCalledWith(
+                          buildRedemptionKey(
+                            requestOne.key.walletPubKeyHash,
+                            requestOne.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(redemptionOneDelay)
+
+                      const redemptionTwoDelay = 7200
+                      watchtower.getRedemptionDelay
+                        .whenCalledWith(
+                          buildRedemptionKey(
+                            requestTwo.key.walletPubKeyHash,
+                            requestTwo.key.redeemerOutputScript
+                          )
+                        )
+                        .returns(redemptionTwoDelay)
+
+                      // Increase time to a point when delay for redemption
+                      // one was elapsed but not for redemption two.
+                      await increaseTime(redemptionTwoDelay)
+                    })
+
+                    after(async () => {
+                      bridge.getRedemptionWatchtower.reset()
+                      watchtower.getRedemptionDelay.reset()
+                      bridge.pendingRedemptions.reset()
+
+                      await restoreSnapshot()
+                    })
+
+                    it("should revert", async () => {
+                      const proposal = {
+                        walletPubKeyHash,
+                        redeemersOutputScripts: [
+                          requestOne.key.redeemerOutputScript,
+                          requestTwo.key.redeemerOutputScript,
+                        ],
+                        redemptionTxFee,
+                      }
+
+                      await expect(
+                        walletProposalValidator.validateRedemptionProposal(
+                          proposal
+                        )
+                      ).to.be.revertedWith(
+                        "Redemption request min age not achieved yet"
+                      )
+                    })
+                  }
+                )
               })
 
               context("when all requests achieved the min age", () => {
@@ -1846,64 +1958,111 @@ describe("WalletProposalValidator", () => {
                         })
 
                         context("when all requests are unique", () => {
-                          let requestOne
-                          let requestTwo
+                          const testData: {
+                            testName: string
+                            watchtower: boolean
+                          }[] = [
+                            {
+                              testName: "when watchtower is not set",
+                              watchtower: false,
+                            },
+                            {
+                              testName: "when watchtower is set",
+                              watchtower: true,
+                            },
+                          ]
 
-                          before(async () => {
-                            await createSnapshot()
+                          testData.forEach((test) => {
+                            context(test.testName, () => {
+                              let watchtower: FakeContract<IRedemptionWatchtower>
+                              let requestOne
+                              let requestTwo
 
-                            requestOne = createTestRedemptionRequest(
-                              walletPubKeyHash,
-                              5000 // necessary to pass the fee share validation
-                            )
+                              before(async () => {
+                                await createSnapshot()
 
-                            requestTwo = createTestRedemptionRequest(
-                              walletPubKeyHash,
-                              5000 // necessary to pass the fee share validation
-                            )
-
-                            bridge.pendingRedemptions
-                              .whenCalledWith(
-                                redemptionKey(
-                                  requestOne.key.walletPubKeyHash,
-                                  requestOne.key.redeemerOutputScript
+                                requestOne = createTestRedemptionRequest(
+                                  walletPubKeyHash,
+                                  5000 // necessary to pass the fee share validation
                                 )
-                              )
-                              .returns(requestOne.content)
 
-                            bridge.pendingRedemptions
-                              .whenCalledWith(
-                                redemptionKey(
-                                  requestTwo.key.walletPubKeyHash,
-                                  requestTwo.key.redeemerOutputScript
+                                requestTwo = createTestRedemptionRequest(
+                                  walletPubKeyHash,
+                                  5000 // necessary to pass the fee share validation
                                 )
-                              )
-                              .returns(requestTwo.content)
-                          })
 
-                          after(async () => {
-                            bridge.pendingRedemptions.reset()
+                                bridge.pendingRedemptions
+                                  .whenCalledWith(
+                                    redemptionKey(
+                                      requestOne.key.walletPubKeyHash,
+                                      requestOne.key.redeemerOutputScript
+                                    )
+                                  )
+                                  .returns(requestOne.content)
 
-                            await restoreSnapshot()
-                          })
+                                bridge.pendingRedemptions
+                                  .whenCalledWith(
+                                    redemptionKey(
+                                      requestTwo.key.walletPubKeyHash,
+                                      requestTwo.key.redeemerOutputScript
+                                    )
+                                  )
+                                  .returns(requestTwo.content)
 
-                          it("should succeed", async () => {
-                            const proposal = {
-                              walletPubKeyHash,
-                              redeemersOutputScripts: [
-                                requestOne.key.redeemerOutputScript,
-                                requestTwo.key.redeemerOutputScript,
-                              ],
-                              redemptionTxFee,
-                            }
+                                if (test.watchtower) {
+                                  watchtower =
+                                    await smock.fake<IRedemptionWatchtower>(
+                                      "IRedemptionWatchtower"
+                                    )
 
-                            const result =
-                              await walletProposalValidator.validateRedemptionProposal(
-                                proposal
-                              )
+                                  bridge.getRedemptionWatchtower.returns(
+                                    watchtower.address
+                                  )
 
-                            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                            expect(result).to.be.true
+                                  // All requests created by createTestRedemptionRequest
+                                  // are requested at `now - 1 day` by default.
+                                  // To test the watchtower delay path, we need
+                                  // to use a delay that is greater than
+                                  // `REDEMPTION_REQUEST_MIN_AGE` (10 min) and
+                                  // ensure that the delay is preserved
+                                  // at the moment of the proposal validation.
+                                  // A value of 2 hours will be a good fit.
+                                  watchtower.getRedemptionDelay.returns(
+                                    7200 // 2 hours
+                                  )
+                                }
+                              })
+
+                              after(async () => {
+                                if (test.watchtower) {
+                                  bridge.getRedemptionWatchtower.reset()
+                                  watchtower.getRedemptionDelay.reset()
+                                }
+
+                                bridge.pendingRedemptions.reset()
+
+                                await restoreSnapshot()
+                              })
+
+                              it("should succeed", async () => {
+                                const proposal = {
+                                  walletPubKeyHash,
+                                  redeemersOutputScripts: [
+                                    requestOne.key.redeemerOutputScript,
+                                    requestTwo.key.redeemerOutputScript,
+                                  ],
+                                  redemptionTxFee,
+                                }
+
+                                const result =
+                                  await walletProposalValidator.validateRedemptionProposal(
+                                    proposal
+                                  )
+
+                                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                                expect(result).to.be.true
+                              })
+                            })
                           })
                         })
                       }
@@ -2795,4 +2954,16 @@ const movedFundsSweepRequestKey = (
   ethers.utils.solidityKeccak256(
     ["bytes32", "uint32"],
     [movingFundsTxHash, movingFundsTxOutputIndex]
+  )
+
+const buildRedemptionKey = (
+  walletPubKeyHash: BytesLike,
+  redeemerOutputScript: BytesLike
+): string =>
+  ethers.utils.solidityKeccak256(
+    ["bytes32", "bytes20"],
+    [
+      ethers.utils.solidityKeccak256(["bytes"], [redeemerOutputScript]),
+      walletPubKeyHash,
+    ]
   )

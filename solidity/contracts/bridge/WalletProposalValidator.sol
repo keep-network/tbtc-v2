@@ -528,7 +528,9 @@ contract WalletProposalValidator {
     ///        lesser than or equal to the maximum fee share allowed by the
     ///        given request (`RedemptionRequest.txMaxFee`),
     ///      - Each request must be a pending request registered in the Bridge,
-    ///      - Each request must be old enough, i.e. at least `redemptionRequestMinAge`
+    ///      - Each request must be old enough, i.e. at least `REDEMPTION_REQUEST_MIN_AGE`
+    ///        OR the delay enforced by the redemption watchtower
+    ///        (if the watchtower is set and the returned delay is greater than `REDEMPTION_REQUEST_MIN_AGE`)
     ///        elapsed since their creation time,
     ///      - Each request must have the timeout safety margin preserved,
     ///      - Each request must be unique.
@@ -582,6 +584,8 @@ contract WalletProposalValidator {
         uint256 redemptionTxFeePerRequest = (proposal.redemptionTxFee -
             redemptionTxFeeRemainder) / requestsCount;
 
+        address redemptionWatchtower = bridge.getRedemptionWatchtower();
+
         uint256[] memory processedRedemptionKeys = new uint256[](requestsCount);
 
         for (uint256 i = 0; i < requestsCount; i++) {
@@ -608,10 +612,30 @@ contract WalletProposalValidator {
                 "Not a pending redemption request"
             );
 
+            uint32 minAge = REDEMPTION_REQUEST_MIN_AGE;
+            if (redemptionWatchtower != address(0)) {
+                // Check the redemption delay enforced by the watchtower.
+                // slither-disable-next-line calls-loop
+                uint32 delay = IRedemptionWatchtower(redemptionWatchtower)
+                    .getRedemptionDelay(redemptionKey);
+                // If the delay is greater than the usual minimum age, use it.
+                // This way both the min age and the watchtower delay are preserved.
+                //
+                // We do not need to bother about last-minute objections issued
+                // by the watchtower. Objections can be issued up to one second
+                // before the min age is achieved while this validation will
+                // pass only one second after the min age is achieved. Even if
+                // a single objection stays longer in the mempool, this won't
+                // be a problem for `Bridge.submitRedemptionProof` which ignores
+                // single objections as long as the veto threshold is not reached.
+                if (delay > minAge) {
+                    minAge = delay;
+                }
+            }
+
             require(
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp >
-                    redemptionRequest.requestedAt + REDEMPTION_REQUEST_MIN_AGE,
+                block.timestamp > redemptionRequest.requestedAt + minAge,
                 "Redemption request min age not achieved yet"
             );
 
