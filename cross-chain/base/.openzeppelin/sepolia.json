@@ -1,20 +1,20 @@
 {
   "manifestVersion": "3.2",
   "admin": {
-    "address": "0x33D7816A1C356F2D36c8cBA5D449f9c46306f818",
-    "txHash": "0x6289dd2828a8879386e2065836adeb66c7f60ea1c5c3bec36df33803071a0ace"
+    "address": "0xDd0007713CB99564B7835FD628A1718e8F9f9785",
+    "txHash": "0x078036699e010480a0d2a4c443352cf0f6311f8882dddcf0b4c6c5136bcc69b4"
   },
   "proxies": [
     {
-      "address": "0x65935daB5d33D48f6E3712CDD602793aD38c8B75",
-      "txHash": "0xcbbc13b83d1e8108251c2fbcf61c321f97dc346ade968cc074837f1c3fe0e704",
+      "address": "0x0c5e36731008f4AFC1AF5Da2C4D5E07eE4a3EB69",
+      "txHash": "0x5a405183332f623649fcf19f8506cf2582882d5dc2b05582e0066388ef122229",
       "kind": "transparent"
     }
   ],
   "impls": {
-    "397d1cce625c7ec2463bd078e8cf930aa844e1a9684804f18f36aa9b60b6fa7c": {
-      "address": "0x193096824F7618b49E8742651D9656e977c756d1",
-      "txHash": "0x91b2e2ff923eb25960e9d827106c688f48931d17a849e04cbb0c83e0bf11ca18",
+    "e1501c59bd3fc7501392b17ad132c0ef733008f7128caa90d854edd898c505ec": {
+      "address": "0x720Cb49A8b3c03E199075544F7f1F4d772Dd6d06",
+      "txHash": "0xf055a10c164376e93258e15ff257e76fc8eff5a737820237271a8fb3e3506fe4",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -111,7 +111,7 @@
             "label": "tbtcToken",
             "offset": 0,
             "slot": "201",
-            "type": "t_contract(IERC20)5428",
+            "type": "t_contract(IERC20Upgradeable)6699",
             "contract": "L1BitcoinDepositor",
             "src": "@keep-network/tbtc-v2/contracts/l2/L1BitcoinDepositor.sol:113"
           },
@@ -119,7 +119,7 @@
             "label": "wormhole",
             "offset": 0,
             "slot": "202",
-            "type": "t_contract(IWormhole)4366",
+            "type": "t_contract(IWormhole)5318",
             "contract": "L1BitcoinDepositor",
             "src": "@keep-network/tbtc-v2/contracts/l2/L1BitcoinDepositor.sol:115"
           },
@@ -127,7 +127,7 @@
             "label": "wormholeRelayer",
             "offset": 0,
             "slot": "203",
-            "type": "t_contract(IWormholeRelayer)4406",
+            "type": "t_contract(IWormholeRelayer)5358",
             "contract": "L1BitcoinDepositor",
             "src": "@keep-network/tbtc-v2/contracts/l2/L1BitcoinDepositor.sol:116"
           },
@@ -135,7 +135,7 @@
             "label": "wormholeTokenBridge",
             "offset": 0,
             "slot": "204",
-            "type": "t_contract(IWormholeTokenBridge)4491",
+            "type": "t_contract(IWormholeTokenBridge)5443",
             "contract": "L1BitcoinDepositor",
             "src": "@keep-network/tbtc-v2/contracts/l2/L1BitcoinDepositor.sol:118"
           },
@@ -221,23 +221,23 @@
             "label": "contract IBridge",
             "numberOfBytes": "20"
           },
-          "t_contract(IERC20)5428": {
-            "label": "contract IERC20",
+          "t_contract(IERC20Upgradeable)6699": {
+            "label": "contract IERC20Upgradeable",
             "numberOfBytes": "20"
           },
           "t_contract(ITBTCVault)3440": {
             "label": "contract ITBTCVault",
             "numberOfBytes": "20"
           },
-          "t_contract(IWormhole)4366": {
+          "t_contract(IWormhole)5318": {
             "label": "contract IWormhole",
             "numberOfBytes": "20"
           },
-          "t_contract(IWormholeRelayer)4406": {
+          "t_contract(IWormholeRelayer)5358": {
             "label": "contract IWormholeRelayer",
             "numberOfBytes": "20"
           },
-          "t_contract(IWormholeTokenBridge)4491": {
+          "t_contract(IWormholeTokenBridge)5443": {
             "label": "contract IWormholeTokenBridge",
             "numberOfBytes": "20"
           },
@@ -273,12 +273,12 @@
               },
               {
                 "label": "gasSpent",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
+                "type": "t_uint96",
+                "offset": 20,
+                "slot": "0"
               }
             ],
-            "numberOfBytes": "64"
+            "numberOfBytes": "32"
           },
           "t_uint16": {
             "label": "uint16",
@@ -291,6 +291,10 @@
           "t_uint8": {
             "label": "uint8",
             "numberOfBytes": "1"
+          },
+          "t_uint96": {
+            "label": "uint96",
+            "numberOfBytes": "12"
           }
         }
       }
