@@ -9,10 +9,10 @@ import {
   IWormholeRelayer,
   L2BitcoinDepositor,
 } from "../../typechain"
-import type {
-  DepositRevealInfoStruct,
-  BitcoinTxInfoStruct,
-} from "../../typechain/L2BitcoinDepositor"
+import {
+  initializeDepositFixture,
+  toWormholeAddress,
+} from "./L1BitcoinDepositor.test"
 
 chai.use(smock.matchers)
 
@@ -69,37 +69,6 @@ describe("L2BitcoinDepositor", () => {
       l1BitcoinDepositor,
       l2BitcoinDepositor,
     }
-  }
-
-  type InitializeDepositFixture = {
-    fundingTx: BitcoinTxInfoStruct
-    reveal: DepositRevealInfoStruct
-    l2DepositOwner: string
-  }
-
-  // Fixture used for initializeDeposit test scenario.
-  const initializeDepositFixture: InitializeDepositFixture = {
-    fundingTx: {
-      version: "0x01000000",
-      inputVector:
-        "0x01dfe39760a5edabdab013114053d789ada21e356b59fea41d980396" +
-        "c1a4474fad0100000023220020e57edf10136b0434e46bc08c5ac5a1e4" +
-        "5f64f778a96f984d0051873c7a8240f2ffffffff",
-      outputVector:
-        "0x02804f1200000000002200202f601522e7bb1f7de5c56bdbd45590b3" +
-        "499bad09190581dcaa17e152d8f0c2a9b7e837000000000017a9148688" +
-        "4e6be1525dab5ae0b451bd2c72cee67dcf4187",
-      locktime: "0x00000000",
-    },
-    reveal: {
-      fundingOutputIndex: 0,
-      blindingFactor: "0xba863847d2d0fee3",
-      walletPubKeyHash: "0xf997563fee8610ca28f99ac05bd8a29506800d4d",
-      refundPubKeyHash: "0x7ac2d9378a1c47e589dfb8095ca95ed2140d2726",
-      refundLocktime: "0xde2b4c67",
-      vault: "0xB5679dE944A79732A75CE556191DF11F489448d5",
-    },
-    l2DepositOwner: "0x23b82a7108F9CEb34C3CDC44268be21D151d4124",
   }
 
   let governance: SignerWithAddress
@@ -379,8 +348,3 @@ describe("L2BitcoinDepositor", () => {
     })
   })
 })
-
-// eslint-disable-next-line import/prefer-default-export
-export function toWormholeAddress(address: string): string {
-  return `0x000000000000000000000000${address.slice(2)}`
-}

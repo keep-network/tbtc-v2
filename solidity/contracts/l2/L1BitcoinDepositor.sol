@@ -470,7 +470,21 @@ contract L1BitcoinDepositor is
             ? tx.gasprice
             : maxGasPrice;
 
-        return (refund / gasPrice) - staticGas;
+        // Should not happen but check just in case of weird ReimbursementPool
+        // configuration.
+        if (gasPrice == 0) {
+            return 0;
+        }
+
+        uint256 gasSpent = (refund / gasPrice);
+
+        // Should not happen but check just in case of weird ReimbursementPool
+        // configuration.
+        if (staticGas > gasSpent) {
+            return 0;
+        }
+
+        return gasSpent - staticGas;
     }
 
     /// @notice Quotes the payment that must be attached to the `finalizeDeposit`
