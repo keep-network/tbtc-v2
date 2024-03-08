@@ -189,7 +189,7 @@ contract L1BitcoinDepositor is
         l2WormholeGateway = _l2WormholeGateway;
         l2ChainId = _l2ChainId;
         l2FinalizeDepositGasLimit = 500_000;
-        initializeDepositGasOffset = 40_000;
+        initializeDepositGasOffset = 60_000;
         finalizeDepositGasOffset = 20_000;
     }
 
