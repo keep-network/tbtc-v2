@@ -93,7 +93,7 @@ contract L1BitcoinDepositor is
         /// @notice Receiver that is supposed to receive the reimbursement.
         address receiver;
         /// @notice Gas expenditure that is meant to be reimbursed.
-        uint256 gasSpent;
+        uint96 gasSpent;
     }
 
     /// @notice Holds the deposit state, keyed by the deposit key calculated for
@@ -189,7 +189,7 @@ contract L1BitcoinDepositor is
         l2WormholeGateway = _l2WormholeGateway;
         l2ChainId = _l2ChainId;
         l2FinalizeDepositGasLimit = 500_000;
-        initializeDepositGasOffset = 20_000;
+        initializeDepositGasOffset = 40_000;
         finalizeDepositGasOffset = 20_000;
     }
 
@@ -355,6 +355,16 @@ contract L1BitcoinDepositor is
         emit DepositInitialized(depositKey, l2DepositOwner, msg.sender);
 
         if (address(reimbursementPool) != address(0)) {
+            uint256 gasSpent = (gasStart - gasleft()) +
+                initializeDepositGasOffset;
+
+            // Should not happen as long as initializeDepositGasOffset is
+            // set to a reasonable value. If it happens, it's better to
+            // omit the reimbursement than to revert the transaction.
+            if (gasSpent > type(uint96).max) {
+                return;
+            }
+
             // Do not issue a reimbursement immediately. Record
             // a deferred reimbursement that will be paid out upon deposit
             // finalization. This is because the tBTC Bridge accepts all
@@ -365,7 +375,7 @@ contract L1BitcoinDepositor is
             // slither-disable-next-line reentrancy-benign
             gasReimbursements[depositKey] = GasReimbursement({
                 receiver: msg.sender,
-                gasSpent: (gasStart - gasleft()) + initializeDepositGasOffset
+                gasSpent: uint96(gasSpent)
             });
         }
     }
