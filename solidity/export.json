@@ -8749,6 +8749,754 @@
         }
       ]
     },
+    "RedemptionWatchtower": {
+      "address": "0xB8dF0A949aC45ff8f401553A1dcb742Feb38E6D3",
+      "abi": [
+        {
+          "inputs": [],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            }
+          ],
+          "name": "Banned",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            }
+          ],
+          "name": "GuardianAdded",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            }
+          ],
+          "name": "GuardianRemoved",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint8",
+              "name": "version",
+              "type": "uint8"
+            }
+          ],
+          "name": "Initialized",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            }
+          ],
+          "name": "ObjectionRaised",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "previousOwner",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "OwnershipTransferred",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            }
+          ],
+          "name": "Unbanned",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            }
+          ],
+          "name": "VetoFinalized",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            }
+          ],
+          "name": "VetoPeriodCheckOmitted",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint64",
+              "name": "amount",
+              "type": "uint64"
+            }
+          ],
+          "name": "VetoedFundsWithdrawn",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "disabledAt",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "executor",
+              "type": "address"
+            }
+          ],
+          "name": "WatchtowerDisabled",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "enabledAt",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "manager",
+              "type": "address"
+            }
+          ],
+          "name": "WatchtowerEnabled",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "watchtowerLifetime",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint64",
+              "name": "vetoPenaltyFeeDivisor",
+              "type": "uint64"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "vetoFreezePeriod",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "defaultDelay",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "levelOneDelay",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "levelTwoDelay",
+              "type": "uint32"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint64",
+              "name": "waivedAmountLimit",
+              "type": "uint64"
+            }
+          ],
+          "name": "WatchtowerParametersUpdated",
+          "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "REQUIRED_OBJECTIONS_COUNT",
+          "outputs": [
+            {
+              "internalType": "uint8",
+              "name": "",
+              "type": "uint8"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            }
+          ],
+          "name": "addGuardian",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "bank",
+          "outputs": [
+            {
+              "internalType": "contract Bank",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "bridge",
+          "outputs": [
+            {
+              "internalType": "contract Bridge",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "defaultDelay",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "disableWatchtower",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_manager",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "_guardians",
+              "type": "address[]"
+            }
+          ],
+          "name": "enableWatchtower",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            }
+          ],
+          "name": "getRedemptionDelay",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract Bridge",
+              "name": "_bridge",
+              "type": "address"
+            }
+          ],
+          "name": "initialize",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "isBanned",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "isGuardian",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes20",
+              "name": "walletPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes",
+              "name": "redeemerOutputScript",
+              "type": "bytes"
+            },
+            {
+              "internalType": "address",
+              "name": "balanceOwner",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            }
+          ],
+          "name": "isSafeRedemption",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "levelOneDelay",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "levelTwoDelay",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "manager",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "objections",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "owner",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes20",
+              "name": "walletPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes",
+              "name": "redeemerOutputScript",
+              "type": "bytes"
+            }
+          ],
+          "name": "raiseObjection",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            }
+          ],
+          "name": "removeGuardian",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "renounceOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "transferOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            }
+          ],
+          "name": "unban",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint32",
+              "name": "_watchtowerLifetime",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "_vetoPenaltyFeeDivisor",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_vetoFreezePeriod",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_defaultDelay",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_levelOneDelay",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint32",
+              "name": "_levelTwoDelay",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "_waivedAmountLimit",
+              "type": "uint64"
+            }
+          ],
+          "name": "updateWatchtowerParameters",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "vetoFreezePeriod",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "vetoPenaltyFeeDivisor",
+          "outputs": [
+            {
+              "internalType": "uint64",
+              "name": "",
+              "type": "uint64"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "vetoProposals",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "redeemer",
+              "type": "address"
+            },
+            {
+              "internalType": "uint64",
+              "name": "withdrawableAmount",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint32",
+              "name": "finalizedAt",
+              "type": "uint32"
+            },
+            {
+              "internalType": "uint8",
+              "name": "objectionsCount",
+              "type": "uint8"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "waivedAmountLimit",
+          "outputs": [
+            {
+              "internalType": "uint64",
+              "name": "",
+              "type": "uint64"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "watchtowerDisabledAt",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "watchtowerEnabledAt",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "watchtowerLifetime",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "redemptionKey",
+              "type": "uint256"
+            }
+          ],
+          "name": "withdrawVetoedFunds",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]
+    },
     "TBTC": {
       "address": "0x18084fbA666a33d37592fA2633fD49a74DD93a88",
       "abi": [
@@ -15164,289 +15912,93 @@
         }
       ]
     },
-    "RedemptionWatchtower": {
-      "address": "0xB8dF0A949aC45ff8f401553A1dcb742Feb38E6D3",
+    "WalletProposalValidator": {
+      "address": "0x30019D85a86ABD3cDA1167F4C052690c32FBDEc2",
       "abi": [
         {
-          "inputs": [],
+          "inputs": [
+            {
+              "internalType": "contract Bridge",
+              "name": "_bridge",
+              "type": "address"
+            }
+          ],
           "stateMutability": "nonpayable",
           "type": "constructor"
         },
         {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
-            }
-          ],
-          "name": "Banned",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
-            }
-          ],
-          "name": "GuardianAdded",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
-            }
-          ],
-          "name": "GuardianRemoved",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "uint8",
-              "name": "version",
-              "type": "uint8"
-            }
-          ],
-          "name": "Initialized",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
-            }
-          ],
-          "name": "ObjectionRaised",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "previousOwner",
-              "type": "address"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "newOwner",
-              "type": "address"
-            }
-          ],
-          "name": "OwnershipTransferred",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
-            }
-          ],
-          "name": "Unbanned",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            }
-          ],
-          "name": "VetoFinalized",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            }
-          ],
-          "name": "VetoPeriodCheckOmitted",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint64",
-              "name": "amount",
-              "type": "uint64"
-            }
-          ],
-          "name": "VetoedFundsWithdrawn",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "disabledAt",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "executor",
-              "type": "address"
-            }
-          ],
-          "name": "WatchtowerDisabled",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "enabledAt",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "manager",
-              "type": "address"
-            }
-          ],
-          "name": "WatchtowerEnabled",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "watchtowerLifetime",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint64",
-              "name": "vetoPenaltyFeeDivisor",
-              "type": "uint64"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "vetoFreezePeriod",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "defaultDelay",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "levelOneDelay",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint32",
-              "name": "levelTwoDelay",
-              "type": "uint32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint64",
-              "name": "waivedAmountLimit",
-              "type": "uint64"
-            }
-          ],
-          "name": "WatchtowerParametersUpdated",
-          "type": "event"
-        },
-        {
           "inputs": [],
-          "name": "REQUIRED_OBJECTIONS_COUNT",
+          "name": "DEPOSIT_MIN_AGE",
           "outputs": [
             {
-              "internalType": "uint8",
+              "internalType": "uint32",
               "name": "",
-              "type": "uint8"
+              "type": "uint32"
             }
           ],
           "stateMutability": "view",
           "type": "function"
         },
         {
-          "inputs": [
+          "inputs": [],
+          "name": "DEPOSIT_REFUND_SAFETY_MARGIN",
+          "outputs": [
             {
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
             }
           ],
-          "name": "addGuardian",
-          "outputs": [],
-          "stateMutability": "nonpayable",
+          "stateMutability": "view",
           "type": "function"
         },
         {
           "inputs": [],
-          "name": "bank",
+          "name": "DEPOSIT_SWEEP_MAX_SIZE",
           "outputs": [
             {
-              "internalType": "contract Bank",
+              "internalType": "uint16",
               "name": "",
-              "type": "address"
+              "type": "uint16"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_MAX_SIZE",
+          "outputs": [
+            {
+              "internalType": "uint16",
+              "name": "",
+              "type": "uint16"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_REQUEST_MIN_AGE",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
             }
           ],
           "stateMutability": "view",
@@ -15466,84 +16018,102 @@
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "defaultDelay",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "disableWatchtower",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
           "inputs": [
             {
-              "internalType": "address",
-              "name": "_manager",
-              "type": "address"
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "bytes32",
+                      "name": "fundingTxHash",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "uint32",
+                      "name": "fundingOutputIndex",
+                      "type": "uint32"
+                    }
+                  ],
+                  "internalType": "struct WalletProposalValidator.DepositKey[]",
+                  "name": "depositsKeys",
+                  "type": "tuple[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "sweepTxFee",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256[]",
+                  "name": "depositsRevealBlocks",
+                  "type": "uint256[]"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.DepositSweepProposal",
+              "name": "proposal",
+              "type": "tuple"
             },
             {
-              "internalType": "address[]",
-              "name": "_guardians",
-              "type": "address[]"
+              "components": [
+                {
+                  "components": [
+                    {
+                      "internalType": "bytes4",
+                      "name": "version",
+                      "type": "bytes4"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "inputVector",
+                      "type": "bytes"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "outputVector",
+                      "type": "bytes"
+                    },
+                    {
+                      "internalType": "bytes4",
+                      "name": "locktime",
+                      "type": "bytes4"
+                    }
+                  ],
+                  "internalType": "struct BitcoinTx.Info",
+                  "name": "fundingTx",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "bytes8",
+                  "name": "blindingFactor",
+                  "type": "bytes8"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "refundPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "refundLocktime",
+                  "type": "bytes4"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.DepositExtraInfo[]",
+              "name": "depositsExtraInfo",
+              "type": "tuple[]"
             }
           ],
-          "name": "enableWatchtower",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            }
-          ],
-          "name": "getRedemptionDelay",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "contract Bridge",
-              "name": "_bridge",
-              "type": "address"
-            }
-          ],
-          "name": "initialize",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "name": "isBanned",
+          "name": "validateDepositSweepProposal",
           "outputs": [
             {
               "internalType": "bool",
@@ -15557,12 +16127,24 @@
         {
           "inputs": [
             {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "message",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.HeartbeatProposal",
+              "name": "proposal",
+              "type": "tuple"
             }
           ],
-          "name": "isGuardian",
+          "name": "validateHeartbeatProposal",
           "outputs": [
             {
               "internalType": "bool",
@@ -15576,27 +16158,34 @@
         {
           "inputs": [
             {
-              "internalType": "bytes20",
-              "name": "walletPubKeyHash",
-              "type": "bytes20"
-            },
-            {
-              "internalType": "bytes",
-              "name": "redeemerOutputScript",
-              "type": "bytes"
-            },
-            {
-              "internalType": "address",
-              "name": "balanceOwner",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "movingFundsTxHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "movingFundsTxOutputIndex",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "movedFundsSweepTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.MovedFundsSweepProposal",
+              "name": "proposal",
+              "type": "tuple"
             }
           ],
-          "name": "isSafeRedemption",
+          "name": "validateMovedFundsSweepProposal",
           "outputs": [
             {
               "internalType": "bool",
@@ -15608,53 +16197,53 @@
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "levelOneDelay",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "levelTwoDelay",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "manager",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
           "inputs": [
             {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes20[]",
+                  "name": "targetWallets",
+                  "type": "bytes20[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "movingFundsTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.MovingFundsProposal",
+              "name": "proposal",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "bytes32",
+                  "name": "txHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "txOutputIndex",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "txOutputValue",
+                  "type": "uint64"
+                }
+              ],
+              "internalType": "struct BitcoinTx.UTXO",
+              "name": "walletMainUtxo",
+              "type": "tuple"
             }
           ],
-          "name": "objections",
+          "name": "validateMovingFundsProposal",
           "outputs": [
             {
               "internalType": "bool",
@@ -15666,248 +16255,39 @@
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "owner",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
           "inputs": [
             {
-              "internalType": "bytes20",
-              "name": "walletPubKeyHash",
-              "type": "bytes20"
-            },
-            {
-              "internalType": "bytes",
-              "name": "redeemerOutputScript",
-              "type": "bytes"
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
             }
           ],
-          "name": "raiseObjection",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
-            }
-          ],
-          "name": "removeGuardian",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "renounceOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "newOwner",
-              "type": "address"
-            }
-          ],
-          "name": "transferOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
-            }
-          ],
-          "name": "unban",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint32",
-              "name": "_watchtowerLifetime",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint64",
-              "name": "_vetoPenaltyFeeDivisor",
-              "type": "uint64"
-            },
-            {
-              "internalType": "uint32",
-              "name": "_vetoFreezePeriod",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint32",
-              "name": "_defaultDelay",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint32",
-              "name": "_levelOneDelay",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint32",
-              "name": "_levelTwoDelay",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint64",
-              "name": "_waivedAmountLimit",
-              "type": "uint64"
-            }
-          ],
-          "name": "updateWatchtowerParameters",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "vetoFreezePeriod",
+          "name": "validateRedemptionProposal",
           "outputs": [
             {
-              "internalType": "uint32",
+              "internalType": "bool",
               "name": "",
-              "type": "uint32"
+              "type": "bool"
             }
           ],
           "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "vetoPenaltyFeeDivisor",
-          "outputs": [
-            {
-              "internalType": "uint64",
-              "name": "",
-              "type": "uint64"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "name": "vetoProposals",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "redeemer",
-              "type": "address"
-            },
-            {
-              "internalType": "uint64",
-              "name": "withdrawableAmount",
-              "type": "uint64"
-            },
-            {
-              "internalType": "uint32",
-              "name": "finalizedAt",
-              "type": "uint32"
-            },
-            {
-              "internalType": "uint8",
-              "name": "objectionsCount",
-              "type": "uint8"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "waivedAmountLimit",
-          "outputs": [
-            {
-              "internalType": "uint64",
-              "name": "",
-              "type": "uint64"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "watchtowerDisabledAt",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "watchtowerEnabledAt",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "watchtowerLifetime",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "redemptionKey",
-              "type": "uint256"
-            }
-          ],
-          "name": "withdrawVetoedFunds",
-          "outputs": [],
-          "stateMutability": "nonpayable",
           "type": "function"
         }
       ]
