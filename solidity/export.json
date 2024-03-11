@@ -3301,7 +3301,7 @@
       ]
     },
     "BridgeGovernance": {
-      "address": "0xA94DD662E2A247493fACCeab9f2459AAF90778Ee",
+      "address": "0xf286EA706A2512d2B9232FE7F8b2724880230b45",
       "abi": [
         {
           "inputs": [
@@ -5213,6 +5213,19 @@
         {
           "inputs": [],
           "name": "renounceOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "redemptionWatchtower",
+              "type": "address"
+            }
+          ],
+          "name": "setRedemptionWatchtower",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
