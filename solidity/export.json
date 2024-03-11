@@ -1135,6 +1135,19 @@
           "anonymous": false,
           "inputs": [
             {
+              "indexed": false,
+              "internalType": "address",
+              "name": "redemptionWatchtower",
+              "type": "address"
+            }
+          ],
+          "name": "RedemptionWatchtowerSet",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
               "indexed": true,
               "internalType": "bytes20",
               "name": "walletPubKeyHash",
@@ -1523,6 +1536,11 @@
                   "internalType": "uint32",
                   "name": "sweptAt",
                   "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "extraData",
+                  "type": "bytes32"
                 }
               ],
               "internalType": "struct Deposit.DepositRequest",
@@ -1597,6 +1615,19 @@
               "internalType": "uint32",
               "name": "fraudNotifierRewardMultiplier",
               "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getRedemptionWatchtower",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -1919,6 +1950,24 @@
               "type": "bytes20"
             },
             {
+              "internalType": "bytes",
+              "name": "redeemerOutputScript",
+              "type": "bytes"
+            }
+          ],
+          "name": "notifyRedemptionVeto",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes20",
+              "name": "walletPubKeyHash",
+              "type": "bytes20"
+            },
+            {
               "components": [
                 {
                   "internalType": "bytes32",
@@ -2227,6 +2276,96 @@
             }
           ],
           "name": "revealDeposit",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes4",
+                  "name": "version",
+                  "type": "bytes4"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "inputVector",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "outputVector",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "locktime",
+                  "type": "bytes4"
+                }
+              ],
+              "internalType": "struct BitcoinTx.Info",
+              "name": "fundingTx",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint32",
+                  "name": "fundingOutputIndex",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes8",
+                  "name": "blindingFactor",
+                  "type": "bytes8"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "refundPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "refundLocktime",
+                  "type": "bytes4"
+                },
+                {
+                  "internalType": "address",
+                  "name": "vault",
+                  "type": "address"
+                }
+              ],
+              "internalType": "struct Deposit.DepositRevealInfo",
+              "name": "reveal",
+              "type": "tuple"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "extraData",
+              "type": "bytes32"
+            }
+          ],
+          "name": "revealDepositWithExtraData",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "redemptionWatchtower",
+              "type": "address"
+            }
+          ],
+          "name": "setRedemptionWatchtower",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -6223,7 +6362,7 @@
       ]
     },
     "Deposit": {
-      "address": "0x1Ac1841a47054E070236F1664991e52c30C04dC5",
+      "address": "0xCD2EbDA2beA80484C55675e1965149054dCcD137",
       "abi": [
         {
           "anonymous": false,
@@ -6289,7 +6428,7 @@
       ]
     },
     "DepositSweep": {
-      "address": "0x53f26BfE896CC4267720cDAf64E9A0c8Fa8f13c2",
+      "address": "0x392635646Bc22FC13C86859d1f02B27974aC9b95",
       "abi": [
         {
           "anonymous": false,
@@ -6415,7 +6554,7 @@
       ]
     },
     "Fraud": {
-      "address": "0xd040Def4bC6372Cd27b433288008aDCe7c9de71C",
+      "address": "0x51bBeF1c7cC3a1D3bC5E64CE6C3BA6E66fbA3559",
       "abi": [
         {
           "anonymous": false,
@@ -8380,7 +8519,7 @@
       ]
     },
     "MovingFunds": {
-      "address": "0x3106675EDE4A64d70131247466FD8704A3d42123",
+      "address": "0x3E0407765FaC663d391aE738f3Aa0c98EAb67a90",
       "abi": [
         {
           "anonymous": false,
@@ -8512,7 +8651,7 @@
       ]
     },
     "Redemption": {
-      "address": "0x7D807e9CE1ef73048FEe9A4214e75e894ea25914",
+      "address": "0x8EF1BEDA734E696CC055269b46BB5a0EC7Ac9f5E",
       "abi": [
         {
           "anonymous": false,
@@ -12307,7 +12446,7 @@
       ]
     },
     "Wallets": {
-      "address": "0xC67913137429985416DbCe28D9fa9ec960BA47BF",
+      "address": "0xc989d3E486AAe6355F65281B4d0bde08c8e32fBC",
       "abi": [
         {
           "anonymous": false,
