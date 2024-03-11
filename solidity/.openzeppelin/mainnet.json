@@ -14,6 +14,11 @@
       "address": "0x64EA4b84e2BdfD313428b96658260E495a420093",
       "txHash": "0x0a8cd2034987664518ad1583c484fb43031f73edcd8e5e3d38dafc08de6f6bb1",
       "kind": "transparent"
+    },
+    {
+      "address": "0xB8dF0A949aC45ff8f401553A1dcb742Feb38E6D3",
+      "txHash": "0xb74ab579e8858301eeb9813c870a9cb3d8c1f3ba66715b024d6891e713e17c60",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -3321,6 +3326,268 @@
           "t_uint96": {
             "label": "uint96",
             "numberOfBytes": "12"
+          }
+        }
+      }
+    },
+    "3dde92409075bcb001c27423ca3fe84f0652ea92c6bed68a1503040d8a868b85": {
+      "address": "0xbfD04E3928923aD8C86256B9A8F64eBD01Cf1dAf",
+      "txHash": "0x84507b61da4a87b104c70a715742b86c3742028867e758ac1a00eac1bc02b46f",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "isGuardian",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:62"
+          },
+          {
+            "label": "isBanned",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:66"
+          },
+          {
+            "label": "vetoProposals",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_mapping(t_uint256,t_struct(VetoProposal)34059_storage)",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:74"
+          },
+          {
+            "label": "objections",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:82"
+          },
+          {
+            "label": "bridge",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_contract(Bridge)25855",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:84"
+          },
+          {
+            "label": "watchtowerEnabledAt",
+            "offset": 20,
+            "slot": "105",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:87"
+          },
+          {
+            "label": "watchtowerLifetime",
+            "offset": 24,
+            "slot": "105",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:91"
+          },
+          {
+            "label": "watchtowerDisabledAt",
+            "offset": 28,
+            "slot": "105",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:92"
+          },
+          {
+            "label": "manager",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_address",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:94"
+          },
+          {
+            "label": "vetoPenaltyFeeDivisor",
+            "offset": 20,
+            "slot": "106",
+            "type": "t_uint64",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:103"
+          },
+          {
+            "label": "vetoFreezePeriod",
+            "offset": 28,
+            "slot": "106",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:109"
+          },
+          {
+            "label": "bank",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_contract(Bank)23538",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:111"
+          },
+          {
+            "label": "defaultDelay",
+            "offset": 20,
+            "slot": "107",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:117"
+          },
+          {
+            "label": "levelOneDelay",
+            "offset": 24,
+            "slot": "107",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:124"
+          },
+          {
+            "label": "levelTwoDelay",
+            "offset": 28,
+            "slot": "107",
+            "type": "t_uint32",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:133"
+          },
+          {
+            "label": "waivedAmountLimit",
+            "offset": 0,
+            "slot": "108",
+            "type": "t_uint64",
+            "contract": "RedemptionWatchtower",
+            "src": "contracts/bridge/RedemptionWatchtower.sol:146"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(Bank)23538": {
+            "label": "contract Bank",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Bridge)25855": {
+            "label": "contract Bridge",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(VetoProposal)34059_storage)": {
+            "label": "mapping(uint256 => struct RedemptionWatchtower.VetoProposal)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(VetoProposal)34059_storage": {
+            "label": "struct RedemptionWatchtower.VetoProposal",
+            "members": [
+              {
+                "label": "redeemer",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "withdrawableAmount",
+                "type": "t_uint64",
+                "offset": 20,
+                "slot": "0"
+              },
+              {
+                "label": "finalizedAt",
+                "type": "t_uint32",
+                "offset": 28,
+                "slot": "0"
+              },
+              {
+                "label": "objectionsCount",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
           }
         }
       }
