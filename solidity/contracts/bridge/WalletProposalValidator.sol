@@ -216,7 +216,7 @@ contract WalletProposalValidator {
     /// @param depositsExtraInfo Deposits extra info required to perform the validation.
     /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
-    ///      - The target wallet must be in the Live state,
+    ///      - The target wallet must be in the Live or MovingFunds state,
     ///      - The number of deposits included in the sweep must be in
     ///        the range [1, `DEPOSIT_SWEEP_MAX_SIZE`],
     ///      - The length of `depositsExtraInfo` array must be equal to the
@@ -242,10 +242,14 @@ contract WalletProposalValidator {
         DepositSweepProposal calldata proposal,
         DepositExtraInfo[] calldata depositsExtraInfo
     ) external view returns (bool) {
+        Wallets.Wallet memory wallet = bridge.wallets(
+            proposal.walletPubKeyHash
+        );
+
         require(
-            bridge.wallets(proposal.walletPubKeyHash).state ==
-                Wallets.WalletState.Live,
-            "Wallet is not in Live state"
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet is not in Live or MovingFunds state"
         );
 
         require(proposal.depositsKeys.length > 0, "Sweep below the min size");
@@ -517,7 +521,7 @@ contract WalletProposalValidator {
     /// @param proposal The redemption proposal to validate.
     /// @return True if the proposal is valid. Reverts otherwise.
     /// @dev Requirements:
-    ///      - The target wallet must be in the Live state,
+    ///      - The target wallet must be in the Live or MovingFunds state,
     ///      - The number of redemption requests included in the redemption
     ///        proposal must be in the range [1, `redemptionMaxSize`],
     ///      - The proposed redemption tx fee must be grater than zero,
@@ -539,10 +543,14 @@ contract WalletProposalValidator {
         view
         returns (bool)
     {
+        Wallets.Wallet memory wallet = bridge.wallets(
+            proposal.walletPubKeyHash
+        );
+
         require(
-            bridge.wallets(proposal.walletPubKeyHash).state ==
-                Wallets.WalletState.Live,
-            "Wallet is not in Live state"
+            wallet.state == Wallets.WalletState.Live ||
+                wallet.state == Wallets.WalletState.MovingFunds,
+            "Wallet is not in Live or MovingFunds state"
         );
 
         uint256 requestsCount = proposal.redeemersOutputScripts.length;
