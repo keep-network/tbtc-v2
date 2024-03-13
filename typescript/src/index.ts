@@ -1,4 +1,5 @@
 // Export shared library modules.
+export * from "./lib/base"
 export * from "./lib/bitcoin"
 export * from "./lib/contracts"
 export * from "./lib/electrum"

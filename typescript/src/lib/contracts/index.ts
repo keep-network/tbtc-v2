@@ -1,6 +1,8 @@
 export * from "./bridge"
+export * from "./chain"
 export * from "./chain-event"
 export * from "./chain-identifier"
+export * from "./cross-chain"
 export * from "./depositor-proxy"
 export * from "./tbtc-token"
 export * from "./tbtc-vault"
@@ -12,7 +14,7 @@ import { TBTCVault } from "./tbtc-vault"
 import { WalletRegistry } from "./wallet-registry"
 
 /**
- * Convenience type aggregating all TBTC contracts handles.
+ * Convenience type aggregating all TBTC core contracts.
  */
 export type TBTCContracts = {
   bridge: Bridge
