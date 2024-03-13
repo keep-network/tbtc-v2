@@ -220,4 +220,8 @@ contract MockTBTCVault is ITBTCVault {
     function setOptimisticMintingFeeDivisor(uint32 value) external {
         optimisticMintingFeeDivisor = value;
     }
+
+    function tbtcToken() external view returns (address) {
+        revert("Not implemented");
+    }
 }

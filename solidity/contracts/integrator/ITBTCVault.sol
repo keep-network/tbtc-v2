@@ -25,4 +25,7 @@ interface ITBTCVault {
 
     /// @dev See {TBTCVault#optimisticMintingFeeDivisor}
     function optimisticMintingFeeDivisor() external view returns (uint32);
+
+    /// @dev See {TBTCVault#tbtcToken}
+    function tbtcToken() external view returns (address);
 }

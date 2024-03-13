@@ -133,8 +133,8 @@ abstract contract AbstractTBTCDepositor {
     ///      as the Bridge won't allow the same deposit to be revealed twice.
     // slither-disable-next-line dead-code
     function _initializeDeposit(
-        IBridgeTypes.BitcoinTxInfo calldata fundingTx,
-        IBridgeTypes.DepositRevealInfo calldata reveal,
+        IBridgeTypes.BitcoinTxInfo memory fundingTx,
+        IBridgeTypes.DepositRevealInfo memory reveal,
         bytes32 extraData
     ) internal returns (uint256 depositKey, uint256 initialDepositAmount) {
         require(reveal.vault == address(tbtcVault), "Vault address mismatch");
@@ -278,7 +278,7 @@ abstract contract AbstractTBTCDepositor {
     /// @param txInfo Bitcoin transaction data, see `IBridgeTypes.BitcoinTxInfo` struct.
     /// @return txHash Bitcoin transaction hash.
     // slither-disable-next-line dead-code
-    function _calculateBitcoinTxHash(IBridgeTypes.BitcoinTxInfo calldata txInfo)
+    function _calculateBitcoinTxHash(IBridgeTypes.BitcoinTxInfo memory txInfo)
         internal
         view
         returns (bytes32)

@@ -20,50 +20,8 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
+import "./Wormhole.sol";
 import "./L2TBTC.sol";
-
-/// @title IWormholeTokenBridge
-/// @notice Wormhole Token Bridge interface. Contains only selected functions
-///         used by L2WormholeGateway.
-interface IWormholeTokenBridge {
-    function completeTransferWithPayload(bytes memory encodedVm)
-        external
-        returns (bytes memory);
-
-    function parseTransferWithPayload(bytes memory encoded)
-        external
-        pure
-        returns (TransferWithPayload memory transfer);
-
-    function transferTokens(
-        address token,
-        uint256 amount,
-        uint16 recipientChain,
-        bytes32 recipient,
-        uint256 arbiterFee,
-        uint32 nonce
-    ) external payable returns (uint64 sequence);
-
-    function transferTokensWithPayload(
-        address token,
-        uint256 amount,
-        uint16 recipientChain,
-        bytes32 recipient,
-        uint32 nonce,
-        bytes memory payload
-    ) external payable returns (uint64 sequence);
-
-    struct TransferWithPayload {
-        uint8 payloadID;
-        uint256 amount;
-        bytes32 tokenAddress;
-        uint16 tokenChain;
-        bytes32 to;
-        uint16 toChain;
-        bytes32 fromAddress;
-        bytes payload;
-    }
-}
 
 /// @title L2WormholeGateway
 /// @notice Selected cross-ecosystem bridges are given the minting authority for
@@ -100,6 +58,7 @@ interface IWormholeTokenBridge {
 ///         Wormhole tBTC representation through the bridge in an equal amount.
 /// @dev This contract is supposed to be deployed behind a transparent
 ///      upgradeable proxy.
+// slither-disable-next-line missing-inheritance
 contract L2WormholeGateway is
     Initializable,
     OwnableUpgradeable,
@@ -216,7 +175,7 @@ contract L2WormholeGateway is
 
         // Normalize the amount to bridge. The dust can not be bridged due to
         // the decimal shift in the Wormhole Bridge contract.
-        amount = normalize(amount);
+        amount = WormholeUtils.normalize(amount);
 
         // Check again after dropping the dust.
         require(amount != 0, "Amount too low to bridge");
@@ -362,7 +321,7 @@ contract L2WormholeGateway is
         pure
         returns (bytes32)
     {
-        return bytes32(uint256(uint160(_address)));
+        return WormholeUtils.toWormholeAddress(_address);
     }
 
     /// @notice Converts Wormhole address into Ethereum format.
@@ -372,16 +331,6 @@ contract L2WormholeGateway is
         pure
         returns (address)
     {
-        return address(uint160(uint256(_address)));
-    }
-
-    /// @dev Eliminates the dust that cannot be bridged with Wormhole
-    ///      due to the decimal shift in the Wormhole Bridge contract.
-    ///      See https://github.com/wormhole-foundation/wormhole/blob/96682bdbeb7c87bfa110eade0554b3d8cbf788d2/ethereum/contracts/bridge/Bridge.sol#L276-L288
-    function normalize(uint256 amount) internal pure returns (uint256) {
-        // slither-disable-next-line divide-before-multiply
-        amount /= 10**10;
-        amount *= 10**10;
-        return amount;
+        return WormholeUtils.fromWormholeAddress(_address);
     }
 }
