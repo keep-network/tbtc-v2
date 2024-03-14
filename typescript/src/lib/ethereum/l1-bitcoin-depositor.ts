@@ -153,7 +153,7 @@ export class EthereumCrossChainExtraDataEncoder
    */
   decodeDepositOwner(extraData: Hex): ChainIdentifier {
     // Cut the first 12 zero bytes of the extra data and convert the rest to
-
+    // an Ethereum address.
     return EthereumAddress.from(
       Hex.from(extraData.toBuffer().subarray(12)).toString()
     )

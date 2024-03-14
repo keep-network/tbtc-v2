@@ -17,6 +17,7 @@ import { assertContractCalledWith } from "../utils/helpers"
 import { expect } from "chai"
 import { BigNumber } from "ethers"
 
+// ABI imports.
 import { abi as BaseL2BitcoinDepositorABI } from "../../src/lib/base/artifacts/baseSepolia/BaseL2BitcoinDepositor.json"
 import { abi as BaseL2TBTCTokenABI } from "../../src/lib/base/artifacts/baseSepolia/BaseTBTC.json"
 

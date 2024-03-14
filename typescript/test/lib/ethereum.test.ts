@@ -6,6 +6,13 @@ import {
   EthereumTBTCToken,
   ethereumAddressFromSigner,
   Hex,
+  chainIdFromSigner,
+  Chains,
+  BitcoinRawTxVectors,
+  DepositReceipt,
+  ChainIdentifier,
+  EthereumL1BitcoinDepositor,
+  EthereumCrossChainExtraDataEncoder,
 } from "../../src"
 import {
   deployMockContract,
@@ -13,12 +20,15 @@ import {
 } from "@ethereum-waffle/mock-contract"
 import chai, { expect } from "chai"
 import { BigNumber, Wallet, constants, getDefaultProvider, utils } from "ethers"
-import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
-import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
-import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
 import { assertContractCalledWith } from "../utils/helpers"
+
+// ABI imports.
+import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
+import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
+import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
+import { abi as BaseL1BitcoinDepositorABI } from "../../src/lib/ethereum/artifacts/sepolia/BaseL1BitcoinDepositor.json"
 
 chai.use(waffleChai)
 
@@ -645,6 +655,183 @@ describe("Ethereum", () => {
     })
   })
 
+  describe("EthereumL1BitcoinDepositor", () => {
+    let depositorContract: MockContract
+    let depositorHandle: EthereumL1BitcoinDepositor
+
+    beforeEach(async () => {
+      const [signer] = new MockProvider().getWallets()
+
+      depositorContract = await deployMockContract(
+        signer,
+        // Use Base for testing but this can be any supported L2 chain.
+        `${JSON.stringify(BaseL1BitcoinDepositorABI)}`
+      )
+
+      depositorHandle = new EthereumL1BitcoinDepositor(
+        {
+          address: depositorContract.address,
+          signerOrProvider: signer,
+        },
+        Chains.Ethereum.Sepolia,
+        "Base"
+      )
+    })
+
+    describe("initializeDeposit", () => {
+      // Just short byte strings for clarity.
+      const depositTx: BitcoinRawTxVectors = {
+        version: Hex.from("00000000"),
+        inputs: Hex.from("11111111"),
+        outputs: Hex.from("22222222"),
+        locktime: Hex.from("33333333"),
+      }
+      const depositOutputIndex: number = 2
+      const deposit: DepositReceipt = {
+        depositor: EthereumAddress.from(
+          "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
+        ),
+        walletPublicKeyHash: Hex.from(
+          "8db50eb52063ea9d98b3eac91489a90f738986f6"
+        ),
+        refundPublicKeyHash: Hex.from(
+          "28e081f285138ccbe389c1eb8985716230129f89"
+        ),
+        blindingFactor: Hex.from("f9f0c90d00039523"),
+        refundLocktime: Hex.from("60bcea61"),
+        extraData: Hex.from(
+          "00000000000000000000000091fe5b7027c0cA767270bB1A474bA1338BA2A4d2"
+        ),
+      }
+      const vault: ChainIdentifier = EthereumAddress.from(
+        "82883a4c7a8dd73ef165deb402d432613615ced4"
+      )
+
+      context(
+        "when L2 deposit owner is properly encoded in the extra data",
+        () => {
+          beforeEach(async () => {
+            await depositorContract.mock.initializeDeposit.returns()
+
+            await depositorHandle.initializeDeposit(
+              depositTx,
+              depositOutputIndex,
+              deposit,
+              vault
+            )
+          })
+
+          it("should initialize the deposit", async () => {
+            assertContractCalledWith(depositorContract, "initializeDeposit", [
+              {
+                version: "0x00000000",
+                inputVector: "0x11111111",
+                outputVector: "0x22222222",
+                locktime: "0x33333333",
+              },
+              {
+                fundingOutputIndex: 2,
+                blindingFactor: "0xf9f0c90d00039523",
+                walletPubKeyHash: "0x8db50eb52063ea9d98b3eac91489a90f738986f6",
+                refundPubKeyHash: "0x28e081f285138ccbe389c1eb8985716230129f89",
+                refundLocktime: "0x60bcea61",
+                vault: "0x82883a4c7a8dd73ef165deb402d432613615ced4",
+              },
+              "0x91fe5b7027c0cA767270bB1A474bA1338BA2A4d2",
+            ])
+          })
+        }
+      )
+
+      context(
+        "when L2 deposit owner is not properly encoded in the extra data",
+        () => {
+          it("should throw", async () => {
+            await expect(
+              depositorHandle.initializeDeposit(
+                depositTx,
+                depositOutputIndex,
+                {
+                  ...deposit,
+                  extraData: undefined, // Set empty extra data.
+                },
+                vault
+              )
+            ).to.be.rejectedWith("Extra data is required")
+          })
+        }
+      )
+    })
+  })
+
+  describe("EthereumCrossChainExtraDataEncoder", () => {
+    let encoder: EthereumCrossChainExtraDataEncoder
+
+    beforeEach(async () => {
+      encoder = new EthereumCrossChainExtraDataEncoder()
+    })
+
+    describe("encodeDepositOwner", () => {
+      context("when the deposit owner is a proper Ethereum address", () => {
+        it("should encode the deposit owner", () => {
+          const depositOwner = EthereumAddress.from(
+            "91fe5b7027c0cA767270bB1A474bA1338BA2A4d2"
+          )
+
+          expect(encoder.encodeDepositOwner(depositOwner)).to.be.eql(
+            Hex.from(
+              "00000000000000000000000091fe5b7027c0cA767270bB1A474bA1338BA2A4d2"
+            )
+          )
+        })
+      })
+
+      context("when the deposit owner is not a proper Ethereum address", () => {
+        it("should throw", () => {
+          // Build a crap address.
+          const depositOwner = {
+            identifierHex: "1234",
+            equals: () => false,
+          }
+
+          expect(() => encoder.encodeDepositOwner(depositOwner)).to.throw(
+            "Invalid Ethereum address"
+          )
+        })
+      })
+    })
+
+    describe("decodeDepositOwner", () => {
+      context("when the extra data holds a proper Ethereum address", () => {
+        it("should decode the deposit owner", () => {
+          const extraData = Hex.from(
+            "00000000000000000000000091fe5b7027c0cA767270bB1A474bA1338BA2A4d2"
+          )
+
+          const actualAddress = encoder.decodeDepositOwner(extraData)
+          const expectedAddress = EthereumAddress.from(
+            "91fe5b7027c0cA767270bB1A474bA1338BA2A4d2"
+          )
+          expect(expectedAddress.equals(actualAddress)).to.be.true
+        })
+      })
+
+      context(
+        "when the extra data doesn't hold a proper Ethereum address",
+        () => {
+          it("should throw", () => {
+            // Build crap extra data.
+            const extraData = Hex.from("0000000000000000000000001234")
+
+            expect(() => encoder.decodeDepositOwner(extraData)).to.throw(
+              "Invalid Ethereum address"
+            )
+          })
+        }
+      )
+    })
+  })
+
   describe("ethereumAddressFromSigner", () => {
     context("when the signer is a wallet", () => {
       const [mockSigner] = new MockProvider().getWallets()
@@ -659,6 +846,22 @@ describe("Ethereum", () => {
       const mockProvider = getDefaultProvider()
       it("should return undefined", async () => {
         expect(await ethereumAddressFromSigner(mockProvider)).to.be.undefined
+      })
+    })
+  })
+
+  describe("chainIdFromSigner", () => {
+    context("when the signer is a wallet", () => {
+      const [mockSigner] = new MockProvider().getWallets()
+      it("should return the signer's network", async () => {
+        expect(await chainIdFromSigner(mockSigner)).to.be.eql("1337")
+      })
+    })
+
+    context("when the signer is a provider", () => {
+      const mockProvider = getDefaultProvider()
+      it("should return the signer's network", async () => {
+        expect(await chainIdFromSigner(mockProvider)).to.be.eql("1")
       })
     })
   })
