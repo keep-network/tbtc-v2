@@ -11,13 +11,14 @@ import {
   deployMockContract,
   MockContract,
 } from "@ethereum-waffle/mock-contract"
-import chai, { assert, expect } from "chai"
+import chai, { expect } from "chai"
 import { BigNumber, Wallet, constants, getDefaultProvider, utils } from "ethers"
 import { abi as BridgeABI } from "@keep-network/tbtc-v2/artifacts/Bridge.json"
 import { abi as TBTCTokenABI } from "@keep-network/tbtc-v2/artifacts/TBTC.json"
 import { abi as WalletRegistryABI } from "@keep-network/ecdsa/artifacts/WalletRegistry.json"
 import { MockProvider } from "@ethereum-waffle/provider"
 import { waffleChai } from "@ethereum-waffle/chai"
+import { assertContractCalledWith } from "../utils/helpers"
 
 chai.use(waffleChai)
 
@@ -557,35 +558,6 @@ describe("Ethereum", () => {
       })
     })
   })
-
-  // eslint-disable-next-line valid-jsdoc
-  /**
-   * Custom assertion used to check whether the given contract function was
-   * called with correct parameters. This is a workaround for Waffle's
-   * `calledOnContractWith` assertion bug described in the following issue:
-   * https://github.com/TrueFiEng/Waffle/issues/468
-   * @param contract Contract handle
-   * @param functionName Name of the checked function
-   * @param parameters Array of function's parameters
-   */
-  function assertContractCalledWith(
-    contract: MockContract,
-    functionName: string,
-    parameters: any[]
-  ) {
-    const functionCallData = contract.interface.encodeFunctionData(
-      functionName,
-      parameters
-    )
-
-    assert(
-      (contract.provider as unknown as MockProvider).callHistory.some(
-        (call) =>
-          call.address === contract.address && call.data === functionCallData
-      ),
-      "Expected contract function was not called"
-    )
-  }
 
   describe("EthereumTBTCToken", () => {
     let tbtcToken: MockContract
