@@ -10,14 +10,16 @@ Service exposing features related to tBTC v2 deposits.
 
 ### Properties
 
+- [#crossChainContracts](DepositsService.md##crosschaincontracts)
+- [#defaultDepositor](DepositsService.md##defaultdepositor)
 - [bitcoinClient](DepositsService.md#bitcoinclient)
-- [defaultDepositor](DepositsService.md#defaultdepositor)
 - [depositRefundLocktimeDuration](DepositsService.md#depositrefundlocktimeduration)
 - [tbtcContracts](DepositsService.md#tbtccontracts)
 
 ### Methods
 
 - [generateDepositReceipt](DepositsService.md#generatedepositreceipt)
+- [initiateCrossChainDeposit](DepositsService.md#initiatecrosschaindeposit)
 - [initiateDeposit](DepositsService.md#initiatedeposit)
 - [initiateDepositWithProxy](DepositsService.md#initiatedepositwithproxy)
 - [setDefaultDepositor](DepositsService.md#setdefaultdepositor)
@@ -26,7 +28,7 @@ Service exposing features related to tBTC v2 deposits.
 
 ### constructor
 
-• **new DepositsService**(`tbtcContracts`, `bitcoinClient`): [`DepositsService`](DepositsService.md)
+• **new DepositsService**(`tbtcContracts`, `bitcoinClient`, `crossChainContracts`): [`DepositsService`](DepositsService.md)
 
 #### Parameters
 
@@ -34,6 +36,7 @@ Service exposing features related to tBTC v2 deposits.
 | :------ | :------ |
 | `tbtcContracts` | [`TBTCContracts`](../README.md#tbtccontracts) |
 | `bitcoinClient` | [`BitcoinClient`](../interfaces/BitcoinClient.md) |
+| `crossChainContracts` | (`_`: ``"Base"``) => `undefined` \| [`CrossChainContracts`](../README.md#crosschaincontracts) |
 
 #### Returns
 
@@ -41,9 +44,51 @@ Service exposing features related to tBTC v2 deposits.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L41)
+[src/services/deposits/deposits-service.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L51)
 
 ## Properties
+
+### #crossChainContracts
+
+• `Private` `Readonly` **#crossChainContracts**: (`_`: ``"Base"``) => `undefined` \| [`CrossChainContracts`](../README.md#crosschaincontracts)
+
+#### Type declaration
+
+▸ (`_`): `undefined` \| [`CrossChainContracts`](../README.md#crosschaincontracts)
+
+Gets cross-chain contracts for the given supported L2 chain.
+
+##### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `_` | ``"Base"`` | Name of the L2 chain for which to get cross-chain contracts. |
+
+##### Returns
+
+`undefined` \| [`CrossChainContracts`](../README.md#crosschaincontracts)
+
+Cross-chain contracts for the given L2 chain or
+         undefined if not initialized.
+
+#### Defined in
+
+[src/services/deposits/deposits-service.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L49)
+
+___
+
+### #defaultDepositor
+
+• `Private` **#defaultDepositor**: `undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
+
+Chain-specific identifier of the default depositor used for deposits
+initiated by this service.
+
+#### Defined in
+
+[src/services/deposits/deposits-service.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L42)
+
+___
 
 ### bitcoinClient
 
@@ -53,20 +98,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L34)
-
-___
-
-### defaultDepositor
-
-• `Private` **defaultDepositor**: `undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
-
-Chain-specific identifier of the default depositor used for deposits
-initiated by this service.
-
-#### Defined in
-
-[src/services/deposits/deposits-service.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L39)
+[src/services/deposits/deposits-service.ts:37](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L37)
 
 ___
 
@@ -79,7 +111,7 @@ This is 9 month in seconds assuming 1 month = 30 days
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L26)
+[src/services/deposits/deposits-service.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L29)
 
 ___
 
@@ -91,7 +123,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L30)
+[src/services/deposits/deposits-service.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L33)
 
 ## Methods
 
@@ -113,7 +145,56 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:119](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L119)
+[src/services/deposits/deposits-service.ts:177](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L177)
+
+___
+
+### initiateCrossChainDeposit
+
+▸ **initiateCrossChainDeposit**(`bitcoinRecoveryAddress`, `l2ChainName`): `Promise`\<[`Deposit`](Deposit.md)\>
+
+Initiates the tBTC v2 cross-chain deposit process. A cross-chain deposit
+is a deposit that targets an L2 chain other than the L1 chain the tBTC
+system is deployed on. Such a deposit is initiated using a transaction
+on the L2 chain. To make it happen, the given L2 cross-chain contracts
+must be initialized along with a L2 signer first.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `bitcoinRecoveryAddress` | `string` | P2PKH or P2WPKH Bitcoin address that can be used for emergency recovery of the deposited funds. |
+| `l2ChainName` | ``"Base"`` | Name of the L2 chain the deposit is targeting. |
+
+#### Returns
+
+`Promise`\<[`Deposit`](Deposit.md)\>
+
+Handle to the initiated deposit process.
+
+**`Throws`**
+
+Throws an error if one of the following occurs:
+        - There are no active wallet in the Bridge contract
+        - The Bitcoin recovery address is not a valid P2(W)PKH
+        - The cross-chain contracts for the given L2 chain are not
+          initialized
+        - The L2 deposit owner cannot be resolved. This typically
+          happens if the L2 cross-chain contracts operate with a
+          read-only signer whose address cannot be resolved.
+
+**`See`**
+
+for cross-chain contracts initialization.
+
+**`Dev`**
+
+This is actually a call to initiateDepositWithProxy with a built-in
+     depositor proxy.
+
+#### Defined in
+
+[src/services/deposits/deposits-service.ts:157](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L157)
 
 ___
 
@@ -147,7 +228,7 @@ Throws an error if one of the following occurs:
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L61)
+[src/services/deposits/deposits-service.ts:76](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L76)
 
 ___
 
@@ -189,7 +270,7 @@ Throws an error if one of the following occurs:
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:100](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L100)
+[src/services/deposits/deposits-service.ts:115](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L115)
 
 ___
 
@@ -218,4 +299,4 @@ Typically, there is no need to use this method when DepositsService
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:197](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L197)
+[src/services/deposits/deposits-service.ts:255](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L255)
