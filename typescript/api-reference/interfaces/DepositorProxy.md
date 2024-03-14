@@ -10,6 +10,7 @@ optional 32-byte extra data field of the deposit script).
 
 ## Implemented by
 
+- [`CrossChainDepositor`](../classes/CrossChainDepositor.md)
 - [`EthereumDepositorProxy`](../classes/EthereumDepositorProxy.md)
 
 ## Table of contents

@@ -19,6 +19,7 @@
 - [BaseL2BitcoinDepositor](classes/BaseL2BitcoinDepositor.md)
 - [BaseL2TBTCToken](classes/BaseL2TBTCToken.md)
 - [BitcoinTxHash](classes/BitcoinTxHash.md)
+- [CrossChainDepositor](classes/CrossChainDepositor.md)
 - [Deposit](classes/Deposit.md)
 - [DepositFunding](classes/DepositFunding.md)
 - [DepositRefund](classes/DepositRefund.md)
@@ -78,6 +79,7 @@
 - [BitcoinUtxo](README.md#bitcoinutxo)
 - [ChainMapping](README.md#chainmapping)
 - [CrossChainContracts](README.md#crosschaincontracts)
+- [CrossChainDepositorMode](README.md#crosschaindepositormode)
 - [DepositRevealedEvent](README.md#depositrevealedevent)
 - [DkgResultApprovedEvent](README.md#dkgresultapprovedevent)
 - [DkgResultChallengedEvent](README.md#dkgresultchallengedevent)
@@ -185,6 +187,23 @@ between TBTC L1 ledger chain and a specific supported L2/side-chain.
 #### Defined in
 
 [src/lib/contracts/cross-chain.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L12)
+
+___
+
+### CrossChainDepositorMode
+
+Ƭ **CrossChainDepositorMode**: ``"L2Transaction"`` \| ``"L1Transaction"``
+
+Mode of operation for the cross-chain depositor proxy:
+- [L2Transaction]: The proxy will reveal the deposit using a transaction on
+  the L2 chain. The tBTC system is responsible for relaying the deposit to
+  the tBTC L1 chain.
+- [L1Transaction]: The proxy will directly reveal the deposit using a
+  transaction on the tBTC L1 chain.
+
+#### Defined in
+
+[src/services/deposits/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/cross-chain.ts#L19)
 
 ___
 
