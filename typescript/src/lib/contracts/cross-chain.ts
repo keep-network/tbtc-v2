@@ -1,6 +1,9 @@
 import { ChainIdentifier } from "./chain-identifier"
 import { BigNumber } from "ethers"
 import { ChainMapping, L2Chain } from "./chain"
+import { BitcoinRawTxVectors } from "../bitcoin"
+import { DepositReceipt } from "./bridge"
+import { Hex } from "../utils"
 
 /**
  * Convenience type aggregating TBTC cross-chain contracts forming a connector
@@ -67,6 +70,43 @@ export interface L2BitcoinDepositor {
    * Gets the chain-specific identifier of this contract.
    */
   getChainIdentifier(): ChainIdentifier
+
+  /**
+   * Gets the identifier that should be used as the owner of the deposits
+   * issued by this contract.
+   * @returns The identifier of the deposit owner or undefined if not set.
+   */
+  getDepositOwner(): ChainIdentifier | undefined
+
+  /**
+   * Sets the identifier that should be used as the owner of the deposits
+   * issued by this contract.
+   * @param depositOwner Identifier of the deposit owner or undefined to clear.
+   */
+  setDepositOwner(depositOwner: ChainIdentifier): void
+
+  /**
+   * @returns Extra data encoder for this contract. The encoder is used to
+   * encode and decode the extra data included in the cross-chain deposit script.
+   */
+  extraDataEncoder(): CrossChainExtraDataEncoder
+
+  /**
+   * Initializes the cross-chain deposit indirectly through the given L2 chain.
+   * @param depositTx Deposit transaction data
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit
+   * @param deposit Data of the revealed deposit
+   * @param vault Optional parameter denoting the vault the given deposit
+   *        should be routed to
+   * @returns Transaction hash of the reveal deposit transaction.
+   */
+  initializeDeposit(
+    depositTx: BitcoinRawTxVectors,
+    depositOutputIndex: number,
+    deposit: DepositReceipt,
+    vault?: ChainIdentifier
+  ): Promise<Hex>
 }
 
 /**
@@ -78,4 +118,49 @@ export interface L1BitcoinDepositor {
    * Gets the chain-specific identifier of this contract.
    */
   getChainIdentifier(): ChainIdentifier
+
+  /**
+   * @returns Extra data encoder for this contract. The encoder is used to
+   * encode and decode the extra data included in the cross-chain deposit script.
+   */
+  extraDataEncoder(): CrossChainExtraDataEncoder
+
+  /**
+   * Initializes the cross-chain deposit directly on the given L1 chain.
+   * @param depositTx Deposit transaction data
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit
+   * @param deposit Data of the revealed deposit
+   * @param vault Optional parameter denoting the vault the given deposit
+   *        should be routed to
+   * @returns Transaction hash of the reveal deposit transaction.
+   */
+  initializeDeposit(
+    depositTx: BitcoinRawTxVectors,
+    depositOutputIndex: number,
+    deposit: DepositReceipt,
+    vault?: ChainIdentifier
+  ): Promise<Hex>
+}
+
+/**
+ * Interface for encoding and decoding the extra data included in the
+ * cross-chain deposit script.
+ */
+export interface CrossChainExtraDataEncoder {
+  /**
+   * Encodes the given deposit owner identifier into the extra data.
+   * @param depositOwner Identifier of the deposit owner to encode.
+   *        For cross-chain deposits, the deposit owner is typically an
+   *        identifier on the L2 chain.
+   * @returns Encoded extra data.
+   */
+  encodeDepositOwner(depositOwner: ChainIdentifier): Hex
+
+  /**
+   * Decodes the extra data into the deposit owner identifier.
+   * @param extraData Extra data to decode.
+   * @returns Identifier of the deposit owner.
+   */
+  decodeDepositOwner(extraData: Hex): ChainIdentifier
 }

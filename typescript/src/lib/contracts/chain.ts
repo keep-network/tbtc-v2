@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /**
- * Chains supported by tBTC v2 SDK.
+ * Chains supported by tBTC v2 contracts.
  */
 export namespace Chains {
   export enum Ethereum {
@@ -16,7 +16,7 @@ export namespace Chains {
 }
 
 /**
- * Layer 2 chains supported by tBTC v2 SDK.
+ * Layer 2 chains supported by tBTC v2 contracts.
  */
 export type L2Chain = Exclude<keyof typeof Chains, "Ethereum">
 
@@ -35,7 +35,7 @@ export type ChainMapping = {
 }
 
 /**
- * List of chain mappings supported by tBTC v2 SDK.
+ * List of chain mappings supported by tBTC v2 contracts.
  */
 export const ChainMappings: ChainMapping[] = [
   {

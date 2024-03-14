@@ -7,10 +7,14 @@ import { L1BitcoinDepositor as L1BitcoinDepositorTypechain } from "../../../type
 import {
   ChainIdentifier,
   Chains,
+  CrossChainExtraDataEncoder,
+  DepositReceipt,
   L1BitcoinDepositor,
   L2Chain,
 } from "../contracts"
-import { EthereumAddress } from "./index"
+import { EthereumAddress, packRevealDepositParameters } from "./index"
+import { BitcoinRawTxVectors } from "../bitcoin"
+import { Hex } from "../utils"
 
 // TODO: Uncomment once BaseL1BitcoinDepositor is available on Ethereum mainnet.
 // import MainnetBaseL1BitcoinDepositorDeployment from "./artifacts/mainnet/BaseL1BitcoinDepositor.json"
@@ -46,6 +50,8 @@ export class EthereumL1BitcoinDepositor
   extends EthersContractHandle<L1BitcoinDepositorTypechain>
   implements L1BitcoinDepositor
 {
+  readonly #extraDataEncoder: CrossChainExtraDataEncoder
+
   constructor(
     config: EthersContractConfig,
     chainId: Chains.Ethereum,
@@ -65,6 +71,8 @@ export class EthereumL1BitcoinDepositor
     }
 
     super(config, deployment)
+
+    this.#extraDataEncoder = new EthereumCrossChainExtraDataEncoder()
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -73,5 +81,81 @@ export class EthereumL1BitcoinDepositor
    */
   getChainIdentifier(): ChainIdentifier {
     return EthereumAddress.from(this._instance.address)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {L1BitcoinDepositor#extraDataEncoder}
+   */
+  extraDataEncoder(): CrossChainExtraDataEncoder {
+    return this.#extraDataEncoder
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {L1BitcoinDepositor#initializeDeposit}
+   */
+  async initializeDeposit(
+    depositTx: BitcoinRawTxVectors,
+    depositOutputIndex: number,
+    deposit: DepositReceipt,
+    vault?: ChainIdentifier
+  ): Promise<Hex> {
+    const { fundingTx, reveal } = packRevealDepositParameters(
+      depositTx,
+      depositOutputIndex,
+      deposit,
+      vault
+    )
+
+    if (!deposit.extraData) {
+      throw new Error("Extra data is required")
+    }
+
+    const l2DepositOwner = this.extraDataEncoder().decodeDepositOwner(
+      deposit.extraData
+    )
+
+    const tx = await this._instance.initializeDeposit(
+      fundingTx,
+      reveal,
+      `0x${l2DepositOwner.identifierHex}`
+    )
+
+    return Hex.from(tx.hash)
+  }
+}
+
+/**
+ * Implementation of the Ethereum CrossChainExtraDataEncoder.
+ * @see {CrossChainExtraDataEncoder} for reference.
+ */
+export class EthereumCrossChainExtraDataEncoder
+  implements CrossChainExtraDataEncoder
+{
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {CrossChainExtraDataEncoder#encodeDepositOwner}
+   */
+  encodeDepositOwner(depositOwner: ChainIdentifier): Hex {
+    // Make sure we are dealing with an Ethereum address. If not, this
+    // call will throw.
+    const address = EthereumAddress.from(depositOwner.identifierHex)
+
+    // Extra data must be 32-byte so prefix the 20-byte address with
+    // 12 zero bytes.
+    return Hex.from(`000000000000000000000000${address.identifierHex}`)
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {CrossChainExtraDataEncoder#decodeDepositOwner}
+   */
+  decodeDepositOwner(extraData: Hex): ChainIdentifier {
+    // Cut the first 12 zero bytes of the extra data and convert the rest to
+
+    return EthereumAddress.from(
+      Hex.from(extraData.toBuffer().subarray(12)).toString()
+    )
   }
 }
