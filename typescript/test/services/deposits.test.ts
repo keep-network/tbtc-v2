@@ -22,6 +22,7 @@ import {
   DepositsService,
   EthereumAddress,
   extractBitcoinRawTxVectors,
+  L2Chain,
 } from "../../src"
 import { MockBitcoinClient } from "../utils/mock-bitcoin-client"
 import { MockTBTCContracts } from "../utils/mock-tbtc-contracts"
@@ -1620,7 +1621,12 @@ describe("Deposits", () => {
       let depositService: DepositsService
 
       beforeEach(async () => {
-        depositService = new DepositsService(tbtcContracts, bitcoinClient)
+        depositService = new DepositsService(
+          tbtcContracts,
+          bitcoinClient,
+          // Mock cross-chain contracts resolver.
+          (_: L2Chain) => undefined
+        )
       })
 
       context("when default depositor is not set", () => {
@@ -1801,7 +1807,12 @@ describe("Deposits", () => {
       let depositService: DepositsService
 
       beforeEach(async () => {
-        depositService = new DepositsService(tbtcContracts, bitcoinClient)
+        depositService = new DepositsService(
+          tbtcContracts,
+          bitcoinClient,
+          // Mock cross-chain contracts resolver.
+          (_: L2Chain) => undefined
+        )
       })
 
       context("when active wallet is not set", () => {

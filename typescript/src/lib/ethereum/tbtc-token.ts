@@ -23,7 +23,10 @@ export class EthereumTBTCToken
   extends EthersContractHandle<TBTCTypechain>
   implements TBTCToken
 {
-  constructor(config: EthersContractConfig, chainId: Chains.Ethereum) {
+  constructor(
+    config: EthersContractConfig,
+    chainId: Chains.Ethereum = Chains.Ethereum.Local
+  ) {
     let deployment: EthersContractDeployment
 
     switch (chainId) {
