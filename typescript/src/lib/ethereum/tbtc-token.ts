@@ -1,5 +1,5 @@
 import { TBTC as TBTCTypechain } from "../../../typechain/TBTC"
-import { ChainIdentifier, TBTCToken } from "../contracts"
+import { ChainIdentifier, Chains, TBTCToken } from "../contracts"
 import { BigNumber, ContractTransaction, utils } from "ethers"
 import { BitcoinHashUtils, BitcoinUtxo } from "../bitcoin"
 import { Hex } from "../utils"
@@ -25,18 +25,18 @@ export class EthereumTBTCToken
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "sepolia" | "mainnet" = "local"
+    chainId: Chains.Ethereum = Chains.Ethereum.Local
   ) {
     let deployment: EthersContractDeployment
 
-    switch (deploymentType) {
-      case "local":
+    switch (chainId) {
+      case Chains.Ethereum.Local:
         deployment = LocalTBTCTokenDeployment
         break
-      case "sepolia":
+      case Chains.Ethereum.Sepolia:
         deployment = SepoliaTBTCTokenDeployment
         break
-      case "mainnet":
+      case Chains.Ethereum.Mainnet:
         deployment = MainnetTBTCTokenDeployment
         break
       default:

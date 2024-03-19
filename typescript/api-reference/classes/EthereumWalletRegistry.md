@@ -42,14 +42,14 @@ for reference.
 
 ### constructor
 
-• **new EthereumWalletRegistry**(`config`, `deploymentType?`): [`EthereumWalletRegistry`](EthereumWalletRegistry.md)
+• **new EthereumWalletRegistry**(`config`, `chainId?`): [`EthereumWalletRegistry`](EthereumWalletRegistry.md)
 
 #### Parameters
 
 | Name | Type | Default value |
 | :------ | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) | `undefined` |
-| `deploymentType` | ``"local"`` \| ``"sepolia"`` \| ``"mainnet"`` | `"local"` |
+| `chainId` | [`Ethereum`](../enums/Chains.Ethereum.md) | `Chains.Ethereum.Local` |
 
 #### Returns
 
@@ -61,7 +61,7 @@ EthersContractHandle\&lt;WalletRegistryTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L32)
+[src/lib/ethereum/wallet-registry.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L33)
 
 ## Properties
 
@@ -153,7 +153,7 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L59)
+[src/lib/ethereum/wallet-registry.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L60)
 
 ___
 
@@ -180,7 +180,7 @@ WalletRegistry.getDkgResultApprovedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L125)
+[src/lib/ethereum/wallet-registry.ts:126](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L126)
 
 ___
 
@@ -207,7 +207,7 @@ WalletRegistry.getDkgResultChallengedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:150](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L150)
+[src/lib/ethereum/wallet-registry.ts:151](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L151)
 
 ___
 
@@ -234,7 +234,7 @@ WalletRegistry.getDkgResultSubmittedEvents
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L82)
+[src/lib/ethereum/wallet-registry.ts:83](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L83)
 
 ___
 
@@ -245,7 +245,7 @@ ___
 Get events emitted by the Ethereum contract.
 It starts searching from provided block number. If the GetEvents.Options#fromBlock
 option is missing it looks for a contract's defined property
-[_deployedAtBlockNumber](EthereumBridge.md#_deployedatblocknumber). If the property is missing starts searching
+[_deployedAtBlockNumber](BaseL2BitcoinDepositor.md#_deployedatblocknumber). If the property is missing starts searching
 from block `0`.
 
 #### Parameters
@@ -294,4 +294,4 @@ ___
 
 #### Defined in
 
-[src/lib/ethereum/wallet-registry.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L67)
+[src/lib/ethereum/wallet-registry.ts:68](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/wallet-registry.ts#L68)

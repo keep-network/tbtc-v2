@@ -1,14 +1,22 @@
-import { TBTCContracts } from "../contracts"
+import {
+  ChainMappings,
+  Chains,
+  CrossChainContractsLoader,
+  L2Chain,
+  TBTCContracts,
+} from "../contracts"
 import { providers, Signer } from "ethers"
 import { EthereumBridge } from "./bridge"
 import { EthereumWalletRegistry } from "./wallet-registry"
 import { EthereumTBTCToken } from "./tbtc-token"
 import { EthereumTBTCVault } from "./tbtc-vault"
 import { EthereumAddress } from "./address"
+import { EthereumL1BitcoinDepositor } from "./l1-bitcoin-depositor"
 
 export * from "./address"
 export * from "./bridge"
 export * from "./depositor-proxy"
+export * from "./l1-bitcoin-depositor"
 export * from "./tbtc-token"
 export * from "./tbtc-vault"
 export * from "./wallet-registry"
@@ -26,13 +34,13 @@ export { EthersContractConfig as EthereumContractConfig } from "./adapter"
 export type EthereumSigner = Signer | providers.Provider
 
 /**
- * Resolves the Ethereum network the given signer is tied to.
- * @param signer The signer whose network should be resolved.
- * @returns Ethereum network.
+ * Resolves the chain ID from the given signer.
+ * @param signer The signer whose chain ID should be resolved.
+ * @returns Chain ID as a string.
  */
-export async function ethereumNetworkFromSigner(
+export async function chainIdFromSigner(
   signer: EthereumSigner
-): Promise<EthereumNetwork> {
+): Promise<string> {
   let chainId: number
   if (Signer.isSigner(signer)) {
     chainId = await signer.getChainId()
@@ -41,14 +49,7 @@ export async function ethereumNetworkFromSigner(
     chainId = network.chainId
   }
 
-  switch (chainId) {
-    case 1:
-      return "mainnet"
-    case 11155111:
-      return "sepolia"
-    default:
-      return "local"
-  }
+  return chainId.toString()
 }
 
 /**
@@ -70,34 +71,29 @@ export async function ethereumAddressFromSigner(
 }
 
 /**
- * Supported Ethereum networks.
- */
-export type EthereumNetwork = "local" | "sepolia" | "mainnet"
-
-/**
- * Loads Ethereum implementation of tBTC contracts for the given Ethereum
- * network and attaches the given signer there.
+ * Loads Ethereum implementation of tBTC core contracts for the given Ethereum
+ * chain ID and attaches the given signer there.
  * @param signer Signer that should be attached to tBTC contracts.
- * @param network Ethereum network.
- * @returns Handle to tBTC contracts.
- * @throws Throws an error if the signer's Ethereum network is other than
+ * @param chainId Ethereum chain ID.
+ * @returns Handle to tBTC core contracts.
+ * @throws Throws an error if the signer's Ethereum chain ID is other than
  *         the one used to load tBTC contracts.
  */
-export async function loadEthereumContracts(
+export async function loadEthereumCoreContracts(
   signer: EthereumSigner,
-  network: EthereumNetwork
+  chainId: Chains.Ethereum
 ): Promise<TBTCContracts> {
-  const signerNetwork = await ethereumNetworkFromSigner(signer)
-  if (signerNetwork !== network) {
-    throw new Error("Signer uses different network than tBTC contracts")
+  const signerChainId = await chainIdFromSigner(signer)
+  if (signerChainId !== chainId) {
+    throw new Error("Signer uses different chain than Ethereum core contracts")
   }
 
-  const bridge = new EthereumBridge({ signerOrProvider: signer }, network)
-  const tbtcToken = new EthereumTBTCToken({ signerOrProvider: signer }, network)
-  const tbtcVault = new EthereumTBTCVault({ signerOrProvider: signer }, network)
+  const bridge = new EthereumBridge({ signerOrProvider: signer }, chainId)
+  const tbtcToken = new EthereumTBTCToken({ signerOrProvider: signer }, chainId)
+  const tbtcVault = new EthereumTBTCVault({ signerOrProvider: signer }, chainId)
   const walletRegistry = new EthereumWalletRegistry(
     { signerOrProvider: signer },
-    network
+    chainId
   )
 
   const bridgeWalletRegistry = await bridge.walletRegistry()
@@ -116,5 +112,44 @@ export async function loadEthereumContracts(
     tbtcToken,
     tbtcVault,
     walletRegistry,
+  }
+}
+
+/**
+ * Creates the Ethereum implementation of tBTC cross-chain contracts loader.
+ * The provided signer is attached to loaded L1 contracts. The given
+ * Ethereum chain ID is used to load the L1 contracts and resolve the chain
+ * mapping that provides corresponding L2 chains IDs.
+ * @param signer Ethereum L1 signer.
+ * @param chainId Ethereum L1 chain ID.
+ * @returns Loader for tBTC cross-chain contracts.
+ * @throws Throws an error if the signer's Ethereum chain ID is other than
+ *         the one used to construct the loader.
+ */
+export async function ethereumCrossChainContractsLoader(
+  signer: EthereumSigner,
+  chainId: Chains.Ethereum
+): Promise<CrossChainContractsLoader> {
+  const signerChainId = await chainIdFromSigner(signer)
+  if (signerChainId !== chainId) {
+    throw new Error(
+      "Signer uses different chain than Ethereum cross-chain contracts"
+    )
+  }
+
+  const loadChainMapping = () =>
+    ChainMappings.find((ecm) => ecm.ethereum === chainId)
+
+  const loadL1Contracts = async (l2ChainName: L2Chain) => ({
+    l1BitcoinDepositor: new EthereumL1BitcoinDepositor(
+      { signerOrProvider: signer },
+      chainId,
+      l2ChainName
+    ),
+  })
+
+  return {
+    loadChainMapping,
+    loadL1Contracts,
   }
 }

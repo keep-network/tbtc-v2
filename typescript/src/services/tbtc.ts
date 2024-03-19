@@ -1,15 +1,24 @@
 import { DepositsService } from "./deposits"
 import { MaintenanceService } from "./maintenance"
 import { RedemptionsService } from "./redemptions"
-import { TBTCContracts } from "../lib/contracts"
+import {
+  Chains,
+  CrossChainContracts,
+  CrossChainContractsLoader,
+  L1CrossChainContracts,
+  L2Chain,
+  L2CrossChainContracts,
+  TBTCContracts,
+} from "../lib/contracts"
 import { BitcoinClient, BitcoinNetwork } from "../lib/bitcoin"
 import {
   ethereumAddressFromSigner,
-  EthereumNetwork,
   EthereumSigner,
-  loadEthereumContracts,
+  ethereumCrossChainContractsLoader,
+  loadEthereumCoreContracts,
 } from "../lib/ethereum"
 import { ElectrumClient } from "../lib/electrum"
+import { loadBaseCrossChainContracts } from "../lib/base"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -36,16 +45,33 @@ export class TBTC {
    * Bitcoin client handle for low-level access.
    */
   public readonly bitcoinClient: BitcoinClient
+  /**
+   * Reference to the cross-chain contracts loader.
+   */
+  readonly #crossChainContractsLoader?: CrossChainContractsLoader
+  /**
+   * Mapping of cross-chain contracts for different supported L2 chains.
+   * Each set of cross-chain contracts must be first initialized using
+   * the `initializeCrossChain` method.
+   */
+  readonly #crossChainContracts: Map<L2Chain, CrossChainContracts>
 
   private constructor(
     tbtcContracts: TBTCContracts,
-    bitcoinClient: BitcoinClient
+    bitcoinClient: BitcoinClient,
+    crossChainContractsLoader?: CrossChainContractsLoader
   ) {
-    this.deposits = new DepositsService(tbtcContracts, bitcoinClient)
+    this.deposits = new DepositsService(
+      tbtcContracts,
+      bitcoinClient,
+      (l2ChainName) => this.crossChainContracts(l2ChainName)
+    )
     this.maintenance = new MaintenanceService(tbtcContracts, bitcoinClient)
     this.redemptions = new RedemptionsService(tbtcContracts, bitcoinClient)
     this.tbtcContracts = tbtcContracts
     this.bitcoinClient = bitcoinClient
+    this.#crossChainContractsLoader = crossChainContractsLoader
+    this.#crossChainContracts = new Map<L2Chain, CrossChainContracts>()
   }
 
   /**
@@ -58,7 +84,11 @@ export class TBTC {
    *         Ethereum mainnet.
    */
   static async initializeMainnet(signer: EthereumSigner): Promise<TBTC> {
-    return TBTC.initializeEthereum(signer, "mainnet", BitcoinNetwork.Mainnet)
+    return TBTC.initializeEthereum(
+      signer,
+      Chains.Ethereum.Mainnet,
+      BitcoinNetwork.Mainnet
+    )
   }
 
   /**
@@ -71,7 +101,11 @@ export class TBTC {
    *         Ethereum mainnet.
    */
   static async initializeSepolia(signer: EthereumSigner): Promise<TBTC> {
-    return TBTC.initializeEthereum(signer, "sepolia", BitcoinNetwork.Testnet)
+    return TBTC.initializeEthereum(
+      signer,
+      Chains.Ethereum.Sepolia,
+      BitcoinNetwork.Testnet
+    )
   }
 
   /**
@@ -79,7 +113,7 @@ export class TBTC {
    * The initialized instance uses default Electrum servers to interact
    * with Bitcoin network.
    * @param signer Ethereum signer.
-   * @param ethereumNetwork Ethereum network.
+   * @param ethereumChainId Ethereum chain ID.
    * @param bitcoinNetwork Bitcoin network.
    * @returns Initialized tBTC v2 SDK entrypoint.
    * @throws Throws an error if the underlying signer's Ethereum network is
@@ -87,14 +121,26 @@ export class TBTC {
    */
   private static async initializeEthereum(
     signer: EthereumSigner,
-    ethereumNetwork: EthereumNetwork,
+    ethereumChainId: Chains.Ethereum,
     bitcoinNetwork: BitcoinNetwork
   ): Promise<TBTC> {
     const signerAddress = await ethereumAddressFromSigner(signer)
-    const tbtcContracts = await loadEthereumContracts(signer, ethereumNetwork)
+    const tbtcContracts = await loadEthereumCoreContracts(
+      signer,
+      ethereumChainId
+    )
+    const crossChainContractsLoader = await ethereumCrossChainContractsLoader(
+      signer,
+      ethereumChainId
+    )
+
     const bitcoinClient = ElectrumClient.fromDefaultConfig(bitcoinNetwork)
 
-    const tbtc = new TBTC(tbtcContracts, bitcoinClient)
+    const tbtc = new TBTC(
+      tbtcContracts,
+      bitcoinClient,
+      crossChainContractsLoader
+    )
 
     // If signer address can be resolved, set it as default depositor.
     if (signerAddress !== undefined) {
@@ -119,5 +165,72 @@ export class TBTC {
     bitcoinClient: BitcoinClient
   ): Promise<TBTC> {
     return new TBTC(tbtcContracts, bitcoinClient)
+  }
+
+  /**
+   * Initializes cross-chain contracts for the given L2 chain, using the
+   * given signer. Updates the signer on subsequent calls.
+   * @param l2ChainName Name of the L2 chain for which to initialize
+   *                    cross-chain contracts.
+   * @param l2Signer Signer to use with the L2 chain contracts.
+   * @returns Void promise.
+   * @throws Throws an error if:
+   *         - Cross-chain contracts loader is not available for this TBTC SDK instance,
+   *         - Chain mapping between the L1 and the given L2 chain is not defined.
+   * @dev In case this function needs to support non-EVM L2 chains that can't
+   *      use EthereumSigner as a signer type, the l2Signer parameter should
+   *      probably be turned into a union of multiple supported types or
+   *      generalized in some other way.
+   */
+  async initializeCrossChain(
+    l2ChainName: L2Chain,
+    l2Signer: EthereumSigner
+  ): Promise<void> {
+    if (!this.#crossChainContractsLoader) {
+      throw new Error(
+        "Cross-chain contracts loader not available for this instance"
+      )
+    }
+
+    const chainMapping = this.#crossChainContractsLoader.loadChainMapping()
+    if (!chainMapping) {
+      throw new Error("Chain mapping between L1 and L2 chains not defined")
+    }
+
+    const l1CrossChainContracts: L1CrossChainContracts =
+      await this.#crossChainContractsLoader.loadL1Contracts(l2ChainName)
+    let l2CrossChainContracts: L2CrossChainContracts
+
+    switch (l2ChainName) {
+      case "Base":
+        const baseChainId = chainMapping.base
+        if (!baseChainId) {
+          throw new Error("Base chain ID not available in chain mapping")
+        }
+        l2CrossChainContracts = await loadBaseCrossChainContracts(
+          l2Signer,
+          baseChainId
+        )
+        break
+      default:
+        throw new Error("Unsupported L2 chain")
+    }
+
+    this.#crossChainContracts.set(l2ChainName, {
+      ...l1CrossChainContracts,
+      ...l2CrossChainContracts,
+    })
+  }
+
+  /**
+   * Gets cross-chain contracts for the given supported L2 chain.
+   * The given L2 chain contracts must be first initialized using the
+   * `initializeCrossChain` method.
+   * @param l2ChainName Name of the L2 chain for which to get cross-chain contracts.
+   * @returns Cross-chain contracts for the given L2 chain or
+   *          undefined if not initialized.
+   */
+  crossChainContracts(l2ChainName: L2Chain): CrossChainContracts | undefined {
+    return this.#crossChainContracts.get(l2ChainName)
   }
 }

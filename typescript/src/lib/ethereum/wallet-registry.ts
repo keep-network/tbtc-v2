@@ -6,6 +6,7 @@ import {
   DkgResultChallengedEvent,
   DkgResultSubmittedEvent,
   ChainIdentifier,
+  Chains,
 } from "../contracts"
 import { backoffRetrier, Hex } from "../utils"
 import { Event as EthersEvent } from "@ethersproject/contracts"
@@ -31,18 +32,18 @@ export class EthereumWalletRegistry
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "sepolia" | "mainnet" = "local"
+    chainId: Chains.Ethereum = Chains.Ethereum.Local
   ) {
     let deployment: EthersContractDeployment
 
-    switch (deploymentType) {
-      case "local":
+    switch (chainId) {
+      case Chains.Ethereum.Local:
         deployment = LocalWalletRegistryDeployment
         break
-      case "sepolia":
+      case Chains.Ethereum.Sepolia:
         deployment = SepoliaWalletRegistryDeployment
         break
-      case "mainnet":
+      case Chains.Ethereum.Mainnet:
         deployment = MainnetWalletRegistryDeployment
         break
       default:

@@ -7,6 +7,7 @@ import {
   OptimisticMintingRequest,
   OptimisticMintingRequestedEvent,
   ChainIdentifier,
+  Chains,
 } from "../contracts"
 import { BigNumber, ContractTransaction } from "ethers"
 import { BitcoinTxHash } from "../bitcoin"
@@ -39,18 +40,18 @@ export class EthereumTBTCVault
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "sepolia" | "mainnet" = "local"
+    chainId: Chains.Ethereum = Chains.Ethereum.Local
   ) {
     let deployment: EthersContractDeployment
 
-    switch (deploymentType) {
-      case "local":
+    switch (chainId) {
+      case Chains.Ethereum.Local:
         deployment = LocalTBTCVaultDeployment
         break
-      case "sepolia":
+      case Chains.Ethereum.Sepolia:
         deployment = SepoliaTBTCVaultDeployment
         break
-      case "mainnet":
+      case Chains.Ethereum.Mainnet:
         deployment = MainnetTBTCVaultDeployment
         break
       default:

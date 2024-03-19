@@ -17,6 +17,7 @@ import {
   DepositRevealedEvent,
   DepositReceipt,
   DepositRequest,
+  Chains,
 } from "../contracts"
 import { Event as EthersEvent } from "@ethersproject/contracts"
 import { BigNumber, constants, ContractTransaction, utils } from "ethers"
@@ -58,18 +59,18 @@ export class EthereumBridge
 {
   constructor(
     config: EthersContractConfig,
-    deploymentType: "local" | "sepolia" | "mainnet" = "local"
+    chainId: Chains.Ethereum = Chains.Ethereum.Local
   ) {
     let deployment: EthersContractDeployment
 
-    switch (deploymentType) {
-      case "local":
+    switch (chainId) {
+      case Chains.Ethereum.Local:
         deployment = LocalBridgeDeployment
         break
-      case "sepolia":
+      case Chains.Ethereum.Sepolia:
         deployment = SepoliaBridgeDeployment
         break
-      case "mainnet":
+      case Chains.Ethereum.Mainnet:
         deployment = MainnetBridgeDeployment
         break
       default:

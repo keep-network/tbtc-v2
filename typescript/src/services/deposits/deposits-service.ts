@@ -1,7 +1,9 @@
 import {
   ChainIdentifier,
+  CrossChainContracts,
   DepositorProxy,
   DepositReceipt,
+  L2Chain,
   TBTCContracts,
 } from "../../lib/contracts"
 import {
@@ -14,6 +16,7 @@ import {
 import { Hex } from "../../lib/utils"
 import { Deposit } from "./deposit"
 import * as crypto from "crypto"
+import { CrossChainDepositor } from "./cross-chain"
 
 /**
  * Service exposing features related to tBTC v2 deposits.
@@ -36,11 +39,23 @@ export class DepositsService {
    * Chain-specific identifier of the default depositor used for deposits
    * initiated by this service.
    */
-  private defaultDepositor: ChainIdentifier | undefined
+  #defaultDepositor: ChainIdentifier | undefined
+  /**
+   * Gets cross-chain contracts for the given supported L2 chain.
+   * @param _ Name of the L2 chain for which to get cross-chain contracts.
+   * @returns Cross-chain contracts for the given L2 chain or
+   *          undefined if not initialized.
+   */
+  readonly #crossChainContracts: (_: L2Chain) => CrossChainContracts | undefined
 
-  constructor(tbtcContracts: TBTCContracts, bitcoinClient: BitcoinClient) {
+  constructor(
+    tbtcContracts: TBTCContracts,
+    bitcoinClient: BitcoinClient,
+    crossChainContracts: (_: L2Chain) => CrossChainContracts | undefined
+  ) {
     this.tbtcContracts = tbtcContracts
     this.bitcoinClient = bitcoinClient
+    this.#crossChainContracts = crossChainContracts
   }
 
   /**
@@ -62,7 +77,7 @@ export class DepositsService {
     bitcoinRecoveryAddress: string,
     extraData?: Hex
   ): Promise<Deposit> {
-    if (this.defaultDepositor === undefined) {
+    if (this.#defaultDepositor === undefined) {
       throw new Error(
         "Default depositor is not set; use setDefaultDepositor first"
       )
@@ -70,7 +85,7 @@ export class DepositsService {
 
     const receipt = await this.generateDepositReceipt(
       bitcoinRecoveryAddress,
-      this.defaultDepositor,
+      this.#defaultDepositor,
       extraData
     )
 
@@ -113,6 +128,49 @@ export class DepositsService {
       this.tbtcContracts,
       this.bitcoinClient,
       depositorProxy
+    )
+  }
+
+  /**
+   * Initiates the tBTC v2 cross-chain deposit process. A cross-chain deposit
+   * is a deposit that targets an L2 chain other than the L1 chain the tBTC
+   * system is deployed on. Such a deposit is initiated using a transaction
+   * on the L2 chain. To make it happen, the given L2 cross-chain contracts
+   * must be initialized along with a L2 signer first.
+   * @param bitcoinRecoveryAddress P2PKH or P2WPKH Bitcoin address that can
+   *                               be used for emergency recovery of the
+   *                               deposited funds.
+   * @param l2ChainName Name of the L2 chain the deposit is targeting.
+   * @returns Handle to the initiated deposit process.
+   * @throws Throws an error if one of the following occurs:
+   *         - There are no active wallet in the Bridge contract
+   *         - The Bitcoin recovery address is not a valid P2(W)PKH
+   *         - The cross-chain contracts for the given L2 chain are not
+   *           initialized
+   *         - The L2 deposit owner cannot be resolved. This typically
+   *           happens if the L2 cross-chain contracts operate with a
+   *           read-only signer whose address cannot be resolved.
+   * @see {TBTC#initializeCrossChain} for cross-chain contracts initialization.
+   * @dev This is actually a call to initiateDepositWithProxy with a built-in
+   *      depositor proxy.
+   */
+  async initiateCrossChainDeposit(
+    bitcoinRecoveryAddress: string,
+    l2ChainName: L2Chain
+  ): Promise<Deposit> {
+    const crossChainContracts = this.#crossChainContracts(l2ChainName)
+    if (!crossChainContracts) {
+      throw new Error(
+        `Cross-chain contracts for ${l2ChainName} not initialized`
+      )
+    }
+
+    const depositorProxy = new CrossChainDepositor(crossChainContracts)
+
+    return this.initiateDepositWithProxy(
+      bitcoinRecoveryAddress,
+      depositorProxy,
+      depositorProxy.extraData()
     )
   }
 
@@ -195,6 +253,6 @@ export class DepositsService {
    *      Make sure you know what you are doing while using this method.
    */
   setDefaultDepositor(defaultDepositor: ChainIdentifier) {
-    this.defaultDepositor = defaultDepositor
+    this.#defaultDepositor = defaultDepositor
   }
 }

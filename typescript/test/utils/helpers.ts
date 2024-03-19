@@ -1,5 +1,8 @@
 import { BitcoinNetwork, toBitcoinJsLibNetwork, Hex } from "../../src"
 import { Transaction, address } from "bitcoinjs-lib"
+import { MockContract } from "@ethereum-waffle/mock-contract"
+import { assert } from "chai"
+import { MockProvider } from "@ethereum-waffle/provider"
 
 /**
  * Represents a structured JSON format for a Bitcoin transaction. It includes
@@ -56,4 +59,33 @@ export function txToJSON(
   }
 
   return txJSON
+}
+
+// eslint-disable-next-line valid-jsdoc
+/**
+ * Custom assertion used to check whether the given contract function was
+ * called with correct parameters. This is a workaround for Waffle's
+ * `calledOnContractWith` assertion bug described in the following issue:
+ * https://github.com/TrueFiEng/Waffle/issues/468
+ * @param contract Contract handle
+ * @param functionName Name of the checked function
+ * @param parameters Array of function's parameters
+ */
+export function assertContractCalledWith(
+  contract: MockContract,
+  functionName: string,
+  parameters: any[]
+) {
+  const functionCallData = contract.interface.encodeFunctionData(
+    functionName,
+    parameters
+  )
+
+  assert(
+    (contract.provider as unknown as MockProvider).callHistory.some(
+      (call) =>
+        call.address === contract.address && call.data === functionCallData
+    ),
+    "Expected contract function was not called"
+  )
 }
