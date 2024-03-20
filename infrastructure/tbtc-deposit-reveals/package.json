@@ -1,0 +1,31 @@
+{
+  "name": "template-worker-typescript",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy src/index.ts",
+    "dev": "wrangler dev --local-upstream 'localhost:3000'",
+    "query:production": "wrangler d1 execute tbtc-deposit-reveals-production --env production",
+    "query:staging": "wrangler d1 execute tbtc-deposit-reveals-staging --env staging",
+    "query:local": "wrangler d1 execute tbtc-deposit-reveals-staging --local",
+    "migrations:create": "wrangler d1 migrations create tbtc-deposit-reveals-production",
+    "migrations:production:list": "wrangler d1 migrations list tbtc-deposit-reveals-production --env production",
+    "migrations:production:apply": "wrangler d1 migrations apply tbtc-deposit-reveals-production --env production",
+    "migrations:staging:list": "wrangler d1 migrations list tbtc-deposit-reveals-staging --env staging",
+    "migrations:staging:apply": "wrangler d1 migrations apply tbtc-deposit-reveals-staging --env staging",
+    "migrations:local:list": "wrangler d1 migrations list tbtc-deposit-reveals-staging --local",
+    "migrations:local:apply": "wrangler d1 migrations apply tbtc-deposit-reveals-staging --local",
+    "reload_db:local": "sh scripts/rebuild_db.sh",
+    "reset_db:local": "wrangler d1 execute tbtc-deposit-reveals-staging --local --file ./scripts/reset_db.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231016.0",
+    "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@keep-network/tbtc-v2.ts": "^2.3.0",
+    "itty-router": "^4.2.2"
+  }
+}

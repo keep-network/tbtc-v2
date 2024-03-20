@@ -1,0 +1,12 @@
+{
+  "extends": "../../typescript/tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules"]
+}
