@@ -36,6 +36,7 @@
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.1",
     "ethers": "^5.5.2",
     "p-timeout": "^4.1.0",
+    "url-parse": "^1.5.10",
     "wif": "2.0.6"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^8.2.3",
     "@types/node": "^16.4.0",
+    "@types/url-parse": "^1.4.11",
     "@typescript-eslint/eslint-plugin": "^4.28.3",
     "@typescript-eslint/parser": "^4.28.3",
     "chai": "^4.3.4",
