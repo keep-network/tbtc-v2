@@ -35,7 +35,7 @@ export async function getDepositsForAddress(
     `
     SELECT
       address,
-      reveal_info as reveal_info,
+      reveal_info,
       metadata,
       application,
       CAST(strftime('%s', inserted_at) as INT) as inserted_at
@@ -55,4 +55,36 @@ export async function getDepositsForAddress(
       insertedAt: reveal.inserted_at,
     }
   })
+}
+
+export type SaveDepositRequest = {
+  address: string
+  revealInfo: DepositReceipt
+  metadata: Object
+  application: string
+}
+
+export async function saveDeposit(
+  request: SaveDepositRequest & IRequest,
+  env: Env,
+): Promise<{ success: boolean }> {
+  const saveDepositInfo: SaveDepositRequest = request.content
+  const { address, revealInfo, metadata, application } = saveDepositInfo
+  const result = await env.DB.prepare(
+    `
+  INSERT INTO reveals
+    (address, reveal_info, metadata, application)
+  VALUES
+    (?1, ?2, ?3, ?4);
+  `,
+  )
+    .bind(
+      address,
+      JSON.stringify(revealInfo),
+      JSON.stringify(metadata),
+      application,
+    )
+    .run()
+
+  return { success: result.success }
 }

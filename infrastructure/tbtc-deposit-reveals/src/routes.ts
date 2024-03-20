@@ -9,7 +9,11 @@ import {
   RouteHandler,
 } from "itty-router"
 import { Env } from "#/types"
-import { getDepositsForAddress } from "./controllers/deposits"
+import {
+  getDepositsForAddress,
+  saveDeposit,
+  SaveDepositRequest,
+} from "./controllers/deposits"
 
 export const { preflight, corsify } = createCors({
   origins: (_: string) => true,
@@ -56,6 +60,7 @@ router
     withContent,
   )
   .get("/deposits/:address", getDepositsForAddress)
+  .post<SaveDepositRequest & IRequest>("/deposits", saveDeposit)
   .all("*", () => error(404, "No home route."))
 
 export default router
