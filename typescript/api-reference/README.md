@@ -266,7 +266,7 @@ Additional options used by the Electrum server.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L48)
+[src/lib/electrum/client.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L49)
 
 ___
 
@@ -830,7 +830,7 @@ Electrum script hash as a hex string.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:667](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L667)
+[src/lib/electrum/client.ts:668](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L668)
 
 ___
 
@@ -893,7 +893,7 @@ Throws an error if the signer's Ethereum chain ID is other than
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:129](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L129)
+[src/lib/ethereum/index.ts:118](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L118)
 
 ___
 

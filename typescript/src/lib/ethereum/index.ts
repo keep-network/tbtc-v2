@@ -96,17 +96,6 @@ export async function loadEthereumCoreContracts(
     chainId
   )
 
-  const bridgeWalletRegistry = await bridge.walletRegistry()
-  if (
-    !bridgeWalletRegistry
-      .getChainIdentifier()
-      .equals(walletRegistry.getChainIdentifier())
-  ) {
-    throw new Error(
-      "Wallet registry used by Bridge is different than the one resolved from artifacts"
-    )
-  }
-
   return {
     bridge,
     tbtcToken,
