@@ -62,7 +62,7 @@ Electrum-based implementation of the Bitcoin client.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:72](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L72)
+[src/lib/electrum/client.ts:73](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L73)
 
 ## Properties
 
@@ -72,7 +72,7 @@ Electrum-based implementation of the Bitcoin client.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:70](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L70)
+[src/lib/electrum/client.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L71)
 
 ___
 
@@ -82,7 +82,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:66](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L66)
+[src/lib/electrum/client.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L67)
 
 ___
 
@@ -92,7 +92,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L67)
+[src/lib/electrum/client.ts:68](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L68)
 
 ___
 
@@ -102,7 +102,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L69)
+[src/lib/electrum/client.ts:70](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L70)
 
 ___
 
@@ -112,7 +112,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:68](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L68)
+[src/lib/electrum/client.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L69)
 
 ## Methods
 
@@ -138,7 +138,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:632](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L632)
+[src/lib/electrum/client.ts:633](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L633)
 
 ___
 
@@ -164,7 +164,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:260](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L260)
+[src/lib/electrum/client.ts:261](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L261)
 
 ___
 
@@ -190,7 +190,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:646](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L646)
+[src/lib/electrum/client.ts:647](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L647)
 
 ___
 
@@ -217,7 +217,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:582](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L582)
+[src/lib/electrum/client.ts:583](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L583)
 
 ___
 
@@ -237,7 +237,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:238](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L238)
+[src/lib/electrum/client.ts:239](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L239)
 
 ___
 
@@ -263,7 +263,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:395](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L395)
+[src/lib/electrum/client.ts:396](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L396)
 
 ___
 
@@ -289,7 +289,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:345](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L345)
+[src/lib/electrum/client.ts:346](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L346)
 
 ___
 
@@ -315,7 +315,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:416](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L416)
+[src/lib/electrum/client.ts:417](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L417)
 
 ___
 
@@ -342,7 +342,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:291](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L291)
+[src/lib/electrum/client.ts:292](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L292)
 
 ___
 
@@ -369,7 +369,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:601](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L601)
+[src/lib/electrum/client.ts:602](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L602)
 
 ___
 
@@ -395,7 +395,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:508](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L508)
+[src/lib/electrum/client.ts:509](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L509)
 
 ___
 
@@ -415,7 +415,7 @@ ___
 
 #### Defined in
 
-[src/lib/electrum/client.ts:566](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L566)
+[src/lib/electrum/client.ts:567](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L567)
 
 ___
 
@@ -439,7 +439,7 @@ A function that can retry any function.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:230](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L230)
+[src/lib/electrum/client.ts:231](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L231)
 
 ___
 
@@ -470,7 +470,7 @@ Promise holding the outcome.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:168](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L168)
+[src/lib/electrum/client.ts:169](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L169)
 
 ___
 
@@ -495,7 +495,7 @@ Electrum client instance.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:126](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L126)
+[src/lib/electrum/client.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L127)
 
 ___
 
@@ -523,7 +523,7 @@ Electrum client instance.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:97](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L97)
+[src/lib/electrum/client.ts:98](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L98)
 
 ___
 
@@ -547,4 +547,4 @@ Electrum credentials object.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:147](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L147)
+[src/lib/electrum/client.ts:148](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L148)
