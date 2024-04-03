@@ -135,6 +135,10 @@ contract L1BitcoinDepositor is
     /// @notice Gas that is meant to balance the overall cost of deposit finalization.
     ///         Can be updated by the owner based on the current market conditions.
     uint256 public finalizeDepositGasOffset;
+    /// @notice Set of addresses that are authorized to receive gas reimbursements
+    ///         for deposit initialization and finalization. The authorization is
+    ///         granted by the contract owner.
+    mapping(address => bool) public reimbursementAuthorizations;
 
     event DepositInitialized(
         uint256 indexed depositKey,
@@ -155,6 +159,11 @@ contract L1BitcoinDepositor is
     event GasOffsetParametersUpdated(
         uint256 initializeDepositGasOffset,
         uint256 finalizeDepositGasOffset
+    );
+
+    event ReimbursementAuthorizationUpdated(
+        address indexed _address,
+        bool authorization
     );
 
     /// @dev This modifier comes from the `Reimbursable` base contract and
@@ -248,13 +257,27 @@ contract L1BitcoinDepositor is
         );
     }
 
+    /// @notice Updates the reimbursement authorization for the given address.
+    /// @param _address Address to update the authorization for.
+    /// @param authorization New authorization status.
+    /// @dev Requirements:
+    ///      - Can be called only by the contract owner.
+    function updateReimbursementAuthorization(
+        address _address,
+        bool authorization
+    ) external onlyOwner {
+        emit ReimbursementAuthorizationUpdated(_address, authorization);
+        reimbursementAuthorizations[_address] = authorization;
+    }
+
     /// @notice Initializes the deposit process on L1 by revealing the deposit
     ///         data (funding transaction and components of the P2(W)SH deposit
     ///         address) to the tBTC Bridge. Once tBTC minting is completed,
     ///         this call should be followed by a call to `finalizeDeposit`.
     ///         Callers of `initializeDeposit` are eligible for a gas refund
     ///         that is paid out upon deposit finalization (only if the
-    ///         reimbursement pool is attached).
+    ///         reimbursement pool is attached and the given caller is
+    ///         authorized for refunds).
     ///
     ///         The Bitcoin funding transaction must transfer funds to a P2(W)SH
     ///         deposit address whose underlying script is built from the
@@ -354,7 +377,12 @@ contract L1BitcoinDepositor is
         // slither-disable-next-line reentrancy-events
         emit DepositInitialized(depositKey, l2DepositOwner, msg.sender);
 
-        if (address(reimbursementPool) != address(0)) {
+        // Record a deferred gas reimbursement if the reimbursement pool is
+        // attached and the caller is authorized to receive reimbursements.
+        if (
+            address(reimbursementPool) != address(0) &&
+            reimbursementAuthorizations[msg.sender]
+        ) {
             uint256 gasSpent = (gasStart - gasleft()) +
                 initializeDepositGasOffset;
 
@@ -387,9 +415,10 @@ contract L1BitcoinDepositor is
     ///         to the `L1BitcoinDepositor` contract. Please note several hours
     ///         may pass between `initializeDeposit`and `finalizeDeposit`.
     ///         If the reimbursement pool is attached, the function pays out
-    ///         a gas and call's value refund to the caller as well as the
-    ///         deferred gas refund to the caller of `initializeDeposit`
-    ///         corresponding to the finalized deposit.
+    ///         a gas and call's value refund to the caller (if the given
+    ///         caller is authorized for refunds) as well as the deferred gas
+    ///         refund to the caller of `initializeDeposit` corresponding to
+    ///         the finalized deposit.
     /// @param depositKey The deposit key, as emitted in the `DepositInitialized`
     ///        event emitted by the `initializeDeposit` function for the deposit.
     /// @dev Requirements:
@@ -435,7 +464,10 @@ contract L1BitcoinDepositor is
         // reimbursements as the last step of the deposit finalization.
         if (address(reimbursementPool) != address(0)) {
             // If there is a deferred reimbursement for this deposit
-            // initialization, pay it out now.
+            // initialization, pay it out now. No need to check reimbursement
+            // authorization for the initialization caller. If the deferred
+            // reimbursement is here, that implies the caller was authorized
+            // to receive it.
             GasReimbursement memory reimbursement = gasReimbursements[
                 depositKey
             ];
@@ -448,19 +480,22 @@ contract L1BitcoinDepositor is
                 );
             }
 
-            // Pay out the reimbursement for deposit finalization. As this
-            // call is payable and this transaction carries out a msg.value
-            // that covers Wormhole cost, we need to reimburse that as well.
-            // However, the `ReimbursementPool` issues refunds based on
-            // gas spent. We need to convert msg.value accordingly using
-            // the `_refundToGasSpent` function.
-            uint256 msgValueOffset = _refundToGasSpent(msg.value);
-            reimbursementPool.refund(
-                (gasStart - gasleft()) +
-                    msgValueOffset +
-                    finalizeDepositGasOffset,
-                msg.sender
-            );
+            // Pay out the reimbursement for deposit finalization if the caller
+            // is authorized to receive reimbursements.
+            if (reimbursementAuthorizations[msg.sender]) {
+                // As this call is payable and this transaction carries out a
+                // msg.value that covers Wormhole cost, we need to reimburse
+                // that as well. However, the `ReimbursementPool` issues refunds
+                // based on gas spent. We need to convert msg.value accordingly
+                // using the `_refundToGasSpent` function.
+                uint256 msgValueOffset = _refundToGasSpent(msg.value);
+                reimbursementPool.refund(
+                    (gasStart - gasleft()) +
+                        msgValueOffset +
+                        finalizeDepositGasOffset,
+                    msg.sender
+                );
+            }
         }
     }
 
