@@ -69,6 +69,15 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     ) external initializer {
         __Ownable_init();
 
+        require(
+            _wormholeRelayer != address(0),
+            "WormholeRelayer address cannot be zero"
+        );
+        require(
+            _l2WormholeGateway != address(0),
+            "L2WormholeGateway address cannot be zero"
+        );
+
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         l2WormholeGateway = IL2WormholeGateway(_l2WormholeGateway);
         l1ChainId = _l1ChainId;
