@@ -190,6 +190,20 @@ contract L1BitcoinDepositor is
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
         __Ownable_init();
 
+        require(_wormhole != address(0), "Wormhole address cannot be zero");
+        require(
+            _wormholeRelayer != address(0),
+            "WormholeRelayer address cannot be zero"
+        );
+        require(
+            _wormholeTokenBridge != address(0),
+            "WormholeTokenBridge address cannot be zero"
+        );
+        require(
+            _l2WormholeGateway != address(0),
+            "L2WormholeGateway address cannot be zero"
+        );
+
         tbtcToken = IERC20Upgradeable(ITBTCVault(_tbtcVault).tbtcToken());
         wormhole = IWormhole(_wormhole);
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
