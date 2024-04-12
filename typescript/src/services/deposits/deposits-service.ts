@@ -137,6 +137,12 @@ export class DepositsService {
    * system is deployed on. Such a deposit is initiated using a transaction
    * on the L2 chain. To make it happen, the given L2 cross-chain contracts
    * must be initialized along with a L2 signer first.
+   *
+   * @experimental THIS IS EXPERIMENTAL CODE THAT CAN BE CHANGED OR REMOVED
+   *               IN FUTURE RELEASES. IT SHOULD BE USED ONLY FOR INTERNAL
+   *               PURPOSES AND EXTERNAL APPLICATIONS SHOULD NOT DEPEND ON IT.
+   *               CROSS-CHAIN SUPPORT IS NOT FULLY OPERATIONAL YET.
+   *
    * @param bitcoinRecoveryAddress P2PKH or P2WPKH Bitcoin address that can
    *                               be used for emergency recovery of the
    *                               deposited funds.
