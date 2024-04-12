@@ -145,7 +145,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:177](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L177)
+[src/services/deposits/deposits-service.ts:183](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L183)
 
 ___
 
@@ -158,6 +158,11 @@ is a deposit that targets an L2 chain other than the L1 chain the tBTC
 system is deployed on. Such a deposit is initiated using a transaction
 on the L2 chain. To make it happen, the given L2 cross-chain contracts
 must be initialized along with a L2 signer first.
+
+ THIS IS EXPERIMENTAL CODE THAT CAN BE CHANGED OR REMOVED
+              IN FUTURE RELEASES. IT SHOULD BE USED ONLY FOR INTERNAL
+              PURPOSES AND EXTERNAL APPLICATIONS SHOULD NOT DEPEND ON IT.
+              CROSS-CHAIN SUPPORT IS NOT FULLY OPERATIONAL YET.
 
 #### Parameters
 
@@ -194,7 +199,7 @@ This is actually a call to initiateDepositWithProxy with a built-in
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:157](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L157)
+[src/services/deposits/deposits-service.ts:163](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L163)
 
 ___
 
@@ -299,4 +304,4 @@ Typically, there is no need to use this method when DepositsService
 
 #### Defined in
 
-[src/services/deposits/deposits-service.ts:255](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L255)
+[src/services/deposits/deposits-service.ts:261](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/deposits-service.ts#L261)

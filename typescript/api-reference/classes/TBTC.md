@@ -146,6 +146,11 @@ Gets cross-chain contracts for the given supported L2 chain.
 The given L2 chain contracts must be first initialized using the
 `initializeCrossChain` method.
 
+ THIS IS EXPERIMENTAL CODE THAT CAN BE CHANGED OR REMOVED
+              IN FUTURE RELEASES. IT SHOULD BE USED ONLY FOR INTERNAL
+              PURPOSES AND EXTERNAL APPLICATIONS SHOULD NOT DEPEND ON IT.
+              CROSS-CHAIN SUPPORT IS NOT FULLY OPERATIONAL YET.
+
 #### Parameters
 
 | Name | Type | Description |
@@ -161,7 +166,7 @@ Cross-chain contracts for the given L2 chain or
 
 #### Defined in
 
-[src/services/tbtc.ts:233](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L233)
+[src/services/tbtc.ts:252](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L252)
 
 ___
 
@@ -171,6 +176,11 @@ ___
 
 Initializes cross-chain contracts for the given L2 chain, using the
 given signer. Updates the signer on subsequent calls.
+
+ THIS IS EXPERIMENTAL CODE THAT CAN BE CHANGED OR REMOVED
+              IN FUTURE RELEASES. IT SHOULD BE USED ONLY FOR INTERNAL
+              PURPOSES AND EXTERNAL APPLICATIONS SHOULD NOT DEPEND ON IT.
+              CROSS-CHAIN SUPPORT IS NOT FULLY OPERATIONAL YET.
 
 #### Parameters
 
@@ -200,7 +210,7 @@ In case this function needs to support non-EVM L2 chains that can't
 
 #### Defined in
 
-[src/services/tbtc.ts:185](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L185)
+[src/services/tbtc.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L198)
 
 ___
 
@@ -232,13 +242,13 @@ This function is especially useful for local development as it gives
 
 #### Defined in
 
-[src/services/tbtc.ts:163](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L163)
+[src/services/tbtc.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L170)
 
 ___
 
 ### initializeEthereum
 
-▸ **initializeEthereum**(`signer`, `ethereumChainId`, `bitcoinNetwork`): `Promise`\<[`TBTC`](TBTC.md)\>
+▸ **initializeEthereum**(`signer`, `ethereumChainId`, `bitcoinNetwork`, `crossChainSupport?`): `Promise`\<[`TBTC`](TBTC.md)\>
 
 Initializes the tBTC v2 SDK entrypoint for the given Ethereum network and Bitcoin network.
 The initialized instance uses default Electrum servers to interact
@@ -246,11 +256,12 @@ with Bitcoin network.
 
 #### Parameters
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | Ethereum signer. |
-| `ethereumChainId` | [`Ethereum`](../enums/Chains.Ethereum.md) | Ethereum chain ID. |
-| `bitcoinNetwork` | [`BitcoinNetwork`](../enums/BitcoinNetwork-1.md) | Bitcoin network. |
+| Name | Type | Default value | Description |
+| :------ | :------ | :------ | :------ |
+| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | `undefined` | Ethereum signer. |
+| `ethereumChainId` | [`Ethereum`](../enums/Chains.Ethereum.md) | `undefined` | Ethereum chain ID. |
+| `bitcoinNetwork` | [`BitcoinNetwork`](../enums/BitcoinNetwork-1.md) | `undefined` | Bitcoin network. |
+| `crossChainSupport` | `boolean` | `false` | Whether to enable cross-chain support. False by default. |
 
 #### Returns
 
@@ -265,7 +276,7 @@ Throws an error if the underlying signer's Ethereum network is
 
 #### Defined in
 
-[src/services/tbtc.ts:122](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L122)
+[src/services/tbtc.ts:123](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L123)
 
 ___
 

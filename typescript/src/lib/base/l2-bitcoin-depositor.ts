@@ -16,12 +16,12 @@ import {
   EthereumCrossChainExtraDataEncoder,
   packRevealDepositParameters,
 } from "../ethereum"
+import { Hex } from "../utils"
+import { BitcoinRawTxVectors } from "../bitcoin"
 
-// TODO: Uncomment once BaseL2BitcoinDepositor is available on Base mainnet.
+// TODO: Uncomment once Base native minting is available on Base mainnet.
 // import BaseL2BitcoinDepositorDeployment from "./artifacts/base/BaseL2BitcoinDepositor.json"
 import BaseSepoliaL2BitcoinDepositorDeployment from "./artifacts/baseSepolia/BaseL2BitcoinDepositor.json"
-import { BitcoinRawTxVectors } from "../bitcoin"
-import { Hex } from "../utils"
 
 /**
  * Implementation of the Base L2BitcoinDepositor handle.
@@ -41,10 +41,10 @@ export class BaseL2BitcoinDepositor
       case Chains.Base.BaseSepolia:
         deployment = BaseSepoliaL2BitcoinDepositorDeployment
         break
-      case Chains.Base.Base:
-      // TODO: Uncomment once BaseL2BitcoinDepositor is available on Base mainnet.
-      // deployment = BaseL2BitcoinDepositorDeployment
-      // break
+      // TODO: Uncomment once Base native minting is available on Base mainnet.
+      // case Chains.Base.Base:
+      //   deployment = BaseL2BitcoinDepositorDeployment
+      //   break
       default:
         throw new Error("Unsupported deployment type")
     }

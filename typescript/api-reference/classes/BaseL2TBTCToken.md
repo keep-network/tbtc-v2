@@ -58,7 +58,7 @@ EthersContractHandle\&lt;L2TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[src/lib/base/l2-tbtc-token.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L21)
+[src/lib/base/l2-tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L23)
 
 ## Properties
 
@@ -134,7 +134,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[src/lib/base/l2-tbtc-token.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L50)
+[src/lib/base/l2-tbtc-token.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L53)
 
 ___
 
@@ -176,7 +176,7 @@ ___
 
 #### Defined in
 
-[src/lib/base/l2-tbtc-token.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L42)
+[src/lib/base/l2-tbtc-token.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L45)
 
 ___
 
