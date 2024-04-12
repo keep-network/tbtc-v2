@@ -595,6 +595,19 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "address",
+          "name": "redemptionWatchtower",
+          "type": "address"
+        }
+      ],
+      "name": "RedemptionWatchtowerSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "bytes20",
           "name": "walletPubKeyHash",
@@ -983,6 +996,11 @@
               "internalType": "uint32",
               "name": "sweptAt",
               "type": "uint32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "extraData",
+              "type": "bytes32"
             }
           ],
           "internalType": "struct Deposit.DepositRequest",
@@ -1057,6 +1075,19 @@
           "internalType": "uint32",
           "name": "fraudNotifierRewardMultiplier",
           "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRedemptionWatchtower",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -1367,6 +1398,24 @@
         }
       ],
       "name": "notifyRedemptionTimeout",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes20",
+          "name": "walletPubKeyHash",
+          "type": "bytes20"
+        },
+        {
+          "internalType": "bytes",
+          "name": "redeemerOutputScript",
+          "type": "bytes"
+        }
+      ],
+      "name": "notifyRedemptionVeto",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1694,6 +1743,96 @@
     {
       "inputs": [
         {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "version",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "bytes",
+              "name": "inputVector",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "outputVector",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "locktime",
+              "type": "bytes4"
+            }
+          ],
+          "internalType": "struct BitcoinTx.Info",
+          "name": "fundingTx",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint32",
+              "name": "fundingOutputIndex",
+              "type": "uint32"
+            },
+            {
+              "internalType": "bytes8",
+              "name": "blindingFactor",
+              "type": "bytes8"
+            },
+            {
+              "internalType": "bytes20",
+              "name": "walletPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes20",
+              "name": "refundPubKeyHash",
+              "type": "bytes20"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "refundLocktime",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "address",
+              "name": "vault",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Deposit.DepositRevealInfo",
+          "name": "reveal",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "extraData",
+          "type": "bytes32"
+        }
+      ],
+      "name": "revealDepositWithExtraData",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "redemptionWatchtower",
+          "type": "address"
+        }
+      ],
+      "name": "setRedemptionWatchtower",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "spvMaintainer",
           "type": "address"
@@ -1790,6 +1929,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -1914,6 +2063,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2044,6 +2203,16 @@
               "internalType": "bytes",
               "name": "bitcoinHeaders",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
+              "type": "bytes"
             }
           ],
           "internalType": "struct BitcoinTx.Proof",
@@ -2127,6 +2296,16 @@
             {
               "internalType": "bytes",
               "name": "bitcoinHeaders",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "coinbasePreimage",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "coinbaseProof",
               "type": "bytes"
             }
           ],
@@ -2610,15 +2789,15 @@
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 2,
+  "numDeployments": 4,
   "libraries": {
-    "Deposit": "0x1Ac1841a47054E070236F1664991e52c30C04dC5",
-    "DepositSweep": "0xE6F919e62c370Ef04EDF4cA5E2a901Ea1aa87085",
-    "Redemption": "0xfa4FC53BEB5B7721d173342FfC24058e9D47a1Ff",
-    "Wallets": "0xC67913137429985416DbCe28D9fa9ec960BA47BF",
-    "Fraud": "0xd040Def4bC6372Cd27b433288008aDCe7c9de71C",
-    "MovingFunds": "0xB857117ae7639255d7305DdbC7346b4a644CA432"
+    "Deposit": "0xCD2EbDA2beA80484C55675e1965149054dCcD137",
+    "DepositSweep": "0x392635646Bc22FC13C86859d1f02B27974aC9b95",
+    "Redemption": "0x8EF1BEDA734E696CC055269b46BB5a0EC7Ac9f5E",
+    "Wallets": "0xc989d3E486AAe6355F65281B4d0bde08c8e32fBC",
+    "Fraud": "0x51bBeF1c7cC3a1D3bC5E64CE6C3BA6E66fbA3559",
+    "MovingFunds": "0x3E0407765FaC663d391aE738f3Aa0c98EAb67a90"
   },
-  "implementation": "0x8D014903BF7867260584d714e11809fea5293234",
+  "implementation": "0xA4996De73682BDF9CF514fbf238ee387C1a21A26",
   "devdoc": "Contract deployed as upgradable proxy"
 }

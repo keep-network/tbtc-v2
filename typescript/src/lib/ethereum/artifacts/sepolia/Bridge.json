@@ -595,6 +595,19 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "address",
+          "name": "redemptionWatchtower",
+          "type": "address"
+        }
+      ],
+      "name": "RedemptionWatchtowerSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "bytes20",
           "name": "walletPubKeyHash",
@@ -1069,6 +1082,19 @@
     },
     {
       "inputs": [],
+      "name": "getRedemptionWatchtower",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "governance",
       "outputs": [
         {
@@ -1372,6 +1398,24 @@
         }
       ],
       "name": "notifyRedemptionTimeout",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes20",
+          "name": "walletPubKeyHash",
+          "type": "bytes20"
+        },
+        {
+          "internalType": "bytes",
+          "name": "redeemerOutputScript",
+          "type": "bytes"
+        }
+      ],
+      "name": "notifyRedemptionVeto",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -1769,6 +1813,19 @@
         }
       ],
       "name": "revealDepositWithExtraData",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "redemptionWatchtower",
+          "type": "address"
+        }
+      ],
+      "name": "setRedemptionWatchtower",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2702,45 +2759,45 @@
       "type": "function"
     }
   ],
-  "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
+  "transactionHash": "0xe239619b368853a39ada7704bc2dd6bf848ed50782e8ae3acc642c03e2988eda",
   "receipt": {
     "to": "0x39f60B25C4598Caf7e922d6fC063E9002db45845",
     "from": "0x68ad60CC5e8f3B7cC53beaB321cf0e6036962dBc",
     "contractAddress": null,
-    "transactionIndex": 10,
+    "transactionIndex": 72,
     "gasUsed": "38760",
-    "logsBloom": "0x00000000000000000000000000000000408000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000220000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000",
-    "blockHash": "0xc130afc0dd68742cb1a7de16a0befc5fd6b04e0fe99fdf88f4b82ff966e3d748",
-    "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
+    "logsBloom": "0x00000000000000000000000000000000408000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000020000020000000000020000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x508ed9421a7af02b1f7759a50ba6730ec0490963c5fe79da2b8185824b140529",
+    "transactionHash": "0xe239619b368853a39ada7704bc2dd6bf848ed50782e8ae3acc642c03e2988eda",
     "logs": [
       {
-        "transactionIndex": 10,
-        "blockNumber": 4929904,
-        "transactionHash": "0x0e6fce7a195d82e8205d9535864353bb667bf7136c202c6a5f8e901c9020e70b",
+        "transactionIndex": 72,
+        "blockNumber": 5340702,
+        "transactionHash": "0xe239619b368853a39ada7704bc2dd6bf848ed50782e8ae3acc642c03e2988eda",
         "address": "0x9b1a7fE5a16A15F2f9475C5B231750598b113403",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x000000000000000000000000219b0b14b961b703f5cfd07f83c9d911f181e2ae"
+          "0x000000000000000000000000c1cee2b8dfcc4d3bd315f2cd44a9ee77ec3b808e"
         ],
         "data": "0x",
-        "logIndex": 10,
-        "blockHash": "0xc130afc0dd68742cb1a7de16a0befc5fd6b04e0fe99fdf88f4b82ff966e3d748"
+        "logIndex": 80,
+        "blockHash": "0x508ed9421a7af02b1f7759a50ba6730ec0490963c5fe79da2b8185824b140529"
       }
     ],
-    "blockNumber": 4929904,
-    "cumulativeGasUsed": "2196491",
+    "blockNumber": 5340702,
+    "cumulativeGasUsed": "9325415",
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 4,
+  "numDeployments": 5,
   "libraries": {
-    "Deposit": "0xb9cD067b78B4D9769837a46486464638893D4C70",
-    "DepositSweep": "0xA5157Fcd7067D93e037F85B35ce2598fB1Fb7BEd",
-    "Redemption": "0x0672276D7aC52AFa6e75Acaa20a3f05902173897",
-    "Wallets": "0x2A2e6C3B5B135A6128a9EF454a058C1f9DBfaB44",
-    "Fraud": "0x5bd37811daea439B94B62b7178Fe574f94Bcb5bC",
-    "MovingFunds": "0xAce37767d828b8EE7e40591c6b5C5399ce586D85"
+    "Deposit": "0xad39ED2D3aF448C14b960746F1F63451D366000c",
+    "DepositSweep": "0x762B5E9dE8b3cF81d71Cc6f5ea1a9a7B7Eb7b8cB",
+    "Redemption": "0x88BEEF1F01cD6c74063E398da1114eb4B8C985a6",
+    "Wallets": "0x21eB46af48705A52f122931ddb8E9df036D8F2c1",
+    "Fraud": "0xe60FFb5037aC31603B1AeDEf440fFad088dF0a17",
+    "MovingFunds": "0xbF138155D789007c43dda3cc39B75fB70991e7E3"
   },
-  "implementation": "0xeaA95421a1811E61A3Ff5b8F34E855fd28431eEE",
+  "implementation": "0xC1Cee2B8dfCC4d3BD315F2cD44A9EE77eC3B808e",
   "devdoc": "Contract deployed as upgradable proxy"
 }
