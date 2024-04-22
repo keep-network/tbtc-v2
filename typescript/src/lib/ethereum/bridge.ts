@@ -512,15 +512,26 @@ export class EthereumBridge
     return walletPublicKey
   }
 
-  private async getWalletCompressedPublicKey(ecdsaWalletID: Hex): Promise<Hex> {
+  private async getWalletCompressedPublicKey(
+    ecdsaWalletID: Hex
+  ): Promise<Hex | undefined> {
     const walletRegistry = await this.walletRegistry()
-    const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
-      ecdsaWalletID
-    )
 
-    return Hex.from(
-      BitcoinPublicKeyUtils.compressPublicKey(uncompressedPublicKey)
-    )
+    try {
+      const uncompressedPublicKey = await walletRegistry.getWalletPublicKey(
+        ecdsaWalletID
+      )
+
+      return Hex.from(
+        BitcoinPublicKeyUtils.compressPublicKey(uncompressedPublicKey)
+      )
+    } catch (error) {
+      console.log(
+        `cannot get wallet public key for ${ecdsaWalletID}; error: ${error}`
+      )
+
+      return undefined
+    }
   }
 
   // eslint-disable-next-line valid-jsdoc

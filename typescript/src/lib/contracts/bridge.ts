@@ -411,9 +411,11 @@ export interface Wallet {
    */
   ecdsaWalletID: Hex
   /**
-   * Compressed public key of the ECDSA Wallet.
+   * Compressed public key of the ECDSA Wallet. If the wallet is Closed
+   * or Terminated, this field is empty as the public key is removed from the
+   * WalletRegistry.
    */
-  walletPublicKey: Hex
+  walletPublicKey?: Hex
   /**
    * Latest wallet's main UTXO hash.
    */

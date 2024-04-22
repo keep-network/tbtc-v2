@@ -130,7 +130,7 @@ export class RedemptionsService {
         await this.tbtcContracts.bridge.wallets(walletPublicKeyHash)
 
       // Wallet must be in Live state.
-      if (state !== WalletState.Live) {
+      if (state !== WalletState.Live || !walletPublicKey) {
         console.debug(
           `Wallet is not in Live state ` +
             `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
