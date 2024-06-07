@@ -178,7 +178,7 @@ export class RedemptionsService {
    * @param amount The amount to be redeemed in satoshis.
    * @returns Promise with the wallet details needed to request a redemption.
    */
-  async findWalletForRedemption(
+  protected async findWalletForRedemption(
     redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<{
