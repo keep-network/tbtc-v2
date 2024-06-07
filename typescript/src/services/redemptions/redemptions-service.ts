@@ -1,5 +1,4 @@
 import {
-  ChainIdentifier,
   RedemptionRequest,
   TBTCContracts,
   WalletState,
@@ -12,8 +11,9 @@ import {
   BitcoinTxOutput,
   BitcoinUtxo,
 } from "../../lib/bitcoin"
-import { BigNumber } from "ethers"
+import { BigNumber, BigNumberish } from "ethers"
 import { Hex } from "../../lib/utils"
+import { RedeemerProxy } from "./redeemer-proxy"
 
 /**
  * Service exposing features related to tBTC v2 redemptions.
@@ -70,33 +70,50 @@ export class RedemptionsService {
   }
 
   /**
-   * Prepare tBTC Redemption Data in the raw bytes format expected by the tBTC
-   * Bridge contract. The data is used to request a redemption of TBTC v2 token
-   * through custom integration with the tBTC Bridge contract.
-   * @param bitcoinRedeemerAddress Bitcoin address redeemed BTC should be
-   *                               sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH
-   *                               address types are supported.
+   * Requests a redemption of TBTC v2 token into BTC using a custom integration.
+   * The function builds the redemption data and handles the redemption request
+   * through the provided redeemer proxy.
+   * @param bitcoinRedeemerAddress Bitcoin address the redeemed BTC should be
+   *        sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH address types are supported.
    * @param amount The amount to be redeemed with the precision of the tBTC
-   *               on-chain token contract.
-   * @param chainRedeemerAddress Chain identifier of the redeemer. This is the
-   *                             address that will be able to claim the tBTC tokens
-   *                             if anything goes wrong during the redemption process.
-   * @returns Data needed to request a redemption.
+   *        on-chain token contract.
+   * @param redeemerProxy Object impleenting functions required to route tBTC
+   *        redemption requests through the tBTC bridge.
+   * @returns Object containing:
+   *          - Target chain hash of the request redemption transaction
+   *            (for example, Ethereum transaction hash)
+   *          - Bitcoin public key of the wallet asked to handle the redemption.
+   *            Presented in the compressed form (33 bytes long with 02 or 03 prefix).
    */
-  async buildRedemptionData(
+  async requestRedemptionWithProxy(
     bitcoinRedeemerAddress: string,
-    amount: BigNumber,
-    chainRedeemerAddress: ChainIdentifier
-  ): Promise<Hex> {
-    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
-      await this.determineRedemptionData(bitcoinRedeemerAddress, amount)
+    amount: BigNumberish,
+    redeemerProxy: RedeemerProxy
+  ): Promise<{
+    targetChainTxHash: Hex
+    walletPublicKey: Hex
+  }> {
+    const chainRedeemerAddress = redeemerProxy.redeemerAddress()
 
-    return this.tbtcContracts.tbtcToken.buildRequestRedemptionData(
-      chainRedeemerAddress,
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+      await this.determineRedemptionData(
+        bitcoinRedeemerAddress,
+        BigNumber.from(amount)
+      )
+
+    const redemptionData =
+      this.tbtcContracts.tbtcToken.buildRequestRedemptionData(
+        chainRedeemerAddress,
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript
+      )
+
+    const targetChainTxHash = await redeemerProxy.requestRedemption(
+      redemptionData
     )
+
+    return { targetChainTxHash, walletPublicKey }
   }
 
   /**
