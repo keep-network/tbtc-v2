@@ -15,10 +15,12 @@ Service exposing features related to tBTC v2 redemptions.
 
 ### Methods
 
+- [determineRedemptionData](RedemptionsService.md#determineredemptiondata)
 - [determineWalletMainUtxo](RedemptionsService.md#determinewalletmainutxo)
 - [findWalletForRedemption](RedemptionsService.md#findwalletforredemption)
 - [getRedemptionRequests](RedemptionsService.md#getredemptionrequests)
 - [requestRedemption](RedemptionsService.md#requestredemption)
+- [requestRedemptionWithProxy](RedemptionsService.md#requestredemptionwithproxy)
 
 ## Constructors
 
@@ -39,7 +41,7 @@ Service exposing features related to tBTC v2 redemptions.
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L30)
+[src/services/redemptions/redemptions-service.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L31)
 
 ## Properties
 
@@ -51,7 +53,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L28)
+[src/services/redemptions/redemptions-service.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L29)
 
 ___
 
@@ -63,9 +65,36 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:24](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L24)
+[src/services/redemptions/redemptions-service.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L25)
 
 ## Methods
+
+### determineRedemptionData
+
+▸ **determineRedemptionData**(`bitcoinRedeemerAddress`, `amount`): `Promise`\<\{ `mainUtxo`: [`BitcoinUtxo`](../README.md#bitcoinutxo) ; `redeemerOutputScript`: [`Hex`](Hex.md) ; `walletPublicKey`: [`Hex`](Hex.md)  }\>
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `bitcoinRedeemerAddress` | `string` | Bitcoin address redeemed BTC should be sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH address types are supported. |
+| `amount` | `BigNumber` | The amount to be redeemed with the precision of the tBTC on-chain token contract. |
+
+#### Returns
+
+`Promise`\<\{ `mainUtxo`: [`BitcoinUtxo`](../README.md#bitcoinutxo) ; `redeemerOutputScript`: [`Hex`](Hex.md) ; `walletPublicKey`: [`Hex`](Hex.md)  }\>
+
+Object containing:
+         - Bitcoin public key of the wallet asked to handle the redemption.
+           Presented in the compressed form (33 bytes long with 02 or 03 prefix).
+         - Main UTXO of the wallet.
+         - Redeemer output script.
+
+#### Defined in
+
+[src/services/redemptions/redemptions-service.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L132)
+
+___
 
 ### determineWalletMainUtxo
 
@@ -90,7 +119,7 @@ Promise holding the wallet main UTXO or undefined value.
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:225](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L225)
+[src/services/redemptions/redemptions-service.ts:300](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L300)
 
 ___
 
@@ -116,7 +145,7 @@ Promise with the wallet details needed to request a redemption.
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:106](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L106)
+[src/services/redemptions/redemptions-service.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L181)
 
 ___
 
@@ -147,7 +176,7 @@ Throws an error if no redemption request exists for the given
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:337](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L337)
+[src/services/redemptions/redemptions-service.ts:412](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L412)
 
 ___
 
@@ -176,4 +205,36 @@ Object containing:
 
 #### Defined in
 
-[src/services/redemptions/redemptions-service.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L48)
+[src/services/redemptions/redemptions-service.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L49)
+
+___
+
+### requestRedemptionWithProxy
+
+▸ **requestRedemptionWithProxy**(`bitcoinRedeemerAddress`, `amount`, `redeemerProxy`): `Promise`\<\{ `targetChainTxHash`: [`Hex`](Hex.md) ; `walletPublicKey`: [`Hex`](Hex.md)  }\>
+
+Requests a redemption of TBTC v2 token into BTC using a custom integration.
+The function builds the redemption data and handles the redemption request
+through the provided redeemer proxy.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `bitcoinRedeemerAddress` | `string` | Bitcoin address the redeemed BTC should be sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH address types are supported. |
+| `amount` | `BigNumberish` | The amount to be redeemed with the precision of the tBTC on-chain token contract. |
+| `redeemerProxy` | [`RedeemerProxy`](../interfaces/RedeemerProxy.md) | Object impleenting functions required to route tBTC redemption requests through the tBTC bridge. |
+
+#### Returns
+
+`Promise`\<\{ `targetChainTxHash`: [`Hex`](Hex.md) ; `walletPublicKey`: [`Hex`](Hex.md)  }\>
+
+Object containing:
+         - Target chain hash of the request redemption transaction
+           (for example, Ethereum transaction hash)
+         - Bitcoin public key of the wallet asked to handle the redemption.
+           Presented in the compressed form (33 bytes long with 02 or 03 prefix).
+
+#### Defined in
+
+[src/services/redemptions/redemptions-service.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L88)

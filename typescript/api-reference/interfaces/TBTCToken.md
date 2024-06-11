@@ -10,11 +10,39 @@ Interface for communication with the TBTC v2 token on-chain contract.
 
 ### Methods
 
+- [buildRequestRedemptionData](TBTCToken.md#buildrequestredemptiondata)
 - [getChainIdentifier](TBTCToken.md#getchainidentifier)
 - [requestRedemption](TBTCToken.md#requestredemption)
 - [totalSupply](TBTCToken.md#totalsupply)
 
 ## Methods
+
+### buildRequestRedemptionData
+
+▸ **buildRequestRedemptionData**(`redeemer`, `walletPublicKey`, `mainUtxo`, `redeemerOutputScript`): [`Hex`](../classes/Hex.md)
+
+Prepare tBTC Redemption Data in the raw bytes format expected by the tBTC
+Bridge contract. The data is used to request a redemption of TBTC v2 token
+through custom integration with the tBTC Bridge contract.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `redeemer` | [`ChainIdentifier`](ChainIdentifier.md) | Chain identifier of the redeemer. This is the address that will be able to claim the tBTC tokens if anything goes wrong during the redemption process. |
+| `walletPublicKey` | [`Hex`](../classes/Hex.md) | The Bitcoin public key of the wallet. Must be in the compressed form (33 bytes long with 02 or 03 prefix). |
+| `mainUtxo` | [`BitcoinUtxo`](../README.md#bitcoinutxo) | The main UTXO of the wallet. Must match the main UTXO held by the on-chain Bridge contract. |
+| `redeemerOutputScript` | [`Hex`](../classes/Hex.md) | The output script that the redeemed funds will be locked to. Must not be prepended with length. |
+
+#### Returns
+
+[`Hex`](../classes/Hex.md)
+
+#### Defined in
+
+[src/lib/contracts/tbtc-token.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-token.ts#L61)
+
+___
 
 ### getChainIdentifier
 

@@ -142,7 +142,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:135](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L135)
+[src/lib/ethereum/tbtc-token.ts:139](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L139)
 
 ___
 
@@ -163,9 +163,15 @@ ___
 
 [`Hex`](Hex.md)
 
+**`See`**
+
+#### Implementation of
+
+[TBTCToken](../interfaces/TBTCToken.md).[buildRequestRedemptionData](../interfaces/TBTCToken.md#buildrequestredemptiondata)
+
 #### Defined in
 
-[src/lib/ethereum/tbtc-token.ts:104](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L104)
+[src/lib/ethereum/tbtc-token.ts:108](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/tbtc-token.ts#L108)
 
 ___
 
