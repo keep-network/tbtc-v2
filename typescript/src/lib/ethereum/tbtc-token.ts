@@ -101,7 +101,11 @@ export class EthereumTBTCToken
     return Hex.from(tx.hash)
   }
 
-  private buildRequestRedemptionData(
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {TBTCToken#buildRequestRedemptionData}
+   */
+  buildRequestRedemptionData(
     redeemer: EthereumAddress,
     walletPublicKey: Hex,
     mainUtxo: BitcoinUtxo,

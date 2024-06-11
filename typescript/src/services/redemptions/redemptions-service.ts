@@ -1,4 +1,5 @@
 import {
+  ChainIdentifier,
   RedemptionRequest,
   TBTCContracts,
   WalletState,
@@ -52,6 +53,73 @@ export class RedemptionsService {
     targetChainTxHash: Hex
     walletPublicKey: Hex
   }> {
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+      await this.determineRedemptionData(bitcoinRedeemerAddress, amount)
+
+    const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript,
+      amount
+    )
+
+    return {
+      targetChainTxHash: txHash,
+      walletPublicKey,
+    }
+  }
+
+  /**
+   * Prepare tBTC Redemption Data in the raw bytes format expected by the tBTC
+   * Bridge contract. The data is used to request a redemption of TBTC v2 token
+   * through custom integration with the tBTC Bridge contract.
+   * @param bitcoinRedeemerAddress Bitcoin address redeemed BTC should be
+   *                               sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH
+   *                               address types are supported.
+   * @param amount The amount to be redeemed with the precision of the tBTC
+   *               on-chain token contract.
+   * @param chainRedeemerAddress Chain identifier of the redeemer. This is the
+   *                             address that will be able to claim the tBTC tokens
+   *                             if anything goes wrong during the redemption process.
+   * @returns Data needed to request a redemption.
+   */
+  async buildRedemptionData(
+    bitcoinRedeemerAddress: string,
+    amount: BigNumber,
+    chainRedeemerAddress: ChainIdentifier
+  ): Promise<Hex> {
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+      await this.determineRedemptionData(bitcoinRedeemerAddress, amount)
+
+    return this.tbtcContracts.tbtcToken.buildRequestRedemptionData(
+      chainRedeemerAddress,
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript
+    )
+  }
+
+  /**
+   *
+   * @param bitcoinRedeemerAddress Bitcoin address redeemed BTC should be
+   *                               sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH
+   *                               address types are supported.
+   * @param amount The amount to be redeemed with the precision of the tBTC
+   *                on-chain token contract.
+   * @returns Object containing:
+   *          - Bitcoin public key of the wallet asked to handle the redemption.
+   *            Presented in the compressed form (33 bytes long with 02 or 03 prefix).
+   *          - Main UTXO of the wallet.
+   *          - Redeemer output script.
+   */
+  protected async determineRedemptionData(
+    bitcoinRedeemerAddress: string,
+    amount: BigNumber
+  ): Promise<{
+    walletPublicKey: Hex
+    mainUtxo: BitcoinUtxo
+    redeemerOutputScript: Hex
+  }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
@@ -70,7 +138,7 @@ export class RedemptionsService {
     const amountToSatoshi = (value: BigNumber): BigNumber => {
       const satoshiMultiplier = BigNumber.from(1e10)
       const remainder = value.mod(satoshiMultiplier)
-      const convertibleAmount = amount.sub(remainder)
+      const convertibleAmount = value.sub(remainder)
       return convertibleAmount.div(satoshiMultiplier)
     }
 
@@ -82,17 +150,7 @@ export class RedemptionsService {
       amountToSatoshi(amount)
     )
 
-    const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript,
-      amount
-    )
-
-    return {
-      targetChainTxHash: txHash,
-      walletPublicKey,
-    }
+    return { walletPublicKey, mainUtxo, redeemerOutputScript }
   }
 
   /**
@@ -103,7 +161,7 @@ export class RedemptionsService {
    * @param amount The amount to be redeemed in satoshis.
    * @returns Promise with the wallet details needed to request a redemption.
    */
-  protected async findWalletForRedemption(
+  async findWalletForRedemption(
     redeemerOutputScript: Hex,
     amount: BigNumber
   ): Promise<{
