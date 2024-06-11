@@ -6,6 +6,7 @@ import {
   BitcoinTx,
   BitcoinTxHash,
   BitcoinUtxo,
+  EthereumAddress,
   Hex,
   NewWalletRegisteredEvent,
   RedemptionRequest,
@@ -28,90 +29,32 @@ import { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 import { BigNumber, BigNumberish } from "ethers"
 import { MockTBTCContracts } from "../utils/mock-tbtc-contracts"
+import { MockRedeemerProxy } from "../utils/mock-redeemer-proxy"
 
 chai.use(chaiAsPromised)
 
 describe("Redemptions", () => {
   describe("RedemptionsService", () => {
-    describe("requestRedemption", () => {
-      const data: RedemptionTestData = singleP2PKHRedemptionWithWitnessChange
-      const { transactionHash, value } = data.mainUtxo
-      const mainUtxo: BitcoinUtxo = {
-        transactionHash,
-        outputIndex: 0,
-        value,
-      }
-      const redeemerOutputScript =
-        data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
-      // Use amount in TBTC token precision (1e18)
-      const amount =
-        data.pendingRedemptions[0].pendingRedemption.requestedAmount.mul(1e10)
+    const data: RedemptionTestData = singleP2PKHRedemptionWithWitnessChange
+    const { transactionHash, value } = data.mainUtxo
+    const mainUtxo: BitcoinUtxo = {
+      transactionHash,
+      outputIndex: 0,
+      value,
+    }
+    const redeemerOutputScript =
+      data.pendingRedemptions[0].pendingRedemption.redeemerOutputScript
+    // Use amount in TBTC token precision (1e18)
+    const amount =
+      data.pendingRedemptions[0].pendingRedemption.requestedAmount.mul(1e10)
 
+    describe("requestRedemption", () => {
       let tbtcContracts: MockTBTCContracts
-      let bitcoinClient: MockBitcoinClient
 
       beforeEach(async () => {
-        tbtcContracts = new MockTBTCContracts()
-        bitcoinClient = new MockBitcoinClient()
-
-        const walletPublicKeyHash =
-          BitcoinHashUtils.computeHash160(walletPublicKey)
-
-        // Prepare NewWalletRegisteredEvent history. Set only relevant fields.
-        tbtcContracts.bridge.newWalletRegisteredEvents = [
-          {
-            walletPublicKeyHash,
-          } as NewWalletRegisteredEvent,
-        ]
-
-        // Prepare wallet data in the Bridge. Set only relevant fields.
-        tbtcContracts.bridge.setWallet(walletPublicKeyHash.toPrefixedString(), {
-          state: WalletState.Live,
-          walletPublicKey,
-          pendingRedemptionsValue: BigNumber.from(0),
-          mainUtxoHash: tbtcContracts.bridge.buildUtxoHash(mainUtxo),
-        } as Wallet)
-
-        const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
-          walletPublicKeyHash,
-          true,
-          BitcoinNetwork.Testnet
-        )
-
-        // Prepare wallet transaction history for main UTXO lookup.
-        // Set only relevant fields.
-
-        const transaction = {
-          transactionHash: mainUtxo.transactionHash,
-          outputs: [
-            {
-              outputIndex: mainUtxo.outputIndex,
-              value: mainUtxo.value,
-              scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
-                walletAddress,
-                BitcoinNetwork.Testnet
-              ),
-            },
-          ],
-        }
-
-        const walletTransactions = new Map<string, BitcoinTx>()
-        walletTransactions.set(
-          transaction.transactionHash.toString(),
-          transaction as BitcoinTx
-        )
-        bitcoinClient.transactions = walletTransactions
-
-        const walletTransactionHashes = new Map<string, BitcoinTxHash[]>()
-        walletTransactionHashes.set(walletPublicKeyHash.toString(), [
-          transaction.transactionHash,
-        ])
-        bitcoinClient.transactionHashes = walletTransactionHashes
-
-        const redemptionsService = new RedemptionsService(
-          tbtcContracts,
-          bitcoinClient
-        )
+        let redemptionsService
+        ;({ redemptionsService, tbtcContracts } =
+          prepareRedemptionsService(mainUtxo))
 
         await redemptionsService.requestRedemption(
           BitcoinAddressConverter.outputScriptToAddress(
@@ -129,9 +72,56 @@ describe("Redemptions", () => {
         expect(tokenLog[0]).to.deep.equal({
           walletPublicKey,
           mainUtxo,
-          redeemerOutputScript,
+          redeemerOutputScript: redeemerOutputScript,
           amount: amount.div(1e10),
         })
+      })
+    })
+
+    describe("requestRedemptionWithProxy", () => {
+      const expectedRedeemerAddress = EthereumAddress.from(
+        "0x5dc726ABE471E13757e5d8221ED1d7a0f21a5c20"
+      )
+      const expectedRedemptionData = Hex.from(
+        "0x00000000000000000000000048cce57c4d2dbb31eaf79575abf482bbb8dc071d8ffb0f52fcc9a9295f93be404c650e518e965f1a000000000000000000000000d644201d17980ce2109d5dce0cf12fa04333f7c2f9b6d1cf1e6dcb818c4e01a100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012d9151100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000017160014165baee6aebf6c14f72c3fc1f46b2369e6eb7c40000000000000000000"
+      )
+
+      let redeemerProxy: MockRedeemerProxy
+
+      let tbtcContracts: MockTBTCContracts
+
+      beforeEach(async () => {
+        redeemerProxy = new MockRedeemerProxy(expectedRedeemerAddress)
+
+        let redemptionsService
+        ;({ redemptionsService, tbtcContracts } =
+          prepareRedemptionsService(mainUtxo))
+
+        await redemptionsService.requestRedemptionWithProxy(
+          BitcoinAddressConverter.outputScriptToAddress(
+            redeemerOutputScript,
+            BitcoinNetwork.Testnet
+          ),
+          amount,
+          redeemerProxy
+        )
+      })
+
+      it("should submit redemption request through the Redeemer Proxy with correct arguments", () => {
+        const tokenLog = tbtcContracts.tbtcToken.buildRequestRedemptionLog
+
+        expect(tokenLog.length).to.equal(1)
+        expect(tokenLog[0]).to.deep.equal({
+          redeemer: expectedRedeemerAddress,
+          walletPublicKey,
+          mainUtxo,
+          redeemerOutputScript: redeemerOutputScript,
+        })
+
+        const proxyLog = redeemerProxy.requestRedemptionLog
+
+        expect(proxyLog.length).to.equal(1)
+        expect(proxyLog[0]).to.deep.equal(expectedRedemptionData)
       })
     })
 
@@ -838,6 +828,69 @@ describe("Redemptions", () => {
     })
   })
 })
+
+function prepareRedemptionsService(mainUtxo: BitcoinUtxo) {
+  const tbtcContracts = new MockTBTCContracts()
+  const bitcoinClient = new MockBitcoinClient()
+
+  const walletPublicKeyHash = BitcoinHashUtils.computeHash160(walletPublicKey)
+
+  // Prepare NewWalletRegisteredEvent history. Set only relevant fields.
+  tbtcContracts.bridge.newWalletRegisteredEvents = [
+    {
+      walletPublicKeyHash,
+    } as NewWalletRegisteredEvent,
+  ]
+
+  // Prepare wallet data in the Bridge. Set only relevant fields.
+  tbtcContracts.bridge.setWallet(walletPublicKeyHash.toPrefixedString(), {
+    state: WalletState.Live,
+    walletPublicKey,
+    pendingRedemptionsValue: BigNumber.from(0),
+    mainUtxoHash: tbtcContracts.bridge.buildUtxoHash(mainUtxo),
+  } as Wallet)
+
+  const walletAddress = BitcoinAddressConverter.publicKeyHashToAddress(
+    walletPublicKeyHash,
+    true,
+    BitcoinNetwork.Testnet
+  )
+
+  // Prepare wallet transaction history for main UTXO lookup.
+  // Set only relevant fields.
+  const transaction = {
+    transactionHash: mainUtxo.transactionHash,
+    outputs: [
+      {
+        outputIndex: mainUtxo.outputIndex,
+        value: mainUtxo.value,
+        scriptPubKey: BitcoinAddressConverter.addressToOutputScript(
+          walletAddress,
+          BitcoinNetwork.Testnet
+        ),
+      },
+    ],
+  }
+
+  const walletTransactions = new Map<string, BitcoinTx>()
+  walletTransactions.set(
+    transaction.transactionHash.toString(),
+    transaction as BitcoinTx
+  )
+  bitcoinClient.transactions = walletTransactions
+
+  const walletTransactionHashes = new Map<string, BitcoinTxHash[]>()
+  walletTransactionHashes.set(walletPublicKeyHash.toString(), [
+    transaction.transactionHash,
+  ])
+  bitcoinClient.transactionHashes = walletTransactionHashes
+
+  const redemptionsService = new RedemptionsService(
+    tbtcContracts,
+    bitcoinClient
+  )
+  return { redemptionsService, tbtcContracts, bitcoinClient }
+}
 
 export async function runRedemptionScenario(
   walletPrivKey: string,
