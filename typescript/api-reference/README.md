@@ -67,6 +67,7 @@
 - [L1BitcoinDepositor](interfaces/L1BitcoinDepositor.md)
 - [L2BitcoinDepositor](interfaces/L2BitcoinDepositor.md)
 - [L2TBTCToken](interfaces/L2TBTCToken.md)
+- [RedeemerProxy](interfaces/RedeemerProxy.md)
 - [RedemptionRequest](interfaces/RedemptionRequest.md)
 - [TBTCToken](interfaces/TBTCToken.md)
 - [TBTCVault](interfaces/TBTCVault.md)
