@@ -127,6 +127,20 @@ export interface Bridge {
   ): Promise<RedemptionRequest>
 
   /**
+   * Gets a pending redemption from the on-chain contract using the wallet's
+   * public key hash instead of the plain-text public key.
+   * @param walletPublicKeyHash Bitcoin public key hash of the wallet the
+   *        request is targeted to. Must be 20 bytes long.
+   * @param redeemerOutputScript The redeemer output script the redeemed funds
+   *        are supposed to be locked on. Must not be prepended with length.
+   * @returns Promise with the pending redemption.
+   */
+  pendingRedemptionsByWalletPKH(
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
+  ): Promise<RedemptionRequest>
+
+  /**
    * Gets a timed-out redemption from the on-chain contract.
    * @param walletPublicKey Bitcoin public key of the wallet the request is
    *        targeted to. Must be in the compressed form (33 bytes long with 02
