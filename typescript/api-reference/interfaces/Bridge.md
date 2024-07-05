@@ -21,6 +21,7 @@ Interface for communication with the Bridge on-chain contract.
 - [deposits](Bridge.md#deposits)
 - [getChainIdentifier](Bridge.md#getchainidentifier)
 - [pendingRedemptions](Bridge.md#pendingredemptions)
+- [pendingRedemptionsByWalletPKH](Bridge.md#pendingredemptionsbywalletpkh)
 - [requestRedemption](Bridge.md#requestredemption)
 - [revealDeposit](Bridge.md#revealdeposit)
 - [submitDepositSweepProof](Bridge.md#submitdepositsweepproof)
@@ -60,7 +61,7 @@ GetEventsFunction
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:155](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L155)
+[src/lib/contracts/bridge.ts:169](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L169)
 
 ___
 
@@ -76,7 +77,7 @@ GetEventsFunction
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L181)
+[src/lib/contracts/bridge.ts:195](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L195)
 
 ## Methods
 
@@ -96,7 +97,7 @@ Compressed (33 bytes long with 02 or 03 prefix) active wallet's
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:149](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L149)
+[src/lib/contracts/bridge.ts:163](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L163)
 
 ___
 
@@ -120,7 +121,7 @@ The hash of the UTXO.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:175](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L175)
+[src/lib/contracts/bridge.ts:189](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L189)
 
 ___
 
@@ -187,6 +188,32 @@ Promise with the pending redemption.
 #### Defined in
 
 [src/lib/contracts/bridge.ts:124](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L124)
+
+___
+
+### pendingRedemptionsByWalletPKH
+
+▸ **pendingRedemptionsByWalletPKH**(`walletPublicKeyHash`, `redeemerOutputScript`): `Promise`\<[`RedemptionRequest`](RedemptionRequest.md)\>
+
+Gets a pending redemption from the on-chain contract using the wallet's
+public key hash instead of the plain-text public key.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `walletPublicKeyHash` | [`Hex`](../classes/Hex.md) | Bitcoin public key hash of the wallet the request is targeted to. Must be 20 bytes long. |
+| `redeemerOutputScript` | [`Hex`](../classes/Hex.md) | The redeemer output script the redeemed funds are supposed to be locked on. Must not be prepended with length. |
+
+#### Returns
+
+`Promise`\<[`RedemptionRequest`](RedemptionRequest.md)\>
+
+Promise with the pending redemption.
+
+#### Defined in
+
+[src/lib/contracts/bridge.ts:138](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L138)
 
 ___
 
@@ -319,7 +346,7 @@ Promise with the pending redemption.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:138](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L138)
+[src/lib/contracts/bridge.ts:152](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L152)
 
 ___
 
@@ -358,7 +385,7 @@ Returns the attached WalletRegistry instance.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:160](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L160)
+[src/lib/contracts/bridge.ts:174](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L174)
 
 ___
 
@@ -382,4 +409,4 @@ Promise with the wallet details.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:168](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L168)
+[src/lib/contracts/bridge.ts:182](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L182)
