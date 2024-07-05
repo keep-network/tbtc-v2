@@ -11,8 +11,9 @@ import {
   BitcoinTxOutput,
   BitcoinUtxo,
 } from "../../lib/bitcoin"
-import { BigNumber } from "ethers"
+import { BigNumber, BigNumberish } from "ethers"
 import { Hex } from "../../lib/utils"
+import { RedeemerProxy } from "./redeemer-proxy"
 
 /**
  * Service exposing features related to tBTC v2 redemptions.
@@ -52,6 +53,90 @@ export class RedemptionsService {
     targetChainTxHash: Hex
     walletPublicKey: Hex
   }> {
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+      await this.determineRedemptionData(bitcoinRedeemerAddress, amount)
+
+    const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
+      walletPublicKey,
+      mainUtxo,
+      redeemerOutputScript,
+      amount
+    )
+
+    return {
+      targetChainTxHash: txHash,
+      walletPublicKey,
+    }
+  }
+
+  /**
+   * Requests a redemption of TBTC v2 token into BTC using a custom integration.
+   * The function builds the redemption data and handles the redemption request
+   * through the provided redeemer proxy.
+   * @param bitcoinRedeemerAddress Bitcoin address the redeemed BTC should be
+   *        sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH address types are supported.
+   * @param amount The amount to be redeemed with the precision of the tBTC
+   *        on-chain token contract.
+   * @param redeemerProxy Object impleenting functions required to route tBTC
+   *        redemption requests through the tBTC bridge.
+   * @returns Object containing:
+   *          - Target chain hash of the request redemption transaction
+   *            (for example, Ethereum transaction hash)
+   *          - Bitcoin public key of the wallet asked to handle the redemption.
+   *            Presented in the compressed form (33 bytes long with 02 or 03 prefix).
+   */
+  async requestRedemptionWithProxy(
+    bitcoinRedeemerAddress: string,
+    amount: BigNumberish,
+    redeemerProxy: RedeemerProxy
+  ): Promise<{
+    targetChainTxHash: Hex
+    walletPublicKey: Hex
+  }> {
+    const chainRedeemerAddress = redeemerProxy.redeemerAddress()
+
+    const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+      await this.determineRedemptionData(
+        bitcoinRedeemerAddress,
+        BigNumber.from(amount)
+      )
+
+    const redemptionData =
+      this.tbtcContracts.tbtcToken.buildRequestRedemptionData(
+        chainRedeemerAddress,
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript
+      )
+
+    const targetChainTxHash = await redeemerProxy.requestRedemption(
+      redemptionData
+    )
+
+    return { targetChainTxHash, walletPublicKey }
+  }
+
+  /**
+   *
+   * @param bitcoinRedeemerAddress Bitcoin address redeemed BTC should be
+   *                               sent to. Only P2PKH, P2WPKH, P2SH, and P2WSH
+   *                               address types are supported.
+   * @param amount The amount to be redeemed with the precision of the tBTC
+   *                on-chain token contract.
+   * @returns Object containing:
+   *          - Bitcoin public key of the wallet asked to handle the redemption.
+   *            Presented in the compressed form (33 bytes long with 02 or 03 prefix).
+   *          - Main UTXO of the wallet.
+   *          - Redeemer output script.
+   */
+  protected async determineRedemptionData(
+    bitcoinRedeemerAddress: string,
+    amount: BigNumber
+  ): Promise<{
+    walletPublicKey: Hex
+    mainUtxo: BitcoinUtxo
+    redeemerOutputScript: Hex
+  }> {
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
     const redeemerOutputScript = BitcoinAddressConverter.addressToOutputScript(
@@ -70,7 +155,7 @@ export class RedemptionsService {
     const amountToSatoshi = (value: BigNumber): BigNumber => {
       const satoshiMultiplier = BigNumber.from(1e10)
       const remainder = value.mod(satoshiMultiplier)
-      const convertibleAmount = amount.sub(remainder)
+      const convertibleAmount = value.sub(remainder)
       return convertibleAmount.div(satoshiMultiplier)
     }
 
@@ -82,17 +167,7 @@ export class RedemptionsService {
       amountToSatoshi(amount)
     )
 
-    const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript,
-      amount
-    )
-
-    return {
-      targetChainTxHash: txHash,
-      walletPublicKey,
-    }
+    return { walletPublicKey, mainUtxo, redeemerOutputScript }
   }
 
   /**
