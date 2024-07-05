@@ -1,3 +1,5 @@
+import { BitcoinNetwork, Chains } from "@keep-network/tbtc-v2.ts"
+
 // List of environment variables used by the monitoring package.
 const {
   ENVIRONMENT,
@@ -13,6 +15,16 @@ const {
 export enum Environment {
   Mainnet = "mainnet",
   Testnet = "testnet",
+}
+
+const ethereumEnvironmentMapping = {
+  [Environment.Mainnet]: Chains.Ethereum.Mainnet,
+  [Environment.Testnet]: Chains.Ethereum.Sepolia,
+}
+
+const bitcoinEnvironmentMapping = {
+  [Environment.Mainnet]: BitcoinNetwork.Mainnet,
+  [Environment.Testnet]: BitcoinNetwork.Testnet,
 }
 
 const resolveEnvironment = () => {
@@ -57,4 +69,6 @@ export const context = {
   dataDirPath: DATA_DIR_PATH ?? "./data",
   sentryDsn: SENTRY_DSN,
   discordWebhookUrl: DISCORD_WEBHOOK_URL,
+  ethereumEnvironmentMapping,
+  bitcoinEnvironmentMapping,
 }
