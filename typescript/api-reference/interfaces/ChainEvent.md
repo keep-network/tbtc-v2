@@ -20,7 +20,7 @@ Block hash of the event emission.
 
 #### Defined in
 
-[src/lib/contracts/chain-event.ts:14](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L14)
+[lib/contracts/chain-event.ts:14](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L14)
 
 ___
 
@@ -32,7 +32,7 @@ Block number of the event emission.
 
 #### Defined in
 
-[src/lib/contracts/chain-event.ts:10](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L10)
+[lib/contracts/chain-event.ts:10](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L10)
 
 ___
 
@@ -44,4 +44,4 @@ Transaction hash within which the event was emitted.
 
 #### Defined in
 
-[src/lib/contracts/chain-event.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L18)
+[lib/contracts/chain-event.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain-event.ts#L18)

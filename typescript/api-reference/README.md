@@ -35,7 +35,6 @@
 - [EthereumTBTCVault](classes/EthereumTBTCVault.md)
 - [EthereumWalletRegistry](classes/EthereumWalletRegistry.md)
 - [Hex](classes/Hex.md)
-- [LedgerLiveEthereumSigner](classes/LedgerLiveEthereumSigner.md)
 - [MaintenanceService](classes/MaintenanceService.md)
 - [OptimisticMinting](classes/OptimisticMinting.md)
 - [RedemptionsService](classes/RedemptionsService.md)
@@ -143,7 +142,7 @@ Data about a Bitcoin transaction input.
 
 #### Defined in
 
-[src/lib/bitcoin/tx.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L63)
+[lib/bitcoin/tx.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L63)
 
 ___
 
@@ -155,7 +154,7 @@ Data about a Bitcoin unspent transaction output.
 
 #### Defined in
 
-[src/lib/bitcoin/tx.ts:93](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L93)
+[lib/bitcoin/tx.ts:93](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L93)
 
 ___
 
@@ -174,7 +173,7 @@ Type representing a mapping between specific L1 and L2 chains.
 
 #### Defined in
 
-[src/lib/contracts/chain.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L26)
+[lib/contracts/chain.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L26)
 
 ___
 
@@ -187,7 +186,7 @@ between TBTC L1 ledger chain and a specific supported L2/side-chain.
 
 #### Defined in
 
-[src/lib/contracts/cross-chain.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L12)
+[lib/contracts/cross-chain.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L12)
 
 ___
 
@@ -204,7 +203,7 @@ Mode of operation for the cross-chain depositor proxy:
 
 #### Defined in
 
-[src/services/deposits/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/cross-chain.ts#L19)
+[services/deposits/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/cross-chain.ts#L19)
 
 ___
 
@@ -216,7 +215,7 @@ Represents an event emitted on deposit reveal to the on-chain bridge.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:307](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L307)
+[lib/contracts/bridge.ts:307](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L307)
 
 ___
 
@@ -229,7 +228,7 @@ wallet registry.
 
 #### Defined in
 
-[src/lib/contracts/wallet-registry.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L64)
+[lib/contracts/wallet-registry.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L64)
 
 ___
 
@@ -242,7 +241,7 @@ wallet registry.
 
 #### Defined in
 
-[src/lib/contracts/wallet-registry.ts:79](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L79)
+[lib/contracts/wallet-registry.ts:79](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L79)
 
 ___
 
@@ -255,7 +254,7 @@ wallet registry.
 
 #### Defined in
 
-[src/lib/contracts/wallet-registry.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L45)
+[lib/contracts/wallet-registry.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/wallet-registry.ts#L45)
 
 ___
 
@@ -267,7 +266,7 @@ Additional options used by the Electrum server.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L49)
+[lib/electrum/client.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L49)
 
 ___
 
@@ -293,7 +292,7 @@ True if the error matches, false otherwise.
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L42)
+[lib/utils/backoff.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L42)
 
 ___
 
@@ -307,7 +306,7 @@ or a Provider that works only in the read-only mode.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L34)
+[lib/ethereum/index.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L34)
 
 ___
 
@@ -333,7 +332,7 @@ A function that is called with execution status messages.
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:56](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L56)
+[lib/utils/backoff.ts:56](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L56)
 
 ___
 
@@ -351,7 +350,7 @@ Aggregates L1-specific TBTC cross-chain contracts.
 
 #### Defined in
 
-[src/lib/contracts/cross-chain.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L25)
+[lib/contracts/cross-chain.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L25)
 
 ___
 
@@ -363,7 +362,7 @@ Layer 2 chains supported by tBTC v2 contracts.
 
 #### Defined in
 
-[src/lib/contracts/chain.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L21)
+[lib/contracts/chain.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L21)
 
 ___
 
@@ -382,7 +381,7 @@ Aggregates L2-specific TBTC cross-chain contracts.
 
 #### Defined in
 
-[src/lib/contracts/cross-chain.ts:17](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L17)
+[lib/contracts/cross-chain.ts:17](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L17)
 
 ___
 
@@ -394,7 +393,7 @@ Represents an event emitted when new wallet is registered on the on-chain bridge
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:471](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L471)
+[lib/contracts/bridge.ts:471](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L471)
 
 ___
 
@@ -407,7 +406,7 @@ is cancelled on chain.
 
 #### Defined in
 
-[src/lib/contracts/tbtc-vault.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L170)
+[lib/contracts/tbtc-vault.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L170)
 
 ___
 
@@ -420,7 +419,7 @@ is finalized on chain.
 
 #### Defined in
 
-[src/lib/contracts/tbtc-vault.ts:186](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L186)
+[lib/contracts/tbtc-vault.ts:186](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L186)
 
 ___
 
@@ -440,7 +439,7 @@ Bridge.
 
 #### Defined in
 
-[src/lib/contracts/tbtc-vault.ts:120](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L120)
+[lib/contracts/tbtc-vault.ts:120](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L120)
 
 ___
 
@@ -453,7 +452,7 @@ on chain.
 
 #### Defined in
 
-[src/lib/contracts/tbtc-vault.ts:136](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L136)
+[lib/contracts/tbtc-vault.ts:136](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/tbtc-vault.ts#L136)
 
 ___
 
@@ -465,7 +464,7 @@ Represents an event emitted on redemption request.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:358](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L358)
+[lib/contracts/bridge.ts:358](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L358)
 
 ___
 
@@ -495,7 +494,7 @@ ___
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L51)
+[lib/utils/backoff.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L51)
 
 ___
 
@@ -516,7 +515,7 @@ Convenience type aggregating all TBTC core contracts.
 
 #### Defined in
 
-[src/lib/contracts/index.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/index.ts#L19)
+[lib/contracts/index.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/index.ts#L19)
 
 ## Variables
 
@@ -538,7 +537,7 @@ Utility functions allowing to perform Bitcoin address conversions.
 
 #### Defined in
 
-[src/lib/bitcoin/address.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/address.ts#L112)
+[lib/bitcoin/address.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/address.ts#L112)
 
 ___
 
@@ -556,7 +555,7 @@ Utility functions allowing to deal with Bitcoin compact size uints.
 
 #### Defined in
 
-[src/lib/bitcoin/csuint.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/csuint.ts#L50)
+[lib/bitcoin/csuint.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/csuint.ts#L50)
 
 ___
 
@@ -577,7 +576,7 @@ Utility functions allowing to deal with Bitcoin hashes.
 
 #### Defined in
 
-[src/lib/bitcoin/hash.ts:52](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/hash.ts#L52)
+[lib/bitcoin/hash.ts:52](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/hash.ts#L52)
 
 ___
 
@@ -597,7 +596,7 @@ Utility functions allowing to serialize and deserialize Bitcoin block headers.
 
 #### Defined in
 
-[src/lib/bitcoin/header.ts:109](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L109)
+[lib/bitcoin/header.ts:109](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L109)
 
 ___
 
@@ -616,7 +615,7 @@ Utility functions allowing to deal with Bitcoin locktime.
 
 #### Defined in
 
-[src/lib/bitcoin/tx.ts:234](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L234)
+[lib/bitcoin/tx.ts:234](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L234)
 
 ___
 
@@ -634,7 +633,7 @@ Utility functions allowing to perform operations on Bitcoin ECDSA private keys.
 
 #### Defined in
 
-[src/lib/bitcoin/ecdsa-key.ts:77](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/ecdsa-key.ts#L77)
+[lib/bitcoin/ecdsa-key.ts:77](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/ecdsa-key.ts#L77)
 
 ___
 
@@ -653,7 +652,7 @@ Utility functions allowing to perform operations on Bitcoin ECDSA public keys.
 
 #### Defined in
 
-[src/lib/bitcoin/ecdsa-key.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/ecdsa-key.ts#L51)
+[lib/bitcoin/ecdsa-key.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/ecdsa-key.ts#L51)
 
 ___
 
@@ -674,7 +673,7 @@ Utility functions allowing to deal with Bitcoin scripts.
 
 #### Defined in
 
-[src/lib/bitcoin/script.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/script.ts#L63)
+[lib/bitcoin/script.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/script.ts#L63)
 
 ___
 
@@ -693,7 +692,7 @@ Utility functions allowing to perform Bitcoin target conversions.
 
 #### Defined in
 
-[src/lib/bitcoin/header.ts:268](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L268)
+[lib/bitcoin/header.ts:268](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L268)
 
 ___
 
@@ -705,7 +704,7 @@ List of chain mappings supported by tBTC v2 contracts.
 
 #### Defined in
 
-[src/lib/contracts/chain.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L40)
+[lib/contracts/chain.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L40)
 
 ## Functions
 
@@ -732,7 +731,7 @@ Bitcoin transaction along with the inclusion proof.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L75)
+[lib/bitcoin/spv.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L75)
 
 ___
 
@@ -782,7 +781,7 @@ A function that can retry any function.
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L89)
+[lib/utils/backoff.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L89)
 
 ___
 
@@ -806,7 +805,7 @@ Chain ID as a string.
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L41)
+[lib/ethereum/index.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L41)
 
 ___
 
@@ -831,7 +830,7 @@ Electrum script hash as a hex string.
 
 #### Defined in
 
-[src/lib/electrum/client.ts:668](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L668)
+[lib/electrum/client.ts:668](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/electrum/client.ts#L668)
 
 ___
 
@@ -861,7 +860,7 @@ Throws an error if the address of the signer is not a proper
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L63)
+[lib/ethereum/index.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L63)
 
 ___
 
@@ -894,7 +893,7 @@ Throws an error if the signer's Ethereum chain ID is other than
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:118](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L118)
+[lib/ethereum/index.ts:118](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L118)
 
 ___
 
@@ -919,7 +918,7 @@ Transaction data with fields represented as un-prefixed hex strings.
 
 #### Defined in
 
-[src/lib/bitcoin/tx.ts:133](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L133)
+[lib/bitcoin/tx.ts:133](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/tx.ts#L133)
 
 ___
 
@@ -950,7 +949,7 @@ Throws an error if the signer's Base chain ID is other than
 
 #### Defined in
 
-[src/lib/base/index.ts:22](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/index.ts#L22)
+[lib/base/index.ts:22](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/index.ts#L22)
 
 ___
 
@@ -981,7 +980,7 @@ Throws an error if the signer's Ethereum chain ID is other than
 
 #### Defined in
 
-[src/lib/ethereum/index.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L82)
+[lib/ethereum/index.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L82)
 
 ___
 
@@ -1025,7 +1024,7 @@ Packed parameters.
 
 #### Defined in
 
-[src/lib/ethereum/bridge.ts:714](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L714)
+[lib/ethereum/bridge.ts:714](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/bridge.ts#L714)
 
 ___
 
@@ -1050,7 +1049,7 @@ Always returns true.
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:9](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L9)
+[lib/utils/backoff.ts:9](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L9)
 
 ___
 
@@ -1076,7 +1075,7 @@ Matcher function that returns false if error matches one of the patterns.
 
 #### Defined in
 
-[src/lib/utils/backoff.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L20)
+[lib/utils/backoff.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L20)
 
 ___
 
@@ -1105,7 +1104,7 @@ An error if the network is not supported by `bitcoinjs-lib`.
 
 #### Defined in
 
-[src/lib/bitcoin/network.ts:55](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L55)
+[lib/bitcoin/network.ts:55](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/network.ts#L55)
 
 ___
 
@@ -1146,7 +1145,7 @@ If any of the block headers are invalid, or if the block
 
 #### Defined in
 
-[src/lib/bitcoin/header.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L132)
+[lib/bitcoin/header.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/header.ts#L132)
 
 ___
 
@@ -1186,7 +1185,7 @@ The function should be used within a try-catch block.
 
 #### Defined in
 
-[src/lib/bitcoin/spv.ts:180](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L180)
+[lib/bitcoin/spv.ts:180](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/bitcoin/spv.ts#L180)
 
 ___
 
@@ -1213,4 +1212,4 @@ This function does not validate the depositor's identifier as its
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:247](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L247)
+[lib/contracts/bridge.ts:247](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L247)
