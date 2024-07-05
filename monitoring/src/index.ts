@@ -87,6 +87,9 @@ async function setup(): Promise<SystemEventManager> {
 }
 
 setup().then((manager) => {
+  // eslint-disable-next-line no-console
+  console.log("setup completed; triggering monitoring manager")
+
   manager.trigger().then((report) => {
     // eslint-disable-next-line default-case
     switch (report.status) {
