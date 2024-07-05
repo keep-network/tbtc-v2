@@ -1,4 +1,5 @@
-import { contracts } from "./contracts"
+// eslint-disable-next-line max-classes-per-file
+import { blocks } from "./blocks"
 
 export enum SystemEventType {
   Informational = "informational",
@@ -145,7 +146,7 @@ export class Manager {
   async trigger(): Promise<ManagerReport> {
     try {
       const checkpointBlock = await this.persistence.checkpointBlock()
-      const latestBlock = await contracts.latestBlock()
+      const latestBlock = await blocks.latestBlock()
 
       const validCheckpoint =
         checkpointBlock > 0 && checkpointBlock < latestBlock

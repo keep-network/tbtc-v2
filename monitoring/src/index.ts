@@ -1,8 +1,12 @@
-import { ElectrumClient } from "@keep-network/tbtc-v2.ts"
+import {
+  ElectrumClient,
+  loadEthereumCoreContracts,
+  TBTC,
+} from "@keep-network/tbtc-v2.ts"
+import { providers } from "ethers"
 
 import { Manager as SystemEventManager } from "./system-event"
 import { DepositMonitor } from "./deposit-monitor"
-import { contracts } from "./contracts"
 import { DiscordReceiver } from "./discord-receiver"
 import { SentryReceiver } from "./sentry-receiver"
 import {
@@ -15,53 +19,90 @@ import { WalletMonitor } from "./wallet-monitor"
 import { SupplyMonitor } from "./supply-monitor"
 import { RedemptionMonitor } from "./redemption-monitor"
 
-import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
 import type {
   Monitor as SystemEventMonitor,
   Receiver as SystemEventReceiver,
 } from "./system-event"
 
-const btcClient: BitcoinClient = ElectrumClient.fromUrl(context.electrumUrl)
+async function setupSDK(): Promise<TBTC> {
+  const provider = new providers.JsonRpcProvider(context.ethereumUrl)
+  const chainId = context.ethereumEnvironmentMapping[context.environment]
+  const tbtcContracts = await loadEthereumCoreContracts(provider, chainId)
 
-const monitors: SystemEventMonitor[] = [
-  new DepositMonitor(contracts.bridge),
-  new MintingMonitor(contracts.bridge, contracts.tbtcVault, btcClient),
-  new SupplyMonitor(contracts.tbtcToken, new SupplyMonitorFilePersistence()),
-  new WalletMonitor(contracts.bridge),
-  new RedemptionMonitor(contracts.bridge),
-]
-
-const receivers: SystemEventReceiver[] = ((): SystemEventReceiver[] => {
-  const registered: SystemEventReceiver[] = []
-
-  if (context.discordWebhookUrl) {
-    console.log("registered Discord receiver")
-    registered.push(new DiscordReceiver(context.discordWebhookUrl))
+  const bitcoinNetwork = context.bitcoinEnvironmentMapping[context.environment]
+  const btcClient = ElectrumClient.fromUrl(context.electrumUrl)
+  if ((await btcClient.getNetwork()) !== bitcoinNetwork) {
+    throw new Error("Bitcoin network mismatch")
   }
 
-  if (context.sentryDsn) {
-    console.log("registered Sentry receiver")
-    registered.push(new SentryReceiver(context.sentryDsn))
-  }
+  return TBTC.initializeCustom(tbtcContracts, btcClient)
+}
 
-  return registered
-})()
+async function setupMonitoring(sdk: TBTC): Promise<SystemEventManager> {
+  const { tbtcContracts, bitcoinClient } = sdk
 
-const manager = new SystemEventManager(
-  monitors,
-  receivers,
-  new SystemEventFilePersistence()
-)
+  const monitors: SystemEventMonitor[] = [
+    new DepositMonitor(tbtcContracts.bridge),
+    new MintingMonitor(
+      tbtcContracts.bridge,
+      tbtcContracts.tbtcVault,
+      bitcoinClient
+    ),
+    new SupplyMonitor(
+      tbtcContracts.tbtcToken,
+      new SupplyMonitorFilePersistence()
+    ),
+    new WalletMonitor(tbtcContracts.bridge),
+    new RedemptionMonitor(tbtcContracts.bridge),
+  ]
 
-manager.trigger().then((report) => {
-  switch (report.status) {
-    case "success": {
-      console.log(report)
-      break
+  const receivers: SystemEventReceiver[] = ((): SystemEventReceiver[] => {
+    const registered: SystemEventReceiver[] = []
+
+    if (context.discordWebhookUrl) {
+      // eslint-disable-next-line no-console
+      console.log("registered Discord receiver")
+      registered.push(new DiscordReceiver(context.discordWebhookUrl))
     }
-    case "failure": {
-      console.error(report)
-      break
+
+    if (context.sentryDsn) {
+      // eslint-disable-next-line no-console
+      console.log("registered Sentry receiver")
+      registered.push(new SentryReceiver(context.sentryDsn))
     }
-  }
+
+    return registered
+  })()
+
+  return new SystemEventManager(
+    monitors,
+    receivers,
+    new SystemEventFilePersistence()
+  )
+}
+
+async function setup(): Promise<SystemEventManager> {
+  const sdk = await setupSDK()
+  return setupMonitoring(sdk)
+}
+
+setup().then((manager) => {
+  // eslint-disable-next-line no-console
+  console.log("setup completed; triggering monitoring manager")
+
+  manager.trigger().then((report) => {
+    // eslint-disable-next-line default-case
+    switch (report.status) {
+      case "success": {
+        // eslint-disable-next-line no-console
+        console.log(report)
+        break
+      }
+      case "failure": {
+        // eslint-disable-next-line no-console
+        console.error(report)
+        break
+      }
+    }
+  })
 })
