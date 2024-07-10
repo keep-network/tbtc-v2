@@ -13,6 +13,11 @@ export namespace Chains {
     Base = "8453",
     BaseSepolia = "84532",
   }
+
+  export enum Arbitrum {
+    Arbitrum = "42161",
+    ArbitrumSepolia = "421614",
+  }
 }
 
 /**
@@ -32,12 +37,18 @@ export type ChainMapping = {
    * Identifier of the Base L2 chain.
    */
   base?: Chains.Base
+
+  /**
+   * Identifier of the Arbitrum L2 chain.
+   */
+  arbitrum?: Chains.Arbitrum
 }
 
 /**
  * List of chain mappings supported by tBTC v2 contracts.
  */
 export const ChainMappings: ChainMapping[] = [
+  // Ethereum Mainnet to Base + TESTNETs
   {
     ethereum: Chains.Ethereum.Mainnet,
     base: Chains.Base.Base,
@@ -46,4 +57,13 @@ export const ChainMappings: ChainMapping[] = [
     ethereum: Chains.Ethereum.Sepolia,
     base: Chains.Base.BaseSepolia,
   },
+  // Ethereum Mainnet to Arbitrum + TESTNETs
+  {
+    ethereum: Chains.Ethereum.Mainnet,
+    arbitrum: Chains.Arbitrum.Arbitrum,
+  }
+  {
+    ethereum: Chains.Ethereum.Sepolia,
+    arbitrum: Chains.Arbitrum.ArbitrumSepolia,
+  }
 ]

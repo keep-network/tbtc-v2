@@ -19,6 +19,7 @@ import {
 } from "../lib/ethereum"
 import { ElectrumClient } from "../lib/electrum"
 import { loadBaseCrossChainContracts } from "../lib/base"
+import { loadArbitrumCrossChainContracts } from "../lib/arbitrum"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -225,6 +226,15 @@ export class TBTC {
           baseChainId
         )
         break
+      case "Arbitrum":
+        const arbitrumChainId = chainMapping.arbitrum
+        if (!arbitrumChainId) {
+          throw new Error("Arbitrum chain ID not available in chain mapping")
+        }
+        l2CrossChainContracts = await loadArbitrumCrossChainContracts(
+          l2Signer,
+          arbitrumChainId
+        )
       default:
         throw new Error("Unsupported L2 chain")
     }

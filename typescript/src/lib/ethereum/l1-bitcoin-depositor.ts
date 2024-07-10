@@ -18,7 +18,12 @@ import { Hex } from "../utils"
 
 // TODO: Uncomment once BaseL1BitcoinDepositor is available on Ethereum mainnet.
 // import MainnetBaseL1BitcoinDepositorDeployment from "./artifacts/mainnet/BaseL1BitcoinDepositor.json"
+// import MainnetArbitrumL1BitcoinDepositorDeployment from "./artifacts/mainnet/ArbitrumL1BitcoinDepositor.json"
+
+
 import SepoliaBaseL1BitcoinDepositorDeployment from "./artifacts/sepolia/BaseL1BitcoinDepositor.json"
+import SepoliaArbitrumL1BitcoinDepositorDeployment from "./artifacts/sepolia/ArbitrumL1BitcoinDepositor.json"
+
 
 const artifactLoader = {
   getMainnet: (l2ChainName: L2Chain) => {
@@ -26,6 +31,10 @@ const artifactLoader = {
       // TODO: Uncomment once BaseL1BitcoinDepositor is available on Ethereum mainnet.
       // case "Base":
       //   return MainnetBaseL1BitcoinDepositorDeployment
+
+      // TODO: Uncomment once ArbitrumL1BitcoinDepositor is available on Ethereum mainnet.
+      // case "Arbitrum":
+      //   return MainnetArbitrumL1BitcoinDepositorDeployment
       default:
         throw new Error("Unsupported L2 chain")
     }
@@ -35,6 +44,8 @@ const artifactLoader = {
     switch (l2ChainName) {
       case "Base":
         return SepoliaBaseL1BitcoinDepositorDeployment
+      case "Arbitrum":
+        return SepoliaArbitrumL1BitcoinDepositorDeployment
       default:
         throw new Error("Unsupported L2 chain")
     }
