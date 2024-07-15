@@ -36,7 +36,10 @@ export async function loadArbitrumCrossChainContracts(
   )
   l2BitcoinDepositor.setDepositOwner(await ethereumAddressFromSigner(signer))
 
-  const l2TbtcToken = new ArbitrumL2TBTCToken({ signerOrProvider: signer }, chainId)
+  const l2TbtcToken = new ArbitrumL2TBTCToken(
+    { signerOrProvider: signer },
+    chainId
+  )
 
   return {
     l2BitcoinDepositor,

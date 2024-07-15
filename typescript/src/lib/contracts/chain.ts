@@ -61,9 +61,9 @@ export const ChainMappings: ChainMapping[] = [
   {
     ethereum: Chains.Ethereum.Mainnet,
     arbitrum: Chains.Arbitrum.Arbitrum,
-  }
+  },
   {
     ethereum: Chains.Ethereum.Sepolia,
     arbitrum: Chains.Arbitrum.ArbitrumSepolia,
-  }
+  },
 ]

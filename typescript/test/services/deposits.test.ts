@@ -2216,7 +2216,9 @@ describe("Deposits", () => {
             "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc",
             "Arbitrum"
           )
-        ).to.be.rejectedWith("Cross-chain contracts for Arbitrum not initialized")
+        ).to.be.rejectedWith(
+          "Cross-chain contracts for Arbitrum not initialized"
+        )
       })
     })
 
@@ -2277,9 +2279,7 @@ describe("Deposits", () => {
 
       context("when L2 deposit owner can be resolved", () => {
         beforeEach(async () => {
-          crossChainContracts.l2BitcoinDepositor.setDepositOwner(
-            l2DepositOwner
-          )
+          crossChainContracts.l2BitcoinDepositor.setDepositOwner(l2DepositOwner)
         })
 
         context("when active wallet is not set", () => {
@@ -2316,9 +2316,7 @@ describe("Deposits", () => {
           })
 
           context("when recovery address is correct", () => {
-            const assertCommonDepositProperties = (
-              receipt: DepositReceipt
-            ) => {
+            const assertCommonDepositProperties = (receipt: DepositReceipt) => {
               expect(receipt.depositor).to.be.equal(
                 l1BitcoinDepositor.getChainIdentifier()
               )
@@ -2393,7 +2391,6 @@ describe("Deposits", () => {
       })
     })
   })
-})
 
   describe("DepositRefund", () => {
     const fee = BigNumber.from(1520)
