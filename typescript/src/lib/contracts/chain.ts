@@ -48,22 +48,14 @@ export type ChainMapping = {
  * List of chain mappings supported by tBTC v2 contracts.
  */
 export const ChainMappings: ChainMapping[] = [
-  // Ethereum Mainnet to Base + TESTNETs
   {
     ethereum: Chains.Ethereum.Mainnet,
     base: Chains.Base.Base,
-  },
-  {
-    ethereum: Chains.Ethereum.Sepolia,
-    base: Chains.Base.BaseSepolia,
-  },
-  // Ethereum Mainnet to Arbitrum + TESTNETs
-  {
-    ethereum: Chains.Ethereum.Mainnet,
     arbitrum: Chains.Arbitrum.Arbitrum,
   },
   {
     ethereum: Chains.Ethereum.Sepolia,
+    base: Chains.Base.BaseSepolia,
     arbitrum: Chains.Arbitrum.ArbitrumSepolia,
-  },
+  }
 ]
