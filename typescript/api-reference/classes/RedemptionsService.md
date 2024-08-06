@@ -41,7 +41,7 @@ Service exposing features related to tBTC v2 redemptions.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L31)
+[services/redemptions/redemptions-service.ts:31](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L31)
 
 ## Properties
 
@@ -53,7 +53,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L29)
+[services/redemptions/redemptions-service.ts:29](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L29)
 
 ___
 
@@ -65,7 +65,7 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L25)
+[services/redemptions/redemptions-service.ts:25](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L25)
 
 ## Methods
 
@@ -92,7 +92,7 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L132)
+[services/redemptions/redemptions-service.ts:132](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L132)
 
 ___
 
@@ -119,7 +119,7 @@ Promise holding the wallet main UTXO or undefined value.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:300](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L300)
+[services/redemptions/redemptions-service.ts:300](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L300)
 
 ___
 
@@ -145,7 +145,7 @@ Promise with the wallet details needed to request a redemption.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L181)
+[services/redemptions/redemptions-service.ts:181](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L181)
 
 ___
 
@@ -176,7 +176,7 @@ Throws an error if no redemption request exists for the given
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:412](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L412)
+[services/redemptions/redemptions-service.ts:412](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L412)
 
 ___
 
@@ -205,7 +205,7 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L49)
+[services/redemptions/redemptions-service.ts:49](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L49)
 
 ___
 
@@ -237,4 +237,4 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L88)
+[services/redemptions/redemptions-service.ts:88](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L88)

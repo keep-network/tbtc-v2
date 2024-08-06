@@ -85,7 +85,10 @@ export class TBTC {
    * @throws Throws an error if the signer's Ethereum network is other than
    *         Ethereum mainnet.
    */
-  static async initializeMainnet(signer: EthereumSigner, crossChainSupport = false): Promise<TBTC> {
+  static async initializeMainnet(
+    signer: EthereumSigner,
+    crossChainSupport: boolean = false
+  ): Promise<TBTC> {
     return TBTC.initializeEthereum(
       signer,
       Chains.Ethereum.Mainnet,
@@ -104,7 +107,10 @@ export class TBTC {
    * @throws Throws an error if the signer's Ethereum network is other than
    *         Ethereum mainnet.
    */
-  static async initializeSepolia(signer: EthereumSigner, crossChainSupport:boolean = false): Promise<TBTC> {
+  static async initializeSepolia(
+    signer: EthereumSigner,
+    crossChainSupport: boolean = false
+  ): Promise<TBTC> {
     return TBTC.initializeEthereum(
       signer,
       Chains.Ethereum.Sepolia,

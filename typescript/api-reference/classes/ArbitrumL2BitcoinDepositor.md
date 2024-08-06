@@ -1,7 +1,6 @@
-# Class: EthereumL1BitcoinDepositor
+# Class: ArbitrumL2BitcoinDepositor
 
-Implementation of the Ethereum L1BitcoinDepositor handle. It can be
-constructed for each supported L2 chain.
+Implementation of the Arbitrum L2BitcoinDepositor handle.
 
 **`See`**
 
@@ -9,62 +8,74 @@ for reference.
 
 ## Hierarchy
 
-- `EthersContractHandle`\<`L1BitcoinDepositorTypechain`\>
+- `EthersContractHandle`\<`L2BitcoinDepositorTypechain`\>
 
-  ↳ **`EthereumL1BitcoinDepositor`**
+  ↳ **`ArbitrumL2BitcoinDepositor`**
 
 ## Implements
 
-- [`L1BitcoinDepositor`](../interfaces/L1BitcoinDepositor.md)
+- [`L2BitcoinDepositor`](../interfaces/L2BitcoinDepositor.md)
 
 ## Table of contents
 
 ### Constructors
 
-- [constructor](EthereumL1BitcoinDepositor.md#constructor)
+- [constructor](ArbitrumL2BitcoinDepositor.md#constructor)
 
 ### Properties
 
-- [#extraDataEncoder](EthereumL1BitcoinDepositor.md##extradataencoder)
-- [\_deployedAtBlockNumber](EthereumL1BitcoinDepositor.md#_deployedatblocknumber)
-- [\_instance](EthereumL1BitcoinDepositor.md#_instance)
-- [\_totalRetryAttempts](EthereumL1BitcoinDepositor.md#_totalretryattempts)
+- [#depositOwner](ArbitrumL2BitcoinDepositor.md##depositowner)
+- [#extraDataEncoder](ArbitrumL2BitcoinDepositor.md##extradataencoder)
+- [\_deployedAtBlockNumber](ArbitrumL2BitcoinDepositor.md#_deployedatblocknumber)
+- [\_instance](ArbitrumL2BitcoinDepositor.md#_instance)
+- [\_totalRetryAttempts](ArbitrumL2BitcoinDepositor.md#_totalretryattempts)
 
 ### Methods
 
-- [extraDataEncoder](EthereumL1BitcoinDepositor.md#extradataencoder)
-- [getAddress](EthereumL1BitcoinDepositor.md#getaddress)
-- [getChainIdentifier](EthereumL1BitcoinDepositor.md#getchainidentifier)
-- [getEvents](EthereumL1BitcoinDepositor.md#getevents)
-- [initializeDeposit](EthereumL1BitcoinDepositor.md#initializedeposit)
+- [extraDataEncoder](ArbitrumL2BitcoinDepositor.md#extradataencoder)
+- [getAddress](ArbitrumL2BitcoinDepositor.md#getaddress)
+- [getChainIdentifier](ArbitrumL2BitcoinDepositor.md#getchainidentifier)
+- [getDepositOwner](ArbitrumL2BitcoinDepositor.md#getdepositowner)
+- [getEvents](ArbitrumL2BitcoinDepositor.md#getevents)
+- [initializeDeposit](ArbitrumL2BitcoinDepositor.md#initializedeposit)
+- [setDepositOwner](ArbitrumL2BitcoinDepositor.md#setdepositowner)
 
 ## Constructors
 
 ### constructor
 
-• **new EthereumL1BitcoinDepositor**(`config`, `chainId`, `l2ChainName`): [`EthereumL1BitcoinDepositor`](EthereumL1BitcoinDepositor.md)
+• **new ArbitrumL2BitcoinDepositor**(`config`, `chainId`): [`ArbitrumL2BitcoinDepositor`](ArbitrumL2BitcoinDepositor.md)
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) |
-| `chainId` | [`Ethereum`](../enums/Chains.Ethereum.md) |
-| `l2ChainName` | [`L2Chain`](../README.md#l2chain) |
+| `chainId` | [`Arbitrum`](../enums/Chains.Arbitrum.md) |
 
 #### Returns
 
-[`EthereumL1BitcoinDepositor`](EthereumL1BitcoinDepositor.md)
+[`ArbitrumL2BitcoinDepositor`](ArbitrumL2BitcoinDepositor.md)
 
 #### Overrides
 
-EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
+EthersContractHandle\&lt;L2BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:64](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L64)
+[lib/arbitrum/l2-bitcoin-depositor.ts:37](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L37)
 
 ## Properties
+
+### #depositOwner
+
+• `Private` **#depositOwner**: `undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
+
+#### Defined in
+
+[lib/arbitrum/l2-bitcoin-depositor.ts:35](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L35)
+
+___
 
 ### #extraDataEncoder
 
@@ -72,7 +83,7 @@ EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:62](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L62)
+[lib/arbitrum/l2-bitcoin-depositor.ts:34](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L34)
 
 ___
 
@@ -96,7 +107,7 @@ ___
 
 ### \_instance
 
-• `Protected` `Readonly` **\_instance**: `L1BitcoinDepositor`
+• `Protected` `Readonly` **\_instance**: `L2BitcoinDepositor`
 
 Ethers instance of the deployed contract.
 
@@ -138,11 +149,11 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Implementation of
 
-[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[extraDataEncoder](../interfaces/L1BitcoinDepositor.md#extradataencoder)
+[L2BitcoinDepositor](../interfaces/L2BitcoinDepositor.md).[extraDataEncoder](../interfaces/L2BitcoinDepositor.md#extradataencoder)
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:99](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L99)
+[lib/arbitrum/l2-bitcoin-depositor.ts:85](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L85)
 
 ___
 
@@ -180,11 +191,31 @@ ___
 
 #### Implementation of
 
-[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[getChainIdentifier](../interfaces/L1BitcoinDepositor.md#getchainidentifier)
+[L2BitcoinDepositor](../interfaces/L2BitcoinDepositor.md).[getChainIdentifier](../interfaces/L2BitcoinDepositor.md#getchainidentifier)
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:91](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L91)
+[lib/arbitrum/l2-bitcoin-depositor.ts:61](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L61)
+
+___
+
+### getDepositOwner
+
+▸ **getDepositOwner**(): `undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
+
+#### Returns
+
+`undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
+
+**`See`**
+
+#### Implementation of
+
+[L2BitcoinDepositor](../interfaces/L2BitcoinDepositor.md).[getDepositOwner](../interfaces/L2BitcoinDepositor.md#getdepositowner)
+
+#### Defined in
+
+[lib/arbitrum/l2-bitcoin-depositor.ts:69](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L69)
 
 ___
 
@@ -243,8 +274,34 @@ ___
 
 #### Implementation of
 
-[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[initializeDeposit](../interfaces/L1BitcoinDepositor.md#initializedeposit)
+[L2BitcoinDepositor](../interfaces/L2BitcoinDepositor.md).[initializeDeposit](../interfaces/L2BitcoinDepositor.md#initializedeposit)
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:107](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L107)
+[lib/arbitrum/l2-bitcoin-depositor.ts:93](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L93)
+
+___
+
+### setDepositOwner
+
+▸ **setDepositOwner**(`depositOwner`): `void`
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `depositOwner` | `undefined` \| [`ChainIdentifier`](../interfaces/ChainIdentifier.md) |
+
+#### Returns
+
+`void`
+
+**`See`**
+
+#### Implementation of
+
+[L2BitcoinDepositor](../interfaces/L2BitcoinDepositor.md).[setDepositOwner](../interfaces/L2BitcoinDepositor.md#setdepositowner)
+
+#### Defined in
+
+[lib/arbitrum/l2-bitcoin-depositor.ts:77](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-bitcoin-depositor.ts#L77)

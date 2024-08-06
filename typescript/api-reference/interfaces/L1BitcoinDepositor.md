@@ -30,7 +30,7 @@ encode and decode the extra data included in the cross-chain deposit script.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:126](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L126)
+[lib/contracts/cross-chain.ts:126](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L126)
 
 ___
 
@@ -46,7 +46,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:120](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L120)
+[lib/contracts/cross-chain.ts:120](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L120)
 
 ___
 
@@ -73,4 +73,4 @@ Transaction hash of the reveal deposit transaction.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:138](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L138)
+[lib/contracts/cross-chain.ts:138](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L138)

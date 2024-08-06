@@ -57,5 +57,5 @@ export const ChainMappings: ChainMapping[] = [
     ethereum: Chains.Ethereum.Sepolia,
     base: Chains.Base.BaseSepolia,
     arbitrum: Chains.Arbitrum.ArbitrumSepolia,
-  }
+  },
 ]

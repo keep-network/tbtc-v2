@@ -1,6 +1,6 @@
-# Class: BaseL2TBTCToken
+# Class: ArbitrumL2TBTCToken
 
-Implementation of the Base L2TBTCToken handle.
+Implementation of the Arbitrum L2TBTCToken handle.
 
 **`See`**
 
@@ -10,7 +10,7 @@ for reference.
 
 - `EthersContractHandle`\<`L2TBTCTypechain`\>
 
-  ↳ **`BaseL2TBTCToken`**
+  ↳ **`ArbitrumL2TBTCToken`**
 
 ## Implements
 
@@ -20,37 +20,37 @@ for reference.
 
 ### Constructors
 
-- [constructor](BaseL2TBTCToken.md#constructor)
+- [constructor](ArbitrumL2TBTCToken.md#constructor)
 
 ### Properties
 
-- [\_deployedAtBlockNumber](BaseL2TBTCToken.md#_deployedatblocknumber)
-- [\_instance](BaseL2TBTCToken.md#_instance)
-- [\_totalRetryAttempts](BaseL2TBTCToken.md#_totalretryattempts)
+- [\_deployedAtBlockNumber](ArbitrumL2TBTCToken.md#_deployedatblocknumber)
+- [\_instance](ArbitrumL2TBTCToken.md#_instance)
+- [\_totalRetryAttempts](ArbitrumL2TBTCToken.md#_totalretryattempts)
 
 ### Methods
 
-- [balanceOf](BaseL2TBTCToken.md#balanceof)
-- [getAddress](BaseL2TBTCToken.md#getaddress)
-- [getChainIdentifier](BaseL2TBTCToken.md#getchainidentifier)
-- [getEvents](BaseL2TBTCToken.md#getevents)
+- [balanceOf](ArbitrumL2TBTCToken.md#balanceof)
+- [getAddress](ArbitrumL2TBTCToken.md#getaddress)
+- [getChainIdentifier](ArbitrumL2TBTCToken.md#getchainidentifier)
+- [getEvents](ArbitrumL2TBTCToken.md#getevents)
 
 ## Constructors
 
 ### constructor
 
-• **new BaseL2TBTCToken**(`config`, `chainId`): [`BaseL2TBTCToken`](BaseL2TBTCToken.md)
+• **new ArbitrumL2TBTCToken**(`config`, `chainId`): [`ArbitrumL2TBTCToken`](ArbitrumL2TBTCToken.md)
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
 | `config` | [`EthereumContractConfig`](../interfaces/EthereumContractConfig.md) |
-| `chainId` | [`Base`](../enums/Chains.Base.md) |
+| `chainId` | [`Arbitrum`](../enums/Chains.Arbitrum.md) |
 
 #### Returns
 
-[`BaseL2TBTCToken`](BaseL2TBTCToken.md)
+[`ArbitrumL2TBTCToken`](ArbitrumL2TBTCToken.md)
 
 #### Overrides
 
@@ -58,7 +58,7 @@ EthersContractHandle\&lt;L2TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:23](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L23)
+[lib/arbitrum/l2-tbtc-token.ts:23](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L23)
 
 ## Properties
 
@@ -134,7 +134,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:53](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L53)
+[lib/arbitrum/l2-tbtc-token.ts:53](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L53)
 
 ___
 
@@ -176,7 +176,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:45](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L45)
+[lib/arbitrum/l2-tbtc-token.ts:45](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L45)
 
 ___
 
