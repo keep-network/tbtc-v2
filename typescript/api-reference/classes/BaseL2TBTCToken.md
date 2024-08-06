@@ -58,7 +58,7 @@ EthersContractHandle\&lt;L2TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L23)
+[lib/base/l2-tbtc-token.ts:23](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L23)
 
 ## Properties
 
@@ -76,7 +76,7 @@ EthersContractHandle.\_deployedAtBlockNumber
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:80](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L80)
+[lib/ethereum/adapter.ts:80](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/adapter.ts#L80)
 
 ___
 
@@ -92,7 +92,7 @@ EthersContractHandle.\_instance
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L74)
+[lib/ethereum/adapter.ts:74](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/adapter.ts#L74)
 
 ___
 
@@ -108,7 +108,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L84)
+[lib/ethereum/adapter.ts:84](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/adapter.ts#L84)
 
 ## Methods
 
@@ -134,7 +134,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:53](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L53)
+[lib/base/l2-tbtc-token.ts:53](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L53)
 
 ___
 
@@ -156,7 +156,7 @@ EthersContractHandle.getAddress
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:112](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L112)
+[lib/ethereum/adapter.ts:112](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/adapter.ts#L112)
 
 ___
 
@@ -176,7 +176,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-tbtc-token.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L45)
+[lib/base/l2-tbtc-token.ts:45](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/base/l2-tbtc-token.ts#L45)
 
 ___
 
@@ -210,4 +210,4 @@ EthersContractHandle.getEvents
 
 #### Defined in
 
-[lib/ethereum/adapter.ts:127](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/adapter.ts#L127)
+[lib/ethereum/adapter.ts:127](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/adapter.ts#L127)

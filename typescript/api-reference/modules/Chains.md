@@ -6,5 +6,6 @@ Chains supported by tBTC v2 contracts.
 
 ### Enumerations
 
+- [Arbitrum](../enums/Chains.Arbitrum.md)
 - [Base](../enums/Chains.Base.md)
 - [Ethereum](../enums/Chains.Ethereum.md)

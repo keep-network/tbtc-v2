@@ -19,6 +19,7 @@ import {
 } from "../lib/ethereum"
 import { ElectrumClient } from "../lib/electrum"
 import { loadBaseCrossChainContracts } from "../lib/base"
+import { loadArbitrumCrossChainContracts } from "../lib/arbitrum"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -79,15 +80,20 @@ export class TBTC {
    * The initialized instance uses default Electrum servers to interact
    * with Bitcoin mainnet
    * @param signer Ethereum signer.
+   * @param crossChainSupport Whether to enable cross-chain support. False by default.
    * @returns Initialized tBTC v2 SDK entrypoint.
    * @throws Throws an error if the signer's Ethereum network is other than
    *         Ethereum mainnet.
    */
-  static async initializeMainnet(signer: EthereumSigner): Promise<TBTC> {
+  static async initializeMainnet(
+    signer: EthereumSigner,
+    crossChainSupport: boolean = false
+  ): Promise<TBTC> {
     return TBTC.initializeEthereum(
       signer,
       Chains.Ethereum.Mainnet,
-      BitcoinNetwork.Mainnet
+      BitcoinNetwork.Mainnet,
+      crossChainSupport
     )
   }
 
@@ -96,15 +102,20 @@ export class TBTC {
    * The initialized instance uses default Electrum servers to interact
    * with Bitcoin testnet
    * @param signer Ethereum signer.
+   * @param crossChainSupport Whether to enable cross-chain support. False by default.
    * @returns Initialized tBTC v2 SDK entrypoint.
    * @throws Throws an error if the signer's Ethereum network is other than
    *         Ethereum mainnet.
    */
-  static async initializeSepolia(signer: EthereumSigner): Promise<TBTC> {
+  static async initializeSepolia(
+    signer: EthereumSigner,
+    crossChainSupport: boolean = false
+  ): Promise<TBTC> {
     return TBTC.initializeEthereum(
       signer,
       Chains.Ethereum.Sepolia,
-      BitcoinNetwork.Testnet
+      BitcoinNetwork.Testnet,
+      crossChainSupport
     )
   }
 
@@ -223,6 +234,16 @@ export class TBTC {
         l2CrossChainContracts = await loadBaseCrossChainContracts(
           l2Signer,
           baseChainId
+        )
+        break
+      case "Arbitrum":
+        const arbitrumChainId = chainMapping.arbitrum
+        if (!arbitrumChainId) {
+          throw new Error("Arbitrum chain ID not available in chain mapping")
+        }
+        l2CrossChainContracts = await loadArbitrumCrossChainContracts(
+          l2Signer,
+          arbitrumChainId
         )
         break
       default:
