@@ -58,7 +58,7 @@ All other packages have it as a dependency.
 == Commit Messages
 
 When composing commit messages, please follow the general guidelines listed in
-[Chris Beams’s How to Write a Git Commit Message](https://cbea.ms/git-commit/).
+https://cbea.ms/git-commit/[Chris Beams’s How to Write a Git Commit Message].
 Many editors have git modes that will highlight overly long first lines of
 commit messages, etc. The GitHub UI itself will warn you if your commit summary
 is too long, and will auto-wrap commit messages made through the UI to 72
