@@ -21,6 +21,7 @@ Interface for communication with the Bridge on-chain contract.
 - [deposits](Bridge.md#deposits)
 - [getChainIdentifier](Bridge.md#getchainidentifier)
 - [pendingRedemptions](Bridge.md#pendingredemptions)
+- [pendingRedemptionsByWalletPKH](Bridge.md#pendingredemptionsbywalletpkh)
 - [requestRedemption](Bridge.md#requestredemption)
 - [revealDeposit](Bridge.md#revealdeposit)
 - [submitDepositSweepProof](Bridge.md#submitdepositsweepproof)
@@ -44,7 +45,7 @@ GetEventsFunction
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L26)
+[lib/contracts/bridge.ts:26](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L26)
 
 ___
 
@@ -60,7 +61,7 @@ GetEventsFunction
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:155](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L155)
+[lib/contracts/bridge.ts:169](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L169)
 
 ___
 
@@ -76,7 +77,7 @@ GetEventsFunction
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L181)
+[lib/contracts/bridge.ts:195](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L195)
 
 ## Methods
 
@@ -96,7 +97,7 @@ Compressed (33 bytes long with 02 or 03 prefix) active wallet's
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:149](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L149)
+[lib/contracts/bridge.ts:163](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L163)
 
 ___
 
@@ -120,7 +121,7 @@ The hash of the UTXO.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:175](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L175)
+[lib/contracts/bridge.ts:189](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L189)
 
 ___
 
@@ -145,7 +146,7 @@ Revealed deposit data.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:68](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L68)
+[lib/contracts/bridge.ts:68](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L68)
 
 ___
 
@@ -161,7 +162,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L20)
+[lib/contracts/bridge.ts:20](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L20)
 
 ___
 
@@ -186,7 +187,33 @@ Promise with the pending redemption.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:124](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L124)
+[lib/contracts/bridge.ts:124](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L124)
+
+___
+
+### pendingRedemptionsByWalletPKH
+
+▸ **pendingRedemptionsByWalletPKH**(`walletPublicKeyHash`, `redeemerOutputScript`): `Promise`\<[`RedemptionRequest`](RedemptionRequest.md)\>
+
+Gets a pending redemption from the on-chain contract using the wallet's
+public key hash instead of the plain-text public key.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `walletPublicKeyHash` | [`Hex`](../classes/Hex.md) | Bitcoin public key hash of the wallet the request is targeted to. Must be 20 bytes long. |
+| `redeemerOutputScript` | [`Hex`](../classes/Hex.md) | The redeemer output script the redeemed funds are supposed to be locked on. Must not be prepended with length. |
+
+#### Returns
+
+`Promise`\<[`RedemptionRequest`](RedemptionRequest.md)\>
+
+Promise with the pending redemption.
+
+#### Defined in
+
+[lib/contracts/bridge.ts:138](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L138)
 
 ___
 
@@ -213,7 +240,7 @@ Transaction hash of the request redemption transaction.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:84](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L84)
+[lib/contracts/bridge.ts:84](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L84)
 
 ___
 
@@ -240,7 +267,7 @@ Transaction hash of the reveal deposit transaction.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:54](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L54)
+[lib/contracts/bridge.ts:54](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L54)
 
 ___
 
@@ -267,7 +294,7 @@ Transaction hash of the submit deposit sweep proof transaction.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:37](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L37)
+[lib/contracts/bridge.ts:37](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L37)
 
 ___
 
@@ -294,7 +321,7 @@ Transaction hash of the submit redemption proof transaction.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:100](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L100)
+[lib/contracts/bridge.ts:100](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L100)
 
 ___
 
@@ -319,7 +346,7 @@ Promise with the pending redemption.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:138](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L138)
+[lib/contracts/bridge.ts:152](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L152)
 
 ___
 
@@ -342,7 +369,7 @@ This number signifies how many confirmations a transaction has to
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:113](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L113)
+[lib/contracts/bridge.ts:113](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L113)
 
 ___
 
@@ -358,7 +385,7 @@ Returns the attached WalletRegistry instance.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:160](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L160)
+[lib/contracts/bridge.ts:174](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L174)
 
 ___
 
@@ -382,4 +409,4 @@ Promise with the wallet details.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:168](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L168)
+[lib/contracts/bridge.ts:182](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L182)

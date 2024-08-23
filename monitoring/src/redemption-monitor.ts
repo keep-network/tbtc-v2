@@ -1,15 +1,16 @@
 import { BigNumber } from "ethers"
-import { Hex } from "@keep-network/tbtc-v2.ts"
 
 import { context } from "./context"
 import { SystemEventType } from "./system-event"
 import { satsToRoundedBTC } from "./deposit-monitor"
 import { createEthTxUrl } from "./block-explorer"
-import { contracts } from "./contracts"
+import { blocks } from "./blocks"
 
 import type { Monitor as SystemEventMonitor, SystemEvent } from "./system-event"
-import type { RedemptionRequestedEvent as RedemptionRequestedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/redemption"
-import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
+import type {
+  Bridge,
+  RedemptionRequestedEvent as RedemptionRequestedChainEvent,
+} from "@keep-network/tbtc-v2.ts"
 
 // The time after which a pending redemption request is considered stale.
 // Typically, a redemption request processing time should not exceed 5 hours.
@@ -26,8 +27,8 @@ const RedemptionRequested = (
     title: "Redemption requested",
     type: SystemEventType.Informational,
     data: {
-      walletPublicKeyHash: chainEvent.walletPublicKeyHash,
-      redeemerOutputScript: chainEvent.redeemerOutputScript,
+      walletPublicKeyHash: chainEvent.walletPublicKeyHash.toString(),
+      redeemerOutputScript: chainEvent.redeemerOutputScript.toString(),
       requestedAmountBTC: satsToRoundedBTC(chainEvent.requestedAmount),
       ethRequestTxHash: chainEvent.transactionHash.toPrefixedString(),
       ethRequestTxHashURL,
@@ -45,8 +46,8 @@ const LargeRedemptionRequested = (
     title: "Large redemption requested",
     type: SystemEventType.Warning,
     data: {
-      walletPublicKeyHash: chainEvent.walletPublicKeyHash,
-      redeemerOutputScript: chainEvent.redeemerOutputScript,
+      walletPublicKeyHash: chainEvent.walletPublicKeyHash.toString(),
+      redeemerOutputScript: chainEvent.redeemerOutputScript.toString(),
       requestedAmountBTC: satsToRoundedBTC(chainEvent.requestedAmount),
       ethRequestTxHash: chainEvent.transactionHash.toPrefixedString(),
       ethRequestTxHashURL,
@@ -64,8 +65,8 @@ const StaleRedemption = (
     title: "Stale redemption",
     type: SystemEventType.Warning,
     data: {
-      walletPublicKeyHash: chainEvent.walletPublicKeyHash,
-      redeemerOutputScript: chainEvent.redeemerOutputScript,
+      walletPublicKeyHash: chainEvent.walletPublicKeyHash.toString(),
+      redeemerOutputScript: chainEvent.redeemerOutputScript.toString(),
       requestedAmountBTC: satsToRoundedBTC(chainEvent.requestedAmount),
       ethRequestTxHash: chainEvent.transactionHash.toPrefixedString(),
       ethRequestTxHashURL,
@@ -142,33 +143,13 @@ export class RedemptionMonitor implements SystemEventMonitor {
     })
 
     const chainEventsTimestamps = await Promise.all(
-      chainEvents.map((ce) => contracts.blockTimestamp(ce.blockNumber))
+      chainEvents.map((ce) => blocks.blockTimestamp(ce.blockNumber))
     )
-
-    // To fetch pending redemptions requests, we need to know the plain-text
-    // public keys of the wallets used by the given chain events. In order to
-    // achieve that, we build a cache where the key is the wallet public key
-    // hash and the value is the wallet plain text public key.
-    //
-    // TODO: This can be optimized by refactoring the Bridge.pendingRedemptions
-    //       method to accept wallet public key hashes directly.
-    const walletCache = new Map<string, string>()
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < chainEvents.length; i++) {
-      const { walletPublicKeyHash } = chainEvents[i]
-
-      if (!walletCache.has(walletPublicKeyHash)) {
-        // eslint-disable-next-line no-await-in-loop
-        const wallet = await this.bridge.wallets(Hex.from(walletPublicKeyHash))
-        walletCache.set(walletPublicKeyHash, wallet.walletPublicKey.toString())
-      }
-    }
 
     const pendingRedemptionsRequests = await Promise.all(
       chainEvents.map((ce) =>
-        this.bridge.pendingRedemptions(
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          walletCache.get(ce.walletPublicKeyHash)!,
+        this.bridge.pendingRedemptionsByWalletPKH(
+          ce.walletPublicKeyHash,
           ce.redeemerOutputScript
         )
       )

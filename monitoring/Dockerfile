@@ -1,4 +1,4 @@
-FROM node:14-alpine as builder
+FROM node:18-alpine as builder
 
 # Add packages necessary to perform the build process.
 RUN apk add --update --no-cache \
@@ -25,7 +25,6 @@ COPY tsconfig.json ./
 COPY src ./src
 
 RUN yarn install --frozen-lockfile --ignore-scripts
-RUN yarn run postinstall
 
 RUN yarn build
 
@@ -33,12 +32,11 @@ RUN yarn build
 RUN rm -rf ./node_modules
 RUN rm -rf ./external
 RUN yarn install --production --frozen-lockfile --ignore-scripts
-RUN yarn run postinstall
 
 # Prune other unnecessary files from dependencies using node-prune.
 RUN node-prune
 
-FROM node:14-alpine as runner
+FROM node:18-alpine as runner
 
 WORKDIR /monitoring
 

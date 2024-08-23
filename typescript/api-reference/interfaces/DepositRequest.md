@@ -23,7 +23,7 @@ Deposit amount in satoshis.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:267](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L267)
+[lib/contracts/bridge.ts:281](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L281)
 
 ___
 
@@ -35,7 +35,7 @@ Depositor's chain identifier.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:262](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L262)
+[lib/contracts/bridge.ts:276](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L276)
 
 ___
 
@@ -47,7 +47,7 @@ UNIX timestamp the deposit was revealed at.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:277](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L277)
+[lib/contracts/bridge.ts:291](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L291)
 
 ___
 
@@ -60,7 +60,7 @@ should have zero as value.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:282](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L282)
+[lib/contracts/bridge.ts:296](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L296)
 
 ___
 
@@ -73,7 +73,7 @@ Denominated in satoshi.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:287](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L287)
+[lib/contracts/bridge.ts:301](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L301)
 
 ___
 
@@ -85,4 +85,4 @@ Optional identifier of the vault the deposit should be routed in.
 
 #### Defined in
 
-[src/lib/contracts/bridge.ts:272](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/bridge.ts#L272)
+[lib/contracts/bridge.ts:286](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/bridge.ts#L286)
