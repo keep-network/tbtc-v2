@@ -283,7 +283,9 @@ export class RedemptionsService {
 
     if (!walletData)
       throw new Error(
-        `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi.`
+        `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi ( ${maxAmount.div(
+          BigNumber.from(1e8)
+        )} BTC ) .`
       )
 
     return walletData
