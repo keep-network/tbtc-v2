@@ -133,8 +133,23 @@ export class EthereumBridge
     walletPublicKey: Hex,
     redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
+    const walletPublicKeyHash = BitcoinHashUtils.computeHash160(walletPublicKey)
+    return this.pendingRedemptionsByWalletPKH(
+      walletPublicKeyHash,
+      redeemerOutputScript
+    )
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {Bridge#pendingRedemptionsByWalletPKH}
+   */
+  async pendingRedemptionsByWalletPKH(
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
+  ): Promise<RedemptionRequest> {
     const redemptionKey = EthereumBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(walletPublicKey),
+      walletPublicKeyHash,
       redeemerOutputScript
     )
 

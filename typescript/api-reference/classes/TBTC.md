@@ -47,13 +47,13 @@ Entrypoint component of the tBTC v2 SDK.
 
 #### Defined in
 
-[src/services/tbtc.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L59)
+[services/tbtc.ts:60](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L60)
 
 ## Properties
 
 ### #crossChainContracts
 
-• `Private` `Readonly` **#crossChainContracts**: `Map`\<``"Base"``, [`CrossChainContracts`](../README.md#crosschaincontracts)\>
+• `Private` `Readonly` **#crossChainContracts**: `Map`\<[`L2Chain`](../README.md#l2chain), [`CrossChainContracts`](../README.md#crosschaincontracts)\>
 
 Mapping of cross-chain contracts for different supported L2 chains.
 Each set of cross-chain contracts must be first initialized using
@@ -61,7 +61,7 @@ the `initializeCrossChain` method.
 
 #### Defined in
 
-[src/services/tbtc.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L57)
+[services/tbtc.ts:58](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L58)
 
 ___
 
@@ -73,7 +73,7 @@ Reference to the cross-chain contracts loader.
 
 #### Defined in
 
-[src/services/tbtc.ts:51](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L51)
+[services/tbtc.ts:52](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L52)
 
 ___
 
@@ -85,7 +85,7 @@ Bitcoin client handle for low-level access.
 
 #### Defined in
 
-[src/services/tbtc.ts:47](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L47)
+[services/tbtc.ts:48](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L48)
 
 ___
 
@@ -97,7 +97,7 @@ Service supporting the tBTC v2 deposit flow.
 
 #### Defined in
 
-[src/services/tbtc.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L30)
+[services/tbtc.ts:31](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L31)
 
 ___
 
@@ -110,7 +110,7 @@ and operators.
 
 #### Defined in
 
-[src/services/tbtc.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L35)
+[services/tbtc.ts:36](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L36)
 
 ___
 
@@ -122,7 +122,7 @@ Service supporting the tBTC v2 redemption flow.
 
 #### Defined in
 
-[src/services/tbtc.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L39)
+[services/tbtc.ts:40](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L40)
 
 ___
 
@@ -134,7 +134,7 @@ Handle to tBTC contracts for low-level access.
 
 #### Defined in
 
-[src/services/tbtc.ts:43](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L43)
+[services/tbtc.ts:44](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L44)
 
 ## Methods
 
@@ -155,7 +155,7 @@ The given L2 chain contracts must be first initialized using the
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `l2ChainName` | ``"Base"`` | Name of the L2 chain for which to get cross-chain contracts. |
+| `l2ChainName` | [`L2Chain`](../README.md#l2chain) | Name of the L2 chain for which to get cross-chain contracts. |
 
 #### Returns
 
@@ -166,7 +166,7 @@ Cross-chain contracts for the given L2 chain or
 
 #### Defined in
 
-[src/services/tbtc.ts:252](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L252)
+[services/tbtc.ts:273](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L273)
 
 ___
 
@@ -186,7 +186,7 @@ given signer. Updates the signer on subsequent calls.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `l2ChainName` | ``"Base"`` | Name of the L2 chain for which to initialize cross-chain contracts. |
+| `l2ChainName` | [`L2Chain`](../README.md#l2chain) | Name of the L2 chain for which to initialize cross-chain contracts. |
 | `l2Signer` | [`EthereumSigner`](../README.md#ethereumsigner) | Signer to use with the L2 chain contracts. |
 
 #### Returns
@@ -210,7 +210,7 @@ In case this function needs to support non-EVM L2 chains that can't
 
 #### Defined in
 
-[src/services/tbtc.ts:198](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L198)
+[services/tbtc.ts:209](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L209)
 
 ___
 
@@ -242,7 +242,7 @@ This function is especially useful for local development as it gives
 
 #### Defined in
 
-[src/services/tbtc.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L170)
+[services/tbtc.ts:181](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L181)
 
 ___
 
@@ -276,13 +276,13 @@ Throws an error if the underlying signer's Ethereum network is
 
 #### Defined in
 
-[src/services/tbtc.ts:123](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L123)
+[services/tbtc.ts:134](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L134)
 
 ___
 
 ### initializeMainnet
 
-▸ **initializeMainnet**(`signer`): `Promise`\<[`TBTC`](TBTC.md)\>
+▸ **initializeMainnet**(`signer`, `crossChainSupport?`): `Promise`\<[`TBTC`](TBTC.md)\>
 
 Initializes the tBTC v2 SDK entrypoint for Ethereum and Bitcoin mainnets.
 The initialized instance uses default Electrum servers to interact
@@ -290,9 +290,10 @@ with Bitcoin mainnet
 
 #### Parameters
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | Ethereum signer. |
+| Name | Type | Default value | Description |
+| :------ | :------ | :------ | :------ |
+| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | `undefined` | Ethereum signer. |
+| `crossChainSupport` | `boolean` | `false` | Whether to enable cross-chain support. False by default. |
 
 #### Returns
 
@@ -307,13 +308,13 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[src/services/tbtc.ts:86](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L86)
+[services/tbtc.ts:88](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L88)
 
 ___
 
 ### initializeSepolia
 
-▸ **initializeSepolia**(`signer`): `Promise`\<[`TBTC`](TBTC.md)\>
+▸ **initializeSepolia**(`signer`, `crossChainSupport?`): `Promise`\<[`TBTC`](TBTC.md)\>
 
 Initializes the tBTC v2 SDK entrypoint for Ethereum Sepolia and Bitcoin testnet.
 The initialized instance uses default Electrum servers to interact
@@ -321,9 +322,10 @@ with Bitcoin testnet
 
 #### Parameters
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | Ethereum signer. |
+| Name | Type | Default value | Description |
+| :------ | :------ | :------ | :------ |
+| `signer` | [`EthereumSigner`](../README.md#ethereumsigner) | `undefined` | Ethereum signer. |
+| `crossChainSupport` | `boolean` | `false` | Whether to enable cross-chain support. False by default. |
 
 #### Returns
 
@@ -338,4 +340,4 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[src/services/tbtc.ts:103](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L103)
+[services/tbtc.ts:110](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L110)

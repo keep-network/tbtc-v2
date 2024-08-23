@@ -1,15 +1,13 @@
 import { SystemEventType } from "./system-event"
 
 import type {
+  Bridge,
+  WalletRegistry,
   NewWalletRegisteredEvent as WalletRegisteredChainEvent,
   DkgResultSubmittedEvent as DkgResultSubmittedChainEvent,
   DkgResultApprovedEvent as DkgResultApprovedChainEvent,
   DkgResultChallengedEvent as DkgResultChallengedChainEvent,
-} from "@keep-network/tbtc-v2.ts/dist/src/wallet"
-import type {
-  Bridge,
-  WalletRegistry,
-} from "@keep-network/tbtc-v2.ts/dist/src/chain"
+} from "@keep-network/tbtc-v2.ts"
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 
 const WalletRegistered = (

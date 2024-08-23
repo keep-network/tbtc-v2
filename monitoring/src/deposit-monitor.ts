@@ -5,8 +5,10 @@ import { context } from "./context"
 import { createBtcTxUrl, createEthTxUrl } from "./block-explorer"
 
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
-import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
-import type { Bridge } from "@keep-network/tbtc-v2.ts/dist/src/chain"
+import type {
+  Bridge,
+  DepositRevealedEvent as DepositRevealedChainEvent,
+} from "@keep-network/tbtc-v2.ts"
 
 export const satsToRoundedBTC = (sats: BigNumber): string =>
   (sats.div(BigNumber.from(1e6)).toNumber() / 100).toFixed(2)

@@ -13,6 +13,11 @@ export namespace Chains {
     Base = "8453",
     BaseSepolia = "84532",
   }
+
+  export enum Arbitrum {
+    Arbitrum = "42161",
+    ArbitrumSepolia = "421614",
+  }
 }
 
 /**
@@ -32,6 +37,11 @@ export type ChainMapping = {
    * Identifier of the Base L2 chain.
    */
   base?: Chains.Base
+
+  /**
+   * Identifier of the Arbitrum L2 chain.
+   */
+  arbitrum?: Chains.Arbitrum
 }
 
 /**
@@ -41,9 +51,11 @@ export const ChainMappings: ChainMapping[] = [
   {
     ethereum: Chains.Ethereum.Mainnet,
     base: Chains.Base.Base,
+    arbitrum: Chains.Arbitrum.Arbitrum,
   },
   {
     ethereum: Chains.Ethereum.Sepolia,
     base: Chains.Base.BaseSepolia,
+    arbitrum: Chains.Arbitrum.ArbitrumSepolia,
   },
 ]

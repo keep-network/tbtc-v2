@@ -29,13 +29,13 @@ Loads the chain mapping based on underlying L1 chain.
 
 #### Defined in
 
-[src/lib/contracts/cross-chain.ts:38](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L38)
+[lib/contracts/cross-chain.ts:38](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L38)
 
 ___
 
 ### loadL1Contracts
 
-• **loadL1Contracts**: (`l2ChainName`: ``"Base"``) => `Promise`\<[`L1CrossChainContracts`](../README.md#l1crosschaincontracts)\>
+• **loadL1Contracts**: (`l2ChainName`: [`L2Chain`](../README.md#l2chain)) => `Promise`\<[`L1CrossChainContracts`](../README.md#l1crosschaincontracts)\>
 
 #### Type declaration
 
@@ -47,7 +47,7 @@ Loads L1-specific TBTC cross-chain contracts for the given L2 chain.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `l2ChainName` | ``"Base"`` | Name of the L2 chain for which to load L1 contracts. |
+| `l2ChainName` | [`L2Chain`](../README.md#l2chain) | Name of the L2 chain for which to load L1 contracts. |
 
 ##### Returns
 
@@ -55,4 +55,4 @@ Loads L1-specific TBTC cross-chain contracts for the given L2 chain.
 
 #### Defined in
 
-[src/lib/contracts/cross-chain.ts:43](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L43)
+[lib/contracts/cross-chain.ts:43](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L43)

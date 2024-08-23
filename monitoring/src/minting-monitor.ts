@@ -1,20 +1,16 @@
-import { OptimisticMinting } from "@keep-network/tbtc-v2.ts"
-
 import { SystemEventType } from "./system-event"
 
 import type {
+  BitcoinTxHash,
+  Bridge,
+  BitcoinClient,
+  ChainIdentifier,
+  TBTCVault,
+  DepositRevealedEvent as DepositRevealedChainEvent,
   OptimisticMintingCancelledEvent as OptimisticMintingCancelledChainEvent,
   OptimisticMintingRequestedEvent as OptimisticMintingRequestedChainEvent,
   OptimisticMintingFinalizedEvent as OptimisticMintingFinalizedChainEvent,
-} from "@keep-network/tbtc-v2.ts/dist/src/optimistic-minting"
-import type { DepositRevealedEvent as DepositRevealedChainEvent } from "@keep-network/tbtc-v2.ts/dist/src/deposit"
-import type {
-  Bridge,
-  Identifier,
-  TBTCVault,
-} from "@keep-network/tbtc-v2.ts/dist/src/chain"
-import type { Client as BitcoinClient } from "@keep-network/tbtc-v2.ts/dist/src/bitcoin"
-import type { BitcoinTransactionHash } from "@keep-network/tbtc-v2.ts"
+} from "@keep-network/tbtc-v2.ts"
 import type { SystemEvent, Monitor as SystemEventMonitor } from "./system-event"
 import type { BigNumber } from "ethers"
 
@@ -105,7 +101,7 @@ const OptimisticMintingRequestedForUndeterminedBtcTx = (
 
 const OptimisticMintingNotRequestedByDesignatedMinter = (
   chainEvent: OptimisticMintingRequestedChainEvent,
-  designatedMinter: Identifier
+  designatedMinter: ChainIdentifier
 ): SystemEvent => ({
   title: "Optimistic minting not requested by designated minter",
   type: SystemEventType.Warning,
@@ -124,7 +120,7 @@ const OptimisticMintingNotRequestedByDesignatedMinter = (
 
 const OptimisticMintingNotFinalizedByDesignatedMinter = (
   chainEvent: OptimisticMintingFinalizedChainEvent,
-  designatedMinter: Identifier | "unknown",
+  designatedMinter: ChainIdentifier | "unknown",
   designatedMinterUnknownCause: string
 ): SystemEvent => ({
   title: "Optimistic minting not finalized by designated minter",
@@ -178,7 +174,7 @@ type ChainDataCache = {
   mintingCancelledEvents: OptimisticMintingCancelledChainEvent[]
   mintingRequestedEvents: OptimisticMintingRequestedChainEvent[]
   mintingFinalizedEvents: OptimisticMintingFinalizedChainEvent[]
-  minters: Identifier[]
+  minters: ChainIdentifier[]
   optimisticMintingDelay: number
 }
 
@@ -347,7 +343,7 @@ export class MintingMonitor implements SystemEventMonitor {
       OptimisticMintingFinalizedChainEvent & {
         // Minter designated for finalization. In case the minter cannot be
         // determined for whatever reason, the value will be 'unknown'.
-        designatedMinter: Identifier | "unknown"
+        designatedMinter: ChainIdentifier | "unknown"
         // If the designatedMinter is 'unknown', this field holds the cause
         // explaining why the minter could not be determined.
         designatedMinterUnknownCause: string
@@ -358,7 +354,7 @@ export class MintingMonitor implements SystemEventMonitor {
     const enrichMintingFinalizedEventFn = async (
       mintingFinalizedEvent: OptimisticMintingFinalizedChainEvent
     ): Promise<EnrichedMintingFinalizedEvent> => {
-      let designatedMinter: Identifier | "unknown" = "unknown"
+      let designatedMinter: ChainIdentifier | "unknown" = "unknown"
       let designatedMinterUnknownCause = ""
 
       try {
@@ -428,10 +424,10 @@ export class MintingMonitor implements SystemEventMonitor {
   }
 
   private getDesignatedMinter(
-    minters: Identifier[],
-    depositor: Identifier,
-    fundingTxHash: BitcoinTransactionHash
-  ): Identifier {
+    minters: ChainIdentifier[],
+    depositor: ChainIdentifier,
+    fundingTxHash: BitcoinTxHash
+  ): ChainIdentifier {
     const d = depositor.identifierHex.slice(-1).charCodeAt(0)
     const f = fundingTxHash.toString().slice(-1).charCodeAt(0)
 
@@ -475,10 +471,9 @@ export class MintingMonitor implements SystemEventMonitor {
 
     const mintingRequests = await Promise.allSettled(
       chainEvents.map((ce) =>
-        OptimisticMinting.getOptimisticMintingRequest(
+        this.tbtcVault.optimisticMintingRequests(
           ce.fundingTxHash,
-          ce.fundingOutputIndex,
-          this.tbtcVault
+          ce.fundingOutputIndex
         )
       )
     )
@@ -516,10 +511,9 @@ export class MintingMonitor implements SystemEventMonitor {
 
     const mintingRequests = await Promise.allSettled(
       chainEvents.map((ce) =>
-        OptimisticMinting.getOptimisticMintingRequest(
+        this.tbtcVault.optimisticMintingRequests(
           ce.fundingTxHash,
-          ce.fundingOutputIndex,
-          this.tbtcVault
+          ce.fundingOutputIndex
         )
       )
     )

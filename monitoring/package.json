@@ -9,13 +9,10 @@
     "format": "yarn run lint && prettier --check .",
     "format:fix": "yarn run lint:fix && prettier --write .",
     "lint": "eslint . --ext .js,.ts",
-    "lint:fix": "eslint . --ext .js,.ts --fix",
-    "postinstall": "npm rebuild bcrypto"
+    "lint:fix": "eslint . --ext .js,.ts --fix"
   },
   "dependencies": {
-    "@keep-network/tbtc-v2-mainnet": "npm:@keep-network/tbtc-v2@mainnet",
-    "@keep-network/tbtc-v2-testnet": "npm:@keep-network/tbtc-v2@sepolia",
-    "@keep-network/tbtc-v2.ts": "1.4.0-dev.1",
+    "@keep-network/tbtc-v2.ts": "v2.5.0-dev.5",
     "@sentry/node": "^7.33.0",
     "axios": "^1.3.2",
     "ethers": "^5.5.2",
@@ -29,6 +26,6 @@
     "typescript": "^4.9.5"
   },
   "engines": {
-    "node": ">=14 <15"
+    "node": ">=16"
   }
 }

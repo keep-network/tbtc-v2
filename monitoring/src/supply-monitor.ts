@@ -1,7 +1,7 @@
 import { SystemEventType } from "./system-event"
 
 import type { BigNumber } from "ethers"
-import type { TBTCToken } from "@keep-network/tbtc-v2.ts/dist/src/chain"
+import type { TBTCToken } from "@keep-network/tbtc-v2.ts"
 import type { Monitor as SystemEventMonitor, SystemEvent } from "./system-event"
 
 // The block span the supply change is checked for. It is 12 hours expressed

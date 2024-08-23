@@ -279,10 +279,20 @@ export class MockBridge implements Bridge {
     walletPublicKey: Hex,
     redeemerOutputScript: Hex
   ): Promise<RedemptionRequest> {
+    return this.pendingRedemptionsByWalletPKH(
+      BitcoinHashUtils.computeHash160(walletPublicKey),
+      redeemerOutputScript
+    )
+  }
+
+  pendingRedemptionsByWalletPKH(
+    walletPublicKeyHash: Hex,
+    redeemerOutputScript: Hex
+  ): Promise<RedemptionRequest> {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPublicKey,
+          walletPublicKeyHash,
           redeemerOutputScript,
           this._pendingRedemptions
         )
@@ -297,7 +307,7 @@ export class MockBridge implements Bridge {
     return new Promise<RedemptionRequest>((resolve, _) => {
       resolve(
         this.redemptions(
-          walletPublicKey,
+          BitcoinHashUtils.computeHash160(walletPublicKey),
           redeemerOutputScript,
           this._timedOutRedemptions
         )
@@ -306,12 +316,12 @@ export class MockBridge implements Bridge {
   }
 
   private redemptions(
-    walletPublicKey: Hex,
+    walletPublicKeyHash: Hex,
     redeemerOutputScript: Hex,
     redemptionsMap: Map<BigNumberish, RedemptionRequest>
   ): RedemptionRequest {
     const redemptionKey = MockBridge.buildRedemptionKey(
-      BitcoinHashUtils.computeHash160(walletPublicKey),
+      walletPublicKeyHash,
       redeemerOutputScript
     )
 
