@@ -114,11 +114,11 @@ export interface L2BitcoinDepositor {
  */
 export enum DepositState {
   // eslint-disable-next-line no-unused-vars
-  UNKNOWN = 0,
+  UNKNOWN,
   // eslint-disable-next-line no-unused-vars
-  INITIALIZED = 1,
+  INITIALIZED,
   // eslint-disable-next-line no-unused-vars
-  FINALIZED = 2,
+  FINALIZED,
 }
 
 /**

@@ -12,6 +12,7 @@
 ### Enumerations
 
 - [BitcoinNetwork](enums/BitcoinNetwork-1.md)
+- [DepositState](enums/DepositState.md)
 - [WalletState](enums/WalletState-1.md)
 
 ### Classes
