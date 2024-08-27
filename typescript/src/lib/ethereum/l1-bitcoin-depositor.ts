@@ -9,6 +9,7 @@ import {
   Chains,
   CrossChainExtraDataEncoder,
   DepositReceipt,
+  DepositState,
   L1BitcoinDepositor,
   L2Chain,
 } from "../contracts"
@@ -82,6 +83,14 @@ export class EthereumL1BitcoinDepositor
     super(config, deployment)
 
     this.#extraDataEncoder = new EthereumCrossChainExtraDataEncoder()
+  }
+
+  // eslint-disable-next-line valid-jsdoc
+  /**
+   * @see {L1BitcoinDepositor#getDepositStatus}
+   */
+  getDepositStatus(depositId: Hex): Promise<DepositState> {
+    return this._instance.deposits(depositId.toString())
   }
 
   // eslint-disable-next-line valid-jsdoc
