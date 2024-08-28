@@ -131,7 +131,7 @@ export interface L1BitcoinDepositor {
    * @param depositId Identifier of the deposit to get the status for.
    * @returns The status of the deposit.
    */
-  getDepositStatus(depositId: Hex): Promise<DepositState>
+  getDepositStatus(depositId: string): Promise<DepositState>
 
   /**
    * Gets the chain-specific identifier of this contract.
