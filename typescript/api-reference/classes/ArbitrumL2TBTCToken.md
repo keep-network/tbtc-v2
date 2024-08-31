@@ -58,7 +58,7 @@ EthersContractHandle\&lt;L2TBTCTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/arbitrum/l2-tbtc-token.ts:23](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L23)
+[lib/arbitrum/l2-tbtc-token.ts:22](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L22)
 
 ## Properties
 
@@ -134,7 +134,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/arbitrum/l2-tbtc-token.ts:53](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L53)
+[lib/arbitrum/l2-tbtc-token.ts:51](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L51)
 
 ___
 
@@ -176,7 +176,7 @@ ___
 
 #### Defined in
 
-[lib/arbitrum/l2-tbtc-token.ts:45](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L45)
+[lib/arbitrum/l2-tbtc-token.ts:43](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/arbitrum/l2-tbtc-token.ts#L43)
 
 ___
 
