@@ -81,7 +81,7 @@ export class MockL1BitcoinDepositor implements L1BitcoinDepositor {
     this.#encoder = encoder
   }
 
-  getDepositStatus(depositId: Hex): Promise<DepositState> {
+  getDepositStatus(depositId: string): Promise<DepositState> {
     throw new Error("Not supported")
   }
 

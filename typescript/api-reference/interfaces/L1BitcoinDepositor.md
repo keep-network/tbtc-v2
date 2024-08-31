@@ -61,7 +61,7 @@ Gets the deposit status for the given deposit identifier.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `depositId` | [`Hex`](../classes/Hex.md) | Identifier of the deposit to get the status for. |
+| `depositId` | `string` | Identifier of the deposit to get the status for. |
 
 #### Returns
 

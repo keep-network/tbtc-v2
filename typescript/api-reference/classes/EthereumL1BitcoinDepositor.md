@@ -197,7 +197,7 @@ ___
 
 | Name | Type |
 | :------ | :------ |
-| `depositId` | [`Hex`](Hex.md) |
+| `depositId` | `string` |
 
 #### Returns
 
