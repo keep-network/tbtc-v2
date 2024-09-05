@@ -55,7 +55,7 @@ for reference.
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:172](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L172)
+[lib/ethereum/l1-bitcoin-depositor.ts:172](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L172)
 
 ___
 
@@ -81,4 +81,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:158](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L158)
+[lib/ethereum/l1-bitcoin-depositor.ts:158](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L158)
