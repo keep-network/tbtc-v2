@@ -13,6 +13,7 @@ specific to the given L2 chain, deployed on the L1 chain.
 
 - [extraDataEncoder](L1BitcoinDepositor.md#extradataencoder)
 - [getChainIdentifier](L1BitcoinDepositor.md#getchainidentifier)
+- [getDepositState](L1BitcoinDepositor.md#getDepositState)
 - [initializeDeposit](L1BitcoinDepositor.md#initializedeposit)
 
 ## Methods
@@ -30,7 +31,7 @@ encode and decode the extra data included in the cross-chain deposit script.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:126](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L126)
+[lib/contracts/cross-chain.ts:145](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L145)
 
 ___
 
@@ -46,7 +47,31 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:120](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L120)
+[lib/contracts/cross-chain.ts:139](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L139)
+
+___
+
+### getDepositState
+
+▸ **getDepositState**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
+
+Gets the deposit state for the given deposit identifier.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `depositId` | `string` | Identifier of the deposit to get the state for. |
+
+#### Returns
+
+`Promise`\<[`DepositState`](../enums/DepositState.md)\>
+
+The state of the deposit.
+
+#### Defined in
+
+[lib/contracts/cross-chain.ts:134](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L134)
 
 ___
 
@@ -73,4 +98,4 @@ Transaction hash of the reveal deposit transaction.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:138](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L138)
+[lib/contracts/cross-chain.ts:157](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/contracts/cross-chain.ts#L157)

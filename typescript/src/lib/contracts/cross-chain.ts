@@ -110,10 +110,29 @@ export interface L2BitcoinDepositor {
 }
 
 /**
+ * Represents the state of the deposit.
+ */
+export enum DepositState {
+  // eslint-disable-next-line no-unused-vars
+  UNKNOWN,
+  // eslint-disable-next-line no-unused-vars
+  INITIALIZED,
+  // eslint-disable-next-line no-unused-vars
+  FINALIZED,
+}
+
+/**
  * Interface for communication with the L1BitcoinDepositor on-chain contract
  * specific to the given L2 chain, deployed on the L1 chain.
  */
 export interface L1BitcoinDepositor {
+  /**
+   * Gets the deposit state for the given deposit identifier.
+   * @param depositId Identifier of the deposit to get the state for.
+   * @returns The state of the deposit.
+   */
+  getDepositState(depositId: string): Promise<DepositState>
+
   /**
    * Gets the chain-specific identifier of this contract.
    */

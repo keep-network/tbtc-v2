@@ -7,6 +7,7 @@ import {
   BitcoinRawTxVectors,
   DepositReceipt,
   Hex,
+  DepositState,
 } from "../../src"
 import { BigNumber } from "ethers"
 
@@ -78,6 +79,10 @@ export class MockL1BitcoinDepositor implements L1BitcoinDepositor {
   ) {
     this.#chainIdentifier = chainIdentifier
     this.#encoder = encoder
+  }
+
+  getDepositState(depositId: string): Promise<DepositState> {
+    throw new Error("Not supported")
   }
 
   extraDataEncoder(): CrossChainExtraDataEncoder {

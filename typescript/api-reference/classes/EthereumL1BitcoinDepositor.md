@@ -35,6 +35,7 @@ for reference.
 - [extraDataEncoder](EthereumL1BitcoinDepositor.md#extradataencoder)
 - [getAddress](EthereumL1BitcoinDepositor.md#getaddress)
 - [getChainIdentifier](EthereumL1BitcoinDepositor.md#getchainidentifier)
+- [getDepositState](EthereumL1BitcoinDepositor.md#getDepositState)
 - [getEvents](EthereumL1BitcoinDepositor.md#getevents)
 - [initializeDeposit](EthereumL1BitcoinDepositor.md#initializedeposit)
 
@@ -62,7 +63,7 @@ EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:64](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L64)
+[lib/ethereum/l1-bitcoin-depositor.ts:65](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L65)
 
 ## Properties
 
@@ -72,7 +73,7 @@ EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:62](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L62)
+[lib/ethereum/l1-bitcoin-depositor.ts:63](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L63)
 
 ___
 
@@ -142,7 +143,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:99](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L99)
+[lib/ethereum/l1-bitcoin-depositor.ts:108](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L108)
 
 ___
 
@@ -184,7 +185,33 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:91](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L91)
+[lib/ethereum/l1-bitcoin-depositor.ts:100](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L100)
+
+___
+
+### getDepositState
+
+▸ **getDepositState**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `depositId` | `string` |
+
+#### Returns
+
+`Promise`\<[`DepositState`](../enums/DepositState.md)\>
+
+**`See`**
+
+#### Implementation of
+
+[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[getDepositState](../interfaces/L1BitcoinDepositor.md#getDepositState)
+
+#### Defined in
+
+[lib/ethereum/l1-bitcoin-depositor.ts:92](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L92)
 
 ___
 
@@ -247,4 +274,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:107](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L107)
+[lib/ethereum/l1-bitcoin-depositor.ts:116](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L116)

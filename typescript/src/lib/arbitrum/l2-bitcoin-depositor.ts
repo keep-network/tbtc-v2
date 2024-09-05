@@ -19,8 +19,7 @@ import {
 import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
 
-// TODO: Uncomment once Arbitrum native minting is available on Arbitrum mainnet.
-// import ArbitrumL2BitcoinDepositorDeployment from "./artifacts/arbitrumOne/ArbitrumL2BitcoinDepositor.json"
+import ArbitrumL2BitcoinDepositorDeployment from "./artifacts/arbitrumOne/ArbitrumL2BitcoinDepositor.json"
 import ArbitrumSepoliaL2BitcoinDepositorDeployment from "./artifacts/arbitrumSepolia/ArbitrumL2BitcoinDepositor.json"
 
 /**
@@ -41,10 +40,9 @@ export class ArbitrumL2BitcoinDepositor
       case Chains.Arbitrum.ArbitrumSepolia:
         deployment = ArbitrumSepoliaL2BitcoinDepositorDeployment
         break
-      // TODO: Uncomment once Arbitrum native minting is available on Arbitrum mainnet.
-      // case Chains.Arbitrum.Arbitrum:
-      //   deployment = ArbitrumL2BitcoinDepositorDeployment
-      //   break
+      case Chains.Arbitrum.Arbitrum:
+        deployment = ArbitrumL2BitcoinDepositorDeployment
+        break
       default:
         throw new Error("Unsupported deployment type")
     }

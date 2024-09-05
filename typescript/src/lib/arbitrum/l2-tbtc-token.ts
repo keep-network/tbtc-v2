@@ -8,8 +8,7 @@ import { ChainIdentifier, Chains, L2TBTCToken } from "../contracts"
 import { BigNumber } from "ethers"
 import { EthereumAddress } from "../ethereum"
 
-// TODO: Uncomment once Arbitrum native minting is available on Arbitrum mainnet.
-// import ArbitrumL2TBTCTokenDeployment from "./artifacts/arbitrumOne/ArbitrumTBTC.json"
+import ArbitrumL2TBTCTokenDeployment from "./artifacts/arbitrumOne/ArbitrumTBTC.json"
 import ArbitrumSepoliaL2TBTCTokenDeployment from "./artifacts/arbitrumSepolia/ArbitrumTBTC.json"
 
 /**
@@ -27,10 +26,9 @@ export class ArbitrumL2TBTCToken
       case Chains.Arbitrum.ArbitrumSepolia:
         deployment = ArbitrumSepoliaL2TBTCTokenDeployment
         break
-      // TODO: Uncomment once Arbitrum native minting is available on Arbitrum mainnet.
-      // case Chains.Arbitrum.Arbitrum:
-      //   deployment = ArbitrumL2TBTCTokenDeployment
-      //   break
+      case Chains.Arbitrum.Arbitrum:
+        deployment = ArbitrumL2TBTCTokenDeployment
+        break
       default:
         throw new Error("Unsupported deployment type")
     }
