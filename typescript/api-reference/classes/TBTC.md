@@ -47,7 +47,7 @@ Entrypoint component of the tBTC v2 SDK.
 
 #### Defined in
 
-[services/tbtc.ts:60](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L60)
+[services/tbtc.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L60)
 
 ## Properties
 
@@ -61,7 +61,7 @@ the `initializeCrossChain` method.
 
 #### Defined in
 
-[services/tbtc.ts:58](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L58)
+[services/tbtc.ts:58](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L58)
 
 ___
 
@@ -73,7 +73,7 @@ Reference to the cross-chain contracts loader.
 
 #### Defined in
 
-[services/tbtc.ts:52](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L52)
+[services/tbtc.ts:52](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L52)
 
 ___
 
@@ -85,7 +85,7 @@ Bitcoin client handle for low-level access.
 
 #### Defined in
 
-[services/tbtc.ts:48](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L48)
+[services/tbtc.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L48)
 
 ___
 
@@ -97,7 +97,7 @@ Service supporting the tBTC v2 deposit flow.
 
 #### Defined in
 
-[services/tbtc.ts:31](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L31)
+[services/tbtc.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L31)
 
 ___
 
@@ -110,7 +110,7 @@ and operators.
 
 #### Defined in
 
-[services/tbtc.ts:36](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L36)
+[services/tbtc.ts:36](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L36)
 
 ___
 
@@ -122,7 +122,7 @@ Service supporting the tBTC v2 redemption flow.
 
 #### Defined in
 
-[services/tbtc.ts:40](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L40)
+[services/tbtc.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L40)
 
 ___
 
@@ -134,7 +134,7 @@ Handle to tBTC contracts for low-level access.
 
 #### Defined in
 
-[services/tbtc.ts:44](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L44)
+[services/tbtc.ts:44](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L44)
 
 ## Methods
 
@@ -166,7 +166,7 @@ Cross-chain contracts for the given L2 chain or
 
 #### Defined in
 
-[services/tbtc.ts:273](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L273)
+[services/tbtc.ts:273](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L273)
 
 ___
 
@@ -210,7 +210,7 @@ In case this function needs to support non-EVM L2 chains that can't
 
 #### Defined in
 
-[services/tbtc.ts:209](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L209)
+[services/tbtc.ts:209](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L209)
 
 ___
 
@@ -242,7 +242,7 @@ This function is especially useful for local development as it gives
 
 #### Defined in
 
-[services/tbtc.ts:181](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L181)
+[services/tbtc.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L181)
 
 ___
 
@@ -276,7 +276,7 @@ Throws an error if the underlying signer's Ethereum network is
 
 #### Defined in
 
-[services/tbtc.ts:134](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L134)
+[services/tbtc.ts:134](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L134)
 
 ___
 
@@ -308,7 +308,7 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[services/tbtc.ts:88](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L88)
+[services/tbtc.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L88)
 
 ___
 
@@ -340,4 +340,4 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[services/tbtc.ts:110](https://github.com/Unknown-Gravity/tbtc-v2-sdk/blob/main/typescript/src/services/tbtc.ts#L110)
+[services/tbtc.ts:110](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L110)
