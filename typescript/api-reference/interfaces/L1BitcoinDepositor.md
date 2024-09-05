@@ -13,7 +13,7 @@ specific to the given L2 chain, deployed on the L1 chain.
 
 - [extraDataEncoder](L1BitcoinDepositor.md#extradataencoder)
 - [getChainIdentifier](L1BitcoinDepositor.md#getchainidentifier)
-- [getDepositStatus](L1BitcoinDepositor.md#getdepositstatus)
+- [getDepositState](L1BitcoinDepositor.md#getDepositState)
 - [initializeDeposit](L1BitcoinDepositor.md#initializedeposit)
 
 ## Methods
@@ -51,23 +51,23 @@ Gets the chain-specific identifier of this contract.
 
 ___
 
-### getDepositStatus
+### getDepositState
 
-▸ **getDepositStatus**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
+▸ **getDepositState**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
 
-Gets the deposit status for the given deposit identifier.
+Gets the deposit state for the given deposit identifier.
 
 #### Parameters
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `depositId` | `string` | Identifier of the deposit to get the status for. |
+| `depositId` | `string` | Identifier of the deposit to get the state for. |
 
 #### Returns
 
 `Promise`\<[`DepositState`](../enums/DepositState.md)\>
 
-The status of the deposit.
+The state of the deposit.
 
 #### Defined in
 

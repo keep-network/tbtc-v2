@@ -87,9 +87,9 @@ export class EthereumL1BitcoinDepositor
 
   // eslint-disable-next-line valid-jsdoc
   /**
-   * @see {L1BitcoinDepositor#getDepositStatus}
+   * @see {L1BitcoinDepositor#getDepositState}
    */
-  getDepositStatus(depositId: string): Promise<DepositState> {
+  getDepositState(depositId: string): Promise<DepositState> {
     return this._instance.deposits(depositId)
   }
 

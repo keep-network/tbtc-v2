@@ -35,7 +35,7 @@ for reference.
 - [extraDataEncoder](EthereumL1BitcoinDepositor.md#extradataencoder)
 - [getAddress](EthereumL1BitcoinDepositor.md#getaddress)
 - [getChainIdentifier](EthereumL1BitcoinDepositor.md#getchainidentifier)
-- [getDepositStatus](EthereumL1BitcoinDepositor.md#getdepositstatus)
+- [getDepositState](EthereumL1BitcoinDepositor.md#getDepositState)
 - [getEvents](EthereumL1BitcoinDepositor.md#getevents)
 - [initializeDeposit](EthereumL1BitcoinDepositor.md#initializedeposit)
 
@@ -189,9 +189,9 @@ ___
 
 ___
 
-### getDepositStatus
+### getDepositState
 
-▸ **getDepositStatus**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
+▸ **getDepositState**(`depositId`): `Promise`\<[`DepositState`](../enums/DepositState.md)\>
 
 #### Parameters
 
@@ -207,7 +207,7 @@ ___
 
 #### Implementation of
 
-[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[getDepositStatus](../interfaces/L1BitcoinDepositor.md#getdepositstatus)
+[L1BitcoinDepositor](../interfaces/L1BitcoinDepositor.md).[getDepositState](../interfaces/L1BitcoinDepositor.md#getDepositState)
 
 #### Defined in
 

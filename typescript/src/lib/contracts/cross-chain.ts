@@ -127,11 +127,11 @@ export enum DepositState {
  */
 export interface L1BitcoinDepositor {
   /**
-   * Gets the deposit status for the given deposit identifier.
-   * @param depositId Identifier of the deposit to get the status for.
-   * @returns The status of the deposit.
+   * Gets the deposit state for the given deposit identifier.
+   * @param depositId Identifier of the deposit to get the state for.
+   * @returns The state of the deposit.
    */
-  getDepositStatus(depositId: string): Promise<DepositState>
+  getDepositState(depositId: string): Promise<DepositState>
 
   /**
    * Gets the chain-specific identifier of this contract.
