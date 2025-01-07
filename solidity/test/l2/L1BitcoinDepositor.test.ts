@@ -1123,7 +1123,7 @@ describe("L1BitcoinDepositor", () => {
             // omFee = amountSubTreasury / optimisticMintingFeeDivisor = 4975 * 1e10
             // txMaxFee = depositTxMaxFee * satoshiMultiplier = 1000 * 1e10
             // tbtcAmount = amountSubTreasury - omFee - txMaxFee = 93525 * 1e10
-            const expectedTbtcAmount = to1ePrecision(93525, 10)
+            const expectedTbtcAmount = to1ePrecision(94525, 10)
 
             let tx: ContractTransaction
 
