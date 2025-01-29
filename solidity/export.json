@@ -11143,876 +11143,6 @@
         }
       ]
     },
-    "Timelock": {
-      "address": "0x92f2d8b72a7F6a551Be60b9aa4194248E9B4913D",
-      "abi": [
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "minDelay",
-              "type": "uint256"
-            },
-            {
-              "internalType": "address[]",
-              "name": "proposers",
-              "type": "address[]"
-            },
-            {
-              "internalType": "address[]",
-              "name": "executors",
-              "type": "address[]"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "index",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "value",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "bytes",
-              "name": "data",
-              "type": "bytes"
-            }
-          ],
-          "name": "CallExecuted",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "uint256",
-              "name": "index",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "value",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "bytes",
-              "name": "data",
-              "type": "bytes"
-            },
-            {
-              "indexed": false,
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "delay",
-              "type": "uint256"
-            }
-          ],
-          "name": "CallScheduled",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "Cancelled",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "oldDuration",
-              "type": "uint256"
-            },
-            {
-              "indexed": false,
-              "internalType": "uint256",
-              "name": "newDuration",
-              "type": "uint256"
-            }
-          ],
-          "name": "MinDelayChange",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "previousAdminRole",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "newAdminRole",
-              "type": "bytes32"
-            }
-          ],
-          "name": "RoleAdminChanged",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "sender",
-              "type": "address"
-            }
-          ],
-          "name": "RoleGranted",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "sender",
-              "type": "address"
-            }
-          ],
-          "name": "RoleRevoked",
-          "type": "event"
-        },
-        {
-          "inputs": [],
-          "name": "CANCELLER_ROLE",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "DEFAULT_ADMIN_ROLE",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "EXECUTOR_ROLE",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "PROPOSER_ROLE",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "TIMELOCK_ADMIN_ROLE",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "cancel",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "value",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "payload",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            }
-          ],
-          "name": "execute",
-          "outputs": [],
-          "stateMutability": "payable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address[]",
-              "name": "targets",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "values",
-              "type": "uint256[]"
-            },
-            {
-              "internalType": "bytes[]",
-              "name": "payloads",
-              "type": "bytes[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            }
-          ],
-          "name": "executeBatch",
-          "outputs": [],
-          "stateMutability": "payable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "getMinDelay",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "duration",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            }
-          ],
-          "name": "getRoleAdmin",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "getTimestamp",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "timestamp",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            }
-          ],
-          "name": "grantRole",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            }
-          ],
-          "name": "hasRole",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "value",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "data",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            }
-          ],
-          "name": "hashOperation",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "hash",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address[]",
-              "name": "targets",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "values",
-              "type": "uint256[]"
-            },
-            {
-              "internalType": "bytes[]",
-              "name": "payloads",
-              "type": "bytes[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            }
-          ],
-          "name": "hashOperationBatch",
-          "outputs": [
-            {
-              "internalType": "bytes32",
-              "name": "hash",
-              "type": "bytes32"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "isOperation",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "registered",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "isOperationDone",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "done",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "isOperationPending",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "pending",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "id",
-              "type": "bytes32"
-            }
-          ],
-          "name": "isOperationReady",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "ready",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "",
-              "type": "uint256[]"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "",
-              "type": "uint256[]"
-            },
-            {
-              "internalType": "bytes",
-              "name": "",
-              "type": "bytes"
-            }
-          ],
-          "name": "onERC1155BatchReceived",
-          "outputs": [
-            {
-              "internalType": "bytes4",
-              "name": "",
-              "type": "bytes4"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "",
-              "type": "bytes"
-            }
-          ],
-          "name": "onERC1155Received",
-          "outputs": [
-            {
-              "internalType": "bytes4",
-              "name": "",
-              "type": "bytes4"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "",
-              "type": "bytes"
-            }
-          ],
-          "name": "onERC721Received",
-          "outputs": [
-            {
-              "internalType": "bytes4",
-              "name": "",
-              "type": "bytes4"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            }
-          ],
-          "name": "renounceRole",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes32",
-              "name": "role",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address",
-              "name": "account",
-              "type": "address"
-            }
-          ],
-          "name": "revokeRole",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "target",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "value",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bytes",
-              "name": "data",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "uint256",
-              "name": "delay",
-              "type": "uint256"
-            }
-          ],
-          "name": "schedule",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address[]",
-              "name": "targets",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "values",
-              "type": "uint256[]"
-            },
-            {
-              "internalType": "bytes[]",
-              "name": "payloads",
-              "type": "bytes[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "predecessor",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "salt",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "uint256",
-              "name": "delay",
-              "type": "uint256"
-            }
-          ],
-          "name": "scheduleBatch",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "bytes4",
-              "name": "interfaceId",
-              "type": "bytes4"
-            }
-          ],
-          "name": "supportsInterface",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "newDelay",
-              "type": "uint256"
-            }
-          ],
-          "name": "updateDelay",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "stateMutability": "payable",
-          "type": "receive"
-        }
-      ]
-    },
     "VendingMachine": {
       "address": "0x6590DFF6abEd7C077839E8227A4f12Ec90E6D85F",
       "abi": [
@@ -13036,386 +12166,6 @@
           "name": "withdrawTbtcV2",
           "outputs": [],
           "stateMutability": "nonpayable",
-          "type": "function"
-        }
-      ]
-    },
-    "WalletProposalValidator": {
-      "address": "0x30019D85a86ABD3cDA1167F4C052690c32FBDEc2",
-      "abi": [
-        {
-          "inputs": [
-            {
-              "internalType": "contract Bridge",
-              "name": "_bridge",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "inputs": [],
-          "name": "DEPOSIT_MIN_AGE",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "DEPOSIT_REFUND_SAFETY_MARGIN",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "DEPOSIT_SWEEP_MAX_SIZE",
-          "outputs": [
-            {
-              "internalType": "uint16",
-              "name": "",
-              "type": "uint16"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "REDEMPTION_MAX_SIZE",
-          "outputs": [
-            {
-              "internalType": "uint16",
-              "name": "",
-              "type": "uint16"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "REDEMPTION_REQUEST_MIN_AGE",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN",
-          "outputs": [
-            {
-              "internalType": "uint32",
-              "name": "",
-              "type": "uint32"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "bridge",
-          "outputs": [
-            {
-              "internalType": "contract Bridge",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "components": [
-                    {
-                      "internalType": "bytes32",
-                      "name": "fundingTxHash",
-                      "type": "bytes32"
-                    },
-                    {
-                      "internalType": "uint32",
-                      "name": "fundingOutputIndex",
-                      "type": "uint32"
-                    }
-                  ],
-                  "internalType": "struct WalletProposalValidator.DepositKey[]",
-                  "name": "depositsKeys",
-                  "type": "tuple[]"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "sweepTxFee",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256[]",
-                  "name": "depositsRevealBlocks",
-                  "type": "uint256[]"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.DepositSweepProposal",
-              "name": "proposal",
-              "type": "tuple"
-            },
-            {
-              "components": [
-                {
-                  "components": [
-                    {
-                      "internalType": "bytes4",
-                      "name": "version",
-                      "type": "bytes4"
-                    },
-                    {
-                      "internalType": "bytes",
-                      "name": "inputVector",
-                      "type": "bytes"
-                    },
-                    {
-                      "internalType": "bytes",
-                      "name": "outputVector",
-                      "type": "bytes"
-                    },
-                    {
-                      "internalType": "bytes4",
-                      "name": "locktime",
-                      "type": "bytes4"
-                    }
-                  ],
-                  "internalType": "struct BitcoinTx.Info",
-                  "name": "fundingTx",
-                  "type": "tuple"
-                },
-                {
-                  "internalType": "bytes8",
-                  "name": "blindingFactor",
-                  "type": "bytes8"
-                },
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes20",
-                  "name": "refundPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes4",
-                  "name": "refundLocktime",
-                  "type": "bytes4"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.DepositExtraInfo[]",
-              "name": "depositsExtraInfo",
-              "type": "tuple[]"
-            }
-          ],
-          "name": "validateDepositSweepProposal",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "message",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.HeartbeatProposal",
-              "name": "proposal",
-              "type": "tuple"
-            }
-          ],
-          "name": "validateHeartbeatProposal",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes32",
-                  "name": "movingFundsTxHash",
-                  "type": "bytes32"
-                },
-                {
-                  "internalType": "uint32",
-                  "name": "movingFundsTxOutputIndex",
-                  "type": "uint32"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "movedFundsSweepTxFee",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.MovedFundsSweepProposal",
-              "name": "proposal",
-              "type": "tuple"
-            }
-          ],
-          "name": "validateMovedFundsSweepProposal",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes20[]",
-                  "name": "targetWallets",
-                  "type": "bytes20[]"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "movingFundsTxFee",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.MovingFundsProposal",
-              "name": "proposal",
-              "type": "tuple"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "bytes32",
-                  "name": "txHash",
-                  "type": "bytes32"
-                },
-                {
-                  "internalType": "uint32",
-                  "name": "txOutputIndex",
-                  "type": "uint32"
-                },
-                {
-                  "internalType": "uint64",
-                  "name": "txOutputValue",
-                  "type": "uint64"
-                }
-              ],
-              "internalType": "struct BitcoinTx.UTXO",
-              "name": "walletMainUtxo",
-              "type": "tuple"
-            }
-          ],
-          "name": "validateMovingFundsProposal",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "bytes20",
-                  "name": "walletPubKeyHash",
-                  "type": "bytes20"
-                },
-                {
-                  "internalType": "bytes[]",
-                  "name": "redeemersOutputScripts",
-                  "type": "bytes[]"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "redemptionTxFee",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct WalletProposalValidator.RedemptionProposal",
-              "name": "proposal",
-              "type": "tuple"
-            }
-          ],
-          "name": "validateRedemptionProposal",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
           "type": "function"
         }
       ]
@@ -16122,6 +14872,386 @@
           "name": "withdrawRewards",
           "outputs": [],
           "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]
+    },
+    "WalletProposalValidator": {
+      "address": "0x30019D85a86ABD3cDA1167F4C052690c32FBDEc2",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "contract Bridge",
+              "name": "_bridge",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "DEPOSIT_MIN_AGE",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DEPOSIT_REFUND_SAFETY_MARGIN",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DEPOSIT_SWEEP_MAX_SIZE",
+          "outputs": [
+            {
+              "internalType": "uint16",
+              "name": "",
+              "type": "uint16"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_MAX_SIZE",
+          "outputs": [
+            {
+              "internalType": "uint16",
+              "name": "",
+              "type": "uint16"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_REQUEST_MIN_AGE",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "REDEMPTION_REQUEST_TIMEOUT_SAFETY_MARGIN",
+          "outputs": [
+            {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "bridge",
+          "outputs": [
+            {
+              "internalType": "contract Bridge",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "bytes32",
+                      "name": "fundingTxHash",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "uint32",
+                      "name": "fundingOutputIndex",
+                      "type": "uint32"
+                    }
+                  ],
+                  "internalType": "struct WalletProposalValidator.DepositKey[]",
+                  "name": "depositsKeys",
+                  "type": "tuple[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "sweepTxFee",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256[]",
+                  "name": "depositsRevealBlocks",
+                  "type": "uint256[]"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.DepositSweepProposal",
+              "name": "proposal",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "components": [
+                    {
+                      "internalType": "bytes4",
+                      "name": "version",
+                      "type": "bytes4"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "inputVector",
+                      "type": "bytes"
+                    },
+                    {
+                      "internalType": "bytes",
+                      "name": "outputVector",
+                      "type": "bytes"
+                    },
+                    {
+                      "internalType": "bytes4",
+                      "name": "locktime",
+                      "type": "bytes4"
+                    }
+                  ],
+                  "internalType": "struct BitcoinTx.Info",
+                  "name": "fundingTx",
+                  "type": "tuple"
+                },
+                {
+                  "internalType": "bytes8",
+                  "name": "blindingFactor",
+                  "type": "bytes8"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes20",
+                  "name": "refundPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "refundLocktime",
+                  "type": "bytes4"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.DepositExtraInfo[]",
+              "name": "depositsExtraInfo",
+              "type": "tuple[]"
+            }
+          ],
+          "name": "validateDepositSweepProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "message",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.HeartbeatProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "validateHeartbeatProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "movingFundsTxHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "movingFundsTxOutputIndex",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "movedFundsSweepTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.MovedFundsSweepProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "validateMovedFundsSweepProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes20[]",
+                  "name": "targetWallets",
+                  "type": "bytes20[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "movingFundsTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.MovingFundsProposal",
+              "name": "proposal",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "bytes32",
+                  "name": "txHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "txOutputIndex",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "txOutputValue",
+                  "type": "uint64"
+                }
+              ],
+              "internalType": "struct BitcoinTx.UTXO",
+              "name": "walletMainUtxo",
+              "type": "tuple"
+            }
+          ],
+          "name": "validateMovingFundsProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes20",
+                  "name": "walletPubKeyHash",
+                  "type": "bytes20"
+                },
+                {
+                  "internalType": "bytes[]",
+                  "name": "redeemersOutputScripts",
+                  "type": "bytes[]"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "redemptionTxFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct WalletProposalValidator.RedemptionProposal",
+              "name": "proposal",
+              "type": "tuple"
+            }
+          ],
+          "name": "validateRedemptionProposal",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
           "type": "function"
         }
       ]
