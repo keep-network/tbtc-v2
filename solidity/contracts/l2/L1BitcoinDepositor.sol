@@ -491,6 +491,8 @@ contract L1BitcoinDepositor is
             // The DAO is "refunding" it by adding it to the TBTC minted.
             tbtcAmount += txMaxFee;
         }
+
+        // slither-disable-next-line reentrancy-events
         emit DepositFinalized(
             depositKey,
             WormholeUtils.fromWormholeAddress(l2DepositOwner),
