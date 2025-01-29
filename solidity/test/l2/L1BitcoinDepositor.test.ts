@@ -46,7 +46,7 @@ describe("L1BitcoinDepositor", () => {
       // pass the vault address check in the initializeDeposit function.
       address: tbtcVaultAddress,
     })
-    // Attack the tbtcToken mock to the tbtcVault mock.
+    // Attach the tbtcToken mock to the tbtcVault mock.
     tbtcVault.tbtcToken.returns(tbtcToken.address)
 
     const wormhole = await smock.fake<IWormhole>("IWormhole")
@@ -1808,6 +1808,115 @@ describe("L1BitcoinDepositor", () => {
     it("should return the correct cost", async () => {
       const cost = await l1BitcoinDepositor.quoteFinalizeDeposit()
       expect(cost).to.be.equal(6000) // delivery cost + message fee
+    })
+  })
+
+  context("when reimburseTxMaxFee is true", () => {
+    const satoshiMultiplier = to1ePrecision(1, 10)
+    const messageFee = 1000
+    const deliveryCost = 5000
+    const depositTxMaxFee = BigNumber.from(1000)
+    const depositAmount = BigNumber.from(100000)
+    const treasuryFee = BigNumber.from(500)
+    const optimisticMintingFeeDivisor = 20
+
+    // For depositAmount=100000 & treasuryFee=500:
+    // (depositAmount - treasuryFee)=99500
+    // => *1e10 => 99500e10
+    // => omFee= (99500e10 /20)=4975e10
+    // => depositTxMaxFee => 1000e10
+    //
+    // The standard _calculateTbtcAmount would do: 99500e10 -4975e10 -1000e10=93525e10
+    // Because we reimburse depositTxMaxFee, we add 1000e10 back => 94525e10
+    const expectedTbtcAmountReimbursed = to1ePrecision(94525, 10)
+
+    before(async () => {
+      await createSnapshot()
+
+      // Turn the feature flag on
+      await l1BitcoinDepositor.connect(governance).setReimburseTxMaxFee(true)
+
+      // The L2BitcoinDepositor contract must be attached
+      if (
+        (await l1BitcoinDepositor.l2BitcoinDepositor()) ===
+        ethers.constants.AddressZero
+      ) {
+        await l1BitcoinDepositor
+          .connect(governance)
+          .attachL2BitcoinDepositor(l2BitcoinDepositor)
+      }
+    })
+
+    after(async () => {
+      await restoreSnapshot()
+    })
+
+    it("should add depositTxMaxFee back to the minted TBTC amount", async () => {
+      // 1) Initialize deposit
+      await l1BitcoinDepositor
+        .connect(relayer)
+        .initializeDeposit(
+          initializeDepositFixture.fundingTx,
+          initializeDepositFixture.reveal,
+          initializeDepositFixture.l2DepositOwner
+        )
+
+      // 2) Setup Bridge deposit parameters
+      bridge.depositParameters.returns({
+        depositDustThreshold: 0,
+        depositTreasuryFeeDivisor: 0,
+        depositTxMaxFee,
+        depositRevealAheadPeriod: 0,
+      })
+      // 3) Setup vault fees
+      tbtcVault.optimisticMintingFeeDivisor.returns(optimisticMintingFeeDivisor)
+
+      // 4) Prepare deposit finalization
+      const revealedAt = (await lastBlockTime()) - 7200
+      const finalizedAt = await lastBlockTime()
+      bridge.deposits
+        .whenCalledWith(initializeDepositFixture.depositKey)
+        .returns({
+          depositor: l1BitcoinDepositor.address,
+          amount: depositAmount,
+          revealedAt,
+          vault: initializeDepositFixture.reveal.vault,
+          treasuryFee,
+          sweptAt: finalizedAt,
+          extraData: toWormholeAddress(initializeDepositFixture.l2DepositOwner),
+        })
+      tbtcVault.optimisticMintingRequests
+        .whenCalledWith(initializeDepositFixture.depositKey)
+        .returns([revealedAt, finalizedAt])
+
+      // 5) Setup Wormhole cost
+      wormhole.messageFee.returns(messageFee)
+      wormholeRelayer.quoteEVMDeliveryPrice.returns({
+        nativePriceQuote: BigNumber.from(deliveryCost),
+        targetChainRefundPerGasUnused: BigNumber.from(0),
+      })
+
+      // 6) The bridging calls
+      wormholeTokenBridge.transferTokensWithPayload.returns(555)
+      wormholeRelayer.sendVaasToEvm.returns(999)
+
+      // 7) Now finalize with enough payment
+      const tx = await l1BitcoinDepositor
+        .connect(relayer)
+        .finalizeDeposit(initializeDepositFixture.depositKey, {
+          value: messageFee + deliveryCost,
+        })
+
+      // 8) The final minted TBTC should be 94525e10
+      await expect(tx)
+        .to.emit(l1BitcoinDepositor, "DepositFinalized")
+        .withArgs(
+          initializeDepositFixture.depositKey,
+          initializeDepositFixture.l2DepositOwner,
+          relayer.address,
+          depositAmount.mul(satoshiMultiplier),
+          expectedTbtcAmountReimbursed
+        )
     })
   })
 })
