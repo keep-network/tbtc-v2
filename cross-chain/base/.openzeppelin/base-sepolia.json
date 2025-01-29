@@ -1,25 +1,20 @@
 {
   "manifestVersion": "3.2",
   "admin": {
-    "address": "0xD5D30Fafca5A5D371A46F77CACC4dB5F811Ef917",
-    "txHash": "0xd5aa149d61c364bf7e5c468c2856471fe31c673e891d96fe68379ba09b3b2722"
+    "address": "0xbbe11Cb434f9DDAc9CC2eEC7D88D5C6ED4C41EA7",
+    "txHash": "0xf28a215383f01f3f757eac8e950907959b47f488c5233363cf4d11c3afd269b0"
   },
   "proxies": [
     {
-      "address": "0xF462413315Ee37AEBD0f5cA4296D9F3F3D9C4A59",
-      "txHash": "0xa6892c4e53e8343bbfbf53c2968a2bd833f1526811c5e7cb4eb71e1254a6dc49",
-      "kind": "transparent"
-    },
-    {
-      "address": "0x4dC7F374226FDe3395fEdDF4A591F6bfc02Ef9Cf",
-      "txHash": "0x71ab0fe261eb0384d92fa4867462ddec5da79471b4dbeb91d3910baab5bd76b6",
+      "address": "0xDEbD9aA9BC4845c7Cd2d9a997F82A2Daea540bD5",
+      "txHash": "0x8338ef2cea60670e4cce6c0ef68592abe2a1e7fc0cde5b2e5d74468438f3cecd",
       "kind": "transparent"
     }
   ],
   "impls": {
     "6f8a080eb3d81df72370bb32bfb791d146b0b8bb3ffba9da54d6a2155f00b013": {
-      "address": "0x1Fe7385497a45191C5321FDd903d880491e47dD7",
-      "txHash": "0x785a8e7c33b6adf9cf95e4f5a9b324959443125dc4a82d939976f1f78e79f10b",
+      "address": "0xda04b0Ae3E07dd4a14Ca993C47461b5Be18C3D4A",
+      "txHash": "0x410681893ea908a34d396cd25fa019b3cad441852df67f6bb54f79b3592bf07c",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -70,7 +65,7 @@
             "slot": "101",
             "type": "t_contract(IWormholeRelayer)4663",
             "contract": "L2BitcoinDepositor",
-            "src": "contracts/arbitrumSepolia/L2BitcoinDepositor.sol:55"
+            "src": "contracts/baseSepolia/L2BitcoinDepositor.sol:55"
           },
           {
             "label": "l2WormholeGateway",
@@ -78,7 +73,7 @@
             "slot": "102",
             "type": "t_contract(IL2WormholeGateway)4393",
             "contract": "L2BitcoinDepositor",
-            "src": "contracts/arbitrumSepolia/L2BitcoinDepositor.sol:59"
+            "src": "contracts/baseSepolia/L2BitcoinDepositor.sol:59"
           },
           {
             "label": "l1ChainId",
@@ -86,7 +81,7 @@
             "slot": "102",
             "type": "t_uint16",
             "contract": "L2BitcoinDepositor",
-            "src": "contracts/arbitrumSepolia/L2BitcoinDepositor.sol:65"
+            "src": "contracts/baseSepolia/L2BitcoinDepositor.sol:65"
           },
           {
             "label": "l1BitcoinDepositor",
@@ -94,7 +89,7 @@
             "slot": "103",
             "type": "t_address",
             "contract": "L2BitcoinDepositor",
-            "src": "contracts/arbitrumSepolia/L2BitcoinDepositor.sol:68"
+            "src": "contracts/baseSepolia/L2BitcoinDepositor.sol:68"
           }
         ],
         "types": {
