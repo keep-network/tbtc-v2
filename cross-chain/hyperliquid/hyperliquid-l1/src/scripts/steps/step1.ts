@@ -22,10 +22,10 @@ export default async function step1() {
   await sdk.connect();
 
   const tokenToRegister: RegisterToken = {
-    token: {
+    spec: {
       name: "tBTC",
-      szDecimals: 13,
-      weiDecimals: 18,
+      szDecimals: 3,
+      weiDecimals: 8,
 
     },
     maxGas: 1000000000000,

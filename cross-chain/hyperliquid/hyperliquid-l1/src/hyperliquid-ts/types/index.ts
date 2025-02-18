@@ -37,7 +37,7 @@ interface TokenSpecification {
 }
 
 export interface RegisterToken {
-    token: TokenSpecification;
+    spec: TokenSpecification;
     maxGas: number;
     fullName: string;
 }
