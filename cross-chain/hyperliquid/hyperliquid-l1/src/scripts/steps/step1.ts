@@ -1,5 +1,12 @@
 import { Hyperliquid } from '../../hyperliquid-ts';
+import {
+  TBTC_DEPLOYMENT_MAX_GAS,
+  TBTC_FULL_NAME, TBTC_NAME,
+  TBTC_SIZE_DECIMALS,
+  TBTC_WEI_DECIMALS
+} from '../../hyperliquid-ts/types/constants';
 import type { RegisterToken } from '../../hyperliquid-ts/types'; // (Optional) for type-safety
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -8,28 +15,24 @@ export default async function step1() {
 
   // Read from environment variables or config
   const privateKey = process.env.private_key;
-  const walletAddress = process.env.user_address;
-  const testnet = false; // or true, depending on your environment
-  const vaultAddress = null;
+  const testnet = true; // or false, depending on your environment
 
   const sdk = new Hyperliquid({
     privateKey,
     testnet,
-    walletAddress,
-    vaultAddress,
   });
 
   await sdk.connect();
 
   const tokenToRegister: RegisterToken = {
     spec: {
-      name: "tBTC",
-      szDecimals: 3,
-      weiDecimals: 8,
+      name: TBTC_NAME,
+      szDecimals: TBTC_SIZE_DECIMALS,
+      weiDecimals: TBTC_WEI_DECIMALS,
 
     },
-    maxGas: 1000000000000,
-    fullName: "HyperLiquid tBTC v2",
+    maxGas: TBTC_DEPLOYMENT_MAX_GAS,
+    fullName: TBTC_FULL_NAME,
   };
 
   try {
