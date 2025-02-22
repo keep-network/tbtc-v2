@@ -15,50 +15,163 @@
 
 pragma solidity ^0.8.17;
 
-/// @title LayerZeroUtils
-/// @notice Library for LayerZero utilities.
-library LayerZeroUtils {
-    /**
-     * @dev Helper function to convert address to Bytes32 for peer setup. find similar
-     * @param _address The address needed to be converted.
-     * @return The converted address.
-     */
-    function addressToBytes32(address _address) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(_address)));
-    }
+/**
+ * @dev Struct representing the LayerZero messaging receipt.
+ */
+struct MessagingReceipt {
+    bytes32 guid;
+    uint64 nonce;
+    MessagingFee fee;
+}
+
+/**
+ * @dev Struct representing the LayerZero messaging fee.
+ */
+struct MessagingFee {
+    uint256 nativeFee;
+    uint256 lzTokenFee;
+}
+
+/**
+ * @dev Struct representing token parameters for the OFT send() operation.
+ */
+struct SendParam {
+    uint32 dstEid; // Destination endpoint ID.
+    bytes32 to; // Recipient address.
+    uint256 amountLD; // Amount to send in local decimals.
+    uint256 minAmountLD; // Minimum amount to send in local decimals.
+    bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
+    bytes composeMsg; // The composed message for the send() operation.
+    bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
+}
+
+/**
+ * @dev Struct representing OFT limit information.
+ * @dev These amounts can change dynamically and are up the the specific oft implementation.
+ */
+struct OFTLimit {
+    uint256 minAmountLD; // Minimum amount in local decimals that can be sent to the recipient.
+    uint256 maxAmountLD; // Maximum amount in local decimals that can be sent to the recipient.
+}
+
+/**
+ * @dev Struct representing OFT receipt information.
+ */
+struct OFTReceipt {
+    uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
+    // @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
+    uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
+}
+
+/**
+ * @dev Struct representing OFT fee details.
+ * @dev Future proof mechanism to provide a standardized way to communicate fees to things like a UI.
+ */
+struct OFTFeeDetail {
+    int256 feeAmountLD; // Amount of the fee in local decimals.
+    string description; // Description of the fee.
+}
+
+/**
+ * @title IOFT
+ * @dev Interface for the OftChain (OFT) token.
+ * @dev Does not inherit ERC20 to accommodate usage by OFTAdapter as well.
+ * @dev This specific interface ID is '0x02e49c2c'.
+ */
+interface IOFT {
+    // Custom error messages
+    error InvalidLocalDecimals();
+    error SlippageExceeded(uint256 amountLD, uint256 minAmountLD);
+
+    // Events
+    event OFTSent(
+        bytes32 indexed guid, // GUID of the OFT message.
+        uint32 dstEid, // Destination Endpoint ID.
+        address indexed fromAddress, // Address of the sender on the src chain.
+        uint256 amountSentLD, // Amount of tokens sent in local decimals.
+        uint256 amountReceivedLD // Amount of tokens received in local decimals.
+    );
+    event OFTReceived(
+        bytes32 indexed guid, // GUID of the OFT message.
+        uint32 srcEid, // Source Endpoint ID.
+        address indexed toAddress, // Address of the recipient on the dst chain.
+        uint256 amountReceivedLD // Amount of tokens received in local decimals.
+    );
 
     /**
-     * @dev Helper function to convert Bytes32 to address for peer setup. find similar
-     * @param _address The address needed to be converted.
-     * @return The converted address.
-     */
-    function bytes32ToAddress(bytes32 _address) internal pure returns (address) {
-        return address(uint160(uint256(_address)));
-    }
-
-    /**
-     * @dev Retrieves the shared decimals of the OFT.
-     * @return The shared decimals of the OFT.
+     * @notice Retrieves interfaceID and the version of the OFT.
+     * @return interfaceId The interface ID.
+     * @return version The version.
      *
-     * @dev Sets an implicit cap on the amount of tokens, over uint64.max() will need some sort of outbound cap / totalSupply cap
-     * Lowest common decimal denominator between chains.
-     * Defaults to 6 decimal places to provide up to 18,446,744,073,709.551615 units (max uint64).
-     * For tokens exceeding this totalSupply(), they will need to override the sharedDecimals function with something smaller.
-     * ie. 4 sharedDecimals would be 1,844,674,407,370,955.1615
+     * @dev interfaceId: This specific interface ID is '0x02e49c2c'.
+     * @dev version: Indicates a cross-chain compatible msg encoding with other OFTs.
+     * @dev If a new feature is added to the OFT cross-chain msg encoding, the version will be incremented.
+     * ie. localOFT version(x,1) CAN send messages to remoteOFT version(x,1)
      */
-    function sharedDecimals() internal pure returns (uint8) {
-        return 6;
-    }
+    function oftVersion() external view returns (bytes4 interfaceId, uint64 version);
 
-    /// @dev Eliminates the dust that cannot be bridged with Wormhole
-    ///      due to the decimal shift in the Wormhole Bridge contract.
-    ///      See https://github.com/wormhole-foundation/wormhole/blob/96682bdbeb7c87bfa110eade0554b3d8cbf788d2/ethereum/contracts/bridge/Bridge.sol#L276-L288
-    function calculateMinimumAmount(
-        uint256 _amount,
-        uint8 _localDecimals
-    ) internal pure returns (uint256) {
-        uint256 decimalConversionRate = 10 **
-            (_localDecimals - sharedDecimals());
-        return (_amount / decimalConversionRate) * decimalConversionRate;
-    }
+    /**
+     * @notice Retrieves the address of the token associated with the OFT.
+     * @return token The address of the ERC20 token implementation.
+     */
+    function token() external view returns (address);
+
+    /**
+     * @notice Indicates whether the OFT contract requires approval of the 'token()' to send.
+     * @return requiresApproval Needs approval of the underlying token implementation.
+     *
+     * @dev Allows things like wallet implementers to determine integration requirements,
+     * without understanding the underlying token implementation.
+     */
+    function approvalRequired() external view returns (bool);
+
+    /**
+     * @notice Retrieves the shared decimals of the OFT.
+     * @return sharedDecimals The shared decimals of the OFT.
+     */
+    function sharedDecimals() external view returns (uint8);
+
+    /**
+     * @notice Provides a quote for OFT-related operations.
+     * @param _sendParam The parameters for the send operation.
+     * @return limit The OFT limit information.
+     * @return oftFeeDetails The details of OFT fees.
+     * @return receipt The OFT receipt information.
+     */
+    function quoteOFT(
+        SendParam calldata _sendParam
+    ) external view returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory);
+
+    /**
+     * @notice Provides a quote for the send() operation.
+     * @param _sendParam The parameters for the send() operation.
+     * @param _payInLzToken Flag indicating whether the caller is paying in the LZ token.
+     * @return fee The calculated LayerZero messaging fee from the send() operation.
+     *
+     * @dev MessagingFee: LayerZero msg fee
+     *  - nativeFee: The native fee.
+     *  - lzTokenFee: The lzToken fee.
+     */
+    function quoteSend(SendParam calldata _sendParam, bool _payInLzToken) external view returns (MessagingFee memory);
+
+    /**
+     * @notice Executes the send() operation.
+     * @param _sendParam The parameters for the send operation.
+     * @param _fee The fee information supplied by the caller.
+     *      - nativeFee: The native fee.
+     *      - lzTokenFee: The lzToken fee.
+     * @param _refundAddress The address to receive any excess funds from fees etc. on the src.
+     * @return receipt The LayerZero messaging receipt from the send() operation.
+     * @return oftReceipt The OFT receipt information.
+     *
+     * @dev MessagingReceipt: LayerZero msg receipt
+     *  - guid: The unique identifier for the sent message.
+     *  - nonce: The nonce of the sent message.
+     *  - fee: The LayerZero fee incurred for the message.
+     */
+    function send(
+        SendParam calldata _sendParam,
+        MessagingFee calldata _fee,
+        address _refundAddress
+    ) external payable returns (MessagingReceipt memory, OFTReceipt memory);
 }

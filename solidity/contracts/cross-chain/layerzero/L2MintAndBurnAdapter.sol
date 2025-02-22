@@ -15,12 +15,12 @@
 
 pragma solidity ^0.8.17;
 
-import { IOFT, OFTCoreUpgradeable } from "@layerzerolabs/oft-evm-upgradeable/contracts/oft/OFTCoreUpgradeable.sol";
+import { OFTAdapterUpgradeable } from "@layerzerolabs/oft-evm-upgradeable/contracts/oft/OFTAdapterUpgradeable.sol";
 import { IERC20Metadata, IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice L2MintAndBurnAdapter uses a deployed ERC-20 token and safeERC20 to interact with the OFTCore contract.
-contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
+contract L2MintAndBurnAdapter is OFTAdapterUpgradeable {
     using SafeERC20 for IERC20;
 
     IERC20 internal immutable tbtcToken;
@@ -28,7 +28,7 @@ contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
     constructor(
         address _token,
         address _lzEndpoint
-    ) OFTCoreUpgradeable(IERC20Metadata(_token).decimals(), _lzEndpoint) {
+    ) OFTAdapterUpgradeable(_token, _lzEndpoint) {
         tbtcToken = IERC20(_token);
     }
 
@@ -37,18 +37,8 @@ contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
      * @param _owner The owner/delegate of the contract/OFTAdapter.
      */
     function initialize(address _owner) external initializer { find similar
-        __OFTCore_init(_owner);
+        __OFTAdapter_init(_owner);
         __Ownable_init(_owner);
-    }
-
-    /**
-     * @dev Retrieves the address of the underlying ERC20 implementation.
-     * @return The address of the adapted ERC-20 token.
-     *
-     * @dev In the case of OFTAdapter, address(this) and erc20 are NOT the same contract.
-     */
-    function token() public view returns (address) {
-        return address(innerToken);
     }
 
     /**
@@ -58,7 +48,7 @@ contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
      * @dev In the case of default OFTAdapter, approval is required.
      * @dev In non-default OFTAdapter contracts with something like mint and burn privileges, it would NOT need approval.
      */
-    function approvalRequired() external pure virtual returns (bool) {
+    function approvalRequired() external pure override returns (bool) {
         return false;
     }
 
@@ -106,7 +96,7 @@ contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
         uint256 _amountLD,
         uint256 _minAmountLD,
         uint32 _dstEid
-    ) internal virtual override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
+    ) internal override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
         (amountSentLD, amountReceivedLD) = _debitView(_amountLD, _minAmountLD, _dstEid);
         // @dev Burns tokens from the caller.
         innerToken.burn(_from, amountSentLD);
@@ -127,7 +117,7 @@ contract L2MintAndBurnAdapter is OFTCoreUpgradeable {
         address _to,
         uint256 _amountLD,
         uint32 /*_srcEid*/
-    ) internal virtual override returns (uint256 amountReceivedLD) {
+    ) internal override returns (uint256 amountReceivedLD) {
         // @dev Mints the tokens and transfers to the recipient.
         innerToken.mint(_to, _amountLD);
         // @dev In the case of NON-default OFTAdapter, the amountLD MIGHT not be == amountReceivedLD.
