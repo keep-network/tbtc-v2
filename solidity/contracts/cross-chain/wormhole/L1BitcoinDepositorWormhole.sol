@@ -15,6 +15,9 @@
 
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./Wormhole.sol";
 import "../L1BitcoinDepositor.sol";
 
@@ -23,6 +26,7 @@ import "../L1BitcoinDepositor.sol";
 ///         users to obtain ERC20 TBTC on supported L2 chains, without the need
 ///         to interact with the L1 tBTC ledger chain where minting occurs.
 contract L1BitcoinDepositorWormhole is L1BitcoinDepositor {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice `Wormhole` core contract on L1.
     IWormhole public wormhole;

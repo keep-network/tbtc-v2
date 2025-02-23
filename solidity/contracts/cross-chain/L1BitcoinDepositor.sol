@@ -59,7 +59,7 @@ abstract contract L1BitcoinDepositor is
     Reimbursable
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-
+    
     /// @notice Reflects the deposit state:
     ///         - Unknown deposit has not been initialized yet.
     ///         - Initialized deposit has been initialized with a call to
@@ -157,7 +157,6 @@ abstract contract L1BitcoinDepositor is
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
 
         tbtcToken = IERC20Upgradeable(ITBTCVault(_tbtcVault).tbtcToken());
-        // slither-disable-next-line missing-zero-check
 
         initializeDepositGasOffset = 60_000;
         finalizeDepositGasOffset = 20_000;

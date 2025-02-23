@@ -15,6 +15,9 @@
 
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./LayerZero.sol";
 import "../L1BitcoinDepositor.sol";
 
@@ -23,27 +26,8 @@ import "../L1BitcoinDepositor.sol";
 ///         users to obtain ERC20 TBTC on supported L2 chains, without the need
 ///         to interact with the L1 tBTC ledger chain where minting occurs.
 contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
-    /**
-     * @dev Struct representing token parameters for the OFT send() operation.
-     */
-    struct SendParam {
-        uint32 dstEid; // Destination endpoint ID.
-        bytes32 to; // Recipient address.
-        uint256 amountLD; // Amount to send in local decimals.
-        uint256 minAmountLD; // Minimum amount to send in local decimals.
-        bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
-        bytes composeMsg; // The composed message for the send() operation.
-        bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
-    }
-
-    /**
-     * @dev Struct representing message fee for the OFT send() operation.
-     */
-    struct MessagingFee {
-    uint nativeFee; // gas amount in native gas token
-    uint lzTokenFee; // gas amount in ZRO token
-    }
-
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    
     /// @notice tBTC `l1OFTAdapter` contract.
     IOFT public l1OFTAdapter;
     /// @notice LayerZero Destination Endpoint Id.
@@ -93,8 +77,7 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         require(minimumAmount > 0, "minimumAmount too low to bridge");
         require(amount > 0, "Amount too low to bridge");
 
-        MessagingFee msgFee = l1OFTAdapter.quoteSend(
-            {
+        LayerZeroTypes.SendParam memory sendParam = LayerZeroTypes.SendParam({
                 dstEid: destinationEndpointId,
                 to: l2Receiver,
                 amountLD: amount,
@@ -102,7 +85,10 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
                 extraOptions: bytes(""),
                 composeMsg: bytes(""),
                 oftCmd: bytes("")
-            },
+        });
+
+        LayerZeroTypes.MessagingFee memory msgFee = l1OFTAdapter.quoteSend(
+            sendParam,
             false
         );
 
@@ -115,19 +101,7 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         // Initiate a LayerZero token transfer that will mint L2 TBTC and
         // send it to the user.
         // slither-disable-next-line arbitrary-send-eth
-        l1OFTAdapter.send{
-            value: msgFee.nativeFee
-        }(
-            {
-                dstEid: destinationEndpointId,
-                to: l2Receiver,
-                amountLD: amount,
-                minAmountLD: minimumAmount,
-                extraOptions: bytes(""),
-                composeMsg: bytes(""),
-                oftCmd: bytes("")
-            }
-        );
+        l1OFTAdapter.send{ value: msgFee.nativeFee }(sendParam);
     }
 
     /**
