@@ -140,6 +140,12 @@ contract L1BitcoinDepositor is
     ///         granted by the contract owner.
     mapping(address => bool) public reimbursementAuthorizations;
 
+    /// @notice **Feature Flag** controlling whether the deposit transaction max fee
+    ///         is **reimbursed** (added to the user’s TBTC) or **deducted**.
+    ///         - `true`  => Add `txMaxFee` to the minted TBTC amount
+    ///         - `false` => Subtract `txMaxFee` from the minted TBTC amount
+    bool public reimburseTxMaxFee;
+
     event DepositInitialized(
         uint256 indexed depositKey,
         address indexed l2DepositOwner,
@@ -165,6 +171,10 @@ contract L1BitcoinDepositor is
         address indexed _address,
         bool authorization
     );
+
+    /// @notice Emitted whenever the owner toggles the reimbursement of the deposit
+    ///         transaction max fee.
+    event ReimburseTxMaxFeeUpdated(bool reimburseTxMaxFee);
 
     /// @dev This modifier comes from the `Reimbursable` base contract and
     ///      must be overridden to protect the `updateReimbursementPool` call.
@@ -214,6 +224,7 @@ contract L1BitcoinDepositor is
         l2FinalizeDepositGasLimit = 500_000;
         initializeDepositGasOffset = 60_000;
         finalizeDepositGasOffset = 20_000;
+        reimburseTxMaxFee = false;
     }
 
     /// @notice Sets the address of the `L2BitcoinDepositor` contract on the
@@ -282,6 +293,15 @@ contract L1BitcoinDepositor is
     ) external onlyOwner {
         emit ReimbursementAuthorizationUpdated(_address, authorization);
         reimbursementAuthorizations[_address] = authorization;
+    }
+
+    /// @notice Toggles whether the deposit transaction max fee is reimbursed
+    ///         or deducted. Only callable by the contract owner.
+    /// @param _reimburseTxMaxFee `true` => reimburse (add) the deposit tx max fee,
+    ///                        `false` => deduct the deposit tx max fee.
+    function setReimburseTxMaxFee(bool _reimburseTxMaxFee) external onlyOwner {
+        reimburseTxMaxFee = _reimburseTxMaxFee;
+        emit ReimburseTxMaxFeeUpdated(_reimburseTxMaxFee);
     }
 
     /// @notice Initializes the deposit process on L1 by revealing the deposit
@@ -460,6 +480,17 @@ contract L1BitcoinDepositor is
             // address in Wormhole format.
             bytes32 l2DepositOwner
         ) = _finalizeDeposit(depositKey);
+
+        // ----------------------------
+        // Reimburse or Deduct Max Fee
+        // ----------------------------
+        if (reimburseTxMaxFee) {
+            // Retrieve deposit tx max fee in 1e8 sat precision -> scale it to 1e18.
+            (, , uint64 depositTxMaxFee, ) = bridge.depositParameters();
+            uint256 txMaxFee = depositTxMaxFee * SATOSHI_MULTIPLIER;
+            // The DAO is "refunding" it by adding it to the TBTC minted.
+            tbtcAmount += txMaxFee;
+        }
 
         // slither-disable-next-line reentrancy-events
         emit DepositFinalized(
