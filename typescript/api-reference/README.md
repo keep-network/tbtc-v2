@@ -293,8 +293,6 @@ ___
 
 `boolean`
 
-True if the error matches, false otherwise.
-
 #### Defined in
 
 [lib/utils/backoff.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L42)
@@ -319,11 +317,11 @@ ___
 
 Ƭ **ExecutionLoggerFn**: (`msg`: `string`) => `void`
 
+A function that is called with execution status messages.
+
 #### Type declaration
 
 ▸ (`msg`): `void`
-
-A function that is called with execution status messages.
 
 ##### Parameters
 
