@@ -13,12 +13,14 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.17;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
-import "./LayerZero.sol";
+import {IOFT, SendParam, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
 import "../L1BitcoinDepositor.sol";
 
 /// @title L1BitcoinDepositorLayerZero
@@ -27,7 +29,7 @@ import "../L1BitcoinDepositor.sol";
 ///         to interact with the L1 tBTC ledger chain where minting occurs.
 contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    
+
     /// @notice tBTC `l1OFTAdapter` contract.
     IOFT public l1OFTAdapter;
     /// @notice LayerZero Destination Endpoint Id.
@@ -54,9 +56,33 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         __L1BitcoinDepositor_initialize(_tbtcBridge, _tbtcVault);
         __Ownable_init();
 
-        require(_l1OFTAdapter != address(0), "l1OFTAdapter address cannot be zero");
+        require(
+            _l1OFTAdapter != address(0),
+            "l1OFTAdapter address cannot be zero"
+        );
         l1OFTAdapter = IOFT(_l1OFTAdapter);
         destinationEndpointId = _destinationEndpointId;
+    }
+
+    /**
+     * @dev Given that this contract is set to receive any excess funds from LayerZero, this function
+     *      Allows the owner to retrieve tokens from the contract and send to another wallet.
+     *      If the token address is zero, it transfers the specified amount of native token to the given address.
+     *      Otherwise, it transfers the specified amount of the given ERC20 token to the given address.
+     * @param _token The address of the token to retrieve. Use address(0) for native token.
+     * @param _to The address to which the tokens or native token will be sent.
+     * @param _amount The amount of tokens or native token to retrieve.
+     */
+    function retrieveTokens(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external onlyOwner {
+        if (_token == address(0)) {
+            payable(_to).transfer(_amount);
+        } else {
+            IERC20Upgradeable(_token).safeTransfer(_to, _amount);
+        }
     }
 
     /**
@@ -70,29 +96,37 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
      * @param amount      Amount of TBTC in 1e18 precision
      * @param l2Receiver  L2 user’s address (padded to 32 bytes)
      */
-    function _transferTbtc(uint256 amount, bytes32 l2Receiver) internal override {
+    function _transferTbtc(
+        uint256 amount,
+        bytes32 l2Receiver
+    ) internal override {
         // Calculate the minimum amount without dust that the user should receive on L2.
-        uint256 minimumAmount = _calculateMinimumAmount(amount, tbtcToken.decimals());
+        uint8 tbtcDecimals = IERC20MetadataUpgradeable(address(tbtcToken))
+            .decimals();
+        uint256 minimumAmount = _calculateMinimumAmount(amount, tbtcDecimals);
 
         require(minimumAmount > 0, "minimumAmount too low to bridge");
         require(amount > 0, "Amount too low to bridge");
 
-        LayerZeroTypes.SendParam memory sendParam = LayerZeroTypes.SendParam({
-                dstEid: destinationEndpointId,
-                to: l2Receiver,
-                amountLD: amount,
-                minAmountLD: minimumAmount,
-                extraOptions: bytes(""),
-                composeMsg: bytes(""),
-                oftCmd: bytes("")
+        SendParam memory sendParam = SendParam({
+            dstEid: destinationEndpointId,
+            to: l2Receiver,
+            amountLD: amount,
+            minAmountLD: minimumAmount,
+            extraOptions: bytes(""),
+            composeMsg: bytes(""),
+            oftCmd: bytes("")
         });
 
-        LayerZeroTypes.MessagingFee memory msgFee = l1OFTAdapter.quoteSend(
-            sendParam,
-            false
-        );
+        // The second parameter is `_payInLzToken` which indicates whether we want to pay
+        // the bridging fee using LayerZero's ZRO token. Here it's set to `false`
+        // because we're paying the fee in the native chain currency.
+        MessagingFee memory msgFee = l1OFTAdapter.quoteSend(sendParam, false);
 
-        require(msg.value == msgFee.nativeFee, "Payment for ZeroLayer is too low");
+        require(
+            msg.value == msgFee.nativeFee,
+            "Payment for ZeroLayer is too low"
+        );
 
         // The LayerZero Token Bridge will pull the TBTC amount
         // from this contract. We need to approve the transfer first.
@@ -101,7 +135,11 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         // Initiate a LayerZero token transfer that will mint L2 TBTC and
         // send it to the user.
         // slither-disable-next-line arbitrary-send-eth
-        l1OFTAdapter.send{ value: msgFee.nativeFee }(sendParam);
+        l1OFTAdapter.send{value: msgFee.nativeFee}(
+            sendParam,
+            msgFee,
+            address(this) // refundable address
+        );
     }
 
     /**

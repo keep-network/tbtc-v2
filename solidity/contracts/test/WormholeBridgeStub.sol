@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.17;
+pragma solidity ^0.8.20;
 
 import "./TestERC20.sol";
-import "../l2/Wormhole.sol";
+import "../cross-chain/wormhole/Wormhole.sol";
 
 /// @dev Stub contract used in L2WormholeGateway unit tests.
 ///      Stub contract is used instead of a smock because of the token transfer

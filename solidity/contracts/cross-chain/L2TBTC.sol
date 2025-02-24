@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
@@ -260,7 +260,7 @@ contract L2TBTC is
     ///         caller's allowance. Emits a `Transfer` event with `to` set to
     ///         the zero address.
     /// @dev Requirements:
-    ///      - The che caller must have allowance for `accounts`'s tokens of at
+    ///      - The caller must have allowance for `accounts`'s tokens of at
     ///        least `amount`.
     ///      - `account` must not be the zero address.
     ///      - `account` must have at least `amount` tokens.

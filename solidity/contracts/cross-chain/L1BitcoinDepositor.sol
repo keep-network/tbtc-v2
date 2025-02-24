@@ -13,9 +13,8 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.17;
+pragma solidity ^0.8.20;
 
-import "@keep-network/random-beacon/contracts/Reimbursable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -23,7 +22,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../integrator/AbstractTBTCDepositor.sol";
 import "../integrator/IBridge.sol";
 import "../integrator/ITBTCVault.sol";
-import "./Crosschain.sol";
+import "./utils/Reimbursable.sol";
+import "./utils/Crosschain.sol";
 
 /// @title L1BitcoinDepositor
 /// @notice This contract is part of the direct bridging mechanism allowing
@@ -146,11 +146,6 @@ abstract contract L1BitcoinDepositor is
     modifier onlyReimbursableAdmin() override {
         require(msg.sender == owner(), "Caller is not the owner");
         _;
-    }
-
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
     }
 
     function __L1BitcoinDepositor_initialize(address _tbtcBridge, address _tbtcVault) internal {

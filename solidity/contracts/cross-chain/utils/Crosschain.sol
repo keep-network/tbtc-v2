@@ -19,7 +19,7 @@ pragma solidity ^0.8.17;
 /// @notice Library for LayerZero utilities.
 library CrosschainUtils {
     /**
-     * @dev Helper function to convert address to Bytes32 for peer setup. find similar
+     * @dev Helper function to convert address to Bytes32 for peer setup.
      * @param _address The address needed to be converted.
      * @return The converted address.
      */
@@ -28,7 +28,7 @@ library CrosschainUtils {
     }
 
     /**
-     * @dev Helper function to convert Bytes32 to address for peer setup. find similar
+     * @dev Helper function to convert Bytes32 to address for peer setup.
      * @param _address The address needed to be converted.
      * @return The converted address.
      */

@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -21,7 +21,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./Wormhole.sol";
-import "./L2TBTC.sol";
+import "../L2TBTC.sol";
+import "../utils/Crosschain.sol";
 
 /// @title L2WormholeGateway
 /// @notice Selected cross-ecosystem bridges are given the minting authority for
@@ -319,9 +320,9 @@ contract L2WormholeGateway is
     function toWormholeAddress(address _address)
         external
         pure
-        returns (bytes32)
+        returns (bytes32 wormholeAddress)
     {
-        return WormholeUtils.toWormholeAddress(_address);
+        wormholeAddress = CrosschainUtils.addressToBytes32(_address);
     }
 
     /// @notice Converts Wormhole address into Ethereum format.
@@ -329,8 +330,8 @@ contract L2WormholeGateway is
     function fromWormholeAddress(bytes32 _address)
         public
         pure
-        returns (address)
+        returns (address ethereumAddress)
     {
-        return WormholeUtils.fromWormholeAddress(_address);
+        ethereumAddress = CrosschainUtils.bytes32ToAddress(_address);
     }
 }

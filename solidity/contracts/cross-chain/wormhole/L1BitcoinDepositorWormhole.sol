@@ -13,13 +13,14 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.17;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./Wormhole.sol";
 import "../L1BitcoinDepositor.sol";
+import "../utils/Crosschain.sol";
 
 /// @title L1BitcoinDepositorWormhole
 /// @notice This contract is part of the direct bridging mechanism allowing
@@ -205,7 +206,7 @@ contract L1BitcoinDepositorWormhole is L1BitcoinDepositor {
             address(tbtcToken),
             amount,
             l2ChainId,
-            WormholeUtils.toWormholeAddress(l2WormholeGateway),
+            CrosschainUtils.addressToBytes32(l2WormholeGateway),
             0, // Nonce is a free field that is not relevant in this context.
             abi.encode(l2Receiver) // Set the L2 receiver address as the transfer payload.
         );
@@ -215,7 +216,7 @@ contract L1BitcoinDepositorWormhole is L1BitcoinDepositor {
             memory additionalVaas = new WormholeTypes.VaaKey[](1);
         additionalVaas[0] = WormholeTypes.VaaKey({
             chainId: wormhole.chainId(),
-            emitterAddress: WormholeUtils.toWormholeAddress(
+            emitterAddress: CrosschainUtils.addressToBytes32(
                 address(wormholeTokenBridge)
             ),
             sequence: transferSequence
