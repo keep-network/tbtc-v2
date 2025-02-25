@@ -142,6 +142,7 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
 
         // Initiate a LayerZero token transfer that will mint L2 TBTC and
         // send it to the user.
+        // solhint-disable-next-line check-send-result
         // slither-disable-next-line arbitrary-send-eth
         (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = l1OFTAdapter
             .send{value: msgFee.nativeFee}(
@@ -150,6 +151,7 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
             address(this) // refundable address
         );
 
+        // slither-disable-next-line reentrancy-events
         emit TokensSent(msgReceipt, oftReceipt);
     }
 
