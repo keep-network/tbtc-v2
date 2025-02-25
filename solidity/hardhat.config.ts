@@ -70,7 +70,7 @@ const config: HardhatUserConfig = {
             runs: 1000,
           },
         },
-      }
+      },
     ],
     overrides: {
       "@keep-network/ecdsa/contracts/WalletRegistry.sol":

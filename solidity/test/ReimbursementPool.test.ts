@@ -3,7 +3,7 @@
 import { ethers, waffle, helpers, deployments } from "hardhat"
 import { expect } from "chai"
 
-import { params } from "./fixtures"
+import { constants } from "./fixtures"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { ContractTransaction } from "ethers"
@@ -464,7 +464,7 @@ describe("ReimbursementPool", () => {
     context("when the caller is the owner", () => {
       it("should set the static gas cost", async () => {
         expect(await reimbursementPool.staticGas()).to.be.equal(
-          params.reimbursementPoolStaticGas
+          constants.reimbursementPoolStaticGas
         )
 
         const tx = await reimbursementPool.connect(owner).setStaticGas(42000)
@@ -490,7 +490,7 @@ describe("ReimbursementPool", () => {
     context("when the caller is the owner", () => {
       it("should set the max gas price", async () => {
         expect(await reimbursementPool.maxGasPrice()).to.be.equal(
-          params.reimbursementPoolMaxGasPrice
+          constants.reimbursementPoolMaxGasPrice
         )
         const newMaxGasPrice = ethers.utils.parseUnits("21", "gwei")
 
