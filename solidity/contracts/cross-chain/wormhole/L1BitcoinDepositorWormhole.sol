@@ -178,7 +178,10 @@ contract L1BitcoinDepositorWormhole is L1BitcoinDepositor {
     ///        attached to the call (as calculated by `quoteFinalizeDeposit`).
     /// @dev Implemented based on examples presented as part of the Wormhole SDK:
     ///      https://github.com/wormhole-foundation/hello-token/blob/8ec757248788dc12183f13627633e1d6fd1001bb/src/example-extensions/HelloTokenWithoutSDK.sol#L29
-    function _transferTbtc(uint256 amount, bytes32 l2Receiver) internal override {
+    function _transferTbtc(uint256 amount, bytes32 l2Receiver)
+        internal
+        override
+    {
         // Wormhole supports the 1e8 precision at most. TBTC is 1e18 so
         // the amount needs to be normalized.
         amount = WormholeUtils.normalize(amount);

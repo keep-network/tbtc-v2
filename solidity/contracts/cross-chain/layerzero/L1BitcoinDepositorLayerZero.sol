@@ -104,10 +104,11 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
      * @param amount      Amount of TBTC in 1e18 precision
      * @param l2Receiver  L2 user’s address (padded to 32 bytes)
      */
-    function _transferTbtc(
-        uint256 amount,
-        bytes32 l2Receiver
-    ) internal override {
+    // slither-disable-next-line arbitrary-send-eth
+    function _transferTbtc(uint256 amount, bytes32 l2Receiver)
+        internal
+        override
+    {
         // Calculate the minimum amount without dust that the user should receive on L2.
         uint8 tbtcDecimals = IERC20MetadataUpgradeable(address(tbtcToken))
             .decimals();
@@ -142,7 +143,6 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
 
         // Initiate a LayerZero token transfer that will mint L2 TBTC and
         // send it to the user.
-        // slither-disable-next-line arbitrary-send-eth
         // solhint-disable-next-line check-send-result
         (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = l1OFTAdapter
             .send{value: msgFee.nativeFee}(
@@ -176,14 +176,15 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
      * @param _localDecimals The local (L1) TBTC decimal precision (e.g. 18).
      * @return The minimal amount eligible for bridging, after removing dust.
      */
-    function _calculateMinimumAmount(
-        uint256 _amount,
-        uint8 _localDecimals
-    ) internal pure returns (uint256) {
+    function _calculateMinimumAmount(uint256 _amount, uint8 _localDecimals)
+        internal
+        pure
+        returns (uint256)
+    {
         uint8 sharedDecimals = _sharedDecimals();
 
         require(_localDecimals > sharedDecimals, "localDecimals too low");
-        uint256 decimalConversionRate = 10 ** (_localDecimals - sharedDecimals);
+        uint256 decimalConversionRate = 10**(_localDecimals - sharedDecimals);
 
         return _amount - (_amount % decimalConversionRate);
     }

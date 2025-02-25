@@ -15,20 +15,19 @@
 
 pragma solidity ^0.8.20;
 
-import { OFTAdapterUpgradeable } from "@layerzerolabs/oft-evm-upgradeable/contracts/oft/OFTAdapterUpgradeable.sol";
-import { IERC20Metadata, IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IL2TBTC } from "../utils/IL2TBTC.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {OFTAdapterUpgradeable} from "@layerzerolabs/oft-evm-upgradeable/contracts/oft/OFTAdapterUpgradeable.sol";
+import {IERC20Metadata, IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IL2TBTC} from "../utils/IL2TBTC.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @notice L2MintAndBurnAdapter uses a deployed ERC-20 token and safeERC20 to interact with the OFTCore contract.
 contract L2MintAndBurnAdapter is OFTAdapterUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address _token,
-        address _lzEndpoint
-    ) OFTAdapterUpgradeable(_token, _lzEndpoint) {
+    constructor(address _token, address _lzEndpoint)
+        OFTAdapterUpgradeable(_token, _lzEndpoint)
+    {
         _disableInitializers();
     }
 
@@ -70,9 +69,16 @@ contract L2MintAndBurnAdapter is OFTAdapterUpgradeable {
      * @param _to The address to which the tokens or native token will be sent.
      * @param _amount The amount of tokens or native token to retrieve.
      */
-    function retrieveTokens(address _token, address _to, uint256 _amount) external onlyOwner {
-        require(_to != address(0), "Cannot retrieve tokens to the zero address");
-    
+    function retrieveTokens(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external onlyOwner {
+        require(
+            _to != address(0),
+            "Cannot retrieve tokens to the zero address"
+        );
+
         if (_token == address(0)) {
             payable(_to).transfer(_amount);
         } else {
@@ -98,8 +104,16 @@ contract L2MintAndBurnAdapter is OFTAdapterUpgradeable {
         uint256 _amountLD,
         uint256 _minAmountLD,
         uint32 _dstEid
-    ) internal override returns (uint256 amountSentLD, uint256 amountReceivedLD) {
-        (amountSentLD, amountReceivedLD) = _debitView(_amountLD, _minAmountLD, _dstEid);
+    )
+        internal
+        override
+        returns (uint256 amountSentLD, uint256 amountReceivedLD)
+    {
+        (amountSentLD, amountReceivedLD) = _debitView(
+            _amountLD,
+            _minAmountLD,
+            _dstEid
+        );
         /// The caller must have allowance for `accounts`'s tokens of at
         /// least `amount`.
         IL2TBTC(address(innerToken)).burnFrom(_from, amountSentLD);

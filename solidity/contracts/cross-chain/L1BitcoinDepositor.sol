@@ -59,7 +59,7 @@ abstract contract L1BitcoinDepositor is
     Reimbursable
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    
+
     /// @notice Reflects the deposit state:
     ///         - Unknown deposit has not been initialized yet.
     ///         - Initialized deposit has been initialized with a call to
@@ -148,7 +148,10 @@ abstract contract L1BitcoinDepositor is
         _;
     }
 
-    function __L1BitcoinDepositor_initialize(address _tbtcBridge, address _tbtcVault) internal {
+    function __L1BitcoinDepositor_initialize(
+        address _tbtcBridge,
+        address _tbtcVault
+    ) internal {
         __AbstractTBTCDepositor_initialize(_tbtcBridge, _tbtcVault);
 
         tbtcToken = IERC20Upgradeable(ITBTCVault(_tbtcVault).tbtcToken());
@@ -447,7 +450,11 @@ abstract contract L1BitcoinDepositor is
     /// @return Refund value as gas spent.
     /// @dev This function is the reverse of the logic used
     ///      within `ReimbursementPool.refund`.
-    function _refundToGasSpent(uint256 refund) internal virtual returns (uint256) {
+    function _refundToGasSpent(uint256 refund)
+        internal
+        virtual
+        returns (uint256)
+    {
         uint256 maxGasPrice = reimbursementPool.maxGasPrice();
         uint256 staticGas = reimbursementPool.staticGas();
 

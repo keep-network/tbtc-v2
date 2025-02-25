@@ -24,10 +24,9 @@ contract L1LockBoxAdapter is OFTAdapterUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address _token,
-        address _lzEndpoint
-    ) OFTAdapterUpgradeable(_token, _lzEndpoint) {
+    constructor(address _token, address _lzEndpoint)
+        OFTAdapterUpgradeable(_token, _lzEndpoint)
+    {
         _disableInitializers();
     }
 
@@ -54,7 +53,10 @@ contract L1LockBoxAdapter is OFTAdapterUpgradeable {
         address _to,
         uint256 _amount
     ) external onlyOwner {
-        require(_to != address(0), "Cannot retrieve tokens to the zero address");
+        require(
+            _to != address(0),
+            "Cannot retrieve tokens to the zero address"
+        );
 
         if (_token == address(0)) {
             payable(_to).transfer(_amount);
