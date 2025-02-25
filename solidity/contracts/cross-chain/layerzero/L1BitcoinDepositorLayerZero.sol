@@ -15,11 +15,12 @@
 
 pragma solidity ^0.8.20;
 
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
-import {IOFT, SendParam, MessagingFee} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {IOFT, SendParam, OFTReceipt} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {MessagingReceipt, MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppSender.sol";
 
 import "../L1BitcoinDepositor.sol";
 
@@ -34,6 +35,8 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
     IOFT public l1OFTAdapter;
     /// @notice LayerZero Destination Endpoint Id.
     uint32 public destinationEndpointId;
+
+    event TokensSent(MessagingReceipt msgReceipt, OFTReceipt oftReceipt);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -78,6 +81,11 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         address _to,
         uint256 _amount
     ) external onlyOwner {
+        require(
+            _to != address(0),
+            "Cannot retrieve tokens to the zero address"
+        );
+
         if (_token == address(0)) {
             payable(_to).transfer(_amount);
         } else {
@@ -135,11 +143,14 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         // Initiate a LayerZero token transfer that will mint L2 TBTC and
         // send it to the user.
         // slither-disable-next-line arbitrary-send-eth
-        l1OFTAdapter.send{value: msgFee.nativeFee}(
+        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = l1OFTAdapter
+            .send{value: msgFee.nativeFee}(
             sendParam,
             msgFee,
             address(this) // refundable address
         );
+
+        emit TokensSent(msgReceipt, oftReceipt);
     }
 
     /**
@@ -167,8 +178,11 @@ contract L1BitcoinDepositorLayerZero is L1BitcoinDepositor {
         uint256 _amount,
         uint8 _localDecimals
     ) internal pure returns (uint256) {
-        uint256 decimalConversionRate = 10 **
-            (_localDecimals - _sharedDecimals());
-        return (_amount / decimalConversionRate) * decimalConversionRate;
+        uint8 sharedDecimals = _sharedDecimals();
+
+        require(_localDecimals > sharedDecimals, "localDecimals too low");
+        uint256 decimalConversionRate = 10 ** (_localDecimals - sharedDecimals);
+
+        return _amount - (_amount % decimalConversionRate);
     }
 }

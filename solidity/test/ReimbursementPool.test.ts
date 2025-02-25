@@ -3,11 +3,11 @@
 import { ethers, waffle, helpers, deployments } from "hardhat"
 import { expect } from "chai"
 
-import { constants } from "./fixtures"
-
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { ContractTransaction } from "ethers"
 import type { ReimbursementPool } from "../typechain"
+
+import { constants } from "./fixtures"
 
 const ZERO_ADDRESS = ethers.constants.AddressZero
 const { createSnapshot, restoreSnapshot } = helpers.snapshot

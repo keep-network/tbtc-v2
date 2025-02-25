@@ -54,6 +54,8 @@ contract L1LockBoxAdapter is OFTAdapterUpgradeable {
         address _to,
         uint256 _amount
     ) external onlyOwner {
+        require(_to != address(0), "Cannot retrieve tokens to the zero address");
+
         if (_token == address(0)) {
             payable(_to).transfer(_amount);
         } else {

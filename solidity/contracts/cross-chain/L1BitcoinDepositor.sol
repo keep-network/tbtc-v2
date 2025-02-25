@@ -411,6 +411,7 @@ abstract contract L1BitcoinDepositor is
                 depositKey
             ];
             if (reimbursement.receiver != address(0)) {
+                // slither-disable-next-line reentrancy-benign
                 delete gasReimbursements[depositKey];
 
                 reimbursementPool.refund(
@@ -475,9 +476,5 @@ abstract contract L1BitcoinDepositor is
     /// @dev In child contracts, this can be LayerZero, Wormhole, or any bridging code.
     /// @param amount Amount of TBTC in 1e18 precision.
     /// @param l2Receiver L2 deposit owner (20 bytes zero‐padded to 32).
-    function _transferTbtc(uint256 amount, bytes32 l2Receiver) internal virtual {
-        // By default, do nothing. Children override with bridging logic.
-        // For example, if bridging aggregator only supports up to 1e8 decimals,
-        // you'd do: `amount = CrosschainUtils.normalize(amount);` etc.
-    }
+    function _transferTbtc(uint256 amount, bytes32 l2Receiver) internal virtual;
 }

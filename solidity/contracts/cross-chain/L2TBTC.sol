@@ -47,6 +47,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 ///         and possibly performing other actions in the same transaction.
 ///         The governance can recover ERC20 and ERC721 tokens sent mistakenly
 ///         to L2TBTC token contract.
+// slither-disable-next-line missing-inheritance
 contract L2TBTC is
     ERC20Upgradeable,
     ERC20BurnableUpgradeable,
