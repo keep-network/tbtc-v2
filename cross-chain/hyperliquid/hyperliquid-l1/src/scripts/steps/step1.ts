@@ -15,6 +15,7 @@ export default async function step1() {
 
   // Read from environment variables or config
   const privateKey = process.env.private_key;
+  const walletAddress = process.env.user_address;
   const testnet = true; // or false, depending on your environment
 
   const sdk = new Hyperliquid({
@@ -29,11 +30,13 @@ export default async function step1() {
       name: TBTC_NAME,
       szDecimals: TBTC_SIZE_DECIMALS,
       weiDecimals: TBTC_WEI_DECIMALS,
-
     },
     maxGas: TBTC_DEPLOYMENT_MAX_GAS,
     fullName: TBTC_FULL_NAME,
   };
+
+  const spotDeploymentResult = await sdk.info.getSpotDeployState(walletAddress);
+  console.log('Spot deployment result:', spotDeploymentResult.states[0].userGenesisBalances);
 
   try {
     const result = await sdk.exchange.registerToken(tokenToRegister);

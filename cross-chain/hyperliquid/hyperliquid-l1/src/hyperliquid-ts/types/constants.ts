@@ -1,4 +1,4 @@
-export const TBTC_NAME = "tBTC";
+export const TBTC_NAME = "TBTC";
 export const TBTC_SIZE_DECIMALS = 3;
 export const TBTC_WEI_DECIMALS = 8;
 export const TBTC_DEPLOYMENT_MAX_GAS = 1000000000000;
