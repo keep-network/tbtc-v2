@@ -9,7 +9,8 @@ import {
   UserGenesis,
   Genesis,
   SpotTokens,
-  Hyperliquidity
+  Hyperliquidity,
+  DeployerTradingFeeShare
 } from '../types/index';
 
 import { ExchangeType, ENDPOINTS } from '../types/constants';
@@ -40,6 +41,24 @@ export class ExchangeAPI {
       const action = {
         type: ExchangeType.SPOT_DEPLOY,
         registerToken2: token
+      };
+
+      const nonce = Date.now();
+      const signature = await signL1Action(this.wallet, action, null, nonce, this.IS_MAINNET);
+
+      const payload = { action, nonce, signature, vaultAddress: null };
+      return this.httpApi.makeRequest(payload, 1);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async registerDeployerTradingFeeShare(deployerTradingFeeShare: DeployerTradingFeeShare): Promise<any> {
+    await this.parent.ensureInitialized();
+    try {
+      const action = {
+        type: ExchangeType.SPOT_DEPLOY,
+        setDeployerTradingFeeShare: deployerTradingFeeShare
       };
 
       const nonce = Date.now();

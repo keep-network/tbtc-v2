@@ -29,7 +29,7 @@
     "test:node": "node examples/node-test.js",
     "test:browser": "npx serve -s . -p 3000",
     "test:all": "npm run build && npm run test:node && echo '\nTo test in browser, run: npm run test:browser and visit http://localhost:3000/examples/browser-test.html'",
-    "deploy": "ts-node src/index.ts step1"
+    "deploy": "ts-node src/index.ts"
   },
   "keywords": [
     "hyperliquid",

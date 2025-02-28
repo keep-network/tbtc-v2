@@ -1,6 +1,6 @@
 import { Hyperliquid } from '../../hyperliquid-ts';
-import { TBTC_MAX_SUPPLY_IN_WEI } from '../../hyperliquid-ts/types/constants';
-import type { Genesis } from '../../hyperliquid-ts/types'; // (Optional) for type-safety
+import { SYSTEM_CONTRACT, TBTC_MAX_SUPPLY_IN_WEI } from '../../hyperliquid-ts/types/constants';
+import type { UserGenesis } from '../../hyperliquid-ts/types'; // (Optional) for type-safety
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -15,7 +15,7 @@ export default async function step3() {
 
   const sdk = new Hyperliquid({
     privateKey,
-    testnet,
+    testnet
   });
 
   await sdk.connect();
@@ -23,15 +23,16 @@ export default async function step3() {
   const deployState = await sdk.info.getSpotDeployState(walletAddress);
   const tokenSpotIndex = deployState.states[0].token;
 
-  const genesis: Genesis = {
+  const userGenesis: UserGenesis = {
     token: tokenSpotIndex,
-    maxSupply: TBTC_MAX_SUPPLY_IN_WEI,
+    userAndWei: [[SYSTEM_CONTRACT, TBTC_MAX_SUPPLY_IN_WEI]],
+    existingTokenAndWei: [],
   };
 
   try {
-    const result = await sdk.exchange.registerGenesis(genesis);
+    const result = await sdk.exchange.registerUserGenesis(userGenesis);
 
-    console.log('Genesis registration result:', result);
+    console.log('User genesis registration result:', result);
   } catch (error) {
     console.error('Error registering token:', error);
   }

@@ -1,6 +1,4 @@
-import { Hyperliquid } from '../../hyperliquid-ts';
-import { SYSTEM_CONTRACT, TBTC_MAX_SUPPLY_IN_WEI } from '../../hyperliquid-ts/types/constants';
-import type { UserGenesis } from '../../hyperliquid-ts/types'; // (Optional) for type-safety
+import { DeployerTradingFeeShare, Hyperliquid } from '../../hyperliquid-ts';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -23,14 +21,13 @@ export default async function step2() {
   const deployState = await sdk.info.getSpotDeployState(walletAddress);
   const tokenSpotIndex = deployState.states[0].token;
 
-  const userGenesis: UserGenesis = {
+  const deployerTradingFeeShare: DeployerTradingFeeShare = {
     token: tokenSpotIndex,
-    userAndWei: [[SYSTEM_CONTRACT, TBTC_MAX_SUPPLY_IN_WEI]],
-    existingTokenAndWei: [],
+    share: "0%",
   };
 
   try {
-    const result = await sdk.exchange.registerUserGenesis(userGenesis);
+    const result = await sdk.exchange.registerDeployerTradingFeeShare(deployerTradingFeeShare);
 
     console.log('User genesis registration result:', result);
   } catch (error) {

@@ -1,12 +1,10 @@
-import { Hyperliquid } from '../../hyperliquid-ts';
-import { TBTC_MAX_SUPPLY_IN_WEI } from '../../hyperliquid-ts/types/constants';
-import type { Genesis } from '../../hyperliquid-ts/types'; // (Optional) for type-safety
+import { Hyperliquid, Hyperliquidity } from '../../hyperliquid-ts';
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-export default async function step4() {
-  console.log('Running Step 4...');
+export default async function step6() {
+  console.log('Running Step 6...');
 
   // Read from environment variables or config
   const privateKey = process.env.private_key;
@@ -23,15 +21,20 @@ export default async function step4() {
   const deployState = await sdk.info.getSpotDeployState(walletAddress);
   const tokenSpotIndex = deployState.states[0].token;
 
-  const genesis: Genesis = {
-    token: tokenSpotIndex,
-    maxSupply: TBTC_MAX_SUPPLY_IN_WEI,
+  console.log('deployState:', deployState.states[0])
+
+  const hyperliquidity: Hyperliquidity = {
+    spot: tokenSpotIndex,
+    startPx: "0",
+    orderSz: "0",
+    nOrders: 0, // zero because we don't want to deploy hyperliquidity
+    nSeededLevels: 0,
   };
 
   try {
-    const result = await sdk.exchange.registerGenesis(genesis);
+    const result = await sdk.exchange.registerHyperliquidity(hyperliquidity);
 
-    console.log('Genesis registration result:', result);
+    console.log('Hyperliquidity registration result:', result);
   } catch (error) {
     console.error('Error registering token:', error);
   }

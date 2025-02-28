@@ -10,6 +10,11 @@ export interface RegisterToken {
   fullName: string;
 }
 
+export interface DeployerTradingFeeShare {
+  token: number,
+  share: string,
+}
+
 export interface UserGenesis {
   token: number;
   userAndWei: Array<[string, string]>;

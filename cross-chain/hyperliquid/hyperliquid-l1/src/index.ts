@@ -5,6 +5,7 @@ import step4 from "./scripts/steps/step4.ts";
 import step5 from "./scripts/steps/step5.ts";
 
 import dotenv from 'dotenv';
+import step6 from "./scripts/steps/step6.ts";
 dotenv.config();
 
 async function main() {
@@ -17,6 +18,8 @@ async function main() {
     console.log('No step provided. Usage: npm run deploy -- step1');
     process.exit(1);
   }
+
+  console.log(`Running deployment step: ${stepArg}`);
 
   try {
     switch (stepArg) {
@@ -35,6 +38,9 @@ async function main() {
       case 'step5':
         await step5();
         break
+      case 'step6':
+        await step6();
+        break;
       default:
         console.log(`Unknown step: ${stepArg}`);
         process.exit(1);
