@@ -19,8 +19,7 @@ import {
 import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
 
-// TODO: Uncomment once Base native minting is available on Base mainnet.
-// import BaseL2BitcoinDepositorDeployment from "./artifacts/base/BaseL2BitcoinDepositor.json"
+import BaseL2BitcoinDepositorDeployment from "./artifacts/base/BaseL2BitcoinDepositor.json"
 import BaseSepoliaL2BitcoinDepositorDeployment from "./artifacts/baseSepolia/BaseL2BitcoinDepositor.json"
 
 /**
@@ -41,10 +40,9 @@ export class BaseL2BitcoinDepositor
       case Chains.Base.BaseSepolia:
         deployment = BaseSepoliaL2BitcoinDepositorDeployment
         break
-      // TODO: Uncomment once Base native minting is available on Base mainnet.
-      // case Chains.Base.Base:
-      //   deployment = BaseL2BitcoinDepositorDeployment
-      //   break
+      case Chains.Base.Base:
+        deployment = BaseL2BitcoinDepositorDeployment
+        break
       default:
         throw new Error("Unsupported deployment type")
     }
