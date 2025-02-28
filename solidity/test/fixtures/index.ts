@@ -28,6 +28,8 @@ export const constants = {
   fraudChallengeDefeatTimeout: 604800, // 1 week
   fraudSlashingAmount: to1ePrecision(100, 18), // 100 T
   fraudNotifierRewardMultiplier: 100, // 100%
+  reimbursementPoolStaticGas: 40_800,
+  reimbursementPoolMaxGasPrice: to1ePrecision(500, 9), // 500 Gwei
   walletCreationPeriod: 604800, // 1 week
   walletCreationMinBtcBalance: to1ePrecision(1, 8), // 1 BTC
   walletCreationMaxBtcBalance: to1ePrecision(100, 8), // 100 BTC

@@ -13,12 +13,13 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity 0.8.17;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../integrator/IBridge.sol";
-import "./Wormhole.sol";
+import "./wormhole/Wormhole.sol";
+import "./utils/Crosschain.sol";
 
 /// @title IL2WormholeGateway
 /// @notice Interface to the `L2WormholeGateway` contract.
@@ -173,7 +174,7 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
         );
 
         require(
-            WormholeUtils.fromWormholeAddress(sourceAddress) ==
+            CrosschainUtils.bytes32ToAddress(sourceAddress) ==
                 l1BitcoinDepositor,
             "Source address is not the expected L1 Bitcoin depositor"
         );

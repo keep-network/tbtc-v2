@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.20;
 
 /// @title WormholeTypes
 /// @notice Namespace which groups all types relevant to Wormhole interfaces.
@@ -127,26 +127,6 @@ interface IWormholeTokenBridge {
 /// @title WormholeUtils
 /// @notice Library for Wormhole utilities.
 library WormholeUtils {
-    /// @notice Converts Ethereum address into Wormhole format.
-    /// @param _address The address to convert.
-    function toWormholeAddress(address _address)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return bytes32(uint256(uint160(_address)));
-    }
-
-    /// @notice Converts Wormhole address into Ethereum format.
-    /// @param _address The address to convert.
-    function fromWormholeAddress(bytes32 _address)
-        internal
-        pure
-        returns (address)
-    {
-        return address(uint160(uint256(_address)));
-    }
-
     /// @dev Eliminates the dust that cannot be bridged with Wormhole
     ///      due to the decimal shift in the Wormhole Bridge contract.
     ///      See https://github.com/wormhole-foundation/wormhole/blob/96682bdbeb7c87bfa110eade0554b3d8cbf788d2/ethereum/contracts/bridge/Bridge.sol#L276-L288
