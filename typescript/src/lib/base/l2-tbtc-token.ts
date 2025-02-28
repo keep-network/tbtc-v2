@@ -8,8 +8,7 @@ import { ChainIdentifier, Chains, L2TBTCToken } from "../contracts"
 import { BigNumber } from "ethers"
 import { EthereumAddress } from "../ethereum"
 
-// TODO: Uncomment once Base native minting is available on Base mainnet.
-// import BaseL2TBTCTokenDeployment from "./artifacts/base/BaseTBTC.json"
+import BaseL2TBTCTokenDeployment from "./artifacts/base/BaseTBTC.json"
 import BaseSepoliaL2TBTCTokenDeployment from "./artifacts/baseSepolia/BaseTBTC.json"
 
 /**
@@ -27,10 +26,9 @@ export class BaseL2TBTCToken
       case Chains.Base.BaseSepolia:
         deployment = BaseSepoliaL2TBTCTokenDeployment
         break
-      // TODO: Uncomment once Base native minting is available on Base mainnet.
-      // case Chains.Base.Base:
-      //   deployment = BaseL2TBTCTokenDeployment
-      //   break
+      case Chains.Base.Base:
+        deployment = BaseL2TBTCTokenDeployment
+        break
       default:
         throw new Error("Unsupported deployment type")
     }
