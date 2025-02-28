@@ -63,7 +63,7 @@ EthersContractHandle\&lt;L2BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:37](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L37)
+[lib/base/l2-bitcoin-depositor.ts:36](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L36)
 
 ## Properties
 
@@ -73,7 +73,7 @@ EthersContractHandle\&lt;L2BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L35)
+[lib/base/l2-bitcoin-depositor.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L34)
 
 ___
 
@@ -83,7 +83,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:34](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L34)
+[lib/base/l2-bitcoin-depositor.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L33)
 
 ___
 
@@ -153,7 +153,7 @@ EthersContractHandle.\_totalRetryAttempts
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:85](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L85)
+[lib/base/l2-bitcoin-depositor.ts:83](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L83)
 
 ___
 
@@ -195,7 +195,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L61)
+[lib/base/l2-bitcoin-depositor.ts:59](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L59)
 
 ___
 
@@ -215,7 +215,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L69)
+[lib/base/l2-bitcoin-depositor.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L67)
 
 ___
 
@@ -278,7 +278,7 @@ ___
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:93](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L93)
+[lib/base/l2-bitcoin-depositor.ts:91](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L91)
 
 ___
 
@@ -304,4 +304,4 @@ ___
 
 #### Defined in
 
-[lib/base/l2-bitcoin-depositor.ts:77](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L77)
+[lib/base/l2-bitcoin-depositor.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/base/l2-bitcoin-depositor.ts#L75)
