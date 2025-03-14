@@ -10,9 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await helpers.signers.getNamedSigners()
 
-  const proxyDeployment: Deployment = await deployments.get(
-    DEPLOYMENT_NAME
-  )
+  const proxyDeployment: Deployment = await deployments.get(DEPLOYMENT_NAME)
 
   const implementationContractFactory: ContractFactory =
     await ethers.getContractFactory(CONTRACT_NAME, {
@@ -43,9 +41,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   deployments.log(
     `proxy admin owner ${proxyAdminOwner} is required to upgrade proxy implementation with transaction:\n` +
-    `\t\tfrom: ${proxyAdminOwner}\n` +
-    `\t\tto: ${proxyAdmin.address}\n` +
-    `\t\tdata: ${upgradeTxData}`
+      `\t\tfrom: ${proxyAdminOwner}\n` +
+      `\t\tto: ${proxyAdmin.address}\n` +
+      `\t\tdata: ${upgradeTxData}`
   )
 
   // Update Deployment Artifact
@@ -62,7 +60,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     address: newImplementationAddress,
     constructorArgsParams: proxyDeployment.args,
   })
-
 }
 
 export default func
