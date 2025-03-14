@@ -17,7 +17,7 @@ jobs:
     outputs:
       path-filter: ${{ steps.filter.outputs.path-filter }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
 
       - uses: dorny/paths-filter@v2
@@ -39,11 +39,11 @@ jobs:
       run:
         working-directory: ./cross-chain/arbitrum
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "18"
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
@@ -71,11 +71,11 @@ jobs:
       run:
         working-directory: ./cross-chain/arbitrum
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "18"
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
@@ -100,11 +100,11 @@ jobs:
       run:
         working-directory: ./cross-chain/arbitrum
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "18"
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
@@ -132,11 +132,11 @@ jobs:
       run:
         working-directory: ./cross-chain/arbitrum
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "18"
           cache: "yarn"
           cache-dependency-path: cross-chain/arbitrum/yarn.lock
 
