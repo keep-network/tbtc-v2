@@ -136,6 +136,19 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "reimburseTxMaxFee",
+          "type": "bool"
+        }
+      ],
+      "name": "ReimburseTxMaxFeeUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": true,
           "internalType": "address",
           "name": "_address",
@@ -484,6 +497,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "reimburseTxMaxFee",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -518,6 +544,19 @@
     {
       "inputs": [],
       "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "_reimburseTxMaxFee",
+          "type": "bool"
+        }
+      ],
+      "name": "setReimburseTxMaxFee",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -731,7 +770,7 @@
     "status": 1,
     "byzantium": true
   },
-  "numDeployments": 1,
-  "implementation": "0xf90292a39014033DE50c81f651365cB6A1040Bb6",
+  "numDeployments": 2,
+  "implementation": "0xAd0D13365B7B760E83cEc07398fa975D6c1f67C9",
   "devdoc": "Contract deployed as upgradable proxy"
 }
