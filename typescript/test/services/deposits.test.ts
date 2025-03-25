@@ -2068,7 +2068,9 @@ describe("Deposits", () => {
                 "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc",
                 "Base"
               )
-            ).to.be.rejectedWith("Cannot resolve destination chain deposit owner")
+            ).to.be.rejectedWith(
+              "Cannot resolve destination chain deposit owner"
+            )
           })
         })
 
@@ -2279,7 +2281,9 @@ describe("Deposits", () => {
 
       context("when L2 deposit owner can be resolved", () => {
         beforeEach(async () => {
-          crossChainContracts.destinationChainBitcoinDepositor.setDepositOwner(l2DepositOwner)
+          crossChainContracts.destinationChainBitcoinDepositor.setDepositOwner(
+            l2DepositOwner
+          )
         })
 
         context("when active wallet is not set", () => {
@@ -2392,7 +2396,7 @@ describe("Deposits", () => {
     })
   })
 
-    describe("initiateCrossChainDeposit - SOLANA", () => {
+  describe("initiateCrossChainDeposit - SOLANA", () => {
     const l2DepositOwner = EthereumAddress.from(
       "934b98637ca318a4d6e7ca6ffd1690b8e77df637"
     )
@@ -2416,9 +2420,7 @@ describe("Deposits", () => {
             "mjc2zGWypwpNyDi4ZxGbBNnUA84bfgiwYc",
             "Solana"
           )
-        ).to.be.rejectedWith(
-          "Cross-chain contracts for Solana not initialized"
-        )
+        ).to.be.rejectedWith("Cross-chain contracts for Solana not initialized")
       })
     })
 
@@ -2479,7 +2481,9 @@ describe("Deposits", () => {
 
       context("when L2 deposit owner can be resolved", () => {
         beforeEach(async () => {
-          crossChainContracts.destinationChainBitcoinDepositor.setDepositOwner(l2DepositOwner)
+          crossChainContracts.destinationChainBitcoinDepositor.setDepositOwner(
+            l2DepositOwner
+          )
         })
 
         context("when active wallet is not set", () => {

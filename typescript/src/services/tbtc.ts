@@ -58,10 +58,7 @@ export class TBTC {
    * Each set of cross-chain contracts must be first initialized using
    * the `initializeCrossChain` method.
    */
-  readonly #crossChainContracts: Map<
-    DestinationChainName,
-    CrossChainInterfaces
-  >
+  readonly #crossChainContracts: Map<DestinationChainName, CrossChainInterfaces>
 
   private constructor(
     tbtcContracts: TBTCContracts,
@@ -238,7 +235,6 @@ export class TBTC {
 
     let l1CrossChainInterfaces: L1CrossChainContracts
     let destinationChainInterfaces: DestinationChainInterfaces
-
 
     switch (destinationChainName) {
       case "Base":

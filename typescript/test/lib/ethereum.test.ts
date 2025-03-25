@@ -926,19 +926,16 @@ describe("Ethereum", () => {
         })
       })
 
-      context(
-        "when the extra data isn't a proper bytes32 address",
-        () => {
-          it("should throw", () => {
-            // Build crap extra data.
-            const extraData = Hex.from("0000000000000000000000001234")
+      context("when the extra data isn't a proper bytes32 address", () => {
+        it("should throw", () => {
+          // Build crap extra data.
+          const extraData = Hex.from("0000000000000000000000001234")
 
-            expect(() => encoder.decodeDepositOwner(extraData)).to.throw(
-              "Extra data must be 32 bytes. Got 14."
-            )
-          })
-        }
-      )
+          expect(() => encoder.decodeDepositOwner(extraData)).to.throw(
+            "Extra data must be 32 bytes. Got 14."
+          )
+        })
+      })
     })
   })
 
