@@ -1,9 +1,9 @@
 import {
   ChainIdentifier,
-  CrossChainContracts,
-  CrossChainExtraDataEncoder,
+  ExtraDataEncoder,
   DepositorProxy,
   DepositReceipt,
+  CrossChainInterfaces,
 } from "../../lib/contracts"
 import { BitcoinRawTxVectors } from "../../lib/bitcoin"
 import { Hex } from "../../lib/utils"
@@ -25,11 +25,11 @@ export type CrossChainDepositorMode = "L2Transaction" | "L1Transaction"
  * @see {DepositorProxy} for reference.
  */
 export class CrossChainDepositor implements DepositorProxy {
-  readonly #crossChainContracts: CrossChainContracts
+  readonly #crossChainContracts: CrossChainInterfaces
   readonly #revealMode: CrossChainDepositorMode
 
   constructor(
-    crossChainContracts: CrossChainContracts,
+    crossChainContracts: CrossChainInterfaces,
     revealMode: CrossChainDepositorMode = "L2Transaction"
   ) {
     this.#crossChainContracts = crossChainContracts
@@ -60,19 +60,19 @@ export class CrossChainDepositor implements DepositorProxy {
    */
   extraData(): Hex {
     const depositOwner =
-      this.#crossChainContracts.l2BitcoinDepositor.getDepositOwner()
+      this.#crossChainContracts.destinationChainBitcoinDepositor.getDepositOwner()
 
     if (!depositOwner) {
-      throw new Error("Cannot resolve L2 deposit owner")
+      throw new Error("Cannot resolve destination chain deposit owner")
     }
 
     return this.#extraDataEncoder().encodeDepositOwner(depositOwner)
   }
 
-  #extraDataEncoder(): CrossChainExtraDataEncoder {
+  #extraDataEncoder(): ExtraDataEncoder {
     switch (this.#revealMode) {
       case "L2Transaction":
-        return this.#crossChainContracts.l2BitcoinDepositor.extraDataEncoder()
+        return this.#crossChainContracts.destinationChainBitcoinDepositor.extraDataEncoder()
       case "L1Transaction":
         return this.#crossChainContracts.l1BitcoinDepositor.extraDataEncoder()
     }
@@ -92,7 +92,7 @@ export class CrossChainDepositor implements DepositorProxy {
   ): Promise<Hex> {
     switch (this.#revealMode) {
       case "L2Transaction":
-        return this.#crossChainContracts.l2BitcoinDepositor.initializeDeposit(
+        return this.#crossChainContracts.destinationChainBitcoinDepositor.initializeDeposit(
           depositTx,
           depositOutputIndex,
           deposit,
