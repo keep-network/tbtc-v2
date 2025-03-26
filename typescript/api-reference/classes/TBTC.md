@@ -47,7 +47,7 @@ Entrypoint component of the tBTC v2 SDK.
 
 #### Defined in
 
-[services/tbtc.ts:66](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L66)
+[services/tbtc.ts:63](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L63)
 
 ## Properties
 
@@ -166,7 +166,7 @@ Cross-chain contracts for the given L2 chain or
 
 #### Defined in
 
-[services/tbtc.ts:317](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L317)
+[services/tbtc.ts:313](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L313)
 
 ___
 
@@ -211,7 +211,7 @@ In case this function needs to support non-EVM L2 chains that can't
 
 #### Defined in
 
-[services/tbtc.ts:221](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L221)
+[services/tbtc.ts:218](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L218)
 
 ___
 
@@ -243,7 +243,7 @@ This function is especially useful for local development as it gives
 
 #### Defined in
 
-[services/tbtc.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L192)
+[services/tbtc.ts:189](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L189)
 
 ___
 
@@ -277,7 +277,7 @@ Throws an error if the underlying signer's Ethereum network is
 
 #### Defined in
 
-[services/tbtc.ts:143](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L143)
+[services/tbtc.ts:140](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L140)
 
 ___
 
@@ -309,7 +309,7 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[services/tbtc.ts:97](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L97)
+[services/tbtc.ts:94](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L94)
 
 ___
 
@@ -341,4 +341,4 @@ Throws an error if the signer's Ethereum network is other than
 
 #### Defined in
 
-[services/tbtc.ts:119](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L119)
+[services/tbtc.ts:116](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L116)
