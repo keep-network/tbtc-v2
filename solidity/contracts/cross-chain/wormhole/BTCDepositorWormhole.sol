@@ -38,6 +38,12 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
     /// @notice Wormhole chain ID of the destination chain.
     uint16 public destinationChainId;
 
+    event TokensTransferredWithPayload(
+        uint256 amount,
+        bytes32 destinationChainReceiver,
+        uint64 transferSequence
+    );
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -119,7 +125,7 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
         // tBTC to the corresponding `WormholeGateway` contract on the
         // destination chain.
         // slither-disable-next-line arbitrary-send-eth
-        wormholeTokenBridge.transferTokensWithPayload{
+        uint64 transferSequence = wormholeTokenBridge.transferTokensWithPayload{
             value: wormholeMessageFee
         }(
             address(tbtcToken),
@@ -128,6 +134,12 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
             destinationChainWormholeGateway,
             0, // Nonce is a free field that is not relevant in this context.
             abi.encodePacked(destinationChainReceiver) // Set the destination chain receiver address as the transfer payload.
+        );
+
+        emit TokensTransferredWithPayload(
+            amount,
+            destinationChainReceiver,
+            transferSequence
         );
     }
 }
