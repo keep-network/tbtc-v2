@@ -136,6 +136,7 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
             abi.encodePacked(destinationChainReceiver) // Set the destination chain receiver address as the transfer payload.
         );
 
+        // slither-disable-next-line reentrancy-events
         emit TokensTransferredWithPayload(
             amount,
             destinationChainReceiver,
