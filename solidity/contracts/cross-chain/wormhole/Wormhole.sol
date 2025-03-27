@@ -25,6 +25,7 @@ library WormholeTypes {
         uint64 sequence;
     }
 }
+
 /// @title IWormholeGateway
 /// @notice Interface to the `L2WormholeGateway` contract.
 interface IWormholeGateway {

@@ -99,10 +99,7 @@ contract L1BTCDepositorWormhole is AbstractL1BTCDepositor {
     ///      - Can be called only by the contract owner,
     ///      - The address must not be set yet,
     ///      - The new address must not be 0x0.
-    function attachL2BtcDepositor(address _l2BtcDepositor)
-        external
-        onlyOwner
-    {
+    function attachL2BtcDepositor(address _l2BtcDepositor) external onlyOwner {
         require(
             l2BtcDepositor == address(0),
             "L2 Bitcoin Depositor already set"

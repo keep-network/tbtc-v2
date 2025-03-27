@@ -36,6 +36,7 @@ library CrosschainUtils {
      * @param _address The address needed to be converted.
      * @return The converted address.
      */
+    // slither-disable-next-line dead-code
     function bytes32ToAddress(bytes32 _address)
         internal
         pure

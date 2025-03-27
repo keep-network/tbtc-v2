@@ -105,7 +105,10 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
 
         // Cost of requesting a `finalizeDeposit` message to be sent to the destination chain
         uint256 wormholeMessageFee = wormhole.messageFee();
-        require(msg.value == wormholeMessageFee, "Payment for Wormhole Relayer is too low");
+        require(
+            msg.value == wormholeMessageFee,
+            "Payment for Wormhole Relayer is too low"
+        );
 
         // The Wormhole Token Bridge will pull the tBTC amount
         // from this contract. We need to approve the transfer first.
@@ -113,7 +116,7 @@ contract BTCDepositorWormhole is AbstractL1BTCDepositor {
 
         // Initiate a Wormhole token transfer that will lock L1 tBTC within
         // the Wormhole Token Bridge contract and assign Wormhole-wrapped
-        // tBTC to the corresponding `WormholeGateway` contract on the 
+        // tBTC to the corresponding `WormholeGateway` contract on the
         // destination chain.
         // slither-disable-next-line arbitrary-send-eth
         wormholeTokenBridge.transferTokensWithPayload{

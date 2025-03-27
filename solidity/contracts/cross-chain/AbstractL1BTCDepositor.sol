@@ -31,9 +31,9 @@ import "./utils/Crosschain.sol";
 ///         to interact with the L1 tBTC ledger chain where minting occurs.
 ///
 ///         `AbstractL1BTCDepositor` is deployed on the L1 chain and interacts with
-///         their destination chain counterpart, in the case of EVM-compatible 
+///         their destination chain counterpart, in the case of EVM-compatible
 ///         chains, the `L2BTCDepositor`, deployed on the given L2 chain. Each
-///         `AbstractL1BTCDepositor` & `L2BTCDepositor` pair is  responsible for a 
+///         `AbstractL1BTCDepositor` & `L2BTCDepositor` pair is  responsible for a
 ///         specific L2 chain.
 ///
 ///         The outline of the direct bridging mechanism is as follows:
@@ -264,9 +264,9 @@ abstract contract AbstractL1BTCDepositor is
     ///      - The function can be called only one time for the given Bitcoin
     ///        funding transaction,
     ///      - The destination chain deposit owner must be embedded in the Bitcoin P2(W)SH
-    ///        deposit script as the <depositor-extra-data> field. The address must be 
-    ///        expressed as a 32-byte value left-padded with 0. If the value in the 
-    ///        Bitcoin script and the value passed as parameter do not match, the function 
+    ///        deposit script as the <depositor-extra-data> field. The address must be
+    ///        expressed as a 32-byte value left-padded with 0. If the value in the
+    ///        Bitcoin script and the value passed as parameter do not match, the function
     ///        will revert,
     ///      - All the requirements of tBTC Bridge.revealDepositWithExtraData
     ///        must be met.
@@ -304,7 +304,11 @@ abstract contract AbstractL1BTCDepositor is
         deposits[depositKey] = DepositState.Initialized;
 
         // slither-disable-next-line reentrancy-events
-        emit DepositInitialized(depositKey, destinationChainDepositOwner, msg.sender);
+        emit DepositInitialized(
+            depositKey,
+            destinationChainDepositOwner,
+            msg.sender
+        );
 
         // Record a deferred gas reimbursement if the reimbursement pool is
         // attached and the caller is authorized to receive reimbursements.
@@ -481,5 +485,7 @@ abstract contract AbstractL1BTCDepositor is
     /// @dev In child contracts, this can be LayerZero, Wormhole, or any bridging code.
     /// @param amount Amount of tBTC in 1e18 precision.
     /// @param destinationChainReceiver destination chain deposit owner (32 bytes format).
-    function _transferTbtc(uint256 amount, bytes32 destinationChainReceiver) internal virtual;
+    function _transferTbtc(uint256 amount, bytes32 destinationChainReceiver)
+        internal
+        virtual;
 }

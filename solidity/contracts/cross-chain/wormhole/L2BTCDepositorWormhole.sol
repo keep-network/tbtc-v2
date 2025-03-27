@@ -85,10 +85,7 @@ contract L2BTCDepositorWormhole is IWormholeReceiver, OwnableUpgradeable {
     ///      - Can be called only by the contract owner,
     ///      - The address must not be set yet,
     ///      - The new address must not be 0x0.
-    function attachL1BtcDepositor(address _l1BtcDepositor)
-        external
-        onlyOwner
-    {
+    function attachL1BtcDepositor(address _l1BtcDepositor) external onlyOwner {
         require(
             l1BtcDepositor == address(0),
             "L1 Bitcoin Depositor already set"
@@ -166,8 +163,7 @@ contract L2BTCDepositorWormhole is IWormholeReceiver, OwnableUpgradeable {
         );
 
         require(
-            WormholeUtils.fromWormholeAddress(sourceAddress) ==
-                l1BtcDepositor,
+            WormholeUtils.fromWormholeAddress(sourceAddress) == l1BtcDepositor,
             "Source address is not the expected L1 Bitcoin depositor"
         );
 
