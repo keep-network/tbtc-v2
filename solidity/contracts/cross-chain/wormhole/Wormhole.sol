@@ -13,7 +13,7 @@
 //               ▐████▌    ▐████▌
 //               ▐████▌    ▐████▌
 
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 
 /// @title WormholeTypes
 /// @notice Namespace which groups all types relevant to Wormhole interfaces.
@@ -24,6 +24,12 @@ library WormholeTypes {
         bytes32 emitterAddress;
         uint64 sequence;
     }
+}
+/// @title IWormholeGateway
+/// @notice Interface to the `L2WormholeGateway` contract.
+interface IWormholeGateway {
+    /// @dev See ./L2WormholeGateway.sol#receiveTbtc
+    function receiveTbtc(bytes memory vaa) external;
 }
 
 /// @title IWormhole

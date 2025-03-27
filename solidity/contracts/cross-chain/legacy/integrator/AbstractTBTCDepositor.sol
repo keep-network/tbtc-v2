@@ -17,8 +17,8 @@ pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import "./IBridge.sol";
-import "./ITBTCVault.sol";
+import "../../../integrator/IBridge.sol";
+import "../../../integrator/ITBTCVault.sol";
 
 /// @title Abstract AbstractTBTCDepositor contract.
 /// @notice This abstract contract is meant to facilitate integration of protocols

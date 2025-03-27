@@ -17,38 +17,31 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "../integrator/IBridge.sol";
+import "../../integrator/IBridge.sol";
 import "./Wormhole.sol";
 
-/// @title IL2WormholeGateway
-/// @notice Interface to the `L2WormholeGateway` contract.
-interface IL2WormholeGateway {
-    /// @dev See ./L2WormholeGateway.sol#receiveTbtc
-    function receiveTbtc(bytes memory vaa) external;
-}
-
-/// @title L2BitcoinDepositor
+/// @title L2BTCDepositorWormhole
 /// @notice This contract is part of the direct bridging mechanism allowing
-///         users to obtain ERC20 TBTC on supported L2 chains, without the need
+///         users to obtain ERC20 tBTC on supported L2 chains, without the need
 ///         to interact with the L1 tBTC ledger chain where minting occurs.
 ///
-///         `L2BitcoinDepositor` is deployed on the L2 chain and interacts with
-///         their L1 counterpart, the `L1BitcoinDepositor`, deployed on the
-///         L1 tBTC ledger chain. Each `L1BitcoinDepositor` & `L2BitcoinDepositor`
+///         `L2BTCDepositorWormhole` is deployed on the L2 chain and interacts with
+///         their L1 counterpart, the `L2BTCDepositorWormhole`, deployed on the
+///         L1 tBTC ledger chain. Each `L1BTCDepositorWormhole` & `L2BTCDepositorWormhole`
 ///         pair is responsible for a specific L2 chain.
 ///
-///         Please consult the `L1BitcoinDepositor` docstring for an
+///         Please consult the `L1BTCDepositorWormhole` docstring for an
 ///         outline of the direct bridging mechanism
 // slither-disable-next-line locked-ether
-contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
+contract L2BTCDepositorWormhole is IWormholeReceiver, OwnableUpgradeable {
     /// @notice `WormholeRelayer` contract on L2.
     IWormholeRelayer public wormholeRelayer;
     /// @notice tBTC `L2WormholeGateway` contract on L2.
-    IL2WormholeGateway public l2WormholeGateway;
+    IWormholeGateway public l2WormholeGateway;
     /// @notice Wormhole chain ID of the corresponding L1 chain.
     uint16 public l1ChainId;
-    /// @notice tBTC `L1BitcoinDepositor` contract on the corresponding L1 chain.
-    address public l1BitcoinDepositor;
+    /// @notice tBTC `L1BTCDepositorWormhole` contract on the corresponding L1 chain.
+    address public l1BtcDepositor;
 
     event DepositInitialized(
         IBridgeTypes.BitcoinTxInfo fundingTx,
@@ -79,39 +72,39 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
         );
 
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
-        l2WormholeGateway = IL2WormholeGateway(_l2WormholeGateway);
+        l2WormholeGateway = IWormholeGateway(_l2WormholeGateway);
         l1ChainId = _l1ChainId;
     }
 
-    /// @notice Sets the address of the `L1BitcoinDepositor` contract on the
+    /// @notice Sets the address of the `L1BTCDepositorWormhole` contract on the
     ///         corresponding L1 chain. This function solves the chicken-and-egg
-    ///         problem of setting the `L1BitcoinDepositor` contract address
-    ///         on the `L2BitcoinDepositor` contract and vice versa.
-    /// @param _l1BitcoinDepositor Address of the `L1BitcoinDepositor` contract.
+    ///         problem of setting the `L1BTCDepositorWormhole` contract address
+    ///         on the `L2BTCDepositorWormhole` contract and vice versa.
+    /// @param _l1BtcDepositor Address of the `L1BTCDepositorWormhole` contract.
     /// @dev Requirements:
     ///      - Can be called only by the contract owner,
     ///      - The address must not be set yet,
     ///      - The new address must not be 0x0.
-    function attachL1BitcoinDepositor(address _l1BitcoinDepositor)
+    function attachL1BtcDepositor(address _l1BtcDepositor)
         external
         onlyOwner
     {
         require(
-            l1BitcoinDepositor == address(0),
+            l1BtcDepositor == address(0),
             "L1 Bitcoin Depositor already set"
         );
         require(
-            _l1BitcoinDepositor != address(0),
+            _l1BtcDepositor != address(0),
             "L1 Bitcoin Depositor must not be 0x0"
         );
-        l1BitcoinDepositor = _l1BitcoinDepositor;
+        l1BtcDepositor = _l1BtcDepositor;
     }
 
     /// @notice Initializes the deposit process on L2 by emitting an event
     ///         containing the deposit data (funding transaction and
     ///         components of the P2(W)SH deposit address). The event is
     ///         supposed to be picked up by the relayer and used to initialize
-    ///         the deposit on L1 through the `L1BitcoinDepositor` contract.
+    ///         the deposit on L1 through the `L1BTCDepositorWormhole` contract.
     /// @param fundingTx Bitcoin funding transaction data.
     /// @param reveal Deposit reveal data.
     /// @param l2DepositOwner Address of the L2 deposit owner.
@@ -136,14 +129,14 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     }
 
     /// @notice Receives Wormhole messages originating from the corresponding
-    ///         `L1BitcoinDepositor` contract that lives on the L1 chain.
+    ///         `L1BTCDepositorWormhole` contract that lives on the L1 chain.
     ///         Messages are issued upon deposit finalization on L1 and
     ///         are supposed to carry the VAA of the Wormhole token transfer of
-    ///         ERC20 L1 TBTC to the L2 chain. This contract performs some basic
+    ///         ERC20 L1 tBTC to the L2 chain. This contract performs some basic
     ///         checks and forwards the VAA to the `L2WormholeGateway` contract
-    ///         that is authorized to withdraw the Wormhole-wrapped L2 TBTC
-    ///         from the Wormhole Token Bridge (representing the ERC20 TBTC
-    ///         locked on L1) and use it to mint the canonical L2 TBTC for the
+    ///         that is authorized to withdraw the Wormhole-wrapped L2 tBTC
+    ///         from the Wormhole Token Bridge (representing the ERC20 tBTC
+    ///         locked on L1) and use it to mint the canonical L2 tBTC for the
     ///         deposit owner.
     /// @param additionalVaas Additional VAAs that are part of the Wormhole message.
     /// @param sourceAddress Address of the source of the message (in Wormhole format).
@@ -152,7 +145,7 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
     ///      - Can be called only by the Wormhole Relayer contract,
     ///      - The source chain must be the expected L1 chain,
     ///      - The source address must be the corresponding
-    ///        `L1BitcoinDepositor` contract,
+    ///        `L1BTCDepositorWormhole` contract,
     ///      - The message must carry exactly 1 additional VAA key representing
     ///        the token transfer.
     function receiveWormholeMessages(
@@ -174,7 +167,7 @@ contract L2BitcoinDepositor is IWormholeReceiver, OwnableUpgradeable {
 
         require(
             WormholeUtils.fromWormholeAddress(sourceAddress) ==
-                l1BitcoinDepositor,
+                l1BtcDepositor,
             "Source address is not the expected L1 Bitcoin depositor"
         );
 
