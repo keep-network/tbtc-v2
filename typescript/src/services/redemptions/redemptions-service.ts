@@ -1,7 +1,6 @@
 import {
   RedemptionRequest,
   TBTCContracts,
-  Wallet,
   WalletState,
 } from "../../lib/contracts"
 import {
@@ -186,133 +185,147 @@ export class RedemptionsService {
     walletPublicKey: Hex
     mainUtxo: BitcoinUtxo
   }> {
-    const wallets =
+    const allWalletEvents =
       await this.tbtcContracts.bridge.getNewWalletRegisteredEvents()
 
-    let walletData:
-      | {
-          walletPublicKey: Hex
-          mainUtxo: BitcoinUtxo
-        }
-      | undefined = undefined
     let maxAmount = BigNumber.from(0)
 
     const bitcoinNetwork = await this.bitcoinClient.getNetwork()
 
-    const bridgeWalletsByWalletPublicKeyHash: Promise<Wallet>[] = []
-    for (let index = 0; index < wallets.length; index++) {
-      const { walletPublicKeyHash } = wallets[index]
-      bridgeWalletsByWalletPublicKeyHash.push(
-        this.tbtcContracts.bridge.wallets(walletPublicKeyHash)
-      )
-    }
+    let liveWalletsCounter = 0
 
-    let walletPublicKeyHashIndex = 0
+    const candidateResults: Array<{
+      index: number
+      walletPublicKey: Hex
+      mainUtxo: BitcoinUtxo
+    }> = []
 
-    // Using Promise.all, we retrieve all wallet states at once,
-    // significantly improving overall performance.
-    return Promise.all(bridgeWalletsByWalletPublicKeyHash).then(
-      async (bridgeWallets) => {
-        let liveWalletsCounter = 0
-        for (const {
-          state,
-          walletPublicKey,
-          pendingRedemptionsValue,
-        } of bridgeWallets) {
-          const { walletPublicKeyHash } = wallets[walletPublicKeyHashIndex]
-          walletPublicKeyHashIndex++
+    const concurrencyLimit = 50
 
-          // Wallet must be in Live state.
-          if (state !== WalletState.Live || !walletPublicKey) {
-            console.debug(
-              `Wallet is not in Live state ` +
-                `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
-                `Continue the loop execution to the next wallet...`
-            )
-            continue
-          }
-          liveWalletsCounter++
+    const chunkedWallets = this.chunkArray(allWalletEvents, concurrencyLimit)
 
-          // Wallet must have a main UTXO that can be determined.
-          const mainUtxo = await this.determineWalletMainUtxo(
-            walletPublicKeyHash,
-            bitcoinNetwork
+    for (let cIndex = 0; cIndex < chunkedWallets.length; cIndex++) {
+      const chunk = chunkedWallets[cIndex]
+      const chunkPromises = chunk.map(async (walletEvent, indexInChunk) => {
+        const globalIndex = cIndex * concurrencyLimit + indexInChunk
+
+        const { walletPublicKeyHash } = walletEvent
+        const { state, walletPublicKey, pendingRedemptionsValue } =
+          await this.tbtcContracts.bridge.wallets(walletPublicKeyHash)
+
+        // Wallet must be in Live state.
+        if (state !== WalletState.Live || !walletPublicKey) {
+          console.debug(
+            `Wallet is not in Live state ` +
+              `(wallet public key hash: ${walletPublicKeyHash.toString()}). ` +
+              `Continue the loop execution to the next wallet...`
           )
-          if (!mainUtxo) {
-            console.debug(
-              `Could not find matching UTXO on chains ` +
-                `for wallet public key hash (${walletPublicKeyHash.toString()}). ` +
-                `Continue the loop execution to the next wallet...`
-            )
-            continue
-          }
+          return
+        }
+        liveWalletsCounter++
 
-          const pendingRedemption =
-            await this.tbtcContracts.bridge.pendingRedemptions(
-              walletPublicKey,
-              redeemerOutputScript
-            )
+        const mainUtxo = await this.determineWalletMainUtxo(
+          walletPublicKeyHash,
+          bitcoinNetwork
+        )
+        if (!mainUtxo) {
+          console.debug(
+            `Could not find matching UTXO on chains ` +
+              `for wallet public key hash (${walletPublicKeyHash.toString()}). ` +
+              `Continue the loop execution to the next wallet...`
+          )
+          return
+        }
+        const pendingRedemption =
+          await this.tbtcContracts.bridge.pendingRedemptions(
+            walletPublicKey,
+            redeemerOutputScript
+          )
 
-          if (pendingRedemption.requestedAt != 0) {
-            console.debug(
-              `There is a pending redemption request from this wallet to the ` +
-                `same Bitcoin address. Given wallet public key hash` +
-                `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
-                `(${redeemerOutputScript.toString()}) pair can be used for only one ` +
-                `pending request at the same time. ` +
-                `Continue the loop execution to the next wallet...`
-            )
-            continue
-          }
+        if (pendingRedemption.requestedAt !== 0) {
+          console.debug(
+            `There is a pending redemption request from this wallet to the ` +
+              `same Bitcoin address. Given wallet public key hash` +
+              `(${walletPublicKeyHash.toString()}) and redeemer output script ` +
+              `(${redeemerOutputScript.toString()}) pair can be used for only one ` +
+              `pending request at the same time. ` +
+              `Continue the loop execution to the next wallet...`
+          )
+          return
+        }
 
-          const walletBTCBalance = mainUtxo.value.sub(pendingRedemptionsValue)
+        const walletBTCBalance = mainUtxo.value.sub(pendingRedemptionsValue)
 
-          // Save the max possible redemption amount.
-          maxAmount = walletBTCBalance.gt(maxAmount)
-            ? walletBTCBalance
-            : maxAmount
+        if (walletBTCBalance.gt(maxAmount)) {
+          maxAmount = walletBTCBalance
+        }
 
-          if (walletBTCBalance.gte(amount)) {
-            walletData = {
-              walletPublicKey,
-              mainUtxo,
-            }
-
-            break
-          }
-
+        if (walletBTCBalance.gte(amount)) {
+          candidateResults.push({
+            index: globalIndex,
+            walletPublicKey,
+            mainUtxo,
+          })
+        } else {
           console.debug(
             `The wallet (${walletPublicKeyHash.toString()})` +
               `cannot handle the redemption request. ` +
               `Continue the loop execution to the next wallet...`
           )
         }
+      })
+      await Promise.all(chunkPromises)
+    }
 
-        if (liveWalletsCounter === 0) {
-          throw new Error(
-            "Currently, there are no live wallets in the network."
-          )
-        }
+    if (liveWalletsCounter === 0) {
+      throw new Error("Currently, there are no live wallets in the network.")
+    }
 
-        // Cover a corner case when the user requested redemption for all live wallets
-        // in the network using the same Bitcoin address.
-        if (!walletData && liveWalletsCounter > 0 && maxAmount.eq(0)) {
-          throw new Error(
-            "All live wallets in the network have the pending redemption for a given Bitcoin address. " +
-              "Please use another Bitcoin address."
-          )
-        }
-
-        if (!walletData)
-          throw new Error(
-            `Could not find a wallet with enough funds. Maximum redemption amount is ${maxAmount} Satoshi ( ${maxAmount.div(
-              BigNumber.from(1e8)
-            )} BTC ) .`
-          )
-
-        return walletData
+    // If no wallet can handle it, check if maxAmount is zero =>
+    // that might mean all have a pending redemption for that address.
+    if (candidateResults.length === 0) {
+      if (maxAmount.eq(0)) {
+        throw new Error(
+          "All live wallets in the network have a pending redemption for this Bitcoin address. " +
+            "Please use another Bitcoin address."
+        )
       }
-    )
+
+      throw new Error(
+        `Could not find a wallet with enough funds. ` +
+          `Maximum redemption amount is ${maxAmount.toString()} satoshis ` +
+          `(${maxAmount.div(BigNumber.from(1e8)).toString()} BTC).`
+      )
+    }
+
+    // Sort candidates by their original index to pick the "oldest" wallet
+    // from the events array. If `getNewWalletRegisteredEvents()` is already
+    // in oldest->newest order, then using the `index` is sufficient to find
+    // the earliest wallet.
+    candidateResults.sort((a, b) => a.index - b.index)
+    const chosenWallet = candidateResults[0]
+
+    return {
+      walletPublicKey: chosenWallet.walletPublicKey,
+      mainUtxo: chosenWallet.mainUtxo,
+    }
+  }
+
+  /**
+   * Chunk an array into subarrays of a given size.
+   * @param arr The array to be chunked.
+   * @param chunkSize The size of each chunk.
+   * @returns An array of subarrays, where each subarray has a maximum length of `chunkSize`.
+   */
+  private chunkArray<T>(arr: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) {
+      throw new Error("chunkSize must be greater than 0.")
+    }
+    const result: T[][] = []
+    for (let i = 0; i < arr.length; i += chunkSize) {
+      result.push(arr.slice(i, i + chunkSize))
+    }
+    return result
   }
 
   /**
