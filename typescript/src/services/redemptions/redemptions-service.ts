@@ -286,15 +286,15 @@ export class RedemptionsService {
     if (candidateResults.length === 0) {
       if (maxAmount.eq(0)) {
         throw new Error(
-          "All live wallets in the network have a pending redemption for this Bitcoin address. " +
+          "All live wallets in the network have the pending redemption for a given Bitcoin address. " +
             "Please use another Bitcoin address."
         )
       }
 
       throw new Error(
         `Could not find a wallet with enough funds. ` +
-          `Maximum redemption amount is ${maxAmount.toString()} satoshis ` +
-          `(${maxAmount.div(BigNumber.from(1e8)).toString()} BTC).`
+          `Maximum redemption amount is ${maxAmount.toString()} Satoshi ` +
+          `( ${maxAmount.div(BigNumber.from(1e8)).toString()} BTC )`
       )
     }
 
