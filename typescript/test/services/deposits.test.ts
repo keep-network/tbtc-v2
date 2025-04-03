@@ -2023,7 +2023,7 @@ describe("Deposits", () => {
         let crossChainContracts: CrossChainInterfaces
 
         beforeEach(async () => {
-          const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder()
+          const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder("Base")
           // Set valid 32-byte extra data as initiateCrossChainDeposit
           // performs length and content checks on the extra data.
           l2BitcoinDepositorEncoder.setEncoding(
@@ -2037,7 +2037,7 @@ describe("Deposits", () => {
 
           l1BitcoinDepositor = new MockL1BitcoinDepositor(
             EthereumAddress.from("F4c1B212B37775769c73353264ac48dD7fA5B71E"),
-            new MockCrossChainExtraDataEncoder()
+            new MockCrossChainExtraDataEncoder("Base")
           )
 
           crossChainContracts = {
@@ -2230,7 +2230,7 @@ describe("Deposits", () => {
       let crossChainContracts: CrossChainInterfaces
 
       beforeEach(async () => {
-        const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder()
+        const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder("Base")
         // Set valid 32-byte extra data as initiateCrossChainDeposit
         // performs length and content checks on the extra data.
         l2BitcoinDepositorEncoder.setEncoding(
@@ -2244,7 +2244,7 @@ describe("Deposits", () => {
 
         l1BitcoinDepositor = new MockL1BitcoinDepositor(
           EthereumAddress.from("F4c1B212B37775769c73353264ac48dD7fA5B71E"),
-          new MockCrossChainExtraDataEncoder()
+          new MockCrossChainExtraDataEncoder("Base")
         )
 
         crossChainContracts = {

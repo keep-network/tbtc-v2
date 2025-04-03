@@ -1,5 +1,6 @@
 import { DestinationChainInterfaces } from "../contracts"
-import { SuiClient } from "@mysten/sui/client"
+import type { SuiClient } from "@mysten/sui/client"
+import type { Signer } from "@mysten/sui/cryptography"
 import { SuiBitcoinDepositor } from "./sui-bitcoin-depositor"
 import { SuiTBTCToken } from "./sui-tbtc-token"
 
@@ -13,14 +14,17 @@ const SUI_TBTC_COIN_TYPE = `${SUI_TBTC_CONTRACT_ADDRESS}::tbtc::TBTC` // Example
  * Loads SUI implementation of tBTC cross-chain interfaces.
  *
  * @param suiClient Initialized SUI Client.
+ * @param suiSigner Signer object for SUI transactions.
  * @returns Destination chain interfaces specific to SUI.
  */
 export function loadSuiDestinationChainContracts(
-  suiClient: SuiClient
+  suiClient: SuiClient,
+  suiSigner: Signer
 ): DestinationChainInterfaces {
   const suiBitcoinDepositor = new SuiBitcoinDepositor(
     suiClient,
-    SUI_DEPOSITOR_CONTRACT_ADDRESS
+    SUI_DEPOSITOR_CONTRACT_ADDRESS,
+    suiSigner
   )
   const suiTbtcToken = new SuiTBTCToken(
     suiClient,

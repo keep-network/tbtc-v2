@@ -25,6 +25,7 @@ import { loadSolanaCrossChainPrograms } from "../lib/solana"
 import { AnchorProvider } from "@coral-xyz/anchor"
 import { SuiClient } from "@mysten/sui/client"
 import { loadSuiDestinationChainContracts } from "../lib/sui"
+import type { Signer as SuiSigner } from "@mysten/sui/cryptography"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -209,6 +210,7 @@ export class TBTC {
    * @param ethereumChainSigner Signer to use with the L2 chain contracts.
    * @param solanaProvider Provider of Solana that contains connection and signer.
    * @param suiClient Client to interact with the SUI network.
+   * @param suiSigner Signer for SUI transactions.
    * @returns Void promise.
    * @throws Throws an error if:
    *         - Cross-chain contracts loader is not available for this TBTC SDK instance,
@@ -222,7 +224,8 @@ export class TBTC {
     destinationChainName: DestinationChainName,
     ethereumChainSigner: EthereumSigner,
     solanaProvider?: AnchorProvider,
-    suiClient?: SuiClient
+    suiClient?: SuiClient,
+    suiSigner?: SuiSigner
   ): Promise<void> {
     if (!this.#crossChainContractsLoader) {
       throw new Error(
@@ -294,6 +297,9 @@ export class TBTC {
         if (!suiClient) {
           throw new Error("SUI client is not defined")
         }
+        if (!suiSigner) {
+          throw new Error("SUI signer is not defined")
+        }
 
         const suiChainId = chainMapping.sui
         if (!suiChainId) {
@@ -305,7 +311,10 @@ export class TBTC {
             destinationChainName
           )
 
-        destinationChainInterfaces = loadSuiDestinationChainContracts(suiClient)
+        destinationChainInterfaces = loadSuiDestinationChainContracts(
+          suiClient,
+          suiSigner
+        )
         break
       default:
         throw new Error("Unsupported destination chain")

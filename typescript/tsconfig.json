@@ -9,6 +9,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"]
+    },
     "rootDirs": ["src", "test"],
     "esModuleInterop": true,
     "resolveJsonModule": true,

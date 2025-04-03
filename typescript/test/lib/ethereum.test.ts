@@ -878,7 +878,7 @@ describe("Ethereum", () => {
     let encoder: CrossChainExtraDataEncoder
 
     beforeEach(async () => {
-      encoder = new CrossChainExtraDataEncoder()
+      encoder = new CrossChainExtraDataEncoder("Base")
     })
 
     describe("encodeDepositOwner", () => {

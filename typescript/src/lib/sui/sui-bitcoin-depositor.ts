@@ -10,6 +10,9 @@ import { Hex } from "../utils"
 import { SuiClient } from "@mysten/sui/client"
 import { SuiAddress } from "./address"
 import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
+import { Transaction } from "@mysten/sui/transactions"
+import type { Signer } from "@mysten/sui/cryptography"
+import { packRevealDepositParameters } from "../ethereum"
 
 /**
  * Implementation of the BitcoinDepositor interface for the SUI network.
@@ -18,13 +21,15 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
   readonly #suiClient: SuiClient
   readonly #contractAddress: SuiAddress // Address/ID of the deployed SUI package/module
   readonly #extraDataEncoder: CrossChainExtraDataEncoder
+  readonly #signer: Signer
   #depositOwner: ChainIdentifier | undefined
 
-  constructor(suiClient: SuiClient, contractAddress: string) {
+  constructor(suiClient: SuiClient, contractAddress: string, signer: Signer) {
     this.#suiClient = suiClient
     this.#contractAddress = SuiAddress.from(contractAddress)
     // Assuming SUI destination for the encoder
     this.#extraDataEncoder = new CrossChainExtraDataEncoder("Sui")
+    this.#signer = signer // Store signer
   }
 
   getChainIdentifier(): ChainIdentifier {
@@ -64,24 +69,66 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
       this.#depositOwner
     )
 
-    // TODO: Implement SUI logic
-    // 1. Prepare the transaction payload for the SUI contract call
-    //    - This will involve mapping the parameters (depositTx, index, deposit, vault?,
-    //      extraData containing depositOwner) to the expected arguments of the SUI
-    //      move function.
-    // 2. Use `suiClient.signAndExecuteTransactionBlock` (or similar) to send the tx.
-    // 3. Extract and return the transaction hash/digest as a Hex object.
+    // TODO: Implement SUI logic - IMPLEMENTED (NEEDS VERIFICATION)
 
-    console.log(
-      "SUI initializeDeposit called (IMPLEMENTATION PENDING):",
+    // --- START: Fill in your Move function details --- 
+    const SUI_PACKAGE_ID = this.#contractAddress.toString() 
+    const TARGET_MODULE_NAME = "BitcoinDepositor" // From provided Move code
+    const TARGET_FUNCTION_NAME = "initialize_deposit" // From provided Move code
+    // --- END: Fill in your Move function details --- 
+
+    // Pack parameters using the existing utility
+    // NOTE: Assumes return values can be serialized to vector<u8>
+    const { fundingTx, reveal } = packRevealDepositParameters(
       depositTx,
       depositOutputIndex,
       deposit,
-      vault,
-      extraData
+      vault // Pass vault here
     )
 
-    // Placeholder return
-    return Promise.resolve(Hex.from("0xPENDING_SUI_IMPLEMENTATION"))
+    const txb = new Transaction()
+
+    // --- START: Map arguments to your Move function signature --- 
+    // WARNING: Serialization of fundingTx and reveal needs verification!
+    // Assuming they are hex strings or similar that can be buffered directly.
+    const moveCallArgs = [
+      txb.pure(Buffer.from(fundingTx.toString(), "hex")), // funding_tx: vector<u8>
+      txb.pure(Buffer.from(reveal.toString(), "hex")),    // deposit_reveal: vector<u8>
+      txb.pure(Buffer.from(extraData.toString(), "hex")), // deposit_owner: vector<u8>
+    ] // <<< VERIFY SERIALIZATION AND TYPES HERE CAREFULLY! 
+    // --- END: Map arguments to your Move function signature --- 
+
+    txb.moveCall({
+      target: `${SUI_PACKAGE_ID}::${TARGET_MODULE_NAME}::${TARGET_FUNCTION_NAME}`,
+      arguments: moveCallArgs,
+      // typeArguments: [] // Add if your move function has type arguments
+    })
+
+    try {
+      // Sign and execute the transaction block
+      // Use signAndExecuteTransaction and provide the signer
+      const result = await this.#suiClient.signAndExecuteTransaction({
+        transaction: txb, 
+        signer: this.#signer, // Pass stored signer
+        options: {
+          showEffects: true, // Recommended to check for errors
+        },
+      })
+
+      // Check for execution errors
+      if (result.effects?.status.status !== "success") {
+        throw new Error(
+          `SUI transaction failed: ${result.effects?.status.error}`
+        )
+      }
+
+      // Extract the transaction digest
+      const txDigest = result.digest
+      return Hex.from(txDigest)
+
+    } catch (error) {
+      console.error("Error executing SUI initializeDeposit transaction:", error)
+      throw error // Re-throw the error for handling upstream
+    }
   }
 } 

@@ -8,6 +8,8 @@ import {
   DepositReceipt,
   Hex,
   DepositState,
+  DestinationChainName,
+  ExtraDataEncoder,
 } from "../../src"
 import { BigNumber } from "ethers"
 
@@ -118,26 +120,28 @@ export class MockL1BitcoinDepositor implements L1BitcoinDepositor {
   }
 }
 
-export class MockCrossChainExtraDataEncoder
-  implements CrossChainExtraDataEncoder
-{
+export class MockCrossChainExtraDataEncoder extends CrossChainExtraDataEncoder {
   #encodings: Map<string, Hex> = new Map()
+
+  constructor(destinationChainName: DestinationChainName = "Base") {
+    super(destinationChainName)
+  }
 
   setEncoding(depositOwner: ChainIdentifier, extraData: Hex): void {
     this.#encodings.set(depositOwner.identifierHex, extraData)
   }
 
-  encodeDepositOwner(depositOwner: ChainIdentifier): Hex {
+  override encodeDepositOwner(depositOwner: ChainIdentifier): Hex {
     const extraData = this.#encodings.get(depositOwner.identifierHex)
     if (!extraData) {
-      throw new Error("Encoding not found")
+      throw new Error("Encoding not found for mock")
     }
-
     return extraData
   }
 
-  decodeDepositOwner(data: Hex): ChainIdentifier {
-    throw new Error("Not supported")
+  override decodeDepositOwner(data: Hex): ChainIdentifier {
+    console.warn("MockCrossChainExtraDataEncoder.decodeDepositOwner called with:", data)
+    throw new Error("decodeDepositOwner is not implemented in mock")
   }
 }
 
