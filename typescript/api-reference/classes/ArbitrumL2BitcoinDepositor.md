@@ -79,7 +79,7 @@ ___
 
 ### #extraDataEncoder
 
-• `Private` `Readonly` **#extraDataEncoder**: [`ExtraDataEncoder`](../interfaces/ExtraDataEncoder.md)
+• `Private` `Readonly` **#extraDataEncoder**: [`CrossChainExtraDataEncoder`](CrossChainExtraDataEncoder.md)
 
 #### Defined in
 

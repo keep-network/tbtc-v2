@@ -1,7 +1,9 @@
 # Class: CrossChainExtraDataEncoder
 
 Implementation of the CrossChainExtraDataEncoder
-that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
+that handles both Ethereum (20-byte) and Solana/SUI (32-byte) addresses.
+It relies on the destination chain context provided during instantiation
+to differentiate between 32-byte address formats (Solana vs SUI).
 
 ## Implements
 
@@ -13,6 +15,10 @@ that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
 
 - [constructor](CrossChainExtraDataEncoder.md#constructor)
 
+### Properties
+
+- [destinationChainName](CrossChainExtraDataEncoder.md#destinationchainname)
+
 ### Methods
 
 - [decodeDepositOwner](CrossChainExtraDataEncoder.md#decodedepositowner)
@@ -22,11 +28,31 @@ that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
 
 ### constructor
 
-• **new CrossChainExtraDataEncoder**(): [`CrossChainExtraDataEncoder`](CrossChainExtraDataEncoder.md)
+• **new CrossChainExtraDataEncoder**(`destinationChainName`): [`CrossChainExtraDataEncoder`](CrossChainExtraDataEncoder.md)
+
+#### Parameters
+
+| Name | Type |
+| :------ | :------ |
+| `destinationChainName` | [`DestinationChainName`](../README.md#destinationchainname) |
 
 #### Returns
 
 [`CrossChainExtraDataEncoder`](CrossChainExtraDataEncoder.md)
+
+#### Defined in
+
+[lib/ethereum/l1-bitcoin-depositor.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L170)
+
+## Properties
+
+### destinationChainName
+
+• `Private` **destinationChainName**: [`DestinationChainName`](../README.md#destinationchainname)
+
+#### Defined in
+
+[lib/ethereum/l1-bitcoin-depositor.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L170)
 
 ## Methods
 
@@ -52,7 +78,7 @@ that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:186](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L186)
+[lib/ethereum/l1-bitcoin-depositor.ts:192](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L192)
 
 ___
 
@@ -78,4 +104,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:170](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L170)
+[lib/ethereum/l1-bitcoin-depositor.ts:176](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L176)

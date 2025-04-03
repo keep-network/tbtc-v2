@@ -42,6 +42,9 @@
 - [OptimisticMinting](classes/OptimisticMinting.md)
 - [RedemptionsService](classes/RedemptionsService.md)
 - [Spv](classes/Spv.md)
+- [SuiAddress](classes/SuiAddress.md)
+- [SuiBitcoinDepositor](classes/SuiBitcoinDepositor.md)
+- [SuiTBTCToken](classes/SuiTBTCToken.md)
 - [TBTC](classes/TBTC.md)
 - [WalletTx](classes/WalletTx.md)
 
@@ -128,6 +131,7 @@
 - [loadArbitrumCrossChainContracts](README.md#loadarbitrumcrosschaincontracts)
 - [loadBaseCrossChainContracts](README.md#loadbasecrosschaincontracts)
 - [loadEthereumCoreContracts](README.md#loadethereumcorecontracts)
+- [loadSuiDestinationChainContracts](README.md#loadsuidestinationchaincontracts)
 - [packRevealDepositParameters](README.md#packrevealdepositparameters)
 - [retryAll](README.md#retryall)
 - [skipRetryWhenMatched](README.md#skipretrywhenmatched)
@@ -176,10 +180,11 @@ Type representing a mapping between specific L1 and L2 chains.
 | `base?` | [`Base`](enums/Chains.Base.md) | Identifier of the Base L2 chain. |
 | `ethereum?` | [`Ethereum`](enums/Chains.Ethereum.md) | Identifier of the Ethereum L1 chain. |
 | `solana?` | [`Solana`](enums/Chains.Solana.md) | Identifier of the Arbitrum L2 chain. |
+| `sui?` | [`Sui`](enums/Chains.Sui.md) | Identifier of the SUI chain. |
 
 #### Defined in
 
-[lib/contracts/chain.ts:36](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L36)
+[lib/contracts/chain.ts:46](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L46)
 
 ___
 
@@ -209,7 +214,7 @@ between TBTC L1 ledger chain and a specific supported L2/side-chain.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L12)
+[lib/contracts/cross-chain.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L13)
 
 ___
 
@@ -240,7 +245,7 @@ Aggregates destination chain specific TBTC cross-chain interfaces.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L18)
+[lib/contracts/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L19)
 
 ___
 
@@ -252,7 +257,7 @@ Layer 2 chains supported by tBTC v2 contracts.
 
 #### Defined in
 
-[lib/contracts/chain.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L31)
+[lib/contracts/chain.ts:38](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L38)
 
 ___
 
@@ -382,7 +387,7 @@ specific to the given L2 chain, deployed on the L1 chain.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:131](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L131)
+[lib/contracts/cross-chain.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L132)
 
 ___
 
@@ -400,7 +405,7 @@ Aggregates L1-specific TBTC cross-chain contracts.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L26)
+[lib/contracts/cross-chain.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L27)
 
 ___
 
@@ -723,7 +728,7 @@ List of chain mappings supported by tBTC v2 contracts.
 
 #### Defined in
 
-[lib/contracts/chain.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L60)
+[lib/contracts/chain.ts:74](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L74)
 
 ## Functions
 
@@ -1031,6 +1036,31 @@ Throws an error if the signer's Ethereum chain ID is other than
 #### Defined in
 
 [lib/ethereum/index.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/index.ts#L82)
+
+___
+
+### loadSuiDestinationChainContracts
+
+▸ **loadSuiDestinationChainContracts**(`suiClient`, `suiSigner`): [`DestinationChainInterfaces`](README.md#destinationchaininterfaces)
+
+Loads SUI implementation of tBTC cross-chain interfaces.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `suiClient` | `SuiClient` | Initialized SUI Client. |
+| `suiSigner` | `Signer` | Signer object for SUI transactions. |
+
+#### Returns
+
+[`DestinationChainInterfaces`](README.md#destinationchaininterfaces)
+
+Destination chain interfaces specific to SUI.
+
+#### Defined in
+
+[lib/sui/index.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/index.ts#L20)
 
 ___
 

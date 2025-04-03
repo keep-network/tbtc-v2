@@ -7,6 +7,7 @@ canonical destination chain tBTC token.
 
 - [`ArbitrumL2TBTCToken`](../classes/ArbitrumL2TBTCToken.md)
 - [`BaseL2TBTCToken`](../classes/BaseL2TBTCToken.md)
+- [`SuiTBTCToken`](../classes/SuiTBTCToken.md)
 
 ## Table of contents
 
@@ -37,7 +38,7 @@ The balance of the given identifier in 1e18 precision.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L64)
+[lib/contracts/cross-chain.ts:65](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L65)
 
 ___
 
@@ -53,4 +54,4 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:57](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L57)
+[lib/contracts/cross-chain.ts:58](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L58)
