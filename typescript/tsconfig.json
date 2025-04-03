@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "module": "commonjs",
-    "lib": ["es2020", "dom"],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["es2022", "dom"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -10,7 +11,8 @@
     "strict": true,
     "rootDirs": ["src", "test"],
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "include": ["src", "test", "typechain", "typings.d.ts"]
 }
