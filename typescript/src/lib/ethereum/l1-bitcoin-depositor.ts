@@ -23,6 +23,7 @@ import MainnetArbitrumL1BitcoinDepositorDeployment from "./artifacts/mainnet/Arb
 import SepoliaBaseL1BitcoinDepositorDeployment from "./artifacts/sepolia/BaseL1BitcoinDepositor.json"
 import SepoliaArbitrumL1BitcoinDepositorDeployment from "./artifacts/sepolia/ArbitrumL1BitcoinDepositor.json"
 import { SolanaAddress } from "../solana/address"
+import { SuiAddress } from "../sui/address"
 
 const artifactLoader = {
   getMainnet: (destinationChainName: DestinationChainName) => {
@@ -80,7 +81,7 @@ export class EthereumL1BitcoinDepositor
 
     super(config, deployment)
 
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder()
+    this.#extraDataEncoder = new CrossChainExtraDataEncoder(destinationChainName)
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -160,9 +161,14 @@ export class EthereumL1BitcoinDepositor
 
 /**
  * Implementation of the CrossChainExtraDataEncoder
- * that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
+ * that handles both Ethereum (20-byte) and Solana/SUI (32-byte) addresses.
+ * It relies on the destination chain context provided during instantiation
+ * to differentiate between 32-byte address formats (Solana vs SUI).
  */
 export class CrossChainExtraDataEncoder implements ExtraDataEncoder {
+  // Store the destination chain name to help decoding
+  constructor(private destinationChainName: DestinationChainName) {}
+
   // eslint-disable-next-line valid-jsdoc
   /**
    * @see {CrossChainExtraDataEncoder#encodeDepositOwner}
@@ -186,19 +192,26 @@ export class CrossChainExtraDataEncoder implements ExtraDataEncoder {
   decodeDepositOwner(extraData: Hex): ChainIdentifier {
     const buffer = extraData.toBuffer()
 
-    // This should always be 32 bytes if our system is consistent
     if (buffer.length !== 32) {
       throw new Error(`Extra data must be 32 bytes. Got ${buffer.length}.`)
     }
 
-    // If the first 12 bytes are zero, this is (most likely) an Ethereum address
     const isEthereum = buffer.subarray(0, 12).every((b) => b === 0)
 
     if (isEthereum) {
       const ethAddr = buffer.subarray(12)
       return EthereumAddress.from(Hex.from(ethAddr).toString())
     } else {
-      return SolanaAddress.from(Hex.from(buffer).toString())
+      switch (this.destinationChainName) {
+        case "Solana":
+          return SolanaAddress.from(Hex.from(buffer).toString())
+        case "Sui":
+          return SuiAddress.from(Hex.from(buffer).toString())
+        default:
+          throw new Error(
+            `Cannot decode 32-byte address for destination chain ${this.destinationChainName}`
+          )
+      }
     }
   }
 }

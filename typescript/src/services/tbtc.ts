@@ -23,6 +23,8 @@ import { loadArbitrumCrossChainContracts } from "../lib/arbitrum"
 import { providers } from "ethers"
 import { loadSolanaCrossChainPrograms } from "../lib/solana"
 import { AnchorProvider } from "@coral-xyz/anchor"
+import { SuiClient } from "@mysten/sui/client"
+import { loadSuiDestinationChainContracts } from "../lib/sui"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -206,6 +208,7 @@ export class TBTC {
    *                    cross-chain contracts.
    * @param ethereumChainSigner Signer to use with the L2 chain contracts.
    * @param solanaProvider Provider of Solana that contains connection and signer.
+   * @param suiClient Client to interact with the SUI network.
    * @returns Void promise.
    * @throws Throws an error if:
    *         - Cross-chain contracts loader is not available for this TBTC SDK instance,
@@ -218,7 +221,8 @@ export class TBTC {
   async initializeCrossChain(
     destinationChainName: DestinationChainName,
     ethereumChainSigner: EthereumSigner,
-    solanaProvider?: AnchorProvider
+    solanaProvider?: AnchorProvider,
+    suiClient?: SuiClient
   ): Promise<void> {
     if (!this.#crossChainContractsLoader) {
       throw new Error(
@@ -285,6 +289,23 @@ export class TBTC {
           solanaProvider,
           genesisHash
         )
+        break
+      case "Sui":
+        if (!suiClient) {
+          throw new Error("SUI client is not defined")
+        }
+
+        const suiChainId = chainMapping.sui
+        if (!suiChainId) {
+          throw new Error("SUI chain ID not available in chain mapping")
+        }
+
+        l1CrossChainInterfaces =
+          await this.#crossChainContractsLoader.loadL1Contracts(
+            destinationChainName
+          )
+
+        destinationChainInterfaces = loadSuiDestinationChainContracts(suiClient)
         break
       default:
         throw new Error("Unsupported destination chain")

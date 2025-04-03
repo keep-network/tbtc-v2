@@ -23,12 +23,22 @@ export namespace Chains {
     Solana = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
     Devnet = "GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC",
   }
+
+  // Add SUI chains
+  export enum Sui {
+    Sui = "PLACEHOLDER_SUI_MAINNET_ID", // Replace with actual Mainnet ID
+    Testnet = "PLACEHOLDER_SUI_TESTNET_ID", // Replace with actual Testnet ID
+    Devnet = "PLACEHOLDER_SUI_DEVNET_ID", // Replace with actual Devnet ID
+  }
 }
 
 /**
  * Layer 2 chains supported by tBTC v2 contracts.
  */
-export type DestinationChainName = Exclude<keyof typeof Chains, "Ethereum">
+export type DestinationChainName = Exclude<
+  keyof typeof Chains,
+  "Ethereum"
+> // Note: This automatically includes "Sui"
 
 /**
  * Type representing a mapping between specific L1 and L2 chains.
@@ -52,6 +62,10 @@ export type ChainMapping = {
    * Identifier of the Arbitrum L2 chain.
    */
   solana?: Chains.Solana
+  /**
+   * Identifier of the SUI chain.
+   */
+  sui?: Chains.Sui // Add Sui to ChainMapping
 }
 
 /**
@@ -63,11 +77,13 @@ export const ChainMappings: ChainMapping[] = [
     base: Chains.Base.Base,
     arbitrum: Chains.Arbitrum.Arbitrum,
     solana: Chains.Solana.Solana,
+    sui: Chains.Sui.Sui, // Add Sui Mainnet
   },
   {
     ethereum: Chains.Ethereum.Sepolia,
     base: Chains.Base.BaseSepolia,
     arbitrum: Chains.Arbitrum.ArbitrumSepolia,
     solana: Chains.Solana.Devnet,
+    sui: Chains.Sui.Testnet, // Add Sui Testnet (or Devnet if preferred for Sepolia mapping)
   },
 ]

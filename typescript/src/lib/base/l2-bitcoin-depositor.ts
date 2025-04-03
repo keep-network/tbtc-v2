@@ -30,7 +30,7 @@ export class BaseL2BitcoinDepositor
   extends EthersContractHandle<L2BitcoinDepositorTypechain>
   implements BitcoinDepositor
 {
-  readonly #extraDataEncoder: ExtraDataEncoder
+  readonly #extraDataEncoder: CrossChainExtraDataEncoder
   #depositOwner: ChainIdentifier | undefined
 
   constructor(config: EthersContractConfig, chainId: Chains.Base) {
@@ -49,7 +49,7 @@ export class BaseL2BitcoinDepositor
 
     super(config, deployment)
 
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder()
+    this.#extraDataEncoder = new CrossChainExtraDataEncoder("Base")
   }
 
   // eslint-disable-next-line valid-jsdoc

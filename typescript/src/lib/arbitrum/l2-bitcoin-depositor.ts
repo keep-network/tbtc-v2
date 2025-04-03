@@ -30,7 +30,7 @@ export class ArbitrumL2BitcoinDepositor
   extends EthersContractHandle<L2BitcoinDepositorTypechain>
   implements BitcoinDepositor
 {
-  readonly #extraDataEncoder: ExtraDataEncoder
+  readonly #extraDataEncoder: CrossChainExtraDataEncoder
   #depositOwner: ChainIdentifier | undefined
 
   constructor(config: EthersContractConfig, chainId: Chains.Arbitrum) {
@@ -49,7 +49,7 @@ export class ArbitrumL2BitcoinDepositor
 
     super(config, deployment)
 
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder()
+    this.#extraDataEncoder = new CrossChainExtraDataEncoder("Arbitrum")
   }
 
   // eslint-disable-next-line valid-jsdoc

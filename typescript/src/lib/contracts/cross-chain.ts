@@ -4,6 +4,7 @@ import { ChainMapping, DestinationChainName } from "./chain"
 import { BitcoinRawTxVectors } from "../bitcoin"
 import { DepositReceipt } from "./bridge"
 import { Hex } from "../utils"
+import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 
 /**
  * Convenience type aggregating TBTC cross-chain contracts forming a connector
@@ -92,7 +93,7 @@ export interface BitcoinDepositor {
    * @returns Extra data encoder for this contract. The encoder is used to
    * encode and decode the extra data included in the cross-chain deposit script.
    */
-  extraDataEncoder(): ExtraDataEncoder
+  extraDataEncoder(): CrossChainExtraDataEncoder
 
   /**
    * Initializes the cross-chain deposit indirectly through the given L2 chain.

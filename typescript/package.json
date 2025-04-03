@@ -29,6 +29,7 @@
     "@coral-xyz/anchor": "^0.31.0",
     "@keep-network/ecdsa": "development",
     "@keep-network/tbtc-v2": "development",
+    "@mysten/sui": "^1.26.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
     "bignumber.js": "^9.1.2",

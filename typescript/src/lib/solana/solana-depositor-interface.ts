@@ -16,7 +16,7 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
   #depositOwner: ChainIdentifier | undefined
 
   constructor() {
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder()
+    this.#extraDataEncoder = new CrossChainExtraDataEncoder("Solana")
   }
 
   // eslint-disable-next-line valid-jsdoc
