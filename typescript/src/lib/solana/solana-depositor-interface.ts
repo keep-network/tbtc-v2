@@ -69,15 +69,13 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
     }
 
     // Example: decode deposit owner from your cross-chain extra data.
-    const l2DepositOwner = this.extraDataEncoder().decodeDepositOwner(
+    const solanaDepositOwner = this.extraDataEncoder().decodeDepositOwner(
       deposit.extraData
     )
 
-    // Convert it to "0x" + hex string
-    const depositOwnerHex = `0x${l2DepositOwner.identifierHex}`
-
+    const depositOwnerHex = solanaDepositOwner.identifierHex
     try {
-      const response = await axios.post("https://api.tbtcscan.org/reveal", {
+      const response = await axios.post("https://solana.tbtcscan.org/api/reveal", {
         fundingTx,
         reveal,
         depositOwnerHex,
@@ -86,14 +84,14 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
       const { data } = response
       if (!data?.tx?.hash) {
         throw new Error(
-          `Unexpected response from /reveal: ${JSON.stringify(data)}`
+          `Unexpected response from /api/reveal: ${JSON.stringify(data)}`
         )
       }
 
       return Hex.from(data.tx.hash)
     } catch (error) {
       // You can add logging, rethrow, etc.
-      console.error("Error calling /reveal endpoint:", error)
+      console.error("Error calling /api/reveal endpoint:", error)
       throw error
     }
   }

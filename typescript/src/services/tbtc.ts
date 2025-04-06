@@ -205,7 +205,7 @@ export class TBTC {
    * @param destinationChainName Name of the L2 chain for which to initialize
    *                    cross-chain contracts.
    * @param ethereumChainSigner Signer to use with the L2 chain contracts.
-   * @param solanaProvider Provider of Solana that contains connection and signer.
+   * @param nonEvmProvider Provider of non EVM chain that contains connection and signer.
    * @returns Void promise.
    * @throws Throws an error if:
    *         - Cross-chain contracts loader is not available for this TBTC SDK instance,
@@ -218,7 +218,7 @@ export class TBTC {
   async initializeCrossChain(
     destinationChainName: DestinationChainName,
     ethereumChainSigner: EthereumSigner,
-    solanaProvider?: AnchorProvider
+    nonEvmProvider: AnchorProvider | null // Should add other chain types over time.
   ): Promise<void> {
     if (!this.#crossChainContractsLoader) {
       throw new Error(
@@ -268,7 +268,7 @@ export class TBTC {
         )
         break
       case "Solana":
-        if (!solanaProvider) {
+        if (!nonEvmProvider) {
           throw new Error("Solana provider is not defined")
         }
 
@@ -282,7 +282,7 @@ export class TBTC {
           )
 
         destinationChainInterfaces = await loadSolanaCrossChainPrograms(
-          solanaProvider,
+          nonEvmProvider,
           genesisHash
         )
         break
