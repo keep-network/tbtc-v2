@@ -80,7 +80,8 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
         {
           fundingTx,
           reveal,
-          depositOwnerHex,
+          l2DepositOwner: depositOwnerHex,
+          l2Sender: deposit.depositor.identifierHex,
         }
       )
 
