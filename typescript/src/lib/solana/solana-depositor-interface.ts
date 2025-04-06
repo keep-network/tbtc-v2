@@ -75,11 +75,14 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
 
     const depositOwnerHex = solanaDepositOwner.identifierHex
     try {
-      const response = await axios.post("https://solana.tbtcscan.org/api/reveal", {
-        fundingTx,
-        reveal,
-        depositOwnerHex,
-      })
+      const response = await axios.post(
+        "https://solana.tbtcscan.org/api/reveal",
+        {
+          fundingTx,
+          reveal,
+          depositOwnerHex,
+        }
+      )
 
       const { data } = response
       if (!data?.tx?.hash) {

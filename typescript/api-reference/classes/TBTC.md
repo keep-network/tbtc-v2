@@ -172,7 +172,7 @@ ___
 
 ### initializeCrossChain
 
-▸ **initializeCrossChain**(`destinationChainName`, `ethereumChainSigner`, `solanaProvider?`): `Promise`\<`void`\>
+▸ **initializeCrossChain**(`destinationChainName`, `ethereumChainSigner`, `nonEvmProvider`): `Promise`\<`void`\>
 
 Initializes cross-chain contracts for the given L2 chain, using the
 given signer. Updates the signer on subsequent calls.
@@ -188,7 +188,7 @@ given signer. Updates the signer on subsequent calls.
 | :------ | :------ | :------ |
 | `destinationChainName` | [`DestinationChainName`](../README.md#destinationchainname) | Name of the L2 chain for which to initialize cross-chain contracts. |
 | `ethereumChainSigner` | [`EthereumSigner`](../README.md#ethereumsigner) | Signer to use with the L2 chain contracts. |
-| `solanaProvider?` | `AnchorProvider` | Provider of Solana that contains connection and signer. |
+| `nonEvmProvider` | ``null`` \| `AnchorProvider` | Provider of non EVM chain that contains connection and signer. |
 
 #### Returns
 
