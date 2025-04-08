@@ -363,7 +363,7 @@ describe("Redemptions", () => {
               ).to.be.rejectedWith(
                 `Could not find a wallet with enough funds. Maximum redemption amount is ${expectedMaxAmount.toString()} Satoshi ( ${expectedMaxAmount.div(
                   BigNumber.from(1e8)
-                )} BTC ) `
+                )} BTC )`
               )
             })
           }

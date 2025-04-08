@@ -15,6 +15,7 @@ Service exposing features related to tBTC v2 redemptions.
 
 ### Methods
 
+- [chunkArray](RedemptionsService.md#chunkarray)
 - [determineRedemptionData](RedemptionsService.md#determineredemptiondata)
 - [determineWalletMainUtxo](RedemptionsService.md#determinewalletmainutxo)
 - [findWalletForRedemption](RedemptionsService.md#findwalletforredemption)
@@ -41,7 +42,7 @@ Service exposing features related to tBTC v2 redemptions.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L32)
+[services/redemptions/redemptions-service.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L31)
 
 ## Properties
 
@@ -53,7 +54,7 @@ Bitcoin client handle.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L30)
+[services/redemptions/redemptions-service.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L29)
 
 ___
 
@@ -65,9 +66,40 @@ Handle to tBTC contracts.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L26)
+[services/redemptions/redemptions-service.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L25)
 
 ## Methods
+
+### chunkArray
+
+▸ **chunkArray**\<`T`\>(`arr`, `chunkSize`): `T`[][]
+
+Chunk an array into subarrays of a given size.
+
+#### Type parameters
+
+| Name |
+| :------ |
+| `T` |
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `arr` | `T`[] | The array to be chunked. |
+| `chunkSize` | `number` | The size of each chunk. |
+
+#### Returns
+
+`T`[][]
+
+An array of subarrays, where each subarray has a maximum length of `chunkSize`.
+
+#### Defined in
+
+[services/redemptions/redemptions-service.ts:320](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L320)
+
+___
 
 ### determineRedemptionData
 
@@ -92,7 +124,7 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:133](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L133)
+[services/redemptions/redemptions-service.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L132)
 
 ___
 
@@ -119,7 +151,7 @@ Promise holding the wallet main UTXO or undefined value.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:326](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L326)
+[services/redemptions/redemptions-service.ts:339](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L339)
 
 ___
 
@@ -145,7 +177,7 @@ Promise with the wallet details needed to request a redemption.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:182](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L182)
+[services/redemptions/redemptions-service.ts:181](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L181)
 
 ___
 
@@ -176,7 +208,7 @@ Throws an error if no redemption request exists for the given
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:438](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L438)
+[services/redemptions/redemptions-service.ts:451](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L451)
 
 ___
 
@@ -205,7 +237,7 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L50)
+[services/redemptions/redemptions-service.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L49)
 
 ___
 
@@ -237,4 +269,4 @@ Object containing:
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L89)
+[services/redemptions/redemptions-service.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L88)
