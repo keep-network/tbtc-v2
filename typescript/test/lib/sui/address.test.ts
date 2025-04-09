@@ -42,13 +42,13 @@ describe("SuiAddress", () => {
 
     it("should throw for addresses shorter than 32 bytes", () => {
       expect(() => SuiAddress.from(SHORT_ADDRESS_HEX)).to.throw(
-        /Invalid SUI address length/i
+        /Invalid SUI address format/i
       )
     })
 
     it("should throw for addresses longer than 32 bytes", () => {
       expect(() => SuiAddress.from(LONG_ADDRESS_HEX)).to.throw(
-        /Invalid SUI address length/i
+        /Invalid SUI address format/i
       )
     })
 

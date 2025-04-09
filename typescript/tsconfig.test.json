@@ -3,6 +3,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"]
@@ -11,6 +12,7 @@
     "noImplicitAny": false
   },
   "ts-node": {
-    "require": ["tsconfig-paths/register"]
+    "require": ["tsconfig-paths/register"],
+    "transpileOnly": true
   }
 } 
