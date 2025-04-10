@@ -47,7 +47,7 @@ for reference.
 
 #### Defined in
 
-[lib/sui/address.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L20)
+[lib/sui/address.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L35)
 
 ## Properties
 
@@ -57,7 +57,7 @@ for reference.
 
 #### Defined in
 
-[lib/sui/address.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L18)
+[lib/sui/address.ts:33](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L33)
 
 ___
 
@@ -73,7 +73,7 @@ Identifier as an un-prefixed hex string.
 
 #### Defined in
 
-[lib/sui/address.ts:15](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L15)
+[lib/sui/address.ts:30](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L30)
 
 ___
 
@@ -83,7 +83,7 @@ ___
 
 #### Defined in
 
-[lib/sui/address.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L13)
+[lib/sui/address.ts:28](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L28)
 
 ## Methods
 
@@ -111,7 +111,7 @@ True if the identifiers are equal, false otherwise.
 
 #### Defined in
 
-[lib/sui/address.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L69)
+[lib/sui/address.ts:88](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L88)
 
 ___
 
@@ -127,7 +127,7 @@ Returns the underlying Hex object.
 
 #### Defined in
 
-[lib/sui/address.ts:90](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L90)
+[lib/sui/address.ts:109](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L109)
 
 ___
 
@@ -145,7 +145,7 @@ The hex string (e.g., "0x...").
 
 #### Defined in
 
-[lib/sui/address.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L82)
+[lib/sui/address.ts:101](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L101)
 
 ___
 
@@ -174,4 +174,4 @@ Error if the hex string is not a valid SUI address.
 
 #### Defined in
 
-[lib/sui/address.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L32)
+[lib/sui/address.ts:47](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L47)

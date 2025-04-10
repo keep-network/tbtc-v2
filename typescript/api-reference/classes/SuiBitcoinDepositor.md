@@ -1,6 +1,27 @@
 # Class: SuiBitcoinDepositor
 
-Implementation of the BitcoinDepositor interface for the SUI network.
+SUI implementation of BitcoinDepositor.
+
+This class handles the initialization of Bitcoin deposits on the SUI blockchain.
+It communicates with the `l2_tbtc::BitcoinDepositor` Move module defined in `bitcoin_depositor.move`.
+
+## Parameter Mapping (TypeScript → Move)
+
+When `initializeDeposit` is called, the TypeScript parameters are transformed as follows:
+
+- `fundingTx` (BitcoinRawTxVectors): Serialized as concatenated byte vectors:
+  ```
+  [version bytes][inputs bytes][outputs bytes][locktime bytes]
+  ```
+  This becomes the `funding_tx: vector<u8>` parameter in Move.
+
+- `depositReceipt.extraData` (Hex): Used directly as the `deposit_owner: vector<u8>` 
+  parameter in Move. This stores the SUI address of the deposit owner (32 bytes).
+
+- Deposit reveal data: Constructed from `depositReceipt` fields (walletPublicKeyHash,
+  refundPublicKeyHash, etc.) and sent as the `deposit_reveal: vector<u8>` parameter in Move.
+
+The SUI deposit is considered successful when the Move function emits a `DepositInitialized` event.
 
 ## Implements
 
@@ -48,7 +69,7 @@ Implementation of the BitcoinDepositor interface for the SUI network.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L27)
+[lib/sui/sui-bitcoin-depositor.ts:48](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L48)
 
 ## Properties
 
@@ -58,7 +79,7 @@ Implementation of the BitcoinDepositor interface for the SUI network.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:22](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L22)
+[lib/sui/sui-bitcoin-depositor.ts:43](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L43)
 
 ___
 
@@ -68,7 +89,7 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L25)
+[lib/sui/sui-bitcoin-depositor.ts:46](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L46)
 
 ___
 
@@ -78,7 +99,7 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:23](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L23)
+[lib/sui/sui-bitcoin-depositor.ts:44](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L44)
 
 ___
 
@@ -88,7 +109,7 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:24](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L24)
+[lib/sui/sui-bitcoin-depositor.ts:45](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L45)
 
 ___
 
@@ -98,7 +119,7 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:21](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L21)
+[lib/sui/sui-bitcoin-depositor.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L42)
 
 ## Methods
 
@@ -119,7 +140,7 @@ encode and decode the extra data included in the cross-chain deposit script.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L50)
+[lib/sui/sui-bitcoin-depositor.ts:71](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L71)
 
 ___
 
@@ -139,7 +160,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:35](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L35)
+[lib/sui/sui-bitcoin-depositor.ts:56](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L56)
 
 ___
 
@@ -162,7 +183,7 @@ The identifier of the deposit owner or undefined if not set.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L39)
+[lib/sui/sui-bitcoin-depositor.ts:60](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L60)
 
 ___
 
@@ -193,7 +214,7 @@ Transaction hash of the reveal deposit transaction.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:54](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L54)
+[lib/sui/sui-bitcoin-depositor.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L75)
 
 ___
 
@@ -220,4 +241,4 @@ issued by this contract.
 
 #### Defined in
 
-[lib/sui/sui-bitcoin-depositor.ts:43](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L43)
+[lib/sui/sui-bitcoin-depositor.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-bitcoin-depositor.ts#L64)

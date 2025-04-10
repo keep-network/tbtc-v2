@@ -134,6 +134,7 @@
 - [loadSuiDestinationChainContracts](README.md#loadsuidestinationchaincontracts)
 - [packRevealDepositParameters](README.md#packrevealdepositparameters)
 - [retryAll](README.md#retryall)
+- [setSuiAddressTestMode](README.md#setsuiaddresstestmode)
 - [skipRetryWhenMatched](README.md#skipretrywhenmatched)
 - [toBitcoinJsLibNetwork](README.md#tobitcoinjslibnetwork)
 - [validateBitcoinHeadersChain](README.md#validatebitcoinheaderschain)
@@ -1130,6 +1131,30 @@ Always returns true.
 #### Defined in
 
 [lib/utils/backoff.ts:9](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/backoff.ts#L9)
+
+___
+
+### setSuiAddressTestMode
+
+▸ **setSuiAddressTestMode**(`enable`): `void`
+
+Enable test mode for SUI addresses.
+This allows using mock SUI addresses in tests that would fail strict validation.
+WARNING: This should ONLY be used in test environments, never in production.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `enable` | `boolean` | Whether to enable test mode |
+
+#### Returns
+
+`void`
+
+#### Defined in
+
+[lib/sui/address.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/address.ts#L19)
 
 ___
 

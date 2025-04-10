@@ -1,6 +1,27 @@
 # Class: SuiTBTCToken
 
-Implementation of the DestinationChainTBTCToken interface for the SUI network.
+SUI implementation of the DestinationChainTBTCToken interface.
+
+Communicates with the TBTC token smart contract deployed on the SUI blockchain.
+The SUI implementation of TBTC (defined in `tbtc.move`) uses 9 decimal places,
+while standard Ethereum tokens use 18 decimal places.
+
+## Decimal Precision Handling
+
+From the SUI contract in `tbtc.move`:
+```move
+let (treasury_cap, metadata) = coin::create_currency(
+    witness,
+    9, // Bitcoin uses 8 decimals, but many chains use 9 for tBTC
+    b"TBTC",
+    // ...
+);
+```
+
+The `balanceOf` method automatically adjusts the returned balance:
+1. Fetches the raw balance from SUI (with 9 decimal places)
+2. Converts it to a standard 18-decimal BigNumber by multiplying by 10^9 
+   This ensures consistent precision with other chain implementations
 
 ## Implements
 
@@ -43,7 +64,7 @@ Implementation of the DestinationChainTBTCToken interface for the SUI network.
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L19)
+[lib/sui/sui-tbtc-token.ts:44](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L44)
 
 ## Properties
 
@@ -53,7 +74,7 @@ Implementation of the DestinationChainTBTCToken interface for the SUI network.
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:17](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L17)
+[lib/sui/sui-tbtc-token.ts:42](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L42)
 
 ___
 
@@ -63,7 +84,7 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:16](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L16)
+[lib/sui/sui-tbtc-token.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L41)
 
 ___
 
@@ -73,27 +94,31 @@ ___
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:15](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L15)
+[lib/sui/sui-tbtc-token.ts:40](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L40)
 
 ## Methods
 
 ### balanceOf
 
-▸ **balanceOf**(`identifier`): `Promise`\<`BigNumber`\>
+▸ **balanceOf**(`owner`): `Promise`\<`BigNumber`\>
 
-Returns the balance of the given identifier.
+Get the balance of TBTC tokens for the given owner address.
 
 #### Parameters
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `identifier` | [`ChainIdentifier`](../interfaces/ChainIdentifier.md) | Identifier of the account to get the balance for. |
+| `owner` | [`ChainIdentifier`](../interfaces/ChainIdentifier.md) | The SUI address to check balance for. |
 
 #### Returns
 
 `Promise`\<`BigNumber`\>
 
-The balance of the given identifier in 1e18 precision.
+Promise<BigNumber> The token balance adjusted to 18 decimal places.
+
+**`Throws`**
+
+If the owner is not a SuiAddress.
 
 #### Implementation of
 
@@ -101,7 +126,7 @@ The balance of the given identifier in 1e18 precision.
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:29](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L29)
+[lib/sui/sui-tbtc-token.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L64)
 
 ___
 
@@ -109,11 +134,13 @@ ___
 
 ▸ **getChainIdentifier**(): [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
 
-Gets the chain-specific identifier of this contract.
+Get chain identifier of the contract.
 
 #### Returns
 
 [`ChainIdentifier`](../interfaces/ChainIdentifier.md)
+
+Chain identifier of the contract.
 
 #### Implementation of
 
@@ -121,4 +148,4 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/sui/sui-tbtc-token.ts:25](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L25)
+[lib/sui/sui-tbtc-token.ts:54](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/sui/sui-tbtc-token.ts#L54)
