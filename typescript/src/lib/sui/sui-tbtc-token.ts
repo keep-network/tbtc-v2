@@ -3,13 +3,38 @@ import { DestinationChainTBTCToken, ChainIdentifier } from "../contracts"
 import { SuiClient } from "@mysten/sui/client"
 import { SuiAddress } from "./address"
 
-// Decimals of the TBTC token on SUI (from Move code)
+// The TBTC token on SUI uses 9 decimals as defined in the tbtc.move contract
+// This is different from Bitcoin's 8 decimals
 const SUI_TBTC_DECIMALS = 9
-// Decimals expected by the ethers.BigNumber interface
-const INTERFACE_DECIMALS = 18
+// Standard Ethereum token decimals (used for returning values compatible with other chains)
+const STANDARD_TOKEN_DECIMALS = 18
+// Difference between STANDARD_TOKEN_DECIMALS and SUI_TBTC_DECIMALS
+// Used to adjust the balance from SUI's format to standard format
+const DECIMAL_ADJUSTMENT = STANDARD_TOKEN_DECIMALS - SUI_TBTC_DECIMALS
 
 /**
- * Implementation of the DestinationChainTBTCToken interface for the SUI network.
+ * SUI implementation of the DestinationChainTBTCToken interface.
+ * 
+ * Communicates with the TBTC token smart contract deployed on the SUI blockchain.
+ * The SUI implementation of TBTC (defined in `tbtc.move`) uses 9 decimal places,
+ * while standard Ethereum tokens use 18 decimal places.
+ * 
+ * ## Decimal Precision Handling
+ * 
+ * From the SUI contract in `tbtc.move`:
+ * ```move
+ * let (treasury_cap, metadata) = coin::create_currency(
+ *     witness,
+ *     9, // Bitcoin uses 8 decimals, but many chains use 9 for tBTC
+ *     b"TBTC",
+ *     // ...
+ * );
+ * ```
+ * 
+ * The `balanceOf` method automatically adjusts the returned balance:
+ * 1. Fetches the raw balance from SUI (with 9 decimal places)
+ * 2. Converts it to a standard 18-decimal BigNumber by multiplying by 10^9 
+ *    This ensures consistent precision with other chain implementations
  */
 export class SuiTBTCToken implements DestinationChainTBTCToken {
   readonly #suiClient: SuiClient
@@ -22,43 +47,40 @@ export class SuiTBTCToken implements DestinationChainTBTCToken {
     this.#coinType = coinType
   }
 
+  /**
+   * Get chain identifier of the contract.
+   * @returns Chain identifier of the contract.
+   */
   getChainIdentifier(): ChainIdentifier {
     return this.#contractAddress
   }
 
-  async balanceOf(identifier: ChainIdentifier): Promise<BigNumber> {
-    if (!(identifier instanceof SuiAddress)) {
-      throw new Error("Identifier must be a SuiAddress for SUI TBTC Token")
+  /**
+   * Get the balance of TBTC tokens for the given owner address.
+   * @param owner The SUI address to check balance for.
+   * @returns Promise<BigNumber> The token balance adjusted to 18 decimal places.
+   * @throws If the owner is not a SuiAddress.
+   */
+  async balanceOf(owner: ChainIdentifier): Promise<BigNumber> {
+    if (!(owner instanceof SuiAddress)) {
+      throw new Error("Identifier must be a SuiAddress")
     }
 
-    // TODO: Implement SUI logic - DONE
-    // 1. Use `suiClient.getBalance` with the owner address (identifier.toString())
-    //    and the specific `coinType` for tBTC on SUI.
-    // 2. Convert the SUI balance (likely a string or bigint with potentially different decimals)
-    //    to a BigNumber instance with 1e18 precision as expected by the interface.
-    //    Note: Need to know the decimals of the tBTC token on SUI.
-
     try {
-      const coinBalance = await this.#suiClient.getBalance({
-        owner: identifier.toString(),
+      // Get the balance from SUI network (with SUI_TBTC_DECIMALS precision)
+      const response = await this.#suiClient.getBalance({
+        owner: owner.toString(),
         coinType: this.#coinType,
       })
 
-      const balanceString = coinBalance.totalBalance
-
-      // Convert the balance string (with SUI_TBTC_DECIMALS) to BigNumber (with INTERFACE_DECIMALS)
-      const multiplier = BigNumber.from(10).pow(
-        INTERFACE_DECIMALS - SUI_TBTC_DECIMALS
-      )
-      const balance = BigNumber.from(balanceString).mul(multiplier)
-
-      return balance
+      const balance = response.totalBalance || "0"
+      
+      // Convert the SUI balance (9 decimals) to the standard token format (18 decimals)
+      // by multiplying by 10^(STANDARD_TOKEN_DECIMALS - SUI_TBTC_DECIMALS)
+      return BigNumber.from(balance).mul(BigNumber.from(10).pow(DECIMAL_ADJUSTMENT))
     } catch (error) {
-      console.error(
-        `Error fetching SUI balance for ${identifier.toString()} and coin ${this.#coinType}:`,
-        error
-      )
-      // Return 0 on error, or re-throw depending on desired behavior
+      // Return 0 as balance if there was an error fetching it
+      // This is often the case when the user doesn't have any tokens
       return BigNumber.from(0)
     }
   }

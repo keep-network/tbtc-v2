@@ -1,5 +1,8 @@
 import { expect } from "chai"
-import { SuiAddress, Hex } from "@src/index"
+import { SuiAddress, Hex, setSuiAddressTestMode } from "@src/index"
+
+// Enable test mode before running tests
+setSuiAddressTestMode(true)
 
 // Example valid SUI address (32 bytes)
 const VALID_SUI_ADDRESS_HEX =

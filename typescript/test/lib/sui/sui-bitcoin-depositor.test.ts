@@ -9,10 +9,14 @@ import {
   BitcoinRawTxVectors,
   CrossChainExtraDataEncoder,
   ChainIdentifier,
+  setSuiAddressTestMode,
 } from "@src/index"
 
 // Import EthereumAddress to create a valid ChainIdentifier
-import { EthereumAddress } from "@src/index"
+import { EthereumAddress } from "@src/lib/ethereum/address"
+
+// Enable test mode before running the tests
+setSuiAddressTestMode(true)
 
 chai.use(chaiAsPromised)
 

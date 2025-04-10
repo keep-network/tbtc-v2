@@ -8,10 +8,10 @@ export * from "./lib/ethereum"
 export * from "./lib/utils"
 
 // Export SUI specific modules
-export { SuiAddress } from "./lib/sui/address"
+export { SuiAddress, setSuiAddressTestMode } from "./lib/sui/address"
 export { SuiTBTCToken } from "./lib/sui/sui-tbtc-token"
 export { SuiBitcoinDepositor } from "./lib/sui/sui-bitcoin-depositor"
-export { loadSuiDestinationChainContracts } from "./lib/sui/index"
+export { loadSuiDestinationChainContracts } from "./lib/sui"
 
 // Export feature modules (services).
 export * from "./services/deposits"

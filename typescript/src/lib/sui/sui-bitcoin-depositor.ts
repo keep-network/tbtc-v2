@@ -15,7 +15,28 @@ import type { Signer } from "@mysten/sui/cryptography"
 import { packRevealDepositParameters } from "../ethereum"
 
 /**
- * Implementation of the BitcoinDepositor interface for the SUI network.
+ * SUI implementation of BitcoinDepositor.
+ * 
+ * This class handles the initialization of Bitcoin deposits on the SUI blockchain.
+ * It communicates with the `l2_tbtc::BitcoinDepositor` Move module defined in `bitcoin_depositor.move`.
+ * 
+ * ## Parameter Mapping (TypeScript → Move)
+ * 
+ * When `initializeDeposit` is called, the TypeScript parameters are transformed as follows:
+ * 
+ * - `fundingTx` (BitcoinRawTxVectors): Serialized as concatenated byte vectors:
+ *   ```
+ *   [version bytes][inputs bytes][outputs bytes][locktime bytes]
+ *   ```
+ *   This becomes the `funding_tx: vector<u8>` parameter in Move.
+ * 
+ * - `depositReceipt.extraData` (Hex): Used directly as the `deposit_owner: vector<u8>` 
+ *   parameter in Move. This stores the SUI address of the deposit owner (32 bytes).
+ * 
+ * - Deposit reveal data: Constructed from `depositReceipt` fields (walletPublicKeyHash,
+ *   refundPublicKeyHash, etc.) and sent as the `deposit_reveal: vector<u8>` parameter in Move.
+ * 
+ * The SUI deposit is considered successful when the Move function emits a `DepositInitialized` event.
  */
 export class SuiBitcoinDepositor implements BitcoinDepositor {
   readonly #suiClient: SuiClient

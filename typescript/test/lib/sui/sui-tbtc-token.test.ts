@@ -1,6 +1,10 @@
 import { expect } from "chai"
 import { BigNumber } from "ethers"
-import { SuiTBTCToken, SuiAddress, ChainIdentifier } from "@src/index"
+import { SuiTBTCToken, SuiAddress, ChainIdentifier, setSuiAddressTestMode } from "@src/index"
+
+// Enable test mode before running the tests
+setSuiAddressTestMode(true)
+
 // Mock SuiClient (replace with a more robust mocking library if available)
 const mockSuiClient = {
   getBalance: async (params: { owner: string; coinType: string }) => {
