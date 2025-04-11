@@ -17,8 +17,8 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "../integrator/IBridge.sol";
-import "./Wormhole.sol";
+import "../../integrator/IBridge.sol";
+import "../wormhole/Wormhole.sol";
 
 /// @title IL2WormholeGateway
 /// @notice Interface to the `L2WormholeGateway` contract.
