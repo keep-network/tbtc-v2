@@ -1,5 +1,5 @@
 import { AnchorProvider } from "@coral-xyz/anchor"
-import { Chains, DestinationChainInterfaces } from "../contracts"
+import { DestinationChainInterfaces } from "../contracts"
 
 import { SolanaDepositorInterface } from "./solana-depositor-interface"
 import { SolanaTBTCToken } from "./solana-tbtc-token"
@@ -16,18 +16,9 @@ import { SolanaAddress } from "./address"
  */
 export async function loadSolanaCrossChainPrograms(
   solanaProvider: AnchorProvider,
-  genesisHash: Chains.Solana
 ): Promise<DestinationChainInterfaces> {
   if (!solanaProvider.wallet || !solanaProvider.wallet.publicKey) {
     throw new Error("No connected wallet found in the provided AnchorProvider.")
-  }
-  const connectionGenesisHash = await solanaProvider.connection.getGenesisHash()
-
-  if (connectionGenesisHash !== genesisHash) {
-    throw new Error(
-      `Connection uses chain with genesis hash ${connectionGenesisHash} 
-      but expected ${genesisHash}.`
-    )
   }
 
   const solanaDepositorInterface = new SolanaDepositorInterface()

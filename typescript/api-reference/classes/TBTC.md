@@ -166,7 +166,7 @@ Cross-chain contracts for the given L2 chain or
 
 #### Defined in
 
-[services/tbtc.ts:313](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L313)
+[services/tbtc.ts:308](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/tbtc.ts#L308)
 
 ___
 

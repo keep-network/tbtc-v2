@@ -1,4 +1,4 @@
-import { Program, AnchorProvider } from "@coral-xyz/anchor"
+import { Program, AnchorProvider, Idl } from "@coral-xyz/anchor"
 import { PublicKey, Transaction } from "@solana/web3.js"
 import { BigNumber } from "ethers"
 import {
@@ -8,7 +8,7 @@ import {
 } from "@solana/spl-token"
 
 import { DestinationChainTBTCToken, ChainIdentifier } from "../contracts"
-import SolanaTBTCTokenIdl from "./idl/tbtc.json"
+import SolanaTBTCTokenIdl from "./target/idl/tbtc.json"
 import { SolanaAddress } from "./address"
 
 /**
@@ -31,7 +31,7 @@ export class SolanaTBTCToken
     }
     const programId = new PublicKey(SolanaTBTCTokenIdl.metadata.address)
 
-    super(SolanaTBTCTokenIdl, provider)
+    super(SolanaTBTCTokenIdl as Idl, programId, provider)
 
     // derive your mint:
     this.tbtcMint = PublicKey.findProgramAddressSync(
@@ -55,7 +55,7 @@ export class SolanaTBTCToken
    * using a transaction signed by the connected wallet.
    */
   async balanceOf(identifier: ChainIdentifier): Promise<BigNumber> {
-    if (!this.provider.wallet?.publicKey) {
+    if (!(this.provider as AnchorProvider).wallet?.publicKey) {
       throw new Error("No wallet connected.")
     }
 
@@ -70,7 +70,7 @@ export class SolanaTBTCToken
       // Build a transaction to create the ATA:
       const tx = new Transaction().add(
         createAssociatedTokenAccountInstruction(
-          this.provider.wallet.publicKey, // Payer (must be a real signer)
+          (this.provider as AnchorProvider).wallet.publicKey, // Payer (must be a real signer)
           ataAddr,
           userPubkey,
           this.tbtcMint

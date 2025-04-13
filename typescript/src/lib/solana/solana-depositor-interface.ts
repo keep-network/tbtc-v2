@@ -57,31 +57,25 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
     deposit: DepositReceipt,
     vault?: ChainIdentifier
   ): Promise<Hex> {
-    const { fundingTx, reveal } = packRevealDepositParameters(
+    const { fundingTx, reveal, extraData } = packRevealDepositParameters(
       depositTx,
       depositOutputIndex,
       deposit,
       vault
     )
 
-    if (!deposit.extraData) {
+    if (!extraData) {
       throw new Error("Extra data is required.")
     }
 
-    // Example: decode deposit owner from your cross-chain extra data.
-    const solanaDepositOwner = this.extraDataEncoder().decodeDepositOwner(
-      deposit.extraData
-    )
-
-    const depositOwnerHex = solanaDepositOwner.identifierHex
     try {
       const response = await axios.post(
-        "https://solana.tbtcscan.org/api/reveal",
+        "http://localhost:3000/api/reveal",
         {
           fundingTx,
           reveal,
-          l2DepositOwner: depositOwnerHex,
-          l2Sender: deposit.depositor.identifierHex,
+          l2DepositOwner: extraData,
+          l2Sender: `0x${this.#depositOwner?.identifierHex}`,
         }
       )
 

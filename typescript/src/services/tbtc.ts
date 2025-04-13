@@ -272,18 +272,13 @@ export class TBTC {
           throw new Error("Solana provider is not defined")
         }
 
-        const genesisHash = chainMapping.solana
-        if (!genesisHash) {
-          throw new Error("Solana chain not available in chain mapping")
-        }
         l1CrossChainInterfaces =
           await this.#crossChainContractsLoader.loadL1Contracts(
             destinationChainName
           )
 
         destinationChainInterfaces = await loadSolanaCrossChainPrograms(
-          nonEvmProvider,
-          genesisHash
+          nonEvmProvider
         )
         break
       default:
