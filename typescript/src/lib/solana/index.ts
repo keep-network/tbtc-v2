@@ -15,7 +15,7 @@ import { SolanaAddress } from "./address"
  * @throws If the connection's genesis hash does not match the expected `genesisHash`.
  */
 export async function loadSolanaCrossChainPrograms(
-  solanaProvider: AnchorProvider,
+  solanaProvider: AnchorProvider
 ): Promise<DestinationChainInterfaces> {
   if (!solanaProvider.wallet || !solanaProvider.wallet.publicKey) {
     throw new Error("No connected wallet found in the provided AnchorProvider.")
