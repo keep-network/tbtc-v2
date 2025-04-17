@@ -14,12 +14,12 @@ import {
   L1BitcoinDepositor,
   ReimbursementPool,
   TestERC20,
-} from "../../typechain"
+} from "../../../typechain"
 import type {
   BitcoinTxInfoStruct,
   DepositRevealInfoStruct,
-} from "../../typechain/L2BitcoinDepositor"
-import { to1ePrecision } from "../helpers/contract-test-helpers"
+} from "../../../typechain/L2BitcoinDepositor"
+import { to1ePrecision } from "../../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 

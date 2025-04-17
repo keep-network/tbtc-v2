@@ -8,7 +8,7 @@ import {
   IL2WormholeGateway,
   IWormholeRelayer,
   L2BitcoinDepositor,
-} from "../../typechain"
+} from "../../../typechain"
 import {
   initializeDepositFixture,
   toWormholeAddress,
