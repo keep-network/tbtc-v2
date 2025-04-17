@@ -6,20 +6,20 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { BigNumber, ContractTransaction } from "ethers"
 import {
   IBridge,
-  IL2WormholeGateway,
+  IWormholeGateway,
   ITBTCVault,
   IWormhole,
   IWormholeRelayer,
   IWormholeTokenBridge,
-  L1BitcoinDepositor,
+  L1BTCDepositorWormhole,
   ReimbursementPool,
   TestERC20,
-} from "../../typechain"
+} from "../../../typechain"
 import type {
   BitcoinTxInfoStruct,
   DepositRevealInfoStruct,
-} from "../../typechain/L2BitcoinDepositor"
-import { to1ePrecision } from "../helpers/contract-test-helpers"
+} from "../../../typechain/L2BTCDepositorWormhole"
+import { to1ePrecision } from "../../helpers/contract-test-helpers"
 
 chai.use(smock.matchers)
 
@@ -29,7 +29,7 @@ const { lastBlockTime } = helpers.time
 const l1ChainId = 10
 const l2ChainId = 20
 
-describe("L1BitcoinDepositor", () => {
+describe("L1BTCDepositorWormhole", () => {
   const contractsFixture = async () => {
     const { deployer, governance } = await helpers.signers.getNamedSigners()
 
@@ -58,11 +58,11 @@ describe("L1BitcoinDepositor", () => {
     const wormholeTokenBridge = await smock.fake<IWormholeTokenBridge>(
       "IWormholeTokenBridge"
     )
-    const l2WormholeGateway = await smock.fake<IL2WormholeGateway>(
-      "IL2WormholeGateway"
+    const l2WormholeGateway = await smock.fake<IWormholeGateway>(
+      "IWormholeGateway"
     )
-    // Just an arbitrary L2BitcoinDepositor address.
-    const l2BitcoinDepositor = "0xeE6F5f69860f310114185677D017576aed0dEC83"
+    // Just an arbitrary L2BTCDepositorWormhole address.
+    const l2BtcDepositor = "0xeE6F5f69860f310114185677D017576aed0dEC83"
     const reimbursementPool = await smock.fake<ReimbursementPool>(
       "ReimbursementPool"
     )
@@ -71,9 +71,9 @@ describe("L1BitcoinDepositor", () => {
       // Hacky workaround allowing to deploy proxy contract any number of times
       // without clearing `deployments/hardhat` directory.
       // See: https://github.com/keep-network/hardhat-helpers/issues/38
-      `L1BitcoinDepositor_${randomBytes(8).toString("hex")}`,
+      `L1BTCDepositorWormhole_${randomBytes(8).toString("hex")}`,
       {
-        contractName: "L1BitcoinDepositor",
+        contractName: "L1BTCDepositorWormhole",
         initializerArgs: [
           bridge.address,
           tbtcVault.address,
@@ -89,11 +89,9 @@ describe("L1BitcoinDepositor", () => {
         },
       }
     )
-    const l1BitcoinDepositor = deployment[0] as L1BitcoinDepositor
+    const l1BtcDepositor = deployment[0] as L1BTCDepositorWormhole
 
-    await l1BitcoinDepositor
-      .connect(deployer)
-      .transferOwnership(governance.address)
+    await l1BtcDepositor.connect(deployer).transferOwnership(governance.address)
 
     return {
       governance,
@@ -105,9 +103,9 @@ describe("L1BitcoinDepositor", () => {
       wormholeRelayer,
       wormholeTokenBridge,
       l2WormholeGateway,
-      l2BitcoinDepositor,
+      l2BtcDepositor,
       reimbursementPool,
-      l1BitcoinDepositor,
+      l1BtcDepositor,
     }
   }
 
@@ -120,10 +118,10 @@ describe("L1BitcoinDepositor", () => {
   let wormhole: FakeContract<IWormhole>
   let wormholeRelayer: FakeContract<IWormholeRelayer>
   let wormholeTokenBridge: FakeContract<IWormholeTokenBridge>
-  let l2WormholeGateway: FakeContract<IL2WormholeGateway>
-  let l2BitcoinDepositor: string
+  let l2WormholeGateway: FakeContract<IWormholeGateway>
+  let l2BtcDepositor: string
   let reimbursementPool: FakeContract<ReimbursementPool>
-  let l1BitcoinDepositor: L1BitcoinDepositor
+  let l1BtcDepositor: L1BTCDepositorWormhole
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -137,31 +135,29 @@ describe("L1BitcoinDepositor", () => {
       wormholeRelayer,
       wormholeTokenBridge,
       l2WormholeGateway,
-      l1BitcoinDepositor,
+      l1BtcDepositor,
       reimbursementPool,
-      l2BitcoinDepositor,
+      l2BtcDepositor,
     } = await waffle.loadFixture(contractsFixture))
   })
 
-  describe("attachL2BitcoinDepositor", () => {
+  describe("attachL2BtcDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
-            .connect(relayer)
-            .attachL2BitcoinDepositor(l2BitcoinDepositor)
+          l1BtcDepositor.connect(relayer).attachL2BtcDepositor(l2BtcDepositor)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("when the caller is the owner", () => {
-      context("when the L2BitcoinDepositor is already attached", () => {
+      context("when the L2BTCDepositorWormhole is already attached", () => {
         before(async () => {
           await createSnapshot()
 
-          await l1BitcoinDepositor
+          await l1BtcDepositor
             .connect(governance)
-            .attachL2BitcoinDepositor(l2BitcoinDepositor)
+            .attachL2BtcDepositor(l2BtcDepositor)
         })
 
         after(async () => {
@@ -170,40 +166,40 @@ describe("L1BitcoinDepositor", () => {
 
         it("should revert", async () => {
           await expect(
-            l1BitcoinDepositor
+            l1BtcDepositor
               .connect(governance)
-              .attachL2BitcoinDepositor(l2BitcoinDepositor)
+              .attachL2BtcDepositor(l2BtcDepositor)
           ).to.be.revertedWith("L2 Bitcoin Depositor already set")
         })
       })
 
-      context("when the L2BitcoinDepositor is not attached", () => {
-        context("when new L2BitcoinDepositor is zero", () => {
+      context("when the L2BTCDepositorWormhole is not attached", () => {
+        context("when new L2BTCDepositorWormhole is zero", () => {
           it("should revert", async () => {
             await expect(
-              l1BitcoinDepositor
+              l1BtcDepositor
                 .connect(governance)
-                .attachL2BitcoinDepositor(ethers.constants.AddressZero)
+                .attachL2BtcDepositor(ethers.constants.AddressZero)
             ).to.be.revertedWith("L2 Bitcoin Depositor must not be 0x0")
           })
         })
 
-        context("when new L2BitcoinDepositor is non-zero", () => {
+        context("when new L2BTCDepositorWormhole is non-zero", () => {
           before(async () => {
             await createSnapshot()
 
-            await l1BitcoinDepositor
+            await l1BtcDepositor
               .connect(governance)
-              .attachL2BitcoinDepositor(l2BitcoinDepositor)
+              .attachL2BtcDepositor(l2BtcDepositor)
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          it("should set the l2BitcoinDepositor address properly", async () => {
-            expect(await l1BitcoinDepositor.l2BitcoinDepositor()).to.equal(
-              l2BitcoinDepositor
+          it("should set the l2BtcDepositor address properly", async () => {
+            expect(await l1BtcDepositor.l2BtcDepositor()).to.equal(
+              l2BtcDepositor
             )
           })
         })
@@ -215,7 +211,7 @@ describe("L1BitcoinDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(relayer)
             .updateReimbursementPool(reimbursementPool.address)
         ).to.be.revertedWith("'Caller is not the owner")
@@ -226,7 +222,7 @@ describe("L1BitcoinDepositor", () => {
       before(async () => {
         await createSnapshot()
 
-        await l1BitcoinDepositor
+        await l1BtcDepositor
           .connect(governance)
           .updateReimbursementPool(reimbursementPool.address)
       })
@@ -236,18 +232,18 @@ describe("L1BitcoinDepositor", () => {
       })
 
       it("should set the reimbursementPool address properly", async () => {
-        expect(await l1BitcoinDepositor.reimbursementPool()).to.equal(
+        expect(await l1BtcDepositor.reimbursementPool()).to.equal(
           reimbursementPool.address
         )
       })
 
       it("should emit ReimbursementPoolUpdated event", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(governance)
             .updateReimbursementPool(reimbursementPool.address)
         )
-          .to.emit(l1BitcoinDepositor, "ReimbursementPoolUpdated")
+          .to.emit(l1BtcDepositor, "ReimbursementPoolUpdated")
           .withArgs(reimbursementPool.address)
       })
     })
@@ -257,9 +253,7 @@ describe("L1BitcoinDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
-            .connect(relayer)
-            .updateL2FinalizeDepositGasLimit(100)
+          l1BtcDepositor.connect(relayer).updateL2FinalizeDepositGasLimit(100)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -268,7 +262,7 @@ describe("L1BitcoinDepositor", () => {
       before(async () => {
         await createSnapshot()
 
-        await l1BitcoinDepositor
+        await l1BtcDepositor
           .connect(governance)
           .updateL2FinalizeDepositGasLimit(100)
       })
@@ -278,18 +272,16 @@ describe("L1BitcoinDepositor", () => {
       })
 
       it("should set the gas limit properly", async () => {
-        expect(await l1BitcoinDepositor.l2FinalizeDepositGasLimit()).to.equal(
-          100
-        )
+        expect(await l1BtcDepositor.l2FinalizeDepositGasLimit()).to.equal(100)
       })
 
       it("should emit L2FinalizeDepositGasLimitUpdated event", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(governance)
             .updateL2FinalizeDepositGasLimit(100)
         )
-          .to.emit(l1BitcoinDepositor, "L2FinalizeDepositGasLimitUpdated")
+          .to.emit(l1BtcDepositor, "L2FinalizeDepositGasLimitUpdated")
           .withArgs(100)
       })
     })
@@ -299,9 +291,7 @@ describe("L1BitcoinDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
-            .connect(relayer)
-            .updateGasOffsetParameters(1000, 2000)
+          l1BtcDepositor.connect(relayer).updateGasOffsetParameters(1000, 2000)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -310,7 +300,7 @@ describe("L1BitcoinDepositor", () => {
       before(async () => {
         await createSnapshot()
 
-        await l1BitcoinDepositor
+        await l1BtcDepositor
           .connect(governance)
           .updateGasOffsetParameters(1000, 2000)
       })
@@ -320,22 +310,22 @@ describe("L1BitcoinDepositor", () => {
       })
 
       it("should set the gas offset params properly", async () => {
-        expect(
-          await l1BitcoinDepositor.initializeDepositGasOffset()
-        ).to.be.equal(1000)
+        expect(await l1BtcDepositor.initializeDepositGasOffset()).to.be.equal(
+          1000
+        )
 
-        expect(await l1BitcoinDepositor.finalizeDepositGasOffset()).to.be.equal(
+        expect(await l1BtcDepositor.finalizeDepositGasOffset()).to.be.equal(
           2000
         )
       })
 
       it("should emit GasOffsetParametersUpdated event", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(governance)
             .updateGasOffsetParameters(1000, 2000)
         )
-          .to.emit(l1BitcoinDepositor, "GasOffsetParametersUpdated")
+          .to.emit(l1BtcDepositor, "GasOffsetParametersUpdated")
           .withArgs(1000, 2000)
       })
     })
@@ -345,7 +335,7 @@ describe("L1BitcoinDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(relayer)
             .updateReimbursementAuthorization(relayer.address, true)
         ).to.be.revertedWith("Ownable: caller is not the owner")
@@ -358,7 +348,7 @@ describe("L1BitcoinDepositor", () => {
       before(async () => {
         await createSnapshot()
 
-        tx = await l1BitcoinDepositor
+        tx = await l1BtcDepositor
           .connect(governance)
           .updateReimbursementAuthorization(relayer.address, true)
       })
@@ -370,13 +360,13 @@ describe("L1BitcoinDepositor", () => {
       it("should set the authorization properly", async () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(
-          await l1BitcoinDepositor.reimbursementAuthorizations(relayer.address)
+          await l1BtcDepositor.reimbursementAuthorizations(relayer.address)
         ).to.be.true
       })
 
       it("should emit ReimbursementAuthorizationUpdated event", async () => {
         await expect(tx)
-          .to.emit(l1BitcoinDepositor, "ReimbursementAuthorizationUpdated")
+          .to.emit(l1BtcDepositor, "ReimbursementAuthorizationUpdated")
           .withArgs(relayer.address, true)
       })
     })
@@ -386,12 +376,12 @@ describe("L1BitcoinDepositor", () => {
     context("when the L2 deposit owner is zero", () => {
       it("should revert", async () => {
         await expect(
-          l1BitcoinDepositor
+          l1BtcDepositor
             .connect(relayer)
             .initializeDeposit(
               initializeDepositFixture.fundingTx,
               initializeDepositFixture.reveal,
-              ethers.constants.AddressZero
+              ethers.constants.HashZero
             )
         ).to.be.revertedWith("L2 deposit owner must not be 0x0")
       })
@@ -409,12 +399,12 @@ describe("L1BitcoinDepositor", () => {
           corruptedReveal.vault = ethers.constants.AddressZero
 
           await expect(
-            l1BitcoinDepositor
+            l1BtcDepositor
               .connect(relayer)
               .initializeDeposit(
                 initializeDepositFixture.fundingTx,
                 corruptedReveal,
-                initializeDepositFixture.l2DepositOwner
+                initializeDepositFixture.destinationChainDepositOwner
               )
           ).to.be.revertedWith("Vault address mismatch")
         })
@@ -426,12 +416,12 @@ describe("L1BitcoinDepositor", () => {
             before(async () => {
               await createSnapshot()
 
-              await l1BitcoinDepositor
+              await l1BtcDepositor
                 .connect(relayer)
                 .initializeDeposit(
                   initializeDepositFixture.fundingTx,
                   initializeDepositFixture.reveal,
-                  initializeDepositFixture.l2DepositOwner
+                  initializeDepositFixture.destinationChainDepositOwner
                 )
             })
 
@@ -443,12 +433,12 @@ describe("L1BitcoinDepositor", () => {
 
             it("should revert", async () => {
               await expect(
-                l1BitcoinDepositor
+                l1BtcDepositor
                   .connect(relayer)
                   .initializeDeposit(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    initializeDepositFixture.l2DepositOwner
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
               ).to.be.revertedWith("Wrong deposit state")
             })
@@ -458,12 +448,12 @@ describe("L1BitcoinDepositor", () => {
             before(async () => {
               await createSnapshot()
 
-              await l1BitcoinDepositor
+              await l1BtcDepositor
                 .connect(relayer)
                 .initializeDeposit(
                   initializeDepositFixture.fundingTx,
                   initializeDepositFixture.reveal,
-                  initializeDepositFixture.l2DepositOwner
+                  initializeDepositFixture.destinationChainDepositOwner
                 )
 
               // Set the Bridge mock to return a deposit state that allows
@@ -499,7 +489,7 @@ describe("L1BitcoinDepositor", () => {
               wormholeTokenBridge.transferTokensWithPayload.returns(0)
               wormholeRelayer.sendVaasToEvm.returns(0)
 
-              await l1BitcoinDepositor
+              await l1BtcDepositor
                 .connect(relayer)
                 .finalizeDeposit(initializeDepositFixture.depositKey, {
                   value: messageFee + deliveryCost,
@@ -520,12 +510,12 @@ describe("L1BitcoinDepositor", () => {
 
             it("should revert", async () => {
               await expect(
-                l1BitcoinDepositor
+                l1BtcDepositor
                   .connect(relayer)
                   .initializeDeposit(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    initializeDepositFixture.l2DepositOwner
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
               ).to.be.revertedWith("Wrong deposit state")
             })
@@ -543,16 +533,18 @@ describe("L1BitcoinDepositor", () => {
                 .whenCalledWith(
                   initializeDepositFixture.fundingTx,
                   initializeDepositFixture.reveal,
-                  toWormholeAddress(initializeDepositFixture.l2DepositOwner)
+                  toWormholeAddress(
+                    initializeDepositFixture.destinationChainDepositOwner
+                  )
                 )
                 .returns()
 
-              tx = await l1BitcoinDepositor
+              tx = await l1BtcDepositor
                 .connect(relayer)
                 .initializeDeposit(
                   initializeDepositFixture.fundingTx,
                   initializeDepositFixture.reveal,
-                  initializeDepositFixture.l2DepositOwner
+                  initializeDepositFixture.destinationChainDepositOwner
                 )
             })
 
@@ -566,7 +558,7 @@ describe("L1BitcoinDepositor", () => {
               // eslint-disable-next-line @typescript-eslint/no-unused-expressions
               expect(bridge.revealDepositWithExtraData).to.have.been.calledOnce
 
-              const { fundingTx, reveal, l2DepositOwner } =
+              const { fundingTx, reveal, destinationChainDepositOwner } =
                 initializeDepositFixture
 
               // The `calledOnceWith` assertion is not used here because
@@ -589,13 +581,13 @@ describe("L1BitcoinDepositor", () => {
                 reveal.vault,
               ])
               expect(call.args[2]).to.eql(
-                toWormholeAddress(l2DepositOwner.toLowerCase())
+                destinationChainDepositOwner.toLowerCase()
               )
             })
 
             it("should set the deposit state to Initialized", async () => {
               expect(
-                await l1BitcoinDepositor.deposits(
+                await l1BtcDepositor.deposits(
                   initializeDepositFixture.depositKey
                 )
               ).to.equal(1)
@@ -603,17 +595,17 @@ describe("L1BitcoinDepositor", () => {
 
             it("should emit DepositInitialized event", async () => {
               await expect(tx)
-                .to.emit(l1BitcoinDepositor, "DepositInitialized")
+                .to.emit(l1BtcDepositor, "DepositInitialized")
                 .withArgs(
                   initializeDepositFixture.depositKey,
-                  initializeDepositFixture.l2DepositOwner,
+                  initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                   relayer.address
                 )
             })
 
             it("should not store the deferred gas reimbursement", async () => {
               expect(
-                await l1BitcoinDepositor.gasReimbursements(
+                await l1BtcDepositor.gasReimbursements(
                   initializeDepositFixture.depositKey
                 )
               ).to.eql([ethers.constants.AddressZero, BigNumber.from(0)])
@@ -632,24 +624,26 @@ describe("L1BitcoinDepositor", () => {
                   .whenCalledWith(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    toWormholeAddress(initializeDepositFixture.l2DepositOwner)
+                    toWormholeAddress(
+                      initializeDepositFixture.destinationChainDepositOwner
+                    )
                   )
                   .returns()
 
-                await l1BitcoinDepositor
+                await l1BtcDepositor
                   .connect(governance)
                   .updateReimbursementPool(reimbursementPool.address)
 
-                await l1BitcoinDepositor
+                await l1BtcDepositor
                   .connect(governance)
                   .updateReimbursementAuthorization(relayer.address, true)
 
-                tx = await l1BitcoinDepositor
+                tx = await l1BtcDepositor
                   .connect(relayer)
                   .initializeDeposit(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    initializeDepositFixture.l2DepositOwner
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
               })
 
@@ -664,7 +658,7 @@ describe("L1BitcoinDepositor", () => {
                 expect(bridge.revealDepositWithExtraData).to.have.been
                   .calledOnce
 
-                const { fundingTx, reveal, l2DepositOwner } =
+                const { fundingTx, reveal, destinationChainDepositOwner } =
                   initializeDepositFixture
 
                 // The `calledOnceWith` assertion is not used here because
@@ -687,13 +681,13 @@ describe("L1BitcoinDepositor", () => {
                   reveal.vault,
                 ])
                 expect(call.args[2]).to.eql(
-                  toWormholeAddress(l2DepositOwner.toLowerCase())
+                  destinationChainDepositOwner.toLowerCase()
                 )
               })
 
               it("should set the deposit state to Initialized", async () => {
                 expect(
-                  await l1BitcoinDepositor.deposits(
+                  await l1BtcDepositor.deposits(
                     initializeDepositFixture.depositKey
                   )
                 ).to.equal(1)
@@ -701,19 +695,18 @@ describe("L1BitcoinDepositor", () => {
 
               it("should emit DepositInitialized event", async () => {
                 await expect(tx)
-                  .to.emit(l1BitcoinDepositor, "DepositInitialized")
+                  .to.emit(l1BtcDepositor, "DepositInitialized")
                   .withArgs(
                     initializeDepositFixture.depositKey,
-                    initializeDepositFixture.l2DepositOwner,
+                    initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                     relayer.address
                   )
               })
 
               it("should store the deferred gas reimbursement", async () => {
-                const gasReimbursement =
-                  await l1BitcoinDepositor.gasReimbursements(
-                    initializeDepositFixture.depositKey
-                  )
+                const gasReimbursement = await l1BtcDepositor.gasReimbursements(
+                  initializeDepositFixture.depositKey
+                )
 
                 expect(gasReimbursement.receiver).to.equal(relayer.address)
                 // It doesn't make much sense to check the exact gas spent value
@@ -740,24 +733,24 @@ describe("L1BitcoinDepositor", () => {
                   .whenCalledWith(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    toWormholeAddress(initializeDepositFixture.l2DepositOwner)
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
                   .returns()
 
-                await l1BitcoinDepositor
+                await l1BtcDepositor
                   .connect(governance)
                   .updateReimbursementPool(reimbursementPool.address)
 
-                await l1BitcoinDepositor
+                await l1BtcDepositor
                   .connect(governance)
                   .updateReimbursementAuthorization(relayer.address, false)
 
-                tx = await l1BitcoinDepositor
+                tx = await l1BtcDepositor
                   .connect(relayer)
                   .initializeDeposit(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    initializeDepositFixture.l2DepositOwner
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
               })
 
@@ -772,7 +765,7 @@ describe("L1BitcoinDepositor", () => {
                 expect(bridge.revealDepositWithExtraData).to.have.been
                   .calledOnce
 
-                const { fundingTx, reveal, l2DepositOwner } =
+                const { fundingTx, reveal, destinationChainDepositOwner } =
                   initializeDepositFixture
 
                 // The `calledOnceWith` assertion is not used here because
@@ -795,13 +788,13 @@ describe("L1BitcoinDepositor", () => {
                   reveal.vault,
                 ])
                 expect(call.args[2]).to.eql(
-                  toWormholeAddress(l2DepositOwner.toLowerCase())
+                  destinationChainDepositOwner.toLowerCase()
                 )
               })
 
               it("should set the deposit state to Initialized", async () => {
                 expect(
-                  await l1BitcoinDepositor.deposits(
+                  await l1BtcDepositor.deposits(
                     initializeDepositFixture.depositKey
                   )
                 ).to.equal(1)
@@ -809,17 +802,17 @@ describe("L1BitcoinDepositor", () => {
 
               it("should emit DepositInitialized event", async () => {
                 await expect(tx)
-                  .to.emit(l1BitcoinDepositor, "DepositInitialized")
+                  .to.emit(l1BtcDepositor, "DepositInitialized")
                   .withArgs(
                     initializeDepositFixture.depositKey,
-                    initializeDepositFixture.l2DepositOwner,
+                    initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                     relayer.address
                   )
               })
 
               it("should not store the deferred gas reimbursement", async () => {
                 expect(
-                  await l1BitcoinDepositor.gasReimbursements(
+                  await l1BtcDepositor.gasReimbursements(
                     initializeDepositFixture.depositKey
                   )
                 ).to.eql([ethers.constants.AddressZero, BigNumber.from(0)])
@@ -835,11 +828,11 @@ describe("L1BitcoinDepositor", () => {
     before(async () => {
       await createSnapshot()
 
-      // The L2BitcoinDepositor contract must be attached to the L1BitcoinDepositor
+      // The L2BTCDepositorWormhole contract must be attached to the L1BTCDepositorWormhole
       // contract before the finalizeDeposit function is called.
-      await l1BitcoinDepositor
+      await l1BtcDepositor
         .connect(governance)
-        .attachL2BitcoinDepositor(l2BitcoinDepositor)
+        .attachL2BtcDepositor(l2BtcDepositor)
     })
 
     after(async () => {
@@ -850,7 +843,7 @@ describe("L1BitcoinDepositor", () => {
       context("when the deposit state is Unknown", () => {
         it("should revert", async () => {
           await expect(
-            l1BitcoinDepositor
+            l1BtcDepositor
               .connect(relayer)
               .finalizeDeposit(initializeDepositFixture.depositKey)
           ).to.be.revertedWith("Wrong deposit state")
@@ -861,12 +854,12 @@ describe("L1BitcoinDepositor", () => {
         before(async () => {
           await createSnapshot()
 
-          await l1BitcoinDepositor
+          await l1BtcDepositor
             .connect(relayer)
             .initializeDeposit(
               initializeDepositFixture.fundingTx,
               initializeDepositFixture.reveal,
-              initializeDepositFixture.l2DepositOwner
+              initializeDepositFixture.destinationChainDepositOwner
             )
 
           // Set the Bridge mock to return a deposit state that allows
@@ -902,7 +895,7 @@ describe("L1BitcoinDepositor", () => {
           wormholeTokenBridge.transferTokensWithPayload.returns(0)
           wormholeRelayer.sendVaasToEvm.returns(0)
 
-          await l1BitcoinDepositor
+          await l1BtcDepositor
             .connect(relayer)
             .finalizeDeposit(initializeDepositFixture.depositKey, {
               value: messageFee + deliveryCost,
@@ -923,7 +916,7 @@ describe("L1BitcoinDepositor", () => {
 
         it("should revert", async () => {
           await expect(
-            l1BitcoinDepositor
+            l1BtcDepositor
               .connect(relayer)
               .finalizeDeposit(initializeDepositFixture.depositKey)
           ).to.be.revertedWith("Wrong deposit state")
@@ -936,12 +929,12 @@ describe("L1BitcoinDepositor", () => {
         before(async () => {
           await createSnapshot()
 
-          await l1BitcoinDepositor
+          await l1BtcDepositor
             .connect(relayer)
             .initializeDeposit(
               initializeDepositFixture.fundingTx,
               initializeDepositFixture.reveal,
-              initializeDepositFixture.l2DepositOwner
+              initializeDepositFixture.destinationChainDepositOwner
             )
 
           // Set the Bridge mock to return a deposit state that does not allow
@@ -976,7 +969,7 @@ describe("L1BitcoinDepositor", () => {
 
         it("should revert", async () => {
           await expect(
-            l1BitcoinDepositor
+            l1BtcDepositor
               .connect(relayer)
               .finalizeDeposit(initializeDepositFixture.depositKey)
           ).to.be.revertedWith("Deposit not finalized by the bridge")
@@ -988,12 +981,12 @@ describe("L1BitcoinDepositor", () => {
           before(async () => {
             await createSnapshot()
 
-            await l1BitcoinDepositor
+            await l1BtcDepositor
               .connect(relayer)
               .initializeDeposit(
                 initializeDepositFixture.fundingTx,
                 initializeDepositFixture.reveal,
-                initializeDepositFixture.l2DepositOwner
+                initializeDepositFixture.destinationChainDepositOwner
               )
 
             // Set the Bridge mock to return a deposit state that pass the
@@ -1030,7 +1023,7 @@ describe("L1BitcoinDepositor", () => {
 
           it("should revert", async () => {
             await expect(
-              l1BitcoinDepositor
+              l1BtcDepositor
                 .connect(relayer)
                 .finalizeDeposit(initializeDepositFixture.depositKey)
             ).to.be.revertedWith("Amount too low to bridge")
@@ -1045,12 +1038,12 @@ describe("L1BitcoinDepositor", () => {
             before(async () => {
               await createSnapshot()
 
-              await l1BitcoinDepositor
+              await l1BtcDepositor
                 .connect(relayer)
                 .initializeDeposit(
                   initializeDepositFixture.fundingTx,
                   initializeDepositFixture.reveal,
-                  initializeDepositFixture.l2DepositOwner
+                  initializeDepositFixture.destinationChainDepositOwner
                 )
 
               // Set the Bridge mock to return a deposit state that allows
@@ -1099,7 +1092,7 @@ describe("L1BitcoinDepositor", () => {
 
             it("should revert", async () => {
               await expect(
-                l1BitcoinDepositor
+                l1BtcDepositor
                   .connect(relayer)
                   .finalizeDeposit(initializeDepositFixture.depositKey, {
                     // Use a value by 1 WEI less than required.
@@ -1131,12 +1124,12 @@ describe("L1BitcoinDepositor", () => {
               before(async () => {
                 await createSnapshot()
 
-                await l1BitcoinDepositor
+                await l1BtcDepositor
                   .connect(relayer)
                   .initializeDeposit(
                     initializeDepositFixture.fundingTx,
                     initializeDepositFixture.reveal,
-                    initializeDepositFixture.l2DepositOwner
+                    initializeDepositFixture.destinationChainDepositOwner
                   )
 
                 // Set Bridge fees. Set only relevant fields.
@@ -1157,15 +1150,14 @@ describe("L1BitcoinDepositor", () => {
                 bridge.deposits
                   .whenCalledWith(initializeDepositFixture.depositKey)
                   .returns({
-                    depositor: l1BitcoinDepositor.address,
+                    depositor: l1BtcDepositor.address,
                     amount: depositAmount,
                     revealedAt,
                     vault: initializeDepositFixture.reveal.vault,
                     treasuryFee,
                     sweptAt: finalizedAt,
-                    extraData: toWormholeAddress(
-                      initializeDepositFixture.l2DepositOwner
-                    ),
+                    extraData:
+                      initializeDepositFixture.destinationChainDepositOwner,
                   })
 
                 // Set the TBTCVault mock to return a deposit state
@@ -1186,7 +1178,7 @@ describe("L1BitcoinDepositor", () => {
                 // Return arbitrary sent value.
                 wormholeRelayer.sendVaasToEvm.returns(100)
 
-                tx = await l1BitcoinDepositor
+                tx = await l1BtcDepositor
                   .connect(relayer)
                   .finalizeDeposit(initializeDepositFixture.depositKey, {
                     value: messageFee + deliveryCost,
@@ -1209,7 +1201,7 @@ describe("L1BitcoinDepositor", () => {
 
               it("should set the deposit state to Finalized", async () => {
                 expect(
-                  await l1BitcoinDepositor.deposits(
+                  await l1BtcDepositor.deposits(
                     initializeDepositFixture.depositKey
                   )
                 ).to.equal(2)
@@ -1217,10 +1209,10 @@ describe("L1BitcoinDepositor", () => {
 
               it("should emit DepositFinalized event", async () => {
                 await expect(tx)
-                  .to.emit(l1BitcoinDepositor, "DepositFinalized")
+                  .to.emit(l1BtcDepositor, "DepositFinalized")
                   .withArgs(
                     initializeDepositFixture.depositKey,
-                    initializeDepositFixture.l2DepositOwner,
+                    initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                     relayer.address,
                     depositAmount.mul(satoshiMultiplier),
                     expectedTbtcAmount
@@ -1230,7 +1222,7 @@ describe("L1BitcoinDepositor", () => {
               it("should increase TBTC allowance for Wormhole Token Bridge", async () => {
                 expect(
                   await tbtcToken.allowance(
-                    l1BitcoinDepositor.address,
+                    l1BtcDepositor.address,
                     wormholeTokenBridge.address
                   )
                 ).to.equal(expectedTbtcAmount)
@@ -1250,18 +1242,13 @@ describe("L1BitcoinDepositor", () => {
                 expect(call.value).to.equal(messageFee)
                 expect(call.args[0]).to.equal(tbtcToken.address)
                 expect(call.args[1]).to.equal(expectedTbtcAmount)
-                expect(call.args[2]).to.equal(
-                  await l1BitcoinDepositor.l2ChainId()
-                )
+                expect(call.args[2]).to.equal(await l1BtcDepositor.l2ChainId())
                 expect(call.args[3]).to.equal(
                   toWormholeAddress(l2WormholeGateway.address.toLowerCase())
                 )
                 expect(call.args[4]).to.equal(0)
                 expect(call.args[5]).to.equal(
-                  ethers.utils.defaultAbiCoder.encode(
-                    ["address"],
-                    [initializeDepositFixture.l2DepositOwner]
-                  )
+                  initializeDepositFixture.destinationChainDepositOwner.toLowerCase()
                 )
               })
 
@@ -1275,14 +1262,12 @@ describe("L1BitcoinDepositor", () => {
                 // to compare the arguments manually.
                 const call = wormholeRelayer.sendVaasToEvm.getCall(0)
                 expect(call.value).to.equal(deliveryCost)
-                expect(call.args[0]).to.equal(
-                  await l1BitcoinDepositor.l2ChainId()
-                )
-                expect(call.args[1]).to.equal(l2BitcoinDepositor)
+                expect(call.args[0]).to.equal(await l1BtcDepositor.l2ChainId())
+                expect(call.args[1]).to.equal(l2BtcDepositor)
                 expect(call.args[2]).to.equal("0x")
                 expect(call.args[3]).to.equal(0)
                 expect(call.args[4]).to.equal(
-                  await l1BitcoinDepositor.l2FinalizeDepositGasLimit()
+                  await l1BtcDepositor.l2FinalizeDepositGasLimit()
                 )
                 expect(call.args[5]).to.eql([
                   [
@@ -1293,9 +1278,7 @@ describe("L1BitcoinDepositor", () => {
                     BigNumber.from(transferSequence),
                   ],
                 ])
-                expect(call.args[6]).to.equal(
-                  await l1BitcoinDepositor.l2ChainId()
-                )
+                expect(call.args[6]).to.equal(await l1BtcDepositor.l2ChainId())
                 expect(call.args[7]).to.equal(relayer.address)
               })
 
@@ -1326,26 +1309,26 @@ describe("L1BitcoinDepositor", () => {
                     reimbursementPoolStaticGas
                   )
 
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(governance)
                     .updateReimbursementPool(reimbursementPool.address)
 
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(governance)
                     .updateReimbursementAuthorization(relayer.address, true)
 
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(relayer)
                     .initializeDeposit(
                       initializeDepositFixture.fundingTx,
                       initializeDepositFixture.reveal,
-                      initializeDepositFixture.l2DepositOwner
+                      initializeDepositFixture.destinationChainDepositOwner
                     )
 
                   // Capture the gas spent for the initializeDeposit call
                   // for post-finalization comparison.
                   initializeDepositGasSpent = (
-                    await l1BitcoinDepositor.gasReimbursements(
+                    await l1BtcDepositor.gasReimbursements(
                       initializeDepositFixture.depositKey
                     )
                   ).gasSpent
@@ -1368,15 +1351,14 @@ describe("L1BitcoinDepositor", () => {
                   bridge.deposits
                     .whenCalledWith(initializeDepositFixture.depositKey)
                     .returns({
-                      depositor: l1BitcoinDepositor.address,
+                      depositor: l1BtcDepositor.address,
                       amount: depositAmount,
                       revealedAt,
                       vault: initializeDepositFixture.reveal.vault,
                       treasuryFee,
                       sweptAt: finalizedAt,
-                      extraData: toWormholeAddress(
-                        initializeDepositFixture.l2DepositOwner
-                      ),
+                      extraData:
+                        initializeDepositFixture.destinationChainDepositOwner,
                     })
 
                   // Set the TBTCVault mock to return a deposit state
@@ -1397,7 +1379,7 @@ describe("L1BitcoinDepositor", () => {
                   // Return arbitrary sent value.
                   wormholeRelayer.sendVaasToEvm.returns(100)
 
-                  tx = await l1BitcoinDepositor
+                  tx = await l1BtcDepositor
                     .connect(relayer)
                     .finalizeDeposit(initializeDepositFixture.depositKey, {
                       value: messageFee + deliveryCost,
@@ -1423,7 +1405,7 @@ describe("L1BitcoinDepositor", () => {
 
                 it("should set the deposit state to Finalized", async () => {
                   expect(
-                    await l1BitcoinDepositor.deposits(
+                    await l1BtcDepositor.deposits(
                       initializeDepositFixture.depositKey
                     )
                   ).to.equal(2)
@@ -1431,10 +1413,10 @@ describe("L1BitcoinDepositor", () => {
 
                 it("should emit DepositFinalized event", async () => {
                   await expect(tx)
-                    .to.emit(l1BitcoinDepositor, "DepositFinalized")
+                    .to.emit(l1BtcDepositor, "DepositFinalized")
                     .withArgs(
                       initializeDepositFixture.depositKey,
-                      initializeDepositFixture.l2DepositOwner,
+                      initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                       relayer.address,
                       depositAmount.mul(satoshiMultiplier),
                       expectedTbtcAmount
@@ -1444,7 +1426,7 @@ describe("L1BitcoinDepositor", () => {
                 it("should increase TBTC allowance for Wormhole Token Bridge", async () => {
                   expect(
                     await tbtcToken.allowance(
-                      l1BitcoinDepositor.address,
+                      l1BtcDepositor.address,
                       wormholeTokenBridge.address
                     )
                   ).to.equal(expectedTbtcAmount)
@@ -1465,17 +1447,14 @@ describe("L1BitcoinDepositor", () => {
                   expect(call.args[0]).to.equal(tbtcToken.address)
                   expect(call.args[1]).to.equal(expectedTbtcAmount)
                   expect(call.args[2]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
                   expect(call.args[3]).to.equal(
                     toWormholeAddress(l2WormholeGateway.address.toLowerCase())
                   )
                   expect(call.args[4]).to.equal(0)
                   expect(call.args[5]).to.equal(
-                    ethers.utils.defaultAbiCoder.encode(
-                      ["address"],
-                      [initializeDepositFixture.l2DepositOwner]
-                    )
+                    initializeDepositFixture.destinationChainDepositOwner.toLowerCase()
                   )
                 })
 
@@ -1490,13 +1469,13 @@ describe("L1BitcoinDepositor", () => {
                   const call = wormholeRelayer.sendVaasToEvm.getCall(0)
                   expect(call.value).to.equal(deliveryCost)
                   expect(call.args[0]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
-                  expect(call.args[1]).to.equal(l2BitcoinDepositor)
+                  expect(call.args[1]).to.equal(l2BtcDepositor)
                   expect(call.args[2]).to.equal("0x")
                   expect(call.args[3]).to.equal(0)
                   expect(call.args[4]).to.equal(
-                    await l1BitcoinDepositor.l2FinalizeDepositGasLimit()
+                    await l1BtcDepositor.l2FinalizeDepositGasLimit()
                   )
                   expect(call.args[5]).to.eql([
                     [
@@ -1508,7 +1487,7 @@ describe("L1BitcoinDepositor", () => {
                     ],
                   ])
                   expect(call.args[6]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
                   expect(call.args[7]).to.equal(relayer.address)
                 })
@@ -1567,27 +1546,27 @@ describe("L1BitcoinDepositor", () => {
                     reimbursementPoolStaticGas
                   )
 
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(governance)
                     .updateReimbursementPool(reimbursementPool.address)
 
                   // Authorize just for deposit initialization.
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(governance)
                     .updateReimbursementAuthorization(relayer.address, true)
 
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(relayer)
                     .initializeDeposit(
                       initializeDepositFixture.fundingTx,
                       initializeDepositFixture.reveal,
-                      initializeDepositFixture.l2DepositOwner
+                      initializeDepositFixture.destinationChainDepositOwner
                     )
 
                   // Capture the gas spent for the initializeDeposit call
                   // for post-finalization comparison.
                   initializeDepositGasSpent = (
-                    await l1BitcoinDepositor.gasReimbursements(
+                    await l1BtcDepositor.gasReimbursements(
                       initializeDepositFixture.depositKey
                     )
                   ).gasSpent
@@ -1610,15 +1589,14 @@ describe("L1BitcoinDepositor", () => {
                   bridge.deposits
                     .whenCalledWith(initializeDepositFixture.depositKey)
                     .returns({
-                      depositor: l1BitcoinDepositor.address,
+                      depositor: l1BtcDepositor.address,
                       amount: depositAmount,
                       revealedAt,
                       vault: initializeDepositFixture.reveal.vault,
                       treasuryFee,
                       sweptAt: finalizedAt,
-                      extraData: toWormholeAddress(
-                        initializeDepositFixture.l2DepositOwner
-                      ),
+                      extraData:
+                        initializeDepositFixture.destinationChainDepositOwner,
                     })
 
                   // Set the TBTCVault mock to return a deposit state
@@ -1640,11 +1618,11 @@ describe("L1BitcoinDepositor", () => {
                   wormholeRelayer.sendVaasToEvm.returns(100)
 
                   // De-authorize for deposit finalization.
-                  await l1BitcoinDepositor
+                  await l1BtcDepositor
                     .connect(governance)
                     .updateReimbursementAuthorization(relayer.address, false)
 
-                  tx = await l1BitcoinDepositor
+                  tx = await l1BtcDepositor
                     .connect(relayer)
                     .finalizeDeposit(initializeDepositFixture.depositKey, {
                       value: messageFee + deliveryCost,
@@ -1670,7 +1648,7 @@ describe("L1BitcoinDepositor", () => {
 
                 it("should set the deposit state to Finalized", async () => {
                   expect(
-                    await l1BitcoinDepositor.deposits(
+                    await l1BtcDepositor.deposits(
                       initializeDepositFixture.depositKey
                     )
                   ).to.equal(2)
@@ -1678,10 +1656,10 @@ describe("L1BitcoinDepositor", () => {
 
                 it("should emit DepositFinalized event", async () => {
                   await expect(tx)
-                    .to.emit(l1BitcoinDepositor, "DepositFinalized")
+                    .to.emit(l1BtcDepositor, "DepositFinalized")
                     .withArgs(
                       initializeDepositFixture.depositKey,
-                      initializeDepositFixture.l2DepositOwner,
+                      initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
                       relayer.address,
                       depositAmount.mul(satoshiMultiplier),
                       expectedTbtcAmount
@@ -1691,7 +1669,7 @@ describe("L1BitcoinDepositor", () => {
                 it("should increase TBTC allowance for Wormhole Token Bridge", async () => {
                   expect(
                     await tbtcToken.allowance(
-                      l1BitcoinDepositor.address,
+                      l1BtcDepositor.address,
                       wormholeTokenBridge.address
                     )
                   ).to.equal(expectedTbtcAmount)
@@ -1712,17 +1690,14 @@ describe("L1BitcoinDepositor", () => {
                   expect(call.args[0]).to.equal(tbtcToken.address)
                   expect(call.args[1]).to.equal(expectedTbtcAmount)
                   expect(call.args[2]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
                   expect(call.args[3]).to.equal(
                     toWormholeAddress(l2WormholeGateway.address.toLowerCase())
                   )
                   expect(call.args[4]).to.equal(0)
                   expect(call.args[5]).to.equal(
-                    ethers.utils.defaultAbiCoder.encode(
-                      ["address"],
-                      [initializeDepositFixture.l2DepositOwner]
-                    )
+                    initializeDepositFixture.destinationChainDepositOwner.toLowerCase()
                   )
                 })
 
@@ -1737,13 +1712,13 @@ describe("L1BitcoinDepositor", () => {
                   const call = wormholeRelayer.sendVaasToEvm.getCall(0)
                   expect(call.value).to.equal(deliveryCost)
                   expect(call.args[0]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
-                  expect(call.args[1]).to.equal(l2BitcoinDepositor)
+                  expect(call.args[1]).to.equal(l2BtcDepositor)
                   expect(call.args[2]).to.equal("0x")
                   expect(call.args[3]).to.equal(0)
                   expect(call.args[4]).to.equal(
-                    await l1BitcoinDepositor.l2FinalizeDepositGasLimit()
+                    await l1BtcDepositor.l2FinalizeDepositGasLimit()
                   )
                   expect(call.args[5]).to.eql([
                     [
@@ -1755,7 +1730,7 @@ describe("L1BitcoinDepositor", () => {
                     ],
                   ])
                   expect(call.args[6]).to.equal(
-                    await l1BitcoinDepositor.l2ChainId()
+                    await l1BtcDepositor.l2ChainId()
                   )
                   expect(call.args[7]).to.equal(relayer.address)
                 })
@@ -1788,9 +1763,9 @@ describe("L1BitcoinDepositor", () => {
 
       wormholeRelayer.quoteEVMDeliveryPrice
         .whenCalledWith(
-          await l1BitcoinDepositor.l2ChainId(),
+          await l1BtcDepositor.l2ChainId(),
           0,
-          await l1BitcoinDepositor.l2FinalizeDepositGasLimit()
+          await l1BtcDepositor.l2FinalizeDepositGasLimit()
         )
         .returns({
           nativePriceQuote: BigNumber.from(5000),
@@ -1806,7 +1781,7 @@ describe("L1BitcoinDepositor", () => {
     })
 
     it("should return the correct cost", async () => {
-      const cost = await l1BitcoinDepositor.quoteFinalizeDeposit()
+      const cost = await l1BtcDepositor.quoteFinalizeDeposit()
       expect(cost).to.be.equal(6000) // delivery cost + message fee
     })
   })
@@ -1834,16 +1809,15 @@ describe("L1BitcoinDepositor", () => {
       await createSnapshot()
 
       // Turn the feature flag on
-      await l1BitcoinDepositor.connect(governance).setReimburseTxMaxFee(true)
+      await l1BtcDepositor.connect(governance).setReimburseTxMaxFee(true)
 
-      // The L2BitcoinDepositor contract must be attached
+      // The L2BTCDepositorWormhole contract must be attached
       if (
-        (await l1BitcoinDepositor.l2BitcoinDepositor()) ===
-        ethers.constants.AddressZero
+        (await l1BtcDepositor.l2BtcDepositor()) === ethers.constants.AddressZero
       ) {
-        await l1BitcoinDepositor
+        await l1BtcDepositor
           .connect(governance)
-          .attachL2BitcoinDepositor(l2BitcoinDepositor)
+          .attachL2BtcDepositor(l2BtcDepositor)
       }
     })
 
@@ -1853,12 +1827,12 @@ describe("L1BitcoinDepositor", () => {
 
     it("should add depositTxMaxFee back to the minted TBTC amount", async () => {
       // 1) Initialize deposit
-      await l1BitcoinDepositor
+      await l1BtcDepositor
         .connect(relayer)
         .initializeDeposit(
           initializeDepositFixture.fundingTx,
           initializeDepositFixture.reveal,
-          initializeDepositFixture.l2DepositOwner
+          initializeDepositFixture.destinationChainDepositOwner
         )
 
       // 2) Setup Bridge deposit parameters
@@ -1877,13 +1851,13 @@ describe("L1BitcoinDepositor", () => {
       bridge.deposits
         .whenCalledWith(initializeDepositFixture.depositKey)
         .returns({
-          depositor: l1BitcoinDepositor.address,
+          depositor: l1BtcDepositor.address,
           amount: depositAmount,
           revealedAt,
           vault: initializeDepositFixture.reveal.vault,
           treasuryFee,
           sweptAt: finalizedAt,
-          extraData: toWormholeAddress(initializeDepositFixture.l2DepositOwner),
+          extraData: initializeDepositFixture.destinationChainDepositOwner,
         })
       tbtcVault.optimisticMintingRequests
         .whenCalledWith(initializeDepositFixture.depositKey)
@@ -1901,7 +1875,7 @@ describe("L1BitcoinDepositor", () => {
       wormholeRelayer.sendVaasToEvm.returns(999)
 
       // 7) Now finalize with enough payment
-      const tx = await l1BitcoinDepositor
+      const tx = await l1BtcDepositor
         .connect(relayer)
         .finalizeDeposit(initializeDepositFixture.depositKey, {
           value: messageFee + deliveryCost,
@@ -1909,10 +1883,10 @@ describe("L1BitcoinDepositor", () => {
 
       // 8) The final minted TBTC should be 94525e10
       await expect(tx)
-        .to.emit(l1BitcoinDepositor, "DepositFinalized")
+        .to.emit(l1BtcDepositor, "DepositFinalized")
         .withArgs(
           initializeDepositFixture.depositKey,
-          initializeDepositFixture.l2DepositOwner,
+          initializeDepositFixture.destinationChainDepositOwner.toLowerCase(),
           relayer.address,
           depositAmount.mul(satoshiMultiplier),
           expectedTbtcAmountReimbursed
@@ -1929,7 +1903,7 @@ export type InitializeDepositFixture = {
   depositKey: string
   fundingTx: BitcoinTxInfoStruct
   reveal: DepositRevealInfoStruct
-  l2DepositOwner: string
+  destinationChainDepositOwner: string
 }
 
 // Fixture used for initializeDeposit test scenario.
@@ -1956,7 +1930,9 @@ export const initializeDepositFixture: InitializeDepositFixture = {
     refundLocktime: "0xde2b4c67",
     vault: tbtcVaultAddress,
   },
-  l2DepositOwner: "0x23b82a7108F9CEb34C3CDC44268be21D151d4124",
+  destinationChainDepositOwner: toWormholeAddress(
+    "0x23b82a7108F9CEb34C3CDC44268be21D151d4124"
+  ),
 }
 
 // eslint-disable-next-line import/prefer-default-export
