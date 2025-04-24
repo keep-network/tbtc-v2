@@ -90,13 +90,10 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
       this.#depositOwner
     )
 
-    // TODO: Implement SUI logic - IMPLEMENTED (NEEDS VERIFICATION)
-
-    // --- START: Fill in your Move function details --- 
+    // SUI specific MOVE module details
     const SUI_PACKAGE_ID = this.#contractAddress.toString() 
-    const TARGET_MODULE_NAME = "BitcoinDepositor" // From provided Move code
-    const TARGET_FUNCTION_NAME = "initialize_deposit" // From provided Move code
-    // --- END: Fill in your Move function details --- 
+    const TARGET_MODULE_NAME = "BitcoinDepositor"
+    const TARGET_FUNCTION_NAME = "initialize_deposit"
 
     // Pack parameters using the existing utility
     // NOTE: Assumes return values can be serialized to vector<u8>

@@ -3,9 +3,9 @@ import { DestinationChainTBTCToken, ChainIdentifier } from "../contracts"
 import { SuiClient } from "@mysten/sui/client"
 import { SuiAddress } from "./address"
 
-// The TBTC token on SUI uses 9 decimals as defined in the tbtc.move contract
+// The TBTC token on SUI uses 8 decimals as defined in the tbtc.move contract
 // This is different from Bitcoin's 8 decimals
-const SUI_TBTC_DECIMALS = 9
+const SUI_TBTC_DECIMALS = 8
 // Standard Ethereum token decimals (used for returning values compatible with other chains)
 const STANDARD_TOKEN_DECIMALS = 18
 // Difference between STANDARD_TOKEN_DECIMALS and SUI_TBTC_DECIMALS
@@ -16,7 +16,7 @@ const DECIMAL_ADJUSTMENT = STANDARD_TOKEN_DECIMALS - SUI_TBTC_DECIMALS
  * SUI implementation of the DestinationChainTBTCToken interface.
  * 
  * Communicates with the TBTC token smart contract deployed on the SUI blockchain.
- * The SUI implementation of TBTC (defined in `tbtc.move`) uses 9 decimal places,
+ * The SUI implementation of TBTC (defined in `tbtc.move`) uses 8 decimal places,
  * while standard Ethereum tokens use 18 decimal places.
  * 
  * ## Decimal Precision Handling
@@ -25,15 +25,15 @@ const DECIMAL_ADJUSTMENT = STANDARD_TOKEN_DECIMALS - SUI_TBTC_DECIMALS
  * ```move
  * let (treasury_cap, metadata) = coin::create_currency(
  *     witness,
- *     9, // Bitcoin uses 8 decimals, but many chains use 9 for tBTC
+ *     8, // Bitcoin uses 8 decimals
  *     b"TBTC",
  *     // ...
  * );
  * ```
  * 
  * The `balanceOf` method automatically adjusts the returned balance:
- * 1. Fetches the raw balance from SUI (with 9 decimal places)
- * 2. Converts it to a standard 18-decimal BigNumber by multiplying by 10^9 
+ * 1. Fetches the raw balance from SUI (with 8 decimal places)
+ * 2. Converts it to a standard 18-decimal BigNumber by multiplying by 10^8 
  *    This ensures consistent precision with other chain implementations
  */
 export class SuiTBTCToken implements DestinationChainTBTCToken {
@@ -75,7 +75,7 @@ export class SuiTBTCToken implements DestinationChainTBTCToken {
 
       const balance = response.totalBalance || "0"
       
-      // Convert the SUI balance (9 decimals) to the standard token format (18 decimals)
+      // Convert the SUI balance (8 decimals) to the standard token format (18 decimals)
       // by multiplying by 10^(STANDARD_TOKEN_DECIMALS - SUI_TBTC_DECIMALS)
       return BigNumber.from(balance).mul(BigNumber.from(10).pow(DECIMAL_ADJUSTMENT))
     } catch (error) {

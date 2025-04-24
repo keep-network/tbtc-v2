@@ -24,11 +24,9 @@ export namespace Chains {
     Devnet = "GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC",
   }
 
-  // Add SUI chains
   export enum Sui {
-    Sui = "PLACEHOLDER_SUI_MAINNET_ID", // Replace with actual Mainnet ID
-    Testnet = "PLACEHOLDER_SUI_TESTNET_ID", // Replace with actual Testnet ID
-    Devnet = "PLACEHOLDER_SUI_DEVNET_ID", // Replace with actual Devnet ID
+    Sui = "35834a8a", 
+    Testnet = "4c78adac",
   }
 }
 
@@ -65,7 +63,7 @@ export type ChainMapping = {
   /**
    * Identifier of the SUI chain.
    */
-  sui?: Chains.Sui // Add Sui to ChainMapping
+  sui?: Chains.Sui
 }
 
 /**
@@ -77,13 +75,13 @@ export const ChainMappings: ChainMapping[] = [
     base: Chains.Base.Base,
     arbitrum: Chains.Arbitrum.Arbitrum,
     solana: Chains.Solana.Solana,
-    sui: Chains.Sui.Sui, // Add Sui Mainnet
+    sui: Chains.Sui.Sui,
   },
   {
     ethereum: Chains.Ethereum.Sepolia,
     base: Chains.Base.BaseSepolia,
     arbitrum: Chains.Arbitrum.ArbitrumSepolia,
     solana: Chains.Solana.Devnet,
-    sui: Chains.Sui.Testnet, // Add Sui Testnet (or Devnet if preferred for Sepolia mapping)
+    sui: Chains.Sui.Testnet,
   },
 ]
