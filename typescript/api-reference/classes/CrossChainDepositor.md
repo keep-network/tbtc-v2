@@ -40,7 +40,7 @@ for reference.
 
 | Name | Type | Default value |
 | :------ | :------ | :------ |
-| `crossChainContracts` | [`CrossChainContracts`](../README.md#crosschaincontracts) | `undefined` |
+| `crossChainContracts` | [`CrossChainInterfaces`](../README.md#crosschaininterfaces) | `undefined` |
 | `revealMode` | [`CrossChainDepositorMode`](../README.md#crosschaindepositormode) | `"L2Transaction"` |
 
 #### Returns
@@ -55,7 +55,7 @@ for reference.
 
 ### #crossChainContracts
 
-• `Private` `Readonly` **#crossChainContracts**: [`CrossChainContracts`](../README.md#crosschaincontracts)
+• `Private` `Readonly` **#crossChainContracts**: [`CrossChainInterfaces`](../README.md#crosschaininterfaces)
 
 #### Defined in
 
@@ -75,11 +75,11 @@ ___
 
 ### #extraDataEncoder
 
-▸ **#extraDataEncoder**(): [`CrossChainExtraDataEncoder`](../interfaces/CrossChainExtraDataEncoder.md)
+▸ **#extraDataEncoder**(): [`ExtraDataEncoder`](../interfaces/ExtraDataEncoder.md)
 
 #### Returns
 
-[`CrossChainExtraDataEncoder`](../interfaces/CrossChainExtraDataEncoder.md)
+[`ExtraDataEncoder`](../interfaces/ExtraDataEncoder.md)
 
 #### Defined in
 
