@@ -7,6 +7,7 @@ import {
 } from "../../lib/contracts"
 import { BitcoinRawTxVectors } from "../../lib/bitcoin"
 import { Hex } from "../../lib/utils"
+import { TransactionReceipt } from "@ethersproject/providers"
 
 /**
  * Mode of operation for the cross-chain depositor proxy:
@@ -89,7 +90,7 @@ export class CrossChainDepositor implements DepositorProxy {
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<Hex> {
+  ): Promise<Hex | TransactionReceipt> {
     switch (this.#revealMode) {
       case "L2Transaction":
         return this.#crossChainContracts.destinationChainBitcoinDepositor.initializeDeposit(

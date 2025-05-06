@@ -4,8 +4,8 @@ import {
   CrossChainExtraDataEncoder,
   packRevealDepositParameters,
 } from "../ethereum"
-import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
+import { TransactionReceipt } from "@ethersproject/providers"
 
 /**
  * Implementation of the Solana Depositor Interface handle.
@@ -56,7 +56,7 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<Hex> {
+  ): Promise<TransactionReceipt> {
     const { fundingTx, reveal, extraData } = packRevealDepositParameters(
       depositTx,
       depositOutputIndex,
@@ -69,7 +69,7 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
     }
 
     try {
-      const response = await axios.post("http://localhost:3000/api/reveal", {
+      const response = await axios.post("http://relayer.tbtcscan.com/api/reveal", {
         fundingTx,
         reveal,
         l2DepositOwner: extraData,
@@ -77,13 +77,13 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
       })
 
       const { data } = response
-      if (!data?.tx?.hash) {
+      if (!data.receipt) {
         throw new Error(
           `Unexpected response from /api/reveal: ${JSON.stringify(data)}`
         )
       }
 
-      return Hex.from(data.tx.hash)
+      return data.receipt
     } catch (error) {
       // You can add logging, rethrow, etc.
       console.error("Error calling /api/reveal endpoint:", error)

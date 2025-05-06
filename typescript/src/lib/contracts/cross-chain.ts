@@ -4,6 +4,7 @@ import { ChainMapping, DestinationChainName } from "./chain"
 import { BitcoinRawTxVectors } from "../bitcoin"
 import { DepositReceipt } from "./bridge"
 import { Hex } from "../utils"
+import { TransactionReceipt } from "@ethersproject/providers"
 
 /**
  * Convenience type aggregating TBTC cross-chain contracts forming a connector
@@ -109,7 +110,7 @@ export interface BitcoinDepositor {
     depositOutputIndex: number,
     deposit: DepositReceipt,
     vault?: ChainIdentifier
-  ): Promise<Hex>
+  ): Promise<Hex | TransactionReceipt>
 }
 
 /**
