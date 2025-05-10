@@ -10,8 +10,8 @@
 
 ### TBTC\_EXPLORER
 
-• **TBTC\_EXPLORER** = ``"http://localhost:3000"``
+• **TBTC\_EXPLORER** = ``"https://api.tbtcscan.com"``
 
 #### Defined in
 
-lib/utils/api.ts:3
+[lib/utils/api.ts:3](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/api.ts#L3)
