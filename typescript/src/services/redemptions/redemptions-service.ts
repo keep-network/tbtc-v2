@@ -58,47 +58,46 @@ export class RedemptionsService {
     targetChainTxHash: Hex
     walletPublicKey: Hex
   }> {
-    let walletPublicKey: Hex
-    let mainUtxo: BitcoinUtxo
-    let redeemerOutputScript: Hex
-
     try {
-      const potentialCandidateWallets = await this.fetchWalletsForRedemption()
+      const candidateWallets = await this.fetchWalletsForRedemption()
+      const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+        await this.determineValidRedemptionWallet(
+          bitcoinRedeemerAddress,
+          amountToSatoshi(amount),
+          candidateWallets
+        )
 
-      const validRedemptionWallet = await this.determineValidRedemptionWallet(
-        bitcoinRedeemerAddress,
-        amountToSatoshi(amount),
-        potentialCandidateWallets
-      )
-
-      walletPublicKey = validRedemptionWallet.walletPublicKey
-      mainUtxo = validRedemptionWallet.mainUtxo
-      redeemerOutputScript = validRedemptionWallet.redeemerOutputScript
-    } catch (error) {
-      console.error(
-        "Error in fetching valid wallets for redemption through API endpoint:",
-        error
-      )
-      const redemptionData = await this.determineRedemptionData(
-        bitcoinRedeemerAddress,
+      const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript,
         amount
       )
 
-      walletPublicKey = redemptionData.walletPublicKey
-      mainUtxo = redemptionData.mainUtxo
-      redeemerOutputScript = redemptionData.redeemerOutputScript
-    }
+      return {
+        targetChainTxHash: txHash,
+        walletPublicKey: walletPublicKey,
+      }
+    } catch (error) {
+      console.error(
+        "Error requesting redemption with candidate wallets. Falling back to manual redemption data:",
+        error
+      )
 
-    const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
-      walletPublicKey,
-      mainUtxo,
-      redeemerOutputScript,
-      amount
-    )
+      const { walletPublicKey, mainUtxo, redeemerOutputScript } =
+        await this.determineRedemptionData(bitcoinRedeemerAddress, amount)
 
-    return {
-      targetChainTxHash: txHash,
-      walletPublicKey,
+      const txHash = await this.tbtcContracts.tbtcToken.requestRedemption(
+        walletPublicKey,
+        mainUtxo,
+        redeemerOutputScript,
+        amount
+      )
+
+      return {
+        targetChainTxHash: txHash,
+        walletPublicKey: walletPublicKey,
+      }
     }
   }
 
@@ -228,6 +227,11 @@ export class RedemptionsService {
         mainUtxo: candidateMainUtxo,
       } = this.fromSerializableWallet(serializableWallet)
 
+      console.log("candidatePublicKey", candidatePublicKey.toString())
+      console.log("candidateMainUtxo", candidateMainUtxo)
+      console.log("candidateBTCBalance", candidateBTCBalance.toString())
+      console.log("amount", amount.toString())
+
       if (candidateBTCBalance.lt(amount)) {
         console.debug(
           `The wallet (${candidatePublicKey.toString()})` +
@@ -236,6 +240,11 @@ export class RedemptionsService {
         )
         continue
       }
+
+      console.log("chosen MainUtxo", candidateMainUtxo)
+
+      console.log("chosen BTCBalance", candidateBTCBalance.toString())
+      console.log("chosen amount", amount.toString())
 
       const pendingRedemption =
         await this.tbtcContracts.bridge.pendingRedemptions(
