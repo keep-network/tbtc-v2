@@ -227,11 +227,6 @@ export class RedemptionsService {
         mainUtxo: candidateMainUtxo,
       } = this.fromSerializableWallet(serializableWallet)
 
-      console.log("candidatePublicKey", candidatePublicKey.toString())
-      console.log("candidateMainUtxo", candidateMainUtxo)
-      console.log("candidateBTCBalance", candidateBTCBalance.toString())
-      console.log("amount", amount.toString())
-
       if (candidateBTCBalance.lt(amount)) {
         console.debug(
           `The wallet (${candidatePublicKey.toString()})` +
@@ -240,11 +235,6 @@ export class RedemptionsService {
         )
         continue
       }
-
-      console.log("chosen MainUtxo", candidateMainUtxo)
-
-      console.log("chosen BTCBalance", candidateBTCBalance.toString())
-      console.log("chosen amount", amount.toString())
 
       const pendingRedemption =
         await this.tbtcContracts.bridge.pendingRedemptions(

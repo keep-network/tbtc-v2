@@ -101,7 +101,7 @@ An array of subarrays, where each subarray has a maximum length of `chunkSize`.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:432](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L432)
+[services/redemptions/redemptions-service.ts:422](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L422)
 
 ___
 
@@ -189,7 +189,7 @@ Promise holding the wallet main UTXO or undefined value.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:451](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L451)
+[services/redemptions/redemptions-service.ts:441](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L441)
 
 ___
 
@@ -208,7 +208,7 @@ Array of wallet events.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:605](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L605)
+[services/redemptions/redemptions-service.ts:595](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L595)
 
 ___
 
@@ -234,7 +234,7 @@ Promise with the wallet details needed to request a redemption.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:293](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L293)
+[services/redemptions/redemptions-service.ts:283](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L283)
 
 ___
 
@@ -254,7 +254,7 @@ ___
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:652](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L652)
+[services/redemptions/redemptions-service.ts:642](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L642)
 
 ___
 
@@ -278,7 +278,7 @@ The output script of the given Bitcoin address.
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:630](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L630)
+[services/redemptions/redemptions-service.ts:620](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L620)
 
 ___
 
@@ -309,7 +309,7 @@ Throws an error if no redemption request exists for the given
 
 #### Defined in
 
-[services/redemptions/redemptions-service.ts:563](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L563)
+[services/redemptions/redemptions-service.ts:553](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/redemptions/redemptions-service.ts#L553)
 
 ___
 
