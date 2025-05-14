@@ -18,7 +18,7 @@ Represents the state of the deposit.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:124](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L124)
+[lib/contracts/cross-chain.ts:125](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L125)
 
 ___
 
@@ -28,7 +28,7 @@ ___
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:122](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L122)
+[lib/contracts/cross-chain.ts:123](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L123)
 
 ___
 
@@ -38,4 +38,4 @@ ___
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:120](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L120)
+[lib/contracts/cross-chain.ts:121](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L121)

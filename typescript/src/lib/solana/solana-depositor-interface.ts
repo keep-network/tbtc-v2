@@ -69,12 +69,15 @@ export class SolanaDepositorInterface implements BitcoinDepositor {
     }
 
     try {
-      const response = await axios.post("http://relayer.tbtcscan.com/api/reveal", {
-        fundingTx,
-        reveal,
-        l2DepositOwner: extraData,
-        l2Sender: `0x${this.#depositOwner?.identifierHex}`,
-      })
+      const response = await axios.post(
+        "http://relayer.tbtcscan.com/api/reveal",
+        {
+          fundingTx,
+          reveal,
+          l2DepositOwner: extraData,
+          l2Sender: `0x${this.#depositOwner?.identifierHex}`,
+        }
+      )
 
       const { data } = response
       if (!data.receipt) {

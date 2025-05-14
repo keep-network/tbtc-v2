@@ -33,7 +33,7 @@ encode and decode the extra data included in the cross-chain deposit script.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:95](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L95)
+[lib/contracts/cross-chain.ts:96](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L96)
 
 ___
 
@@ -49,7 +49,7 @@ Gets the chain-specific identifier of this contract.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:75](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L75)
+[lib/contracts/cross-chain.ts:76](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L76)
 
 ___
 
@@ -68,13 +68,13 @@ The identifier of the deposit owner or undefined if not set.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:82](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L82)
+[lib/contracts/cross-chain.ts:83](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L83)
 
 ___
 
 ### initializeDeposit
 
-▸ **initializeDeposit**(`depositTx`, `depositOutputIndex`, `deposit`, `vault?`): `Promise`\<[`Hex`](../classes/Hex.md)\>
+▸ **initializeDeposit**(`depositTx`, `depositOutputIndex`, `deposit`, `vault?`): `Promise`\<[`Hex`](../classes/Hex.md) \| `TransactionReceipt`\>
 
 Initializes the cross-chain deposit indirectly through the given L2 chain.
 
@@ -89,13 +89,13 @@ Initializes the cross-chain deposit indirectly through the given L2 chain.
 
 #### Returns
 
-`Promise`\<[`Hex`](../classes/Hex.md)\>
+`Promise`\<[`Hex`](../classes/Hex.md) \| `TransactionReceipt`\>
 
 Transaction hash of the reveal deposit transaction.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:107](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L107)
+[lib/contracts/cross-chain.ts:108](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L108)
 
 ___
 
@@ -118,4 +118,4 @@ issued by this contract.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:89](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L89)
+[lib/contracts/cross-chain.ts:90](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L90)

@@ -126,7 +126,9 @@ export class Deposit {
    * @throws Throws an error if the funding outpoint was already used to
    *         initiate minting (both modes).
    */
-  async initiateMinting(fundingOutpoint?: BitcoinTxOutpoint): Promise<Hex | TransactionReceipt> {
+  async initiateMinting(
+    fundingOutpoint?: BitcoinTxOutpoint
+  ): Promise<Hex | TransactionReceipt> {
     let resolvedFundingOutpoint: BitcoinTxOutpoint
 
     if (typeof fundingOutpoint !== "undefined") {

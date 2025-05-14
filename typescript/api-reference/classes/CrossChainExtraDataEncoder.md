@@ -52,7 +52,7 @@ that handles both Ethereum (20-byte) and Solana (32-byte) addresses.
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:190](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L190)
+[lib/ethereum/l1-bitcoin-depositor.ts:193](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L193)
 
 ___
 
@@ -78,4 +78,4 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:174](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L174)
+[lib/ethereum/l1-bitcoin-depositor.ts:177](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L177)

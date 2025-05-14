@@ -196,7 +196,7 @@ Mode of operation for the cross-chain depositor proxy:
 
 #### Defined in
 
-[services/deposits/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/cross-chain.ts#L19)
+[services/deposits/cross-chain.ts:20](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/services/deposits/cross-chain.ts#L20)
 
 ___
 
@@ -209,7 +209,7 @@ between TBTC L1 ledger chain and a specific supported L2/side-chain.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:12](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L12)
+[lib/contracts/cross-chain.ts:13](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L13)
 
 ___
 
@@ -240,7 +240,7 @@ Aggregates destination chain specific TBTC cross-chain interfaces.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:18](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L18)
+[lib/contracts/cross-chain.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L19)
 
 ___
 
@@ -382,7 +382,7 @@ specific to the given L2 chain, deployed on the L1 chain.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:131](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L131)
+[lib/contracts/cross-chain.ts:132](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L132)
 
 ___
 
@@ -400,7 +400,7 @@ Aggregates L1-specific TBTC cross-chain contracts.
 
 #### Defined in
 
-[lib/contracts/cross-chain.ts:26](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L26)
+[lib/contracts/cross-chain.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/cross-chain.ts#L27)
 
 ___
 

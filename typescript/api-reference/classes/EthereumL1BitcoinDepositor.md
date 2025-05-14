@@ -66,7 +66,7 @@ EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L67)
+[lib/ethereum/l1-bitcoin-depositor.ts:70](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L70)
 
 ## Properties
 
@@ -76,7 +76,7 @@ EthersContractHandle\&lt;L1BitcoinDepositorTypechain\&gt;.constructor
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:65](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L65)
+[lib/ethereum/l1-bitcoin-depositor.ts:68](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L68)
 
 ___
 
@@ -86,7 +86,7 @@ ___
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:64](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L64)
+[lib/ethereum/l1-bitcoin-depositor.ts:67](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L67)
 
 ___
 
@@ -156,7 +156,7 @@ L1BitcoinDepositor.extraDataEncoder
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:126](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L126)
+[lib/ethereum/l1-bitcoin-depositor.ts:129](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L129)
 
 ___
 
@@ -198,7 +198,7 @@ L1BitcoinDepositor.getChainIdentifier
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:118](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L118)
+[lib/ethereum/l1-bitcoin-depositor.ts:121](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L121)
 
 ___
 
@@ -218,7 +218,7 @@ L1BitcoinDepositor.getDepositOwner
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:94](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L94)
+[lib/ethereum/l1-bitcoin-depositor.ts:97](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L97)
 
 ___
 
@@ -244,7 +244,7 @@ L1BitcoinDepositor.getDepositState
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:110](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L110)
+[lib/ethereum/l1-bitcoin-depositor.ts:113](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L113)
 
 ___
 
@@ -307,7 +307,7 @@ L1BitcoinDepositor.initializeDeposit
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:134](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L134)
+[lib/ethereum/l1-bitcoin-depositor.ts:137](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L137)
 
 ___
 
@@ -333,4 +333,4 @@ L1BitcoinDepositor.setDepositOwner
 
 #### Defined in
 
-[lib/ethereum/l1-bitcoin-depositor.ts:102](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L102)
+[lib/ethereum/l1-bitcoin-depositor.ts:105](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/ethereum/l1-bitcoin-depositor.ts#L105)
