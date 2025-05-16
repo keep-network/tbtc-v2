@@ -1,3 +1,5 @@
+import * as dotenv from "dotenv"
+
 import { HardhatUserConfig } from "hardhat/config"
 import "./tasks"
 
@@ -12,6 +14,8 @@ import "@tenderly/hardhat-tenderly"
 import "@typechain/hardhat"
 import "hardhat-dependency-compiler"
 import "solidity-docgen"
+
+dotenv.config()
 
 const ecdsaSolidityCompilerConfig = {
   version: "0.8.17",
@@ -113,7 +117,9 @@ const config: HardhatUserConfig = {
       url: process.env.CHAIN_API_URL || "",
       chainId: 11155111,
       accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",").map(
+            (key) => (key.startsWith("0x") ? key : `0x${key}`)
+          )
         : undefined,
       tags: ["tenderly"],
     },
