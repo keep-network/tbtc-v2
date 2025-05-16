@@ -4,7 +4,7 @@ import { BigNumber, ContractTransaction } from "ethers"
 import type {
   MockBridge,
   MockTBTCVault,
-  TestTBTCDepositor,
+  TestBTCDepositor,
 } from "../../typechain"
 import { to1ePrecision } from "../helpers/contract-test-helpers"
 
@@ -36,10 +36,10 @@ const loadFixture = (vault: string) => ({
     "0xebff13c2304229ab4a97bfbfabeac82c9c0704e4aae2acf022252ac8dc1101d1",
 })
 
-describe("AbstractTBTCDepositor", () => {
+describe("AbstractBTCDepositor", () => {
   let bridge: MockBridge
   let tbtcVault: MockTBTCVault
-  let depositor: TestTBTCDepositor
+  let depositor: TestBTCDepositor
 
   let fixture
 
@@ -52,16 +52,14 @@ describe("AbstractTBTCDepositor", () => {
 
     fixture = loadFixture(tbtcVault.address)
 
-    const TestTBTCDepositor = await ethers.getContractFactory(
-      "TestTBTCDepositor"
-    )
-    depositor = await TestTBTCDepositor.deploy()
+    const testBtcDepositor = await ethers.getContractFactory("TestBTCDepositor")
+    depositor = await testBtcDepositor.deploy()
     await depositor.initialize(bridge.address, tbtcVault.address)
 
     // Assert that contract initializer works as expected.
     await expect(
       depositor.initialize(bridge.address, tbtcVault.address)
-    ).to.be.revertedWith("AbstractTBTCDepositor already initialized")
+    ).to.be.revertedWith("AbstractBTCDepositor already initialized")
   })
 
   describe("_initializeDeposit", () => {
@@ -84,7 +82,7 @@ describe("AbstractTBTCDepositor", () => {
           await createSnapshot()
 
           // Pre-reveal the deposit to cause a revert on the second attempt
-          // made by the AbstractTBTCDepositor.
+          // made by the AbstractBTCDepositor.
           await bridge.revealDepositWithExtraData(
             fixture.fundingTx,
             fixture.reveal,

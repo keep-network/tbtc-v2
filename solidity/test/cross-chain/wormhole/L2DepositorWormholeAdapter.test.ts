@@ -5,21 +5,21 @@ import { FakeContract, smock } from "@defi-wonderland/smock"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { ContractTransaction } from "ethers"
 import {
-  IL2WormholeGateway,
+  IWormholeGateway,
   IWormholeRelayer,
-  L2BitcoinDepositor,
-} from "../../typechain"
+  L2BTCDepositorWormhole,
+} from "../../../typechain"
 import {
   initializeDepositFixture,
   toWormholeAddress,
-} from "./L1BitcoinDepositor.test"
+} from "./L1BTCDepositorWormhole.test"
 
 chai.use(smock.matchers)
 
 const { impersonateAccount } = helpers.account
 const { createSnapshot, restoreSnapshot } = helpers.snapshot
 
-describe("L2BitcoinDepositor", () => {
+describe("L2BTCDepositorWormhole", () => {
   const contractsFixture = async () => {
     const { deployer, governance } = await helpers.signers.getNamedSigners()
 
@@ -29,21 +29,21 @@ describe("L2BitcoinDepositor", () => {
     const wormholeRelayer = await smock.fake<IWormholeRelayer>(
       "IWormholeRelayer"
     )
-    const l2WormholeGateway = await smock.fake<IL2WormholeGateway>(
-      "IL2WormholeGateway"
+    const l2WormholeGateway = await smock.fake<IWormholeGateway>(
+      "IWormholeGateway"
     )
     // Just an arbitrary chain ID.
     const l1ChainId = 2
-    // Just an arbitrary L1BitcoinDepositor address.
-    const l1BitcoinDepositor = "0xeE6F5f69860f310114185677D017576aed0dEC83"
+    // Just an arbitrary L1BTCDepositorWormhole address.
+    const l1BtcDepositor = "0xeE6F5f69860f310114185677D017576aed0dEC83"
 
     const deployment = await helpers.upgrades.deployProxy(
       // Hacky workaround allowing to deploy proxy contract any number of times
       // without clearing `deployments/hardhat` directory.
       // See: https://github.com/keep-network/hardhat-helpers/issues/38
-      `L2BitcoinDepositor_${randomBytes(8).toString("hex")}`,
+      `L2BTCDepositorWormhole_${randomBytes(8).toString("hex")}`,
       {
-        contractName: "L2BitcoinDepositor",
+        contractName: "L2BTCDepositorWormhole",
         initializerArgs: [
           wormholeRelayer.address,
           l2WormholeGateway.address,
@@ -55,19 +55,17 @@ describe("L2BitcoinDepositor", () => {
         },
       }
     )
-    const l2BitcoinDepositor = deployment[0] as L2BitcoinDepositor
+    const l2BtcDepositor = deployment[0] as L2BTCDepositorWormhole
 
-    await l2BitcoinDepositor
-      .connect(deployer)
-      .transferOwnership(governance.address)
+    await l2BtcDepositor.connect(deployer).transferOwnership(governance.address)
 
     return {
       governance,
       relayer,
       wormholeRelayer,
       l2WormholeGateway,
-      l1BitcoinDepositor,
-      l2BitcoinDepositor,
+      l1BtcDepositor,
+      l2BtcDepositor,
     }
   }
 
@@ -75,9 +73,9 @@ describe("L2BitcoinDepositor", () => {
   let relayer: SignerWithAddress
 
   let wormholeRelayer: FakeContract<IWormholeRelayer>
-  let l2WormholeGateway: FakeContract<IL2WormholeGateway>
-  let l1BitcoinDepositor: string
-  let l2BitcoinDepositor: L2BitcoinDepositor
+  let l2WormholeGateway: FakeContract<IWormholeGateway>
+  let l1BtcDepositor: string
+  let l2BtcDepositor: L2BTCDepositorWormhole
 
   before(async () => {
     // eslint-disable-next-line @typescript-eslint/no-extra-semi
@@ -86,30 +84,28 @@ describe("L2BitcoinDepositor", () => {
       relayer,
       wormholeRelayer,
       l2WormholeGateway,
-      l1BitcoinDepositor,
-      l2BitcoinDepositor,
+      l1BtcDepositor,
+      l2BtcDepositor,
     } = await waffle.loadFixture(contractsFixture))
   })
 
-  describe("attachL1BitcoinDepositor", () => {
+  describe("attachL1BtcDepositor", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          l2BitcoinDepositor
-            .connect(relayer)
-            .attachL1BitcoinDepositor(l1BitcoinDepositor)
+          l2BtcDepositor.connect(relayer).attachL1BtcDepositor(l1BtcDepositor)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("when the caller is the owner", () => {
-      context("when the L1BitcoinDepositor is already attached", () => {
+      context("when the L1BTCcoinDepositor is already attached", () => {
         before(async () => {
           await createSnapshot()
 
-          await l2BitcoinDepositor
+          await l2BtcDepositor
             .connect(governance)
-            .attachL1BitcoinDepositor(l1BitcoinDepositor)
+            .attachL1BtcDepositor(l1BtcDepositor)
         })
 
         after(async () => {
@@ -118,40 +114,40 @@ describe("L2BitcoinDepositor", () => {
 
         it("should revert", async () => {
           await expect(
-            l2BitcoinDepositor
+            l2BtcDepositor
               .connect(governance)
-              .attachL1BitcoinDepositor(l1BitcoinDepositor)
+              .attachL1BtcDepositor(l1BtcDepositor)
           ).to.be.revertedWith("L1 Bitcoin Depositor already set")
         })
       })
 
-      context("when the L1BitcoinDepositor is not attached", () => {
-        context("when new L1BitcoinDepositor is zero", () => {
+      context("when the L1BTCDepositorWormhole is not attached", () => {
+        context("when new L1BTCDepositorWormhole is zero", () => {
           it("should revert", async () => {
             await expect(
-              l2BitcoinDepositor
+              l2BtcDepositor
                 .connect(governance)
-                .attachL1BitcoinDepositor(ethers.constants.AddressZero)
+                .attachL1BtcDepositor(ethers.constants.AddressZero)
             ).to.be.revertedWith("L1 Bitcoin Depositor must not be 0x0")
           })
         })
 
-        context("when new L1BitcoinDepositor is non-zero", () => {
+        context("when new L1BTCDepositorWormhole is non-zero", () => {
           before(async () => {
             await createSnapshot()
 
-            await l2BitcoinDepositor
+            await l2BtcDepositor
               .connect(governance)
-              .attachL1BitcoinDepositor(l1BitcoinDepositor)
+              .attachL1BtcDepositor(l1BtcDepositor)
           })
 
           after(async () => {
             await restoreSnapshot()
           })
 
-          it("should set the l1BitcoinDepositor address properly", async () => {
-            expect(await l2BitcoinDepositor.l1BitcoinDepositor()).to.equal(
-              l1BitcoinDepositor
+          it("should set the l1BtcDepositor address properly", async () => {
+            expect(await l2BtcDepositor.l1BtcDepositor()).to.equal(
+              l1BtcDepositor
             )
           })
         })
@@ -165,12 +161,15 @@ describe("L2BitcoinDepositor", () => {
     before(async () => {
       await createSnapshot()
 
-      tx = await l2BitcoinDepositor
+      tx = await l2BtcDepositor
         .connect(relayer)
         .initializeDeposit(
           initializeDepositFixture.fundingTx,
           initializeDepositFixture.reveal,
-          initializeDepositFixture.l2DepositOwner
+          ethers.utils.hexDataSlice(
+            initializeDepositFixture.destinationChainDepositOwner,
+            12
+          )
         )
     })
 
@@ -179,7 +178,12 @@ describe("L2BitcoinDepositor", () => {
     })
 
     it("should emit DepositInitialized event", async () => {
-      const { fundingTx, reveal, l2DepositOwner } = initializeDepositFixture
+      const { fundingTx, reveal, destinationChainDepositOwner } =
+        initializeDepositFixture
+      const l2DepositOwnerInEthereumAddress = ethers.utils.hexDataSlice(
+        destinationChainDepositOwner,
+        12
+      )
 
       // The `expect.to.emit.withArgs` assertion has troubles with
       // matching complex event arguments as it uses strict equality
@@ -188,26 +192,26 @@ describe("L2BitcoinDepositor", () => {
       // equality assertion (eql).
       const receipt = await ethers.provider.getTransactionReceipt(tx.hash)
       expect(receipt.logs.length).to.be.equal(1)
-      expect(
-        l2BitcoinDepositor.interface.parseLog(receipt.logs[0]).args
-      ).to.be.eql([
+      expect(l2BtcDepositor.interface.parseLog(receipt.logs[0]).args).to.be.eql(
         [
-          fundingTx.version,
-          fundingTx.inputVector,
-          fundingTx.outputVector,
-          fundingTx.locktime,
-        ],
-        [
-          reveal.fundingOutputIndex,
-          reveal.blindingFactor,
-          reveal.walletPubKeyHash,
-          reveal.refundPubKeyHash,
-          reveal.refundLocktime,
-          reveal.vault,
-        ],
-        l2DepositOwner,
-        relayer.address,
-      ])
+          [
+            fundingTx.version,
+            fundingTx.inputVector,
+            fundingTx.outputVector,
+            fundingTx.locktime,
+          ],
+          [
+            reveal.fundingOutputIndex,
+            reveal.blindingFactor,
+            reveal.walletPubKeyHash,
+            reveal.refundPubKeyHash,
+            reveal.refundLocktime,
+            reveal.vault,
+          ],
+          l2DepositOwnerInEthereumAddress,
+          relayer.address,
+        ]
+      )
     })
   })
 
@@ -215,9 +219,9 @@ describe("L2BitcoinDepositor", () => {
     before(async () => {
       await createSnapshot()
 
-      await l2BitcoinDepositor
+      await l2BtcDepositor
         .connect(governance)
-        .attachL1BitcoinDepositor(l1BitcoinDepositor)
+        .attachL1BtcDepositor(l1BtcDepositor)
     })
 
     after(async () => {
@@ -227,7 +231,7 @@ describe("L2BitcoinDepositor", () => {
     context("when the caller is not the WormholeRelayer", () => {
       it("should revert", async () => {
         await expect(
-          l2BitcoinDepositor
+          l2BtcDepositor
             .connect(relayer)
             // Parameters don't matter as the call should revert before.
             .receiveWormholeMessages(
@@ -263,7 +267,7 @@ describe("L2BitcoinDepositor", () => {
       context("when the source chain is not the expected L1", () => {
         it("should revert", async () => {
           await expect(
-            l2BitcoinDepositor
+            l2BtcDepositor
               .connect(wormholeRelayerSigner)
               .receiveWormholeMessages(
                 ethers.constants.HashZero,
@@ -277,35 +281,38 @@ describe("L2BitcoinDepositor", () => {
       })
 
       context("when the source chain is the expected L1", () => {
-        context("when the source address is not the L1BitcoinDepositor", () => {
-          it("should revert", async () => {
-            await expect(
-              l2BitcoinDepositor
-                .connect(wormholeRelayerSigner)
-                .receiveWormholeMessages(
-                  ethers.constants.HashZero,
-                  [],
-                  toWormholeAddress(relayer.address),
-                  await l2BitcoinDepositor.l1ChainId(),
-                  ethers.constants.HashZero
-                )
-            ).to.be.revertedWith(
-              "Source address is not the expected L1 Bitcoin depositor"
-            )
-          })
-        })
-
-        context("when the source address is the L1BitcoinDepositor", () => {
-          context("when the number of additional VAAs is not 1", () => {
+        context(
+          "when the source address is not the L1BTCDepositorWormhole",
+          () => {
             it("should revert", async () => {
               await expect(
-                l2BitcoinDepositor
+                l2BtcDepositor
                   .connect(wormholeRelayerSigner)
                   .receiveWormholeMessages(
                     ethers.constants.HashZero,
                     [],
-                    toWormholeAddress(l1BitcoinDepositor),
-                    await l2BitcoinDepositor.l1ChainId(),
+                    toWormholeAddress(relayer.address),
+                    await l2BtcDepositor.l1ChainId(),
+                    ethers.constants.HashZero
+                  )
+              ).to.be.revertedWith(
+                "Source address is not the expected L1 Bitcoin depositor"
+              )
+            })
+          }
+        )
+
+        context("when the source address is the L1BTCDepositorWormhole", () => {
+          context("when the number of additional VAAs is not 1", () => {
+            it("should revert", async () => {
+              await expect(
+                l2BtcDepositor
+                  .connect(wormholeRelayerSigner)
+                  .receiveWormholeMessages(
+                    ethers.constants.HashZero,
+                    [],
+                    toWormholeAddress(l1BtcDepositor),
+                    await l2BtcDepositor.l1ChainId(),
                     ethers.constants.HashZero
                   )
               ).to.be.revertedWith(
@@ -320,13 +327,13 @@ describe("L2BitcoinDepositor", () => {
 
               l2WormholeGateway.receiveTbtc.returns()
 
-              await l2BitcoinDepositor
+              await l2BtcDepositor
                 .connect(wormholeRelayerSigner)
                 .receiveWormholeMessages(
                   ethers.constants.HashZero,
                   ["0x1234"],
-                  toWormholeAddress(l1BitcoinDepositor),
-                  await l2BitcoinDepositor.l1ChainId(),
+                  toWormholeAddress(l1BtcDepositor),
+                  await l2BtcDepositor.l1ChainId(),
                   ethers.constants.HashZero
                 )
             })
