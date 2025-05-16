@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 
 import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 
-import "../integrator/AbstractTBTCDepositor.sol";
+import "../integrator/AbstractBTCDepositor.sol";
 import "../integrator/IBridge.sol";
 import "../integrator/ITBTCVault.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract TestTBTCDepositor is AbstractTBTCDepositor {
+contract TestBTCDepositor is AbstractBTCDepositor {
     event InitializeDepositReturned(
         uint256 depositKey,
         uint256 initialDepositAmount
@@ -23,7 +23,7 @@ contract TestTBTCDepositor is AbstractTBTCDepositor {
     );
 
     function initialize(address _bridge, address _tbtcVault) external {
-        __AbstractTBTCDepositor_initialize(_bridge, _tbtcVault);
+        __AbstractBTCDepositor_initialize(_bridge, _tbtcVault);
     }
 
     function initializeDepositPublic(
@@ -187,7 +187,7 @@ contract MockTBTCVault is ITBTCVault {
     }
 
     /// @dev The function is virtual to allow other projects using this mock
-    ///      for AbtractTBTCDepositor-based contract tests to add any custom
+    ///      for AbtractBTCDepositor-based contract tests to add any custom
     ///      logic needed.
     function createOptimisticMintingRequest(uint256 depositKey) public virtual {
         require(
@@ -199,7 +199,7 @@ contract MockTBTCVault is ITBTCVault {
     }
 
     /// @dev The function is virtual to allow other projects using this mock
-    ///      for AbtractTBTCDepositor-based contract tests to add any custom
+    ///      for AbtractBTCDepositor-based contract tests to add any custom
     ///      logic needed.
     function finalizeOptimisticMintingRequest(uint256 depositKey)
         public
