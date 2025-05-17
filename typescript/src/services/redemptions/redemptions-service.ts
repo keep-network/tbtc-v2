@@ -79,7 +79,7 @@ export class RedemptionsService {
         walletPublicKey: walletPublicKey,
       }
     } catch (error) {
-      console.error(
+      console.warn(
         "Error requesting redemption with candidate wallets. Falling back to manual redemption data:",
         error
       )
