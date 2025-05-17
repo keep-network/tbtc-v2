@@ -22,6 +22,7 @@ import MainnetArbitrumL1BitcoinDepositorDeployment from "./artifacts/mainnet/Arb
 
 import SepoliaBaseL1BitcoinDepositorDeployment from "./artifacts/sepolia/BaseL1BitcoinDepositor.json"
 import SepoliaArbitrumL1BitcoinDepositorDeployment from "./artifacts/sepolia/ArbitrumL1BitcoinDepositor.json"
+import SepoliaSuiBTCDepositorWormhole from "./artifacts/sepolia/SuiBTCDepositorWormhole.json"
 import { SolanaAddress } from "../solana/address"
 import { SuiAddress } from "../sui/address"
 
@@ -43,6 +44,8 @@ const artifactLoader = {
         return SepoliaBaseL1BitcoinDepositorDeployment
       case "Arbitrum":
         return SepoliaArbitrumL1BitcoinDepositorDeployment
+      case "Sui":
+        return SepoliaSuiBTCDepositorWormhole
       default:
         throw new Error("Unsupported L2 chain")
     }
