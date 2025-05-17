@@ -266,7 +266,7 @@ export class RedemptionsService {
     }
 
     if (!walletPublicKey || !mainUtxo) {
-      throw new Error(`Could not find a wallet with enough funds.`)
+      return null;
     }
 
     return { walletPublicKey, mainUtxo, redeemerOutputScript }
