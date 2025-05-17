@@ -19,7 +19,7 @@ Index of the wallet in the list of wallets.
 
 #### Defined in
 
-[lib/utils/types.ts:31](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L31)
+[lib/utils/types.ts:39](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L39)
 
 ___
 
@@ -39,7 +39,7 @@ Main UTXO of the wallet.
 
 #### Defined in
 
-[lib/utils/types.ts:41](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L41)
+[lib/utils/types.ts:49](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L49)
 
 ___
 
@@ -51,7 +51,7 @@ Balance of the wallet in BTC.
 
 #### Defined in
 
-[lib/utils/types.ts:61](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L61)
+[lib/utils/types.ts:69](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L69)
 
 ___
 
@@ -63,4 +63,4 @@ Public key of the wallet.
 
 #### Defined in
 
-[lib/utils/types.ts:36](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L36)
+[lib/utils/types.ts:44](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L44)

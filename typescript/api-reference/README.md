@@ -73,6 +73,7 @@
 - [L2TBTCToken](interfaces/L2TBTCToken.md)
 - [RedeemerProxy](interfaces/RedeemerProxy.md)
 - [RedemptionRequest](interfaces/RedemptionRequest.md)
+- [RedemptionWallet](interfaces/RedemptionWallet.md)
 - [SerializableWallet](interfaces/SerializableWallet.md)
 - [TBTCToken](interfaces/TBTCToken.md)
 - [TBTCVault](interfaces/TBTCVault.md)
@@ -621,7 +622,7 @@ Utility functions allowing to deal with Bitcoin locktime.
 | Name | Type |
 | :------ | :------ |
 | `calculateLocktime` | (`locktimeStartedAt`: `number`, `locktimeDuration`: `number`) => [`Hex`](classes/Hex.md) |
-| `locktimeToNumber` | (`locktimeLE`: `string` \| `Buffer`) => `number` |
+| `locktimeToNumber` | (`locktimeLE`: `string` \| `Buffer`\<`ArrayBufferLike`\>) => `number` |
 
 #### Defined in
 

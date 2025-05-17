@@ -2,12 +2,7 @@ import { BitcoinUtxo } from "../../lib/bitcoin"
 import { BigNumber } from "ethers"
 import { Hex } from "./hex"
 
-export interface ValidRedemptionWallet {
-  /**
-   * Index of the wallet in the list of wallets.
-   */
-  index: number
-
+export interface RedemptionWallet {
   /**
    * Public key of the wallet.
    */
@@ -17,6 +12,19 @@ export interface ValidRedemptionWallet {
    * Main UTXO of the wallet.
    */
   mainUtxo: BitcoinUtxo
+
+  /**
+   * Redeemer output script of the wallet.
+   */
+  redeemerOutputScript: Hex
+}
+
+export interface ValidRedemptionWallet
+  extends Omit<RedemptionWallet, "redeemerOutputScript"> {
+  /**
+   * Index of the wallet in the list of wallets.
+   */
+  index: number
 
   /**
    * Balance of the wallet in BTC.

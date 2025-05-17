@@ -16,6 +16,7 @@ import { BigNumber, BigNumberish } from "ethers"
 import { amountToSatoshi, ApiUrl, endpointUrl, Hex } from "../../lib/utils"
 import { RedeemerProxy } from "./redeemer-proxy"
 import {
+  RedemptionWallet,
   SerializableWallet,
   ValidRedemptionWallet,
 } from "../../lib/utils/types"
@@ -208,11 +209,7 @@ export class RedemptionsService {
     bitcoinRedeemerAddress: string,
     amount: BigNumber,
     potentialCandidateWallets: Array<SerializableWallet>
-  ): Promise<{
-    walletPublicKey: Hex
-    mainUtxo: BitcoinUtxo
-    redeemerOutputScript: Hex
-  }> {
+  ): Promise<RedemptionWallet> {
     let walletPublicKey: Hex | undefined = undefined
     let mainUtxo: BitcoinUtxo | undefined = undefined
     const redeemerOutputScript = await this.getRedeemerOutputScript(
@@ -266,7 +263,7 @@ export class RedemptionsService {
     }
 
     if (!walletPublicKey || !mainUtxo) {
-      return null;
+      throw new Error(`Could not find a wallet with enough funds.`)
     }
 
     return { walletPublicKey, mainUtxo, redeemerOutputScript }

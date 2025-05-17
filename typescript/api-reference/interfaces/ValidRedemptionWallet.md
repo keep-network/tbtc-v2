@@ -1,5 +1,11 @@
 # Interface: ValidRedemptionWallet
 
+## Hierarchy
+
+- `Omit`\<[`RedemptionWallet`](RedemptionWallet.md), ``"redeemerOutputScript"``\>
+
+  ↳ **`ValidRedemptionWallet`**
+
 ## Table of contents
 
 ### Properties
@@ -19,7 +25,7 @@ Index of the wallet in the list of wallets.
 
 #### Defined in
 
-[lib/utils/types.ts:9](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L9)
+[lib/utils/types.ts:27](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L27)
 
 ___
 
@@ -29,9 +35,13 @@ ___
 
 Main UTXO of the wallet.
 
+#### Inherited from
+
+Omit.mainUtxo
+
 #### Defined in
 
-[lib/utils/types.ts:19](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L19)
+[lib/utils/types.ts:14](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L14)
 
 ___
 
@@ -43,7 +53,7 @@ Balance of the wallet in BTC.
 
 #### Defined in
 
-[lib/utils/types.ts:24](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L24)
+[lib/utils/types.ts:32](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L32)
 
 ___
 
@@ -53,6 +63,10 @@ ___
 
 Public key of the wallet.
 
+#### Inherited from
+
+Omit.walletPublicKey
+
 #### Defined in
 
-[lib/utils/types.ts:14](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L14)
+[lib/utils/types.ts:9](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/types.ts#L9)
