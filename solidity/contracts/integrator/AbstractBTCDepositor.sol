@@ -20,20 +20,20 @@ import {BTCUtils} from "@keep-network/bitcoin-spv-sol/contracts/BTCUtils.sol";
 import "./IBridge.sol";
 import "./ITBTCVault.sol";
 
-/// @title Abstract AbstractTBTCDepositor contract.
+/// @title Abstract AbstractBTCDepositor contract.
 /// @notice This abstract contract is meant to facilitate integration of protocols
 ///         aiming to use tBTC as an underlying Bitcoin bridge.
 ///
 ///         Such an integrator is supposed to:
 ///         - Create a child contract inheriting from this abstract contract
-///         - Call the `__AbstractTBTCDepositor_initialize` initializer function
+///         - Call the `__AbstractBTCDepositor_initialize` initializer function
 ///         - Use the `_initializeDeposit` and `_finalizeDeposit` as part of their
 ///           business logic in order to initialize and finalize deposits.
 ///
 /// @dev Example usage:
 ///      ```
 ///      // Example upgradeable integrator contract.
-///      contract ExampleTBTCIntegrator is AbstractTBTCDepositor, Initializable {
+///      contract ExampleBTCIntegrator is AbstractBTCDepositor, Initializable {
 ///          /// @custom:oz-upgrades-unsafe-allow constructor
 ///          constructor() {
 ///              // Prevents the contract from being initialized again.
@@ -44,7 +44,7 @@ import "./ITBTCVault.sol";
 ///              address _bridge,
 ///              address _tbtcVault
 ///          ) external initializer {
-///              __AbstractTBTCDepositor_initialize(_bridge, _tbtcVault);
+///              __AbstractBTCDepositor_initialize(_bridge, _tbtcVault);
 ///          }
 ///
 ///          function startProcess(
@@ -77,7 +77,7 @@ import "./ITBTCVault.sol";
 ///              // embedded in the extraData.
 ///          }
 ///      }
-abstract contract AbstractTBTCDepositor {
+abstract contract AbstractBTCDepositor {
     using BTCUtils for bytes;
 
     /// @notice Multiplier to convert satoshi to TBTC token units.
@@ -99,13 +99,13 @@ abstract contract AbstractTBTCDepositor {
     /// @notice Initializes the contract. MUST BE CALLED from the child
     ///         contract initializer.
     // slither-disable-next-line dead-code
-    function __AbstractTBTCDepositor_initialize(
+    function __AbstractBTCDepositor_initialize(
         address _bridge,
         address _tbtcVault
     ) internal {
         require(
             address(bridge) == address(0) && address(tbtcVault) == address(0),
-            "AbstractTBTCDepositor already initialized"
+            "AbstractBTCDepositor already initialized"
         );
 
         require(_bridge != address(0), "Bridge address cannot be zero");
