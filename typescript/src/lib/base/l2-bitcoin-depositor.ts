@@ -7,7 +7,6 @@ import { L2BitcoinDepositor as L2BitcoinDepositorTypechain } from "../../../type
 import {
   ChainIdentifier,
   Chains,
-  ExtraDataEncoder,
   DepositReceipt,
   BitcoinDepositor,
 } from "../contracts"
