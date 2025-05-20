@@ -1,10 +1,4 @@
-import {
-  BitcoinDepositor,
-  ChainIdentifier,
-  DepositReceipt,
-  ExtraDataEncoder,
-  DestinationChainName,
-} from "../contracts"
+import { BitcoinDepositor, ChainIdentifier, DepositReceipt } from "../contracts"
 import { BitcoinRawTxVectors } from "../bitcoin"
 import { Hex } from "../utils"
 import { SuiClient } from "@mysten/sui/client"
@@ -16,26 +10,26 @@ import { packRevealDepositParameters } from "../ethereum"
 
 /**
  * SUI implementation of BitcoinDepositor.
- * 
+ *
  * This class handles the initialization of Bitcoin deposits on the SUI blockchain.
  * It communicates with the `l2_tbtc::BitcoinDepositor` Move module defined in `bitcoin_depositor.move`.
- * 
+ *
  * ## Parameter Mapping (TypeScript → Move)
- * 
+ *
  * When `initializeDeposit` is called, the TypeScript parameters are transformed as follows:
- * 
+ *
  * - `fundingTx` (BitcoinRawTxVectors): Serialized as concatenated byte vectors:
  *   ```
  *   [version bytes][inputs bytes][outputs bytes][locktime bytes]
  *   ```
  *   This becomes the `funding_tx: vector<u8>` parameter in Move.
- * 
- * - `depositReceipt.extraData` (Hex): Used directly as the `deposit_owner: vector<u8>` 
+ *
+ * - `depositReceipt.extraData` (Hex): Used directly as the `deposit_owner: vector<u8>`
  *   parameter in Move. This stores the SUI address of the deposit owner (32 bytes).
- * 
+ *
  * - Deposit reveal data: Constructed from `depositReceipt` fields (walletPublicKeyHash,
  *   refundPublicKeyHash, etc.) and sent as the `deposit_reveal: vector<u8>` parameter in Move.
- * 
+ *
  * The SUI deposit is considered successful when the Move function emits a `DepositInitialized` event.
  */
 export class SuiBitcoinDepositor implements BitcoinDepositor {
@@ -91,7 +85,7 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
     )
 
     // SUI specific MOVE module details
-    const SUI_PACKAGE_ID = this.#contractAddress.toString() 
+    const SUI_PACKAGE_ID = this.#contractAddress.toString()
     const TARGET_MODULE_NAME = "BitcoinDepositor"
     const TARGET_FUNCTION_NAME = "initialize_deposit"
 
@@ -106,15 +100,15 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
 
     const txb = new Transaction()
 
-    // --- START: Map arguments to your Move function signature --- 
+    // --- START: Map arguments to your Move function signature ---
     // WARNING: Serialization of fundingTx and reveal needs verification!
     // Assuming they are hex strings or similar that can be buffered directly.
     const moveCallArgs = [
       txb.pure(Buffer.from(fundingTx.toString(), "hex")), // funding_tx: vector<u8>
-      txb.pure(Buffer.from(reveal.toString(), "hex")),    // deposit_reveal: vector<u8>
+      txb.pure(Buffer.from(reveal.toString(), "hex")), // deposit_reveal: vector<u8>
       txb.pure(Buffer.from(extraData.toString(), "hex")), // deposit_owner: vector<u8>
-    ] // <<< VERIFY SERIALIZATION AND TYPES HERE CAREFULLY! 
-    // --- END: Map arguments to your Move function signature --- 
+    ] // <<< VERIFY SERIALIZATION AND TYPES HERE CAREFULLY!
+    // --- END: Map arguments to your Move function signature ---
 
     txb.moveCall({
       target: `${SUI_PACKAGE_ID}::${TARGET_MODULE_NAME}::${TARGET_FUNCTION_NAME}`,
@@ -126,7 +120,7 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
       // Sign and execute the transaction block
       // Use signAndExecuteTransaction and provide the signer
       const result = await this.#suiClient.signAndExecuteTransaction({
-        transaction: txb, 
+        transaction: txb,
         signer: this.#signer, // Pass stored signer
         options: {
           showEffects: true, // Recommended to check for errors
@@ -143,10 +137,9 @@ export class SuiBitcoinDepositor implements BitcoinDepositor {
       // Extract the transaction digest
       const txDigest = result.digest
       return Hex.from(txDigest)
-
     } catch (error) {
       console.error("Error executing SUI initializeDeposit transaction:", error)
       throw error // Re-throw the error for handling upstream
     }
   }
-} 
+}

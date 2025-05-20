@@ -84,7 +84,9 @@ export class EthereumL1BitcoinDepositor
 
     super(config, deployment)
 
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder(destinationChainName)
+    this.#extraDataEncoder = new CrossChainExtraDataEncoder(
+      destinationChainName
+    )
   }
 
   // eslint-disable-next-line valid-jsdoc
@@ -177,13 +179,60 @@ export class CrossChainExtraDataEncoder implements ExtraDataEncoder {
    * @see {CrossChainExtraDataEncoder#encodeDepositOwner}
    */
   encodeDepositOwner(depositOwner: ChainIdentifier): Hex {
-    const buffer = Hex.from(depositOwner.identifierHex).toBuffer()
+    console.log(
+      "[SDK ENCODER DEBUG] encodeDepositOwner called with:",
+      depositOwner
+    )
+    if (!depositOwner || !depositOwner.identifierHex) {
+      console.error(
+        "[SDK ENCODER ERROR] depositOwner or identifierHex is undefined/null.",
+        depositOwner
+      )
+      // Decide how to handle this - throw error or return a specific Hex representation of an error?
+      // Forcing an error to make it obvious if this path is taken.
+      throw new Error(
+        "depositOwner or identifierHex is invalid in encodeDepositOwner"
+      )
+    }
+    console.log(
+      "[SDK ENCODER DEBUG] depositOwner.identifierHex:",
+      depositOwner.identifierHex,
+      "Type:",
+      typeof depositOwner.identifierHex
+    )
+
+    const hexInput = depositOwner.identifierHex
+    // SuiAddress.from() might or might not prefix with 0x. Hex.from() handles both.
+    // Hex.from() itself should handle if it starts with '0x' or not.
+
+    const hexObj = Hex.from(hexInput)
+    console.log("[SDK ENCODER DEBUG] Hex.from(identifierHex) created:", hexObj)
+
+    const buffer = hexObj.toBuffer()
+    console.log(
+      "[SDK ENCODER DEBUG] Buffer from Hex object (length",
+      buffer.length,
+      "):",
+      buffer.toString("hex")
+    )
 
     if (buffer.length === 20) {
-      return Hex.from(`000000000000000000000000${Hex.from(buffer).toString()}`)
+      const paddedHex = `000000000000000000000000${hexObj.toString()}`
+      console.log(
+        "[SDK ENCODER DEBUG] Encoding as 20-byte (padded Ethereum style):",
+        paddedHex
+      )
+      return Hex.from(paddedHex)
     } else if (buffer.length === 32) {
+      console.log(
+        "[SDK ENCODER DEBUG] Encoding as 32-byte (SUI/Solana style). Buffer hex:",
+        Hex.from(buffer).toString()
+      )
       return Hex.from(buffer)
     } else {
+      console.error(
+        `[SDK ENCODER ERROR] Unsupported address length: ${buffer.length} for identifierHex: ${hexInput}`
+      )
       throw new Error(`Unsupported address length: ${buffer.length}`)
     }
   }

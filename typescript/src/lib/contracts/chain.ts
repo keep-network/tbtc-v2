@@ -25,7 +25,7 @@ export namespace Chains {
   }
 
   export enum Sui {
-    Sui = "35834a8a", 
+    Sui = "35834a8a",
     Testnet = "4c78adac",
   }
 }
@@ -33,10 +33,7 @@ export namespace Chains {
 /**
  * Layer 2 chains supported by tBTC v2 contracts.
  */
-export type DestinationChainName = Exclude<
-  keyof typeof Chains,
-  "Ethereum"
-> // Note: This automatically includes "Sui"
+export type DestinationChainName = Exclude<keyof typeof Chains, "Ethereum"> // Note: This automatically includes "Sui"
 
 /**
  * Type representing a mapping between specific L1 and L2 chains.

@@ -121,6 +121,22 @@ export class DepositsService {
     depositorProxy: DepositorProxy,
     extraData?: Hex
   ): Promise<Deposit> {
+    console.log(
+      "[DEPOSITS SERVICE DEBUG] initiateDepositWithProxy called. Value of extraData received:",
+      extraData
+    )
+    // If extraData is an object, log its string representation if available, otherwise log the object itself.
+    if (extraData && typeof extraData.toString === "function") {
+      console.log(
+        "[DEPOSITS SERVICE DEBUG] extraData.toString():",
+        extraData.toString()
+      )
+    } else {
+      console.log(
+        "[DEPOSITS SERVICE DEBUG] extraData is undefined or has no toString method."
+      )
+    }
+
     const receipt = await this.generateDepositReceipt(
       bitcoinRecoveryAddress,
       depositorProxy.getChainIdentifier(),

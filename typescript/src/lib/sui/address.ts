@@ -13,8 +13,9 @@ let IS_TEST_MODE = false
  * Enable test mode for SUI addresses.
  * This allows using mock SUI addresses in tests that would fail strict validation.
  * WARNING: This should ONLY be used in test environments, never in production.
- * 
+ *
  * @param enable Whether to enable test mode
+ * @returns Void - This function doesn't return a value
  */
 export function setSuiAddressTestMode(enable: boolean): void {
   IS_TEST_MODE = enable
@@ -105,6 +106,7 @@ export class SuiAddress implements ChainIdentifier {
 
   /**
    * Returns the underlying Hex object.
+   * @returns The Hex representation of the SUI address
    */
   toHex(): Hex {
     return this._internalHex

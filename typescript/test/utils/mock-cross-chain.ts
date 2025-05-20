@@ -9,7 +9,6 @@ import {
   Hex,
   DepositState,
   DestinationChainName,
-  ExtraDataEncoder,
 } from "../../src"
 import { BigNumber } from "ethers"
 
@@ -140,7 +139,10 @@ export class MockCrossChainExtraDataEncoder extends CrossChainExtraDataEncoder {
   }
 
   override decodeDepositOwner(data: Hex): ChainIdentifier {
-    console.warn("MockCrossChainExtraDataEncoder.decodeDepositOwner called with:", data)
+    console.warn(
+      "MockCrossChainExtraDataEncoder.decodeDepositOwner called with:",
+      data
+    )
     throw new Error("decodeDepositOwner is not implemented in mock")
   }
 }
