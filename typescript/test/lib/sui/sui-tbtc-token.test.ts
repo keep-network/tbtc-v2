@@ -1,6 +1,10 @@
 import { expect } from "chai"
-import { BigNumber } from "ethers"
-import { SuiTBTCToken, SuiAddress, ChainIdentifier, setSuiAddressTestMode } from "@src/index"
+import {
+  SuiTBTCToken,
+  SuiAddress,
+  ChainIdentifier,
+  setSuiAddressTestMode,
+} from "@src/index"
 
 // Enable test mode before running the tests
 setSuiAddressTestMode(true)
@@ -32,8 +36,10 @@ const mockSuiClient = {
 
 const TEST_PACKAGE_ID = "0x1234567890123456789012345678901234567890"
 const TEST_COIN_TYPE = `${TEST_PACKAGE_ID}::tbtc::TBTC`
-const VALID_OWNER_SUI_ADDRESS = "0x8e7c19f192126799851cdb2a820ce4cc6934f51bacc578376151b0a506c8ca81"
-const OTHER_OWNER_SUI_ADDRESS = "0x0000000000000000000000000000000000000000000000000000000000000001"
+const VALID_OWNER_SUI_ADDRESS =
+  "0x8e7c19f192126799851cdb2a820ce4cc6934f51bacc578376151b0a506c8ca81"
+const OTHER_OWNER_SUI_ADDRESS =
+  "0x0000000000000000000000000000000000000000000000000000000000000001"
 
 describe("SuiTBTCToken", () => {
   let suiTbtcToken: SuiTBTCToken
@@ -80,11 +86,11 @@ describe("SuiTBTCToken", () => {
         identifierHex: "whatever",
         equals: () => false,
       }
-      await expect(suiTbtcToken.balanceOf(invalidIdentifier)).to.be.rejectedWith(
-        "Identifier must be a SuiAddress"
-      )
+      await expect(
+        suiTbtcToken.balanceOf(invalidIdentifier)
+      ).to.be.rejectedWith("Identifier must be a SuiAddress")
     })
 
     // TODO: Add test for error handling in getBalance
   })
-}) 
+})

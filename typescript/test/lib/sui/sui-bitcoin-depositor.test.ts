@@ -1,6 +1,5 @@
 import chai, { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
-import { BigNumber } from "ethers"
 import {
   SuiBitcoinDepositor,
   SuiAddress,
@@ -20,14 +19,21 @@ setSuiAddressTestMode(true)
 
 chai.use(chaiAsPromised)
 
-// Mock SuiClient 
+// Mock SuiClient
 const mockSuiClient = {
-  getBalance: async (params: { owner: string; coinType: string }) => { 
+  getBalance: async (params: { owner: string; coinType: string }) => {
     // Dummy implementation for token tests if needed
-    return { totalBalance: "0" } 
+    return { totalBalance: "0" }
   },
-  signAndExecuteTransaction: async (params: { transaction: any; signer: any; options?: any }) => {
-    console.log("Mock signAndExecuteTransaction called with:", params.transaction?.kind)
+  signAndExecuteTransaction: async (params: {
+    transaction: any
+    signer: any
+    options?: any
+  }) => {
+    console.log(
+      "Mock signAndExecuteTransaction called with:",
+      params.transaction?.kind
+    )
     // Simulate successful transaction execution
     return {
       digest: "mockTxDigest" + Date.now(), // Return a mock digest
@@ -47,7 +53,8 @@ const mockSigner = {
 } as any
 
 const TEST_PACKAGE_ID = "0x1234567890123456789012345678901234567890"
-const DEPOSIT_OWNER_ADDRESS = "0x8e7c19f192126799851cdb2a820ce4cc6934f51bacc578376151b0a506c8ca81"
+const DEPOSIT_OWNER_ADDRESS =
+  "0x8e7c19f192126799851cdb2a820ce4cc6934f51bacc578376151b0a506c8ca81"
 
 describe("SuiBitcoinDepositor", () => {
   let suiDepositor: SuiBitcoinDepositor
@@ -56,13 +63,19 @@ describe("SuiBitcoinDepositor", () => {
   // Mock data (replace with realistic values as needed)
   const mockDepositTx: BitcoinRawTxVectors = {
     version: Hex.from("01000000"),
-    inputs: Hex.from("0100000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-    outputs: Hex.from("0100000000000000000000000000000000000000000000000000000000000000"),
+    inputs: Hex.from(
+      "0100000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    ),
+    outputs: Hex.from(
+      "0100000000000000000000000000000000000000000000000000000000000000"
+    ),
     locktime: Hex.from("00000000"),
   }
   const mockDepositOutputIndex = 0
   const mockDepositReceipt: DepositReceipt = {
-    depositor: EthereumAddress.from("0x0123456789012345678901234567890123456789"), 
+    depositor: EthereumAddress.from(
+      "0x0123456789012345678901234567890123456789"
+    ),
     blindingFactor: Hex.from("abcdef010203"), // Use realistic hex
     walletPublicKeyHash: Hex.from("1234abcd".repeat(5)), // Use 20-byte hex
     refundPublicKeyHash: Hex.from("5678efab".repeat(5)), // Use 20-byte hex
@@ -96,10 +109,10 @@ describe("SuiBitcoinDepositor", () => {
     })
 
     it.skip("should throw when setting non-SuiAddress as owner", () => {
-       const invalidOwner: ChainIdentifier = {
-         identifierHex: "whatever",
-         equals: () => false,
-       }
+      const invalidOwner: ChainIdentifier = {
+        identifierHex: "whatever",
+        equals: () => false,
+      }
       expect(() => suiDepositor.setDepositOwner(invalidOwner)).to.throw(
         "Deposit owner must be a SuiAddress"
       )
@@ -148,14 +161,14 @@ describe("SuiBitcoinDepositor", () => {
         identifierHex: "vault",
         equals: () => false,
       }
-       await expect(
-         suiDepositor.initializeDeposit(
-           mockDepositTx,
-           mockDepositOutputIndex,
-           mockDepositReceipt,
-           invalidVault
-         )
-       ).to.be.rejectedWith("Vault identifier must be a SuiAddress")
+      await expect(
+        suiDepositor.initializeDeposit(
+          mockDepositTx,
+          mockDepositOutputIndex,
+          mockDepositReceipt,
+          invalidVault
+        )
+      ).to.be.rejectedWith("Vault identifier must be a SuiAddress")
     })
 
     // TODO: Add tests for:
@@ -163,4 +176,4 @@ describe("SuiBitcoinDepositor", () => {
     // - Correct argument mapping/serialization (requires more detailed mocking/spying)
     // - Handling optional vault correctly if Move function signature differs
   })
-}) 
+})

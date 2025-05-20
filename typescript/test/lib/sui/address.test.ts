@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { SuiAddress, Hex, setSuiAddressTestMode } from "@src/index"
+import { SuiAddress, setSuiAddressTestMode } from "@src/index"
 
 // Enable test mode before running tests
 setSuiAddressTestMode(true)
@@ -91,7 +91,8 @@ describe("SuiAddress", () => {
       const otherAddr = {
         identifierHex: VALID_SUI_ADDRESS_HEX_NO_PREFIX,
         type: "ethereum", // Different type
-        equals: (other: any) => other.identifierHex === VALID_SUI_ADDRESS_HEX_NO_PREFIX,
+        equals: (other: any) =>
+          other.identifierHex === VALID_SUI_ADDRESS_HEX_NO_PREFIX,
       }
       expect(suiAddr.equals(otherAddr)).to.be.false
     })
@@ -123,4 +124,4 @@ describe("SuiAddress", () => {
       expect(addr.type).to.equal("sui")
     })
   })
-}) 
+})

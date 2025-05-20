@@ -2023,7 +2023,9 @@ describe("Deposits", () => {
         let crossChainContracts: CrossChainInterfaces
 
         beforeEach(async () => {
-          const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder("Base")
+          const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder(
+            "Base"
+          )
           // Set valid 32-byte extra data as initiateCrossChainDeposit
           // performs length and content checks on the extra data.
           l2BitcoinDepositorEncoder.setEncoding(
@@ -2230,7 +2232,9 @@ describe("Deposits", () => {
       let crossChainContracts: CrossChainInterfaces
 
       beforeEach(async () => {
-        const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder("Base")
+        const l2BitcoinDepositorEncoder = new MockCrossChainExtraDataEncoder(
+          "Base"
+        )
         // Set valid 32-byte extra data as initiateCrossChainDeposit
         // performs length and content checks on the extra data.
         l2BitcoinDepositorEncoder.setEncoding(
