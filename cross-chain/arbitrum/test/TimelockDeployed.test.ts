@@ -1,4 +1,4 @@
-import { deployments, ethers, helpers } from "hardhat"
+import { deployments, ethers } from "hardhat"
 import { expect } from "chai"
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -17,16 +17,15 @@ describe("TimelockDeployed", async () => {
 
   before(async () => {
     await deployments.fixture(["TimelockDeployed"])
-    
+
     const signers = await ethers.getSigners()
     if (signers.length < 3) {
       throw new Error(
         `Not enough signers available for test. Need at least 3, but got ${signers.length}.`
       )
     }
-    deployer = signers[0]
-    proposer = signers[1]
-    executor = signers[2]
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;[deployer, proposer, executor] = signers
 
     const TimelockDeployedFactory = await ethers.getContractFactory(
       "TimelockDeployed"
@@ -43,20 +42,28 @@ describe("TimelockDeployed", async () => {
 
   describe("deployment", async () => {
     it("should deploy the contract", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(timelockDeployed.address).to.not.be.null
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       expect(timelockDeployed.address).to.not.be.undefined
     })
 
     it("should set the minDelay", async () => {
-      expect(await timelockDeployed.getMinDelay()).to.equal(ONE_DAY_IN_SECONDS)
+      expect(await timelockDeployed.getMinDelay()).to.be.equal(
+        ONE_DAY_IN_SECONDS
+      )
     })
 
     it("should set the proposer role", async () => {
-      expect(await timelockDeployed.hasRole(PROPOSER_ROLE, proposer.address)).to.be.true
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      expect(await timelockDeployed.hasRole(PROPOSER_ROLE, proposer.address)).to
+        .be.true
     })
 
     it("should set the executor role", async () => {
-      expect(await timelockDeployed.hasRole(EXECUTOR_ROLE, executor.address)).to.be.true
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      expect(await timelockDeployed.hasRole(EXECUTOR_ROLE, executor.address)).to
+        .be.true
     })
   })
 })
