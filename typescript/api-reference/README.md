@@ -11,9 +11,11 @@
 
 ### Enumerations
 
+- [ApiUrl](enums/ApiUrl.md)
 - [BitcoinNetwork](enums/BitcoinNetwork-1.md)
 - [DepositState](enums/DepositState.md)
 - [WalletState](enums/WalletState-1.md)
+- [endpointUrl](enums/endpointUrl.md)
 
 ### Classes
 
@@ -71,8 +73,11 @@
 - [L2TBTCToken](interfaces/L2TBTCToken.md)
 - [RedeemerProxy](interfaces/RedeemerProxy.md)
 - [RedemptionRequest](interfaces/RedemptionRequest.md)
+- [RedemptionWallet](interfaces/RedemptionWallet.md)
+- [SerializableWallet](interfaces/SerializableWallet.md)
 - [TBTCToken](interfaces/TBTCToken.md)
 - [TBTCVault](interfaces/TBTCVault.md)
+- [ValidRedemptionWallet](interfaces/ValidRedemptionWallet.md)
 - [Wallet](interfaces/Wallet.md)
 - [WalletRegistry](interfaces/WalletRegistry.md)
 
@@ -118,6 +123,7 @@
 
 ### Functions
 
+- [amountToSatoshi](README.md#amounttosatoshi)
 - [assembleBitcoinSpvProof](README.md#assemblebitcoinspvproof)
 - [backoffRetrier](README.md#backoffretrier)
 - [chainIdFromSigner](README.md#chainidfromsigner)
@@ -712,6 +718,30 @@ List of chain mappings supported by tBTC v2 contracts.
 [lib/contracts/chain.ts:50](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/contracts/chain.ts#L50)
 
 ## Functions
+
+### amountToSatoshi
+
+▸ **amountToSatoshi**(`value`): `BigNumber`
+
+Converts the amount to Satoshi precision.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `value` | `BigNumber` | The amount to be converted. |
+
+#### Returns
+
+`BigNumber`
+
+The amount in Satoshi precision.
+
+#### Defined in
+
+[lib/utils/bitcoin.ts:8](https://github.com/keep-network/tbtc-v2/blob/main/typescript/src/lib/utils/bitcoin.ts#L8)
+
+___
 
 ### assembleBitcoinSpvProof
 
