@@ -8,6 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const timelock = await deploy("Timelock", {
     from: deployer,
+    contract: "@keep-network/tbtc-v2/contracts/Timelock.sol:Timelock",
     args: [
       86400, // 24h governance delay
       [governance], // Threshold Council multisig as a proposer
@@ -35,7 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (hre.network.tags.arbiscan) {
     await hre.run("verify:verify", {
-      contract: "contracts/Timelock.sol:Timelock",
+      contract: "@keep-network/tbtc-v2/contracts/Timelock.sol:Timelock",
       address: timelock.address,
       constructorArguments: timelock.args,
     })
