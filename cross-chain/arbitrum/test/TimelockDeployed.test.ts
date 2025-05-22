@@ -1,12 +1,11 @@
 import { deployments, ethers } from "hardhat"
 import { expect } from "chai"
-
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import type { TimelockDeployed } from "../typechain"
 
 const ONE_DAY_IN_SECONDS = 86400
 
-describe("TimelockDeployed", async () => {
+describe("TimelockDeployed", () => {
   let deployer: SignerWithAddress
   let proposer: SignerWithAddress
   let executor: SignerWithAddress
@@ -40,30 +39,34 @@ describe("TimelockDeployed", async () => {
     EXECUTOR_ROLE = await timelockDeployed.EXECUTOR_ROLE()
   })
 
-  describe("deployment", async () => {
-    it("should deploy the contract", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(timelockDeployed.address).to.not.be.null
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(timelockDeployed.address).to.not.be.undefined
+  describe("Deployment", () => {
+    it("Should deploy the contract to a valid address", async () => {
+      expect(ethers.utils.isAddress(timelockDeployed.address)).to.equal(true)
     })
 
-    it("should set the minDelay", async () => {
-      expect(await timelockDeployed.getMinDelay()).to.be.equal(
-        ONE_DAY_IN_SECONDS
+    it("Should set the minimum delay correctly", async () => {
+      const minDelay = await timelockDeployed.getMinDelay()
+      expect(minDelay).to.equal(ONE_DAY_IN_SECONDS)
+    })
+
+    it("Should grant the proposer role to the specified address", async () => {
+      const hasProposerRole = await timelockDeployed.hasRole(
+        PROPOSER_ROLE,
+        proposer.address
       )
+      expect(hasProposerRole).to.equal(true)
     })
 
-    it("should set the proposer role", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(await timelockDeployed.hasRole(PROPOSER_ROLE, proposer.address)).to
-        .be.true
+    it("Should grant the proposer role to the specified address", async () => {
+      expect(
+        await timelockDeployed.hasRole(PROPOSER_ROLE, proposer.address)
+      ).to.equal(true)
     })
 
-    it("should set the executor role", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(await timelockDeployed.hasRole(EXECUTOR_ROLE, executor.address)).to
-        .be.true
+    it("Should grant the executor role to the specified address", async () => {
+      expect(
+        await timelockDeployed.hasRole(EXECUTOR_ROLE, executor.address)
+      ).to.equal(true)
     })
   })
 })
