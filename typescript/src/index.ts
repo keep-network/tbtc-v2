@@ -9,9 +9,13 @@ export * from "./lib/utils"
 
 // Export SUI specific modules
 export { SuiAddress, setSuiAddressTestMode } from "./lib/sui/address"
-export { SuiTBTCToken } from "./lib/sui/sui-tbtc-token"
-export { SuiBitcoinDepositor } from "./lib/sui/sui-bitcoin-depositor"
+export {
+  SuiBitcoinDepositor,
+  SuiChainAdapter,
+  createSuiAdapter,
+} from "./lib/sui"
 export { loadSuiDestinationChainContracts } from "./lib/sui"
+export type { SuiNetworkConfig, SuiInitOptions } from "./lib/sui"
 
 // Export feature modules (services).
 export * from "./services/deposits"

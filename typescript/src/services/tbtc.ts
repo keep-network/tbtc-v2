@@ -6,11 +6,17 @@ import {
   CrossChainInterfaces,
   CrossChainContractsLoader,
   L1CrossChainContracts,
+  DestinationChainInterfaces,
   DestinationChainName,
   TBTCContracts,
-  DestinationChainInterfaces,
+  ChainIdentifier,
+  DepositReceipt,
 } from "../lib/contracts"
-import { BitcoinClient, BitcoinNetwork } from "../lib/bitcoin"
+import {
+  BitcoinClient,
+  BitcoinNetwork,
+  BitcoinRawTxVectors,
+} from "../lib/bitcoin"
 import {
   ethereumAddressFromSigner,
   EthereumSigner,
@@ -27,11 +33,9 @@ import { SuiClient } from "@mysten/sui/client"
 import { loadSuiDestinationChainContracts } from "../lib/sui"
 import type { Signer as SuiSigner } from "@mysten/sui/cryptography"
 import { BigNumber } from "ethers"
-import { ChainIdentifier } from "../lib/contracts/chain-identifier"
 import { Hex } from "../lib/utils"
 import { CrossChainExtraDataEncoder } from "../lib/ethereum/l1-bitcoin-depositor"
-import { SuiAddress } from "../lib/sui/address"
-import { SuiBitcoinDepositor } from "../lib/sui/sui-bitcoin-depositor"
+import { SuiChainAdapter, SuiNetworkConfig } from "../lib/sui/sui-chain-adapter"
 
 /**
  * Entrypoint component of the tBTC v2 SDK.
@@ -86,6 +90,13 @@ export class TBTC {
    * @private
    */
   private suiSigner?: SuiSigner
+
+  /**
+   * Chain adapters for simplified cross-chain operations.
+   * NEW: Simplified adapter pattern for user-facing operations.
+   * @private
+   */
+  private chainAdapters: Map<string, any> = new Map()
 
   private constructor(
     tbtcContracts: TBTCContracts,
@@ -221,14 +232,56 @@ export class TBTC {
   }
 
   /**
-   * Sets the SUI signer to be used for cross-chain operations.
-   * This allows setting or updating the signer after initialization.
+   * NEW: Simple adapter registration for user-facing SUI operations.
+   * This provides a clean, simplified interface while preserving the existing
+   * complex infrastructure needed for relayer compatibility.
+   *
+   * @param suiClient The SUI client for network interactions.
+   * @param config The SUI network configuration.
+   * @param signer Optional SUI signer (can be set later).
+   * @returns void
+   */
+  addSuiSupport(
+    suiClient: SuiClient,
+    config: SuiNetworkConfig,
+    signer?: SuiSigner
+  ): void {
+    const adapter = new SuiChainAdapter(suiClient, config, signer)
+    this.chainAdapters.set("sui", adapter)
+
+    // Also store for compatibility with existing infrastructure
+    this.suiClient = suiClient
+    if (signer) {
+      this.suiSigner = signer
+      this.hasSuiSigner = true
+    }
+  }
+
+  /**
+   * NEW: Get the SUI adapter for simplified operations.
+   *
+   * @returns The SUI chain adapter if available, undefined otherwise.
+   */
+  getSuiAdapter(): SuiChainAdapter | undefined {
+    return this.chainAdapters.get("sui")
+  }
+
+  /**
+   * ENHANCED: Sets the SUI signer with dual support for both adapter and legacy patterns.
+   * This preserves relayer compatibility while supporting simplified user operations.
    *
    * @param signer The SUI signer to use for transactions.
    * @param suiAddressString The SUI address string of the connected account (optional).
-   * @returns Void - This function doesn't return a value
+   * @returns void
    */
   setSuiSigner(signer: SuiSigner, suiAddressString?: string): void {
+    // NEW: Update adapter if it exists
+    const suiAdapter = this.chainAdapters.get("sui")
+    if (suiAdapter) {
+      suiAdapter.setSigner(signer)
+    }
+
+    // PRESERVE: Original logic for relayer compatibility
     this.suiSigner = signer
     this.hasSuiSigner = true
     console.log(
@@ -249,34 +302,15 @@ export class TBTC {
       )
       console.log("[SDK CORE] New SUI L2 contracts loaded with new signer.")
 
-      if (
-        suiAddressString &&
-        newL2SuiContracts.destinationChainBitcoinDepositor &&
-        typeof (
-          newL2SuiContracts.destinationChainBitcoinDepositor as SuiBitcoinDepositor
-        ).setDepositOwner === "function"
-      ) {
-        try {
-          const suiOwnerAddress = SuiAddress.from(suiAddressString)
-          ;(
-            newL2SuiContracts.destinationChainBitcoinDepositor as SuiBitcoinDepositor
-          ).setDepositOwner(suiOwnerAddress)
-          console.log(
-            `[SDK CORE] SuiBitcoinDepositor owner successfully set to: ${suiAddressString}`
-          )
-        } catch (e) {
-          console.error(
-            `[SDK CORE] Failed to create SuiAddress from string or set owner on SuiBitcoinDepositor: ${suiAddressString}`,
-            e
-          )
-        }
-      } else if (!suiAddressString) {
-        console.warn(
-          "[SDK CORE] SUI signer set, but no SUI address string provided to set deposit owner in SuiBitcoinDepositor."
+      // Note: Simplified SuiBitcoinDepositor doesn't use setDepositOwner
+      // Deposit owner is passed directly in initializeDeposit call
+      if (suiAddressString) {
+        console.log(
+          `[SDK CORE] SUI signer and address configured: ${suiAddressString}`
         )
       } else {
         console.warn(
-          "[SDK CORE] SuiBitcoinDepositor on newL2SuiContracts does not have setDepositOwner or is not the expected type."
+          "[SDK CORE] SUI signer set, but no SUI address string provided."
         )
       }
 
@@ -408,10 +442,10 @@ export class TBTC {
             setDepositOwner: () => {},
             extraDataEncoder: () => new CrossChainExtraDataEncoder("Solana"),
             initializeDeposit: async (
-              _depositTx,
-              _depositOutputIndex,
-              _deposit,
-              _vault
+              _depositTx: BitcoinRawTxVectors,
+              _depositOutputIndex: number,
+              _deposit: DepositReceipt,
+              _vault?: ChainIdentifier
             ) => Hex.from("0x"),
           },
           destinationChainTbtcToken: {
@@ -468,10 +502,10 @@ export class TBTC {
               setDepositOwner: () => {},
               extraDataEncoder: () => new CrossChainExtraDataEncoder("Sui"),
               initializeDeposit: async (
-                _depositTx,
-                _depositOutputIndex,
-                _deposit,
-                _vault
+                _depositTx: BitcoinRawTxVectors,
+                _depositOutputIndex: number,
+                _deposit: DepositReceipt,
+                _vault?: ChainIdentifier
               ) => {
                 throw new Error(
                   "SUI wallet connection required to initialize deposit on SUI network. " +

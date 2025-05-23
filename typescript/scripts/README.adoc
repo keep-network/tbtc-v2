@@ -1,8 +1,8 @@
 :toc: macro
 
-= tBTC v2 Refund script
+= tBTC v2 Scripts
 
-This script explains what to do in case you need to refund your BTC.
+This directory contains utility scripts for tBTC v2 operations and validation.
 
 toc::[]
 

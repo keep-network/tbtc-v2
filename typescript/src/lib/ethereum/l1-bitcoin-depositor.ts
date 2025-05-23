@@ -7,7 +7,7 @@ import { L1BitcoinDepositor as L1BitcoinDepositorTypechain } from "../../../type
 import {
   ChainIdentifier,
   Chains,
-  ExtraDataEncoder,
+  CrossChainExtraDataEncoder as ExtraDataEncoder,
   DepositReceipt,
   DepositState,
   L1BitcoinDepositor,
@@ -19,10 +19,11 @@ import { Hex } from "../utils"
 
 import MainnetBaseL1BitcoinDepositorDeployment from "./artifacts/mainnet/BaseL1BitcoinDepositor.json"
 import MainnetArbitrumL1BitcoinDepositorDeployment from "./artifacts/mainnet/ArbitrumOneL1BitcoinDepositor.json"
+// Note: SUI mainnet L1 depositor not yet deployed
 
 import SepoliaBaseL1BitcoinDepositorDeployment from "./artifacts/sepolia/BaseL1BitcoinDepositor.json"
 import SepoliaArbitrumL1BitcoinDepositorDeployment from "./artifacts/sepolia/ArbitrumL1BitcoinDepositor.json"
-import SepoliaSuiBTCDepositorWormhole from "./artifacts/sepolia/SuiBTCDepositorWormhole.json"
+import SepoliaSuiL1BitcoinDepositorDeployment from "./artifacts/sepolia/SuiBTCDepositorWormhole.json"
 import { SolanaAddress } from "../solana/address"
 import { SuiAddress } from "../sui/address"
 
@@ -33,6 +34,8 @@ const artifactLoader = {
         return MainnetBaseL1BitcoinDepositorDeployment
       case "Arbitrum":
         return MainnetArbitrumL1BitcoinDepositorDeployment
+      case "Sui":
+        throw new Error("SUI mainnet L1 depositor not yet deployed")
       default:
         throw new Error("Unsupported L2 chain")
     }
@@ -45,7 +48,7 @@ const artifactLoader = {
       case "Arbitrum":
         return SepoliaArbitrumL1BitcoinDepositorDeployment
       case "Sui":
-        return SepoliaSuiBTCDepositorWormhole
+        return SepoliaSuiL1BitcoinDepositorDeployment
       default:
         throw new Error("Unsupported L2 chain")
     }
@@ -202,8 +205,7 @@ export class CrossChainExtraDataEncoder implements ExtraDataEncoder {
     )
 
     const hexInput = depositOwner.identifierHex
-    // SuiAddress.from() might or might not prefix with 0x. Hex.from() handles both.
-    // Hex.from() itself should handle if it starts with '0x' or not.
+    // Hex.from() handles addresses both with and without 0x prefix
 
     const hexObj = Hex.from(hexInput)
     console.log("[SDK ENCODER DEBUG] Hex.from(identifierHex) created:", hexObj)

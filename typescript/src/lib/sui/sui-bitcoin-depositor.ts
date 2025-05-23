@@ -1,145 +1,108 @@
-import { BitcoinDepositor, ChainIdentifier, DepositReceipt } from "../contracts"
 import { BitcoinRawTxVectors } from "../bitcoin"
 import { Hex } from "../utils"
 import { SuiClient } from "@mysten/sui/client"
-import { SuiAddress } from "./address"
-import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 import { Transaction } from "@mysten/sui/transactions"
 import type { Signer } from "@mysten/sui/cryptography"
-import { packRevealDepositParameters } from "../ethereum"
 
 /**
- * SUI implementation of BitcoinDepositor.
+ * Simplified SUI implementation for Bitcoin deposit initialization.
  *
- * This class handles the initialization of Bitcoin deposits on the SUI blockchain.
- * It communicates with the `l2_tbtc::BitcoinDepositor` Move module defined in `bitcoin_depositor.move`.
+ * This class handles the single operation needed by the SDK:
+ * calling `initializeDeposit` on the SUI Bitcoin Depositor Move module.
  *
- * ## Parameter Mapping (TypeScript → Move)
- *
- * When `initializeDeposit` is called, the TypeScript parameters are transformed as follows:
- *
- * - `fundingTx` (BitcoinRawTxVectors): Serialized as concatenated byte vectors:
- *   ```
- *   [version bytes][inputs bytes][outputs bytes][locktime bytes]
- *   ```
- *   This becomes the `funding_tx: vector<u8>` parameter in Move.
- *
- * - `depositReceipt.extraData` (Hex): Used directly as the `deposit_owner: vector<u8>`
- *   parameter in Move. This stores the SUI address of the deposit owner (32 bytes).
- *
- * - Deposit reveal data: Constructed from `depositReceipt` fields (walletPublicKeyHash,
- *   refundPublicKeyHash, etc.) and sent as the `deposit_reveal: vector<u8>` parameter in Move.
- *
- * The SUI deposit is considered successful when the Move function emits a `DepositInitialized` event.
+ * The cross-chain deposit flow requires only this one transaction on SUI,
+ * after which the off-chain relayer handles the rest of the process.
  */
-export class SuiBitcoinDepositor implements BitcoinDepositor {
+export class SuiBitcoinDepositor {
   readonly #suiClient: SuiClient
-  readonly #contractAddress: SuiAddress // Address/ID of the deployed SUI package/module
-  readonly #extraDataEncoder: CrossChainExtraDataEncoder
+  readonly #packageId: string
   readonly #signer: Signer
-  #depositOwner: ChainIdentifier | undefined
 
-  constructor(suiClient: SuiClient, contractAddress: string, signer: Signer) {
+  /**
+   * Creates a new SuiBitcoinDepositor instance.
+   *
+   * @param suiClient Initialized SUI client
+   * @param packageId SUI package ID containing the BitcoinDepositor module
+   * @param signer SUI wallet signer for transaction signing
+   */
+  constructor(suiClient: SuiClient, packageId: string, signer: Signer) {
     this.#suiClient = suiClient
-    this.#contractAddress = SuiAddress.from(contractAddress)
-    // Assuming SUI destination for the encoder
-    this.#extraDataEncoder = new CrossChainExtraDataEncoder("Sui")
-    this.#signer = signer // Store signer
+    this.#packageId = packageId
+    this.#signer = signer
   }
 
-  getChainIdentifier(): ChainIdentifier {
-    return this.#contractAddress
-  }
-
-  getDepositOwner(): ChainIdentifier | undefined {
-    return this.#depositOwner
-  }
-
-  setDepositOwner(depositOwner: ChainIdentifier): void {
-    if (!(depositOwner instanceof SuiAddress)) {
-      throw new Error("Deposit owner must be a SuiAddress for SUI depositor")
-    }
-    this.#depositOwner = depositOwner
-  }
-
-  extraDataEncoder(): CrossChainExtraDataEncoder {
-    return this.#extraDataEncoder
-  }
-
+  /**
+   * Initializes a Bitcoin deposit on SUI by calling the Move module.
+   *
+   * This is the only operation the SDK needs to perform on SUI during
+   * the 20-step cross-chain deposit process (step 10).
+   *
+   * @param depositTx Bitcoin funding transaction data
+   * @param depositOutputIndex Output index in the funding transaction
+   * @param depositOwner SUI address that will receive the final tBTC
+   * @returns Transaction digest hash as a hexadecimal string
+   */
   async initializeDeposit(
     depositTx: BitcoinRawTxVectors,
     depositOutputIndex: number,
-    deposit: DepositReceipt,
-    vault?: ChainIdentifier // Vault might be represented differently in SUI
+    depositOwner: string
   ): Promise<Hex> {
-    if (!this.#depositOwner) {
-      throw new Error("Deposit owner must be set before initializing deposit")
-    }
-
-    if (vault && !(vault instanceof SuiAddress)) {
-      throw new Error("Vault identifier must be a SuiAddress for SUI depositor")
-    }
-
-    const extraData = this.extraDataEncoder().encodeDepositOwner(
-      this.#depositOwner
-    )
-
-    // SUI specific MOVE module details
-    const SUI_PACKAGE_ID = this.#contractAddress.toString()
-    const TARGET_MODULE_NAME = "BitcoinDepositor"
-    const TARGET_FUNCTION_NAME = "initialize_deposit"
-
-    // Pack parameters using the existing utility
-    // NOTE: Assumes return values can be serialized to vector<u8>
-    const { fundingTx, reveal } = packRevealDepositParameters(
-      depositTx,
-      depositOutputIndex,
-      deposit,
-      vault // Pass vault here
-    )
-
     const txb = new Transaction()
 
-    // --- START: Map arguments to your Move function signature ---
-    // WARNING: Serialization of fundingTx and reveal needs verification!
-    // Assuming they are hex strings or similar that can be buffered directly.
-    const moveCallArgs = [
-      txb.pure(Buffer.from(fundingTx.toString(), "hex")), // funding_tx: vector<u8>
-      txb.pure(Buffer.from(reveal.toString(), "hex")), // deposit_reveal: vector<u8>
-      txb.pure(Buffer.from(extraData.toString(), "hex")), // deposit_owner: vector<u8>
-    ] // <<< VERIFY SERIALIZATION AND TYPES HERE CAREFULLY!
-    // --- END: Map arguments to your Move function signature ---
-
+    // Construct direct Move call without complex parameter packing
     txb.moveCall({
-      target: `${SUI_PACKAGE_ID}::${TARGET_MODULE_NAME}::${TARGET_FUNCTION_NAME}`,
-      arguments: moveCallArgs,
-      // typeArguments: [] // Add if your move function has type arguments
+      target: `${this.#packageId}::bitcoin_depositor::initialize_deposit`,
+      arguments: [
+        txb.pure.vector("u8", Array.from(this.serializeBitcoinTx(depositTx))),
+        txb.pure.u32(depositOutputIndex),
+        txb.pure.address(depositOwner),
+      ],
     })
 
-    try {
-      // Sign and execute the transaction block
-      // Use signAndExecuteTransaction and provide the signer
-      const result = await this.#suiClient.signAndExecuteTransaction({
-        transaction: txb,
-        signer: this.#signer, // Pass stored signer
-        options: {
-          showEffects: true, // Recommended to check for errors
-        },
-      })
+    // Sign and execute the transaction
+    const result = await this.#suiClient.signAndExecuteTransaction({
+      transaction: txb,
+      signer: this.#signer,
+      options: {
+        showEffects: true,
+      },
+    })
 
-      // Check for execution errors
-      if (result.effects?.status.status !== "success") {
-        throw new Error(
-          `SUI transaction failed: ${result.effects?.status.error}`
-        )
-      }
-
-      // Extract the transaction digest
-      const txDigest = result.digest
-      return Hex.from(txDigest)
-    } catch (error) {
-      console.error("Error executing SUI initializeDeposit transaction:", error)
-      throw error // Re-throw the error for handling upstream
+    if (result.effects?.status?.status !== "success") {
+      throw new Error(
+        `SUI deposit initialization failed: ${result.effects?.status?.error}`
+      )
     }
+
+    return Hex.from(result.digest)
+  }
+
+  /**
+   * Serializes Bitcoin transaction for SUI Move module.
+   * Simple concatenation of transaction components.
+   *
+   * @param tx Bitcoin transaction vectors to serialize
+   * @returns Serialized transaction as a Uint8Array
+   */
+  private serializeBitcoinTx(tx: BitcoinRawTxVectors): Uint8Array {
+    const version = tx.version.toBuffer()
+    const inputs = tx.inputs.toBuffer()
+    const outputs = tx.outputs.toBuffer()
+    const locktime = tx.locktime.toBuffer()
+
+    const totalLength =
+      version.length + inputs.length + outputs.length + locktime.length
+    const result = new Uint8Array(totalLength)
+    let offset = 0
+
+    result.set(version, offset)
+    offset += version.length
+    result.set(inputs, offset)
+    offset += inputs.length
+    result.set(outputs, offset)
+    offset += outputs.length
+    result.set(locktime, offset)
+
+    return result
   }
 }
