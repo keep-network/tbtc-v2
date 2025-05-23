@@ -8,13 +8,10 @@ import {
   ChainIdentifier,
   Chains,
   DepositReceipt,
-  BitcoinDepositor,
+  L2BitcoinDepositor,
 } from "../contracts"
-import {
-  EthereumAddress,
-  CrossChainExtraDataEncoder,
-  packRevealDepositParameters,
-} from "../ethereum"
+import { EthereumAddress, packRevealDepositParameters } from "../ethereum"
+import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
 
@@ -27,7 +24,7 @@ import ArbitrumSepoliaL2BitcoinDepositorDeployment from "./artifacts/arbitrumSep
  */
 export class ArbitrumL2BitcoinDepositor
   extends EthersContractHandle<L2BitcoinDepositorTypechain>
-  implements BitcoinDepositor
+  implements L2BitcoinDepositor
 {
   readonly #extraDataEncoder: CrossChainExtraDataEncoder
   #depositOwner: ChainIdentifier | undefined

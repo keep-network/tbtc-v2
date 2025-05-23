@@ -4,7 +4,6 @@ import { ChainMapping, DestinationChainName } from "./chain"
 import { BitcoinRawTxVectors } from "../bitcoin"
 import { DepositReceipt } from "./bridge"
 import { Hex } from "../utils"
-import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 
 /**
  * Convenience type aggregating TBTC cross-chain contracts forming a connector
@@ -19,6 +18,14 @@ export type CrossChainInterfaces = DestinationChainInterfaces &
 export type DestinationChainInterfaces = {
   destinationChainTbtcToken: DestinationChainTBTCToken
   destinationChainBitcoinDepositor: BitcoinDepositor
+}
+
+/**
+ * Aggregates L2-specific TBTC cross-chain contracts.
+ */
+export type L2CrossChainContracts = {
+  l2TbtcToken: L2TBTCToken
+  l2BitcoinDepositor: L2BitcoinDepositor
 }
 
 /**
@@ -39,12 +46,108 @@ export interface CrossChainContractsLoader {
    */
   loadChainMapping: () => ChainMapping | undefined
   /**
-   * Loads L1-specific TBTC cross-chain contracts for the given destination chain.
-   * @param destinationChainName Name of the destination chain for which to load L1 contracts.
+   * Loads L1-specific TBTC cross-chain contracts for the given L2 chain.
+   * @param l2ChainName Name of the L2 chain for which to load L1 contracts.
    */
   loadL1Contracts: (
-    destinationChainName: DestinationChainName
+    l2ChainName: DestinationChainName
   ) => Promise<L1CrossChainContracts>
+}
+
+/**
+ * Interface for communication with the on-chain contract of the given
+ * canonical L2 tBTC token.
+ */
+export interface L2TBTCToken {
+  /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
+   * Returns the balance of the given identifier.
+   * @param identifier Identifier of the account to get the balance for.
+   * @returns The balance of the given identifier in 1e18 precision.
+   */
+  balanceOf(identifier: ChainIdentifier): Promise<BigNumber>
+}
+
+/**
+ * Interface for communication with the L2BitcoinDepositor on-chain contract
+ * deployed on the given L2 chain.
+ */
+export interface L2BitcoinDepositor {
+  /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
+   * Gets the identifier that should be used as the owner of the deposits
+   * issued by this contract.
+   * @returns The identifier of the deposit owner or undefined if not set.
+   */
+  getDepositOwner(): ChainIdentifier | undefined
+
+  /**
+   * Sets the identifier that should be used as the owner of the deposits
+   * issued by this contract.
+   * @param depositOwner Identifier of the deposit owner or undefined to clear.
+   */
+  setDepositOwner(depositOwner: ChainIdentifier): void
+
+  /**
+   * @returns Extra data encoder for this contract. The encoder is used to
+   * encode and decode the extra data included in the cross-chain deposit script.
+   */
+  extraDataEncoder(): CrossChainExtraDataEncoder
+
+  /**
+   * Initializes the cross-chain deposit indirectly through the given L2 chain.
+   * @param depositTx Deposit transaction data
+   * @param depositOutputIndex Index of the deposit transaction output that
+   *        funds the revealed deposit
+   * @param deposit Data of the revealed deposit
+   * @param vault Optional parameter denoting the vault the given deposit
+   *        should be routed to
+   * @returns Transaction hash of the reveal deposit transaction.
+   */
+  initializeDeposit(
+    depositTx: BitcoinRawTxVectors,
+    depositOutputIndex: number,
+    deposit: DepositReceipt,
+    vault?: ChainIdentifier
+  ): Promise<Hex>
+}
+
+/**
+ * Represents the state of the deposit.
+ */
+export enum DepositState {
+  // eslint-disable-next-line no-unused-vars
+  UNKNOWN,
+  // eslint-disable-next-line no-unused-vars
+  INITIALIZED,
+  // eslint-disable-next-line no-unused-vars
+  FINALIZED,
+}
+
+/**
+ * Interface for communication with the L1BitcoinDepositor on-chain contract
+ * specific to the given destination chain, deployed on the L1 chain.
+ */
+export type L1BitcoinDepositor = BitcoinDepositor & {
+  /**
+   * Gets the chain-specific identifier of this contract.
+   */
+  getChainIdentifier(): ChainIdentifier
+
+  /**
+   * Gets the deposit state for the given deposit identifier.
+   * @param depositId Identifier of the deposit to get the state for.
+   * @returns The state of the deposit.
+   */
+  getDepositState(depositId: string): Promise<DepositState>
 }
 
 /**
@@ -114,36 +217,6 @@ export interface BitcoinDepositor {
 }
 
 /**
- * Represents the state of the deposit.
- */
-export enum DepositState {
-  // eslint-disable-next-line no-unused-vars
-  UNKNOWN,
-  // eslint-disable-next-line no-unused-vars
-  INITIALIZED,
-  // eslint-disable-next-line no-unused-vars
-  FINALIZED,
-}
-
-/**
- * Interface for communication with the L1BitcoinDepositor on-chain contract
- * specific to the given L2 chain, deployed on the L1 chain.
- */
-export type L1BitcoinDepositor = BitcoinDepositor & {
-  /**
-   * Gets the chain-specific identifier of this contract.
-   */
-  getChainIdentifier(): ChainIdentifier
-
-  /**
-   * Gets the deposit state for the given deposit identifier.
-   * @param depositId Identifier of the deposit to get the state for.
-   * @returns The state of the deposit.
-   */
-  getDepositState(depositId: string): Promise<DepositState>
-}
-
-/**
  * Interface for encoding and decoding the extra data included in the
  * cross-chain deposit script.
  */
@@ -164,3 +237,9 @@ export interface ExtraDataEncoder {
    */
   decodeDepositOwner(extraData: Hex): ChainIdentifier
 }
+
+/**
+ * Interface for encoding and decoding the extra data included in the
+ * cross-chain deposit script.
+ */
+export interface CrossChainExtraDataEncoder extends ExtraDataEncoder {}

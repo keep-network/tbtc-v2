@@ -1,9 +1,7 @@
 import axios from "axios"
 import { ChainIdentifier, BitcoinDepositor, DepositReceipt } from "../contracts"
-import {
-  CrossChainExtraDataEncoder,
-  packRevealDepositParameters,
-} from "../ethereum"
+import { packRevealDepositParameters } from "../ethereum"
+import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
 

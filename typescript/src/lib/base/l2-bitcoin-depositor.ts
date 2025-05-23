@@ -10,11 +10,8 @@ import {
   DepositReceipt,
   BitcoinDepositor,
 } from "../contracts"
-import {
-  EthereumAddress,
-  CrossChainExtraDataEncoder,
-  packRevealDepositParameters,
-} from "../ethereum"
+import { EthereumAddress, packRevealDepositParameters } from "../ethereum"
+import { CrossChainExtraDataEncoder } from "../ethereum/l1-bitcoin-depositor"
 import { Hex } from "../utils"
 import { BitcoinRawTxVectors } from "../bitcoin"
 
