@@ -50,14 +50,6 @@ describe("TimelockDeployed", () => {
     })
 
     it("Should grant the proposer role to the specified address", async () => {
-      const hasProposerRole = await timelockDeployed.hasRole(
-        PROPOSER_ROLE,
-        proposer.address
-      )
-      expect(hasProposerRole).to.equal(true)
-    })
-
-    it("Should grant the proposer role to the specified address", async () => {
       expect(
         await timelockDeployed.hasRole(PROPOSER_ROLE, proposer.address)
       ).to.equal(true)
